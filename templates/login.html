@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8"><title>ComRoster — Connexion</title>
+{% for m in get_flashed_messages() %}<p>{{ m }}</p>{% endfor %}
+{% if recovery_code %}
+  <p>Nouveau code de récupération : <strong>{{ recovery_code }}</strong></p>
+{% endif %}
+{% if recover %}
+  <h1>Réinitialiser</h1>
+  <form method="post" action="{{ url_for('auth.recover') }}">
+    <input name="recovery_code" placeholder="Code de récupération" required>
+    <input type="password" name="password" placeholder="Nouveau mot de passe (8+)" required>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button>Réinitialiser</button>
+  </form>
+{% else %}
+  <h1>Connexion</h1>
+  <form method="post">
+    <input type="password" name="password" required>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button>Se connecter</button>
+  </form>
+  <a href="{{ url_for('auth.recover') }}">Mot de passe oublié ?</a>
+{% endif %}
