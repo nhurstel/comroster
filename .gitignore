@@ -8,3 +8,6 @@ data_published.json
 admin_secret.json
 history/
 instance/
+
+# macOS
+.DS_Store
