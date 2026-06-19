@@ -15,3 +15,11 @@ def test_admin_page_renders(auth_client):
     assert "js/admin.js" in html
     assert "vendor/sortable.min.js" in html
     assert "css/main.css" in html
+
+
+def test_display_page_renders(client):
+    r = client.get("/display")
+    assert r.status_code == 200
+    html = r.get_data(as_text=True)
+    assert "js/display.js" in html
+    assert "css/main.css" in html
