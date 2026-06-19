@@ -1,0 +1,137 @@
+import uuid
+from datetime import datetime, timezone
+
+
+class ValidationError(Exception):
+    def __init__(self, message, code="invalid"):
+        super().__init__(message)
+        self.code = code
+
+
+def now_iso():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def new_id():
+    return str(uuid.uuid4())
+
+
+def empty_state():
+    return {"version": 1, "updated_at": now_iso(), "groups": [], "people": []}
+
+
+def touch(state):
+    state["updated_at"] = now_iso()
+
+
+def normalize_beltpack(value):
+    return (value or "").strip()
+
+
+def _find(items, item_id):
+    for item in items:
+        if item["id"] == item_id:
+            return item
+    return None
+
+
+def _assert_beltpack_free(state, beltpack, ignore_id=None):
+    norm = normalize_beltpack(beltpack)
+    if not norm:
+        raise ValidationError("Le numéro de beltpack est obligatoire", code="beltpack_empty")
+    for person in state["people"]:
+        if person["id"] == ignore_id:
+            continue
+        if normalize_beltpack(person["beltpack"]) == norm:
+            raise ValidationError(f"Beltpack {norm} déjà attribué", code="beltpack_conflict")
+
+
+def add_group(state, name, color, order=None):
+    group = {
+        "id": new_id(),
+        "name": name,
+        "color": color,
+        "order": order if order is not None else len(state["groups"]),
+    }
+    state["groups"].append(group)
+    touch(state)
+    return group
+
+
+def update_group(state, group_id, **fields):
+    group = _find(state["groups"], group_id)
+    if group is None:
+        raise ValidationError("Groupe introuvable", code="not_found")
+    for key in ("name", "color", "order"):
+        if key in fields and fields[key] is not None:
+            group[key] = fields[key]
+    touch(state)
+    return group
+
+
+def delete_group(state, group_id):
+    group = _find(state["groups"], group_id)
+    if group is None:
+        raise ValidationError("Groupe introuvable", code="not_found")
+    for person in state["people"]:
+        if person["group_id"] == group_id:
+            person["group_id"] = None
+    state["groups"].remove(group)
+    touch(state)
+
+
+def add_person(state, name, role, beltpack, group_id=None):
+    _assert_beltpack_free(state, beltpack)
+    if group_id is not None and _find(state["groups"], group_id) is None:
+        raise ValidationError("Groupe cible introuvable", code="not_found")
+    person = {
+        "id": new_id(),
+        "name": name,
+        "role": role,
+        "beltpack": normalize_beltpack(beltpack),
+        "group_id": group_id,
+    }
+    state["people"].append(person)
+    touch(state)
+    return person
+
+
+def update_person(state, person_id, **fields):
+    person = _find(state["people"], person_id)
+    if person is None:
+        raise ValidationError("Personne introuvable", code="not_found")
+    if "beltpack" in fields and fields["beltpack"] is not None:
+        _assert_beltpack_free(state, fields["beltpack"], ignore_id=person_id)
+        person["beltpack"] = normalize_beltpack(fields["beltpack"])
+    if "group_id" in fields:
+        gid = fields["group_id"]
+        if gid is not None and _find(state["groups"], gid) is None:
+            raise ValidationError("Groupe cible introuvable", code="not_found")
+        person["group_id"] = gid
+    for key in ("name", "role"):
+        if key in fields and fields[key] is not None:
+            person[key] = fields[key]
+    touch(state)
+    return person
+
+
+def delete_person(state, person_id):
+    person = _find(state["people"], person_id)
+    if person is None:
+        raise ValidationError("Personne introuvable", code="not_found")
+    state["people"].remove(person)
+    touch(state)
+
+
+def validate_state(state):
+    seen = set()
+    group_ids = {g["id"] for g in state["groups"]}
+    for person in state["people"]:
+        norm = normalize_beltpack(person["beltpack"])
+        if not norm:
+            raise ValidationError("Beltpack vide détecté", code="beltpack_empty")
+        if norm in seen:
+            raise ValidationError(f"Beltpack {norm} en double", code="beltpack_conflict")
+        seen.add(norm)
+        if person["group_id"] is not None and person["group_id"] not in group_ids:
+            raise ValidationError("group_id orphelin", code="orphan_group")
