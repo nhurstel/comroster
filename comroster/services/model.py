@@ -17,7 +17,24 @@ def new_id():
 
 
 def empty_state():
-    return {"version": 1, "updated_at": now_iso(), "groups": [], "people": []}
+    return {
+        "version": 1,
+        "updated_at": now_iso(),
+        "groups": [],
+        "people": [],
+        "beltpack_roles": {},
+    }
+
+
+def role_for_beltpack(state, beltpack):
+    """Rôle mémorisé pour ce numéro de beltpack, ou None."""
+    return state.get("beltpack_roles", {}).get(normalize_beltpack(beltpack))
+
+
+def _remember_role(state, beltpack, role):
+    """Mémorise la correspondance numéro → rôle (le rôle suit le beltpack)."""
+    if role:
+        state.setdefault("beltpack_roles", {})[normalize_beltpack(beltpack)] = role
 
 
 def touch(state):
@@ -84,6 +101,9 @@ def add_person(state, name, role, beltpack, group_id=None):
     _assert_beltpack_free(state, beltpack)
     if group_id is not None and _find(state["groups"], group_id) is None:
         raise ValidationError("Groupe cible introuvable", code="not_found")
+    # Le rôle suit le beltpack : s'il n'est pas fourni, on hérite du rôle mémorisé.
+    if not role:
+        role = role_for_beltpack(state, beltpack) or ""
     person = {
         "id": new_id(),
         "name": name,
@@ -92,6 +112,7 @@ def add_person(state, name, role, beltpack, group_id=None):
         "group_id": group_id,
     }
     state["people"].append(person)
+    _remember_role(state, person["beltpack"], role)
     touch(state)
     return person
 
@@ -111,6 +132,7 @@ def update_person(state, person_id, **fields):
     for key in ("name", "role"):
         if key in fields and fields[key] is not None:
             person[key] = fields[key]
+    _remember_role(state, person["beltpack"], person["role"])
     touch(state)
     return person
 
