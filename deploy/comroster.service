@@ -1,0 +1,23 @@
+[Unit]
+Description=ComRoster — tableau d'affectation beltpacks intercom
+After=network.target
+
+[Service]
+Type=simple
+User=comroster
+Group=comroster
+WorkingDirectory=/opt/comroster
+# Clé de session OBLIGATOIRE : générer avec `python -c "import secrets;print(secrets.token_hex(32))"`
+Environment=FLASK_SECRET_KEY=__REMPLACER_PAR_UNE_CLE_LONGUE_ET_ALEATOIRE__
+Environment=DATA_DIR=/opt/comroster/instance
+ExecStart=/opt/comroster/.venv/bin/gunicorn -c gunicorn.conf.py app:app
+Restart=on-failure
+RestartSec=3
+# Durcissement systemd
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/comroster/instance
+
+[Install]
+WantedBy=multi-user.target
