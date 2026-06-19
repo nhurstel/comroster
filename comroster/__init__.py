@@ -32,7 +32,7 @@ def create_app(config_overrides=None):
     # Services partagés
     from .services.storage import Storage
     from .services.secret import SecretStore
-    from .security import csrf, limiter, login_required
+    from .security import csrf, limiter
 
     app.extensions["storage"] = Storage(app.config["DATA_DIR"])
     app.extensions["secret"] = SecretStore(app.config["DATA_DIR"])
@@ -45,20 +45,7 @@ def create_app(config_overrides=None):
     from .auth import bp as auth_bp
     app.register_blueprint(auth_bp)
 
-    # Stub api (remplacé par le vrai blueprint en P3)
-    from flask import Blueprint
-    api_stub = Blueprint("api", __name__)
-
-    @api_stub.get("/admin")
-    @login_required
-    def admin_page():
-        return "ADMIN OK"
-
-    @api_stub.get("/api/state")
-    @login_required
-    def get_state():
-        return jsonify(app.extensions["storage"].load_draft())
-
-    app.register_blueprint(api_stub)
+    from .api import bp as api_bp
+    app.register_blueprint(api_bp)
 
     return app
