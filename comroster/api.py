@@ -16,6 +16,14 @@ def _storage():
     return current_app.extensions["storage"]
 
 
+def _broker():
+    return current_app.extensions["broker"]
+
+
+def _history():
+    return current_app.extensions["history"]
+
+
 def _error(exc):
     return jsonify({"error": str(exc), "code": exc.code}), _CODE_TO_HTTP.get(exc.code, 400)
 
@@ -132,3 +140,36 @@ def import_state():
     model.touch(data)
     _storage().save_draft(data)
     return jsonify(data)
+
+
+@bp.post("/api/publish")
+@login_required
+def publish():
+    state = _storage().load_draft()
+    try:
+        model.validate_state(state)
+    except model.ValidationError as exc:
+        # Brouillon invalide : on refuse de publier (409, cf. cahier des charges §10.3).
+        return jsonify({"error": str(exc), "code": exc.code}), 409
+    _storage().save_published(state)
+    _history().archive(state)
+    _broker().publish("published", state)
+    return jsonify({"ok": True, "updated_at": state["updated_at"]})
+
+
+@bp.get("/api/history")
+@login_required
+def history_list():
+    return jsonify(_history().list())
+
+
+@bp.post("/api/history/<ts>/restore")
+@login_required
+def history_restore(ts):
+    try:
+        snapshot = _history().load(ts)
+    except KeyError:
+        return jsonify({"error": "not_found", "code": "not_found"}), 404
+    model.touch(snapshot)
+    _storage().save_draft(snapshot)
+    return jsonify(snapshot)

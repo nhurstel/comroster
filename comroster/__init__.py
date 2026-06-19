@@ -37,6 +37,11 @@ def create_app(config_overrides=None):
     app.extensions["storage"] = Storage(app.config["DATA_DIR"])
     app.extensions["secret"] = SecretStore(app.config["DATA_DIR"])
 
+    from .services.pubsub import Broker
+    from .services.history import History
+    app.extensions["broker"] = Broker()
+    app.extensions["history"] = History(app.extensions["storage"])
+
     if app.config.get("TESTING"):
         app.config["WTF_CSRF_ENABLED"] = False
     csrf.init_app(app)
@@ -47,5 +52,9 @@ def create_app(config_overrides=None):
 
     from .api import bp as api_bp
     app.register_blueprint(api_bp)
+
+    from .display import bp as display_bp
+    app.register_blueprint(display_bp)
+    csrf.exempt(display_bp)
 
     return app
