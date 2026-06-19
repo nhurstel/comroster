@@ -1,0 +1,31 @@
+:root { --primary:#00A8E8; --secondary:#1b1f2a; --accent:#ffd166; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: system-ui, -apple-system, sans-serif; }
+
+/* ---------- Admin ---------- */
+body.admin { background:#0f1320; color:#e7ecf3; }
+.toolbar { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:.75rem 1rem; background:var(--secondary); position:sticky; top:0; z-index:10; flex-wrap:wrap; }
+.toolbar h1 { font-size:1.2rem; margin:0; }
+.toolbar .actions { display:flex; gap:.5rem; flex-wrap:wrap; }
+button, .import-btn { background:#2a3142; color:#e7ecf3; border:1px solid #3a4256; border-radius:8px; padding:.5rem .8rem; cursor:pointer; font-size:.9rem; }
+button:hover, .import-btn:hover { background:#343c52; }
+button.primary { background:var(--primary); color:#04121b; font-weight:600; border-color:var(--primary); }
+#board { display:flex; gap:1rem; padding:1rem; align-items:flex-start; flex-wrap:wrap; }
+.pool, .group { background:#161b2b; border:1px solid #283349; border-radius:12px; padding:.75rem; min-width:230px; }
+.pool h2, .group h2 { margin:0 0 .6rem; font-size:1rem; display:flex; justify-content:space-between; align-items:center; gap:.5rem; padding:.3rem .5rem; border-radius:6px; }
+.group { border-top:4px solid; }
+.g-actions { display:flex; gap:.25rem; }
+.g-actions button { padding:.15rem .4rem; font-size:.8rem; }
+.people-list { list-style:none; margin:0; padding:0; min-height:44px; display:flex; flex-direction:column; gap:.4rem; }
+.person { background:#202840; border-radius:8px; padding:.5rem .6rem; cursor:grab; display:flex; gap:.5rem; align-items:baseline; }
+.person:active { cursor:grabbing; }
+.person .role { opacity:.7; font-size:.85em; }
+.person .bp { margin-left:auto; color:var(--accent); font-weight:600; }
+
+.toast { position:fixed; bottom:1rem; left:50%; transform:translateX(-50%); background:#1f8a4c; color:#fff; padding:.6rem 1rem; border-radius:8px; z-index:50; }
+.toast.error { background:#c0392b; }
+
+dialog { background:#161b2b; color:#e7ecf3; border:1px solid #283349; border-radius:12px; padding:1.2rem; }
+dialog::backdrop { background:rgba(0,0,0,.5); }
+#history-list { list-style:none; padding:0; display:flex; flex-direction:column; gap:.4rem; }
+#history-list li { display:flex; justify-content:space-between; gap:1rem; align-items:center; }
