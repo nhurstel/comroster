@@ -29,3 +29,28 @@ dialog { background:#161b2b; color:#e7ecf3; border:1px solid #283349; border-rad
 dialog::backdrop { background:rgba(0,0,0,.5); }
 #history-list { list-style:none; padding:0; display:flex; flex-direction:column; gap:.4rem; }
 #history-list li { display:flex; justify-content:space-between; gap:1rem; align-items:center; }
+
+/* ---------- Display (écran TV) ---------- */
+body.display { background:#05070f; color:#eaf2ff; transition:background .4s, color .4s; }
+body.display[data-theme="day"] { background:#eef3fb; color:#0b1424; }
+.d-header { position:sticky; top:0; z-index:5; display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; backdrop-filter:blur(12px); background:rgba(10,14,25,.55); }
+body.display[data-theme="day"] .d-header { background:rgba(255,255,255,.6); }
+.d-header h1 { margin:0; font-size:2rem; }
+.d-meta { display:flex; gap:1.5rem; align-items:center; font-size:1.4rem; }
+.live.on { color:#2ecc71; } .live.off { color:#e74c3c; }
+.d-meta button { font-size:1rem; background:transparent; border:1px solid currentColor; color:inherit; }
+
+.display-board { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:1.5rem; padding:2rem; }
+.glass-card { border-radius:18px; padding:1.2rem 1.5rem; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.15); border-top:6px solid var(--card-color); backdrop-filter:blur(14px); box-shadow:0 8px 32px rgba(0,0,0,.35); }
+body.display[data-theme="day"] .glass-card { background:rgba(255,255,255,.55); border-color:rgba(0,0,0,.08); }
+.glass-card h2 { margin:0 0 1rem; font-size:1.9rem; }
+
+.d-person { display:flex; gap:1rem; align-items:center; padding:.5rem 0; border-bottom:1px solid rgba(127,127,127,.18); }
+.d-person:last-child { border-bottom:none; }
+.d-bp { flex:0 0 auto; min-width:2.6rem; height:2.6rem; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; background:var(--card-color); color:#04121b; font-weight:800; font-size:1.5rem; padding:0 .5rem; }
+.d-info { display:flex; flex-direction:column; line-height:1.2; }
+.d-role { font-size:1.5rem; font-weight:700; }
+.d-name { font-size:1.1rem; opacity:.8; }
+.empty { opacity:.4; font-size:1.4rem; }
+
+@media (prefers-reduced-motion: reduce) { .glass-card, .d-header { backdrop-filter:none; } }

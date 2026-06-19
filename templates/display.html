@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ComRoster — Affichage</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body class="display" data-theme="night">
+  <header class="d-header">
+    <h1>Affectation Intercom</h1>
+    <div class="d-meta">
+      <span id="stats"></span>
+      <span id="clock"></span>
+      <span id="live" class="live off">● Hors ligne</span>
+      <button id="theme" title="Jour / Nuit">☀ / ☾</button>
+    </div>
+  </header>
+  <main id="display-board" class="display-board"></main>
+  <script src="{{ url_for('static', filename='js/display.js') }}"></script>
+</body>
+</html>
