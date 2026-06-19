@@ -1,0 +1,134 @@
+from flask import Blueprint, request, jsonify, current_app, render_template
+
+from .security import login_required
+from .services import model
+
+bp = Blueprint("api", __name__)
+
+_CODE_TO_HTTP = {
+    "beltpack_conflict": 409,
+    "beltpack_empty": 409,
+    "not_found": 404,
+}
+
+
+def _storage():
+    return current_app.extensions["storage"]
+
+
+def _error(exc):
+    return jsonify({"error": str(exc), "code": exc.code}), _CODE_TO_HTTP.get(exc.code, 400)
+
+
+@bp.get("/admin")
+@login_required
+def admin_page():
+    try:
+        return render_template("admin.html")
+    except Exception:
+        return "ADMIN OK"
+
+
+@bp.get("/api/state")
+@login_required
+def get_state():
+    return jsonify(_storage().load_draft())
+
+
+@bp.post("/api/groups")
+@login_required
+def create_group():
+    data = request.get_json(force=True)
+    state = _storage().load_draft()
+    try:
+        g = model.add_group(state, data["name"], data.get("color", "#888888"), data.get("order"))
+    except model.ValidationError as exc:
+        return _error(exc)
+    _storage().save_draft(state)
+    return jsonify(g)
+
+
+@bp.patch("/api/groups/<gid>")
+@login_required
+def patch_group(gid):
+    data = request.get_json(force=True)
+    state = _storage().load_draft()
+    try:
+        g = model.update_group(state, gid, **data)
+    except model.ValidationError as exc:
+        return _error(exc)
+    _storage().save_draft(state)
+    return jsonify(g)
+
+
+@bp.delete("/api/groups/<gid>")
+@login_required
+def delete_group(gid):
+    state = _storage().load_draft()
+    try:
+        model.delete_group(state, gid)
+    except model.ValidationError as exc:
+        return _error(exc)
+    _storage().save_draft(state)
+    return jsonify({"ok": True})
+
+
+@bp.post("/api/people")
+@login_required
+def create_person():
+    data = request.get_json(force=True)
+    state = _storage().load_draft()
+    try:
+        p = model.add_person(state, data["name"], data.get("role", ""), data["beltpack"], data.get("group_id"))
+    except model.ValidationError as exc:
+        return _error(exc)
+    _storage().save_draft(state)
+    return jsonify(p)
+
+
+@bp.patch("/api/people/<pid>")
+@login_required
+def patch_person(pid):
+    data = request.get_json(force=True)
+    state = _storage().load_draft()
+    try:
+        p = model.update_person(state, pid, **data)
+    except model.ValidationError as exc:
+        return _error(exc)
+    _storage().save_draft(state)
+    return jsonify(p)
+
+
+@bp.delete("/api/people/<pid>")
+@login_required
+def delete_person(pid):
+    state = _storage().load_draft()
+    try:
+        model.delete_person(state, pid)
+    except model.ValidationError as exc:
+        return _error(exc)
+    _storage().save_draft(state)
+    return jsonify({"ok": True})
+
+
+@bp.get("/api/export")
+@login_required
+def export_state():
+    resp = jsonify(_storage().load_draft())
+    resp.headers["Content-Disposition"] = "attachment; filename=comroster.json"
+    return resp
+
+
+@bp.post("/api/import")
+@login_required
+def import_state():
+    data = request.get_json(force=True)
+    try:
+        if not all(k in data for k in ("version", "groups", "people")):
+            raise model.ValidationError("Structure invalide", code="invalid")
+        model.validate_state(data)
+    except model.ValidationError as exc:
+        return jsonify({"error": str(exc), "code": exc.code}), 400
+    model.touch(data)
+    _storage().save_draft(data)
+    return jsonify(data)
