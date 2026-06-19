@@ -36,10 +36,16 @@ Générer une clé : `python -c "import secrets; print(secrets.token_hex(32))"`.
 
 ## Lancement
 
-**Développement :**
+**Développement** (le plus simple) :
 ```bash
-FLASK_SECRET_KEY=dev DATA_DIR=./instance FLASK_DEBUG=true .venv/bin/python app.py
+./run-dev.sh
 ```
+Le script active `FLASK_DEBUG=true` : la factory fournit alors une clé de session de dev
+et désactive le flag `Secure` du cookie (nécessaire en HTTP local). Équivalent manuel :
+```bash
+FLASK_DEBUG=true DATA_DIR=./instance python app.py
+```
+> Sans `FLASK_DEBUG` ni `FLASK_SECRET_KEY`, l'app **refuse de démarrer** (garde prod voulue).
 
 **Production (un seul worker — le broker SSE est en mémoire) :**
 ```bash
@@ -79,6 +85,8 @@ dans `.gitignore`.
 
 ## Tests
 
+`pytest` est une dépendance de développement (hors `requirements.txt`) :
 ```bash
-.venv/bin/pytest -q
+pip install pytest
+pytest -q
 ```
