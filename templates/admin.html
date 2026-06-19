@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>ComRoster — Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body class="admin">
+  <header class="toolbar">
+    <h1>ComRoster — Régie</h1>
+    <div class="actions">
+      <button id="add-group">+ Groupe</button>
+      <button id="add-person">+ Personne</button>
+      <button id="history-btn">Historique</button>
+      <button id="export">Exporter</button>
+      <label class="import-btn">Importer<input type="file" id="import" accept="application/json" hidden></label>
+      <button id="publish" class="primary">Publier vers l'affichage</button>
+      <form method="post" action="{{ url_for('auth.logout') }}" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button>Déconnexion</button>
+      </form>
+    </div>
+  </header>
+  <main id="board">
+    <section class="pool">
+      <h2>Disponibles</h2>
+      <ul id="pool" class="people-list" data-group=""></ul>
+    </section>
+    <div id="groups"></div>
+  </main>
+  <dialog id="history-dialog">
+    <h2>Publications passées</h2>
+    <ul id="history-list"></ul>
+    <menu><button id="history-close">Fermer</button></menu>
+  </dialog>
+  <div id="toast" class="toast" hidden></div>
+  <script src="{{ url_for('static', filename='vendor/sortable.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+</body>
+</html>
