@@ -14,7 +14,12 @@ def create_app(config_overrides=None):
 
     if not app.config.get("TESTING") and not app.config.get("DEBUG"):
         if not app.config.get("SECRET_KEY"):
-            raise RuntimeError("FLASK_SECRET_KEY est obligatoire en production")
+            raise RuntimeError(
+                "FLASK_SECRET_KEY est obligatoire hors debug/test.\n"
+                "  • Développement local : ./run-dev.sh  (ou FLASK_DEBUG=true python app.py)\n"
+                "  • Production : définir FLASK_SECRET_KEY "
+                "(python -c \"import secrets; print(secrets.token_hex(32))\")"
+            )
     if not app.config.get("SECRET_KEY"):
         app.config["SECRET_KEY"] = "dev-insecure-key"
 
