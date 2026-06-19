@@ -19,7 +19,8 @@
 - **Suppression de groupe** ⇒ ses membres repassent `group_id = null` (pool), jamais supprimés.
 - **Concurrence** : last-write-wins, pas de verrou logique.
 - **Un seul worker en prod** (broker SSE en mémoire) : `gunicorn --workers 1 --threads 8 --worker-class gthread`.
-- **Schéma d'état** : `{ "version": 1, "updated_at": <ISO8601 UTC>, "groups": [...], "people": [...] }`. Groupe : `{id,name,color,order}`. Personne : `{id,name,role,beltpack,group_id}`.
+- **Schéma d'état** : `{ "version": 1, "updated_at": <ISO8601 UTC>, "groups": [...], "people": [...], "beltpack_roles": {<n°>: <role>} }`. Groupe : `{id,name,color,order}`. Personne : `{id,name,role,beltpack,group_id}`.
+- **Rôle lié au beltpack** : le rôle (« Régie », « Lumière »…) caractérise le **numéro de beltpack**, pas la personne. La map `beltpack_roles` (n° normalisé → rôle) mémorise la correspondance : à la saisie, si le rôle est absent il est hérité de la map ; toute saisie de rôle met la map à jour. Pré-remplissage UI à partir de cette map.
 - **SSE** : en-têtes `text/event-stream`, `Cache-Control: no-cache`, `X-Accel-Buffering: no` ; `retry: 3000` + event `snapshot` à la connexion ; event `published` à chaque publication ; heartbeat `: keepalive` ~15 s.
 - **Sécurité** : `FLASK_SECRET_KEY` obligatoire en prod (refus de démarrer sinon) ; cookie `HttpOnly`, `SameSite=Lax`, `Secure` ; CSRF sur toute requête mutative ; `/display` et `/events` n'exposent **que** l'état publié.
 - **TDD** sur le backend critique (`storage`, `model`, `publish`, `pubsub`). Commits atomiques.
@@ -221,9 +222,10 @@ git init && git add -A && git commit -m "feat(p0): application factory, config e
   - `add_group(state, name, color, order=None) -> dict` (retourne le groupe créé, mute state).
   - `update_group(state, group_id, **fields) -> dict`
   - `delete_group(state, group_id) -> None` (membres → group_id=None).
-  - `add_person(state, name, role, beltpack, group_id=None) -> dict`
+  - `add_person(state, name, role, beltpack, group_id=None) -> dict` (rôle hérité de `beltpack_roles` si vide)
   - `update_person(state, person_id, **fields) -> dict`
   - `delete_person(state, person_id) -> None`
+  - `role_for_beltpack(state, beltpack) -> str | None` (rôle mémorisé pour ce n°)
   - `touch(state) -> None` (met `updated_at` à maintenant UTC ISO).
   Toutes les mutations valident l'unicité beltpack et lèvent `ValidationError(code="beltpack_conflict")` ou `code="not_found"`.
 

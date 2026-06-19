@@ -74,3 +74,30 @@ def test_not_found():
     with pytest.raises(model.ValidationError) as exc:
         model.update_person(s, "nope", name="X")
     assert exc.value.code == "not_found"
+
+
+def test_role_remembered_per_beltpack():
+    s = model.empty_state()
+    model.add_person(s, "Jean", "Régie", "5")
+    assert model.role_for_beltpack(s, "5") == "Régie"
+    assert s["beltpack_roles"]["5"] == "Régie"
+
+
+def test_role_inherited_when_absent_after_release():
+    s = model.empty_state()
+    p = model.add_person(s, "Jean", "Régie", "5")
+    model.delete_person(s, p["id"])  # beltpack 5 libéré, correspondance conservée
+    marie = model.add_person(s, "Marie", "", "5")
+    assert marie["role"] == "Régie"
+
+
+def test_role_update_reflected_in_memory():
+    s = model.empty_state()
+    p = model.add_person(s, "Jean", "Régie", "5")
+    model.update_person(s, p["id"], role="Lumière")
+    assert model.role_for_beltpack(s, "5") == "Lumière"
+
+
+def test_role_for_unknown_beltpack_is_none():
+    s = model.empty_state()
+    assert model.role_for_beltpack(s, "99") is None
