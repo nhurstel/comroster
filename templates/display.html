@@ -8,9 +8,27 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
   <style>
     body.display-page {
-      --display-header-height: 4.5rem; --display-footer-height: 3rem;
+      --display-header-height: 3.5rem; --display-footer-height: 3rem;
       height: 100vh; overflow: hidden;
     }
+    /* Header discret */
+    .display-page header {
+      height: 3.5rem;
+      padding: 0 1.75rem;
+      background: rgba(10, 16, 28, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: none;
+      gap: 1.5rem;
+    }
+    body[data-theme="day"] .display-page header,
+    .display-page[data-theme="day"] header { background: rgba(255, 255, 255, 0.5); }
+    .display-page header::before { display: none; }
+    .display-page .board-meta { gap: 0; min-width: 0; }
+    .display-page .board-meta h1 { font-size: 1.15rem; font-weight: 700; text-shadow: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .display-page .board-meta h2 { font-size: 0.75rem; font-weight: 500; color: var(--fg-muted); }
+    .display-page .header-actions { gap: 1.75rem; }
     #display-scroll {
       flex: 1; overflow: auto;
       padding: calc(var(--display-header-height) + 2rem) 3rem calc(var(--display-footer-height) + 2rem);
@@ -52,17 +70,15 @@
     .person .name { font-size: 1rem; color: var(--fg-muted); }
     .empty-hint { padding: 1.5rem; text-align: center; color: var(--fg-subtle); font-style: italic; }
     .board-clock {
-      font-size: 1.75rem; font-weight: 700; font-variant-numeric: tabular-nums;
-      color: var(--primary-light); min-width: 7ch; text-align: right;
+      font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums;
+      color: var(--fg); min-width: 7ch; text-align: right;
     }
-    .stats-container { display: flex; align-items: center; gap: 1rem; }
-    .stat-item {
-      display: flex; flex-direction: column; align-items: center; gap: 0.1rem;
-      padding: 0.4rem 1rem; background: rgba(0,168,232,0.1);
-      border: 1px solid rgba(0,168,232,0.2); border-radius: var(--radius-md);
-    }
-    .stat-value { font-size: 1.4rem; font-weight: 800; color: var(--primary-light); }
-    .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-muted); }
+    /* Stats : texte discret en ligne, sans boîte */
+    .stats-container { display: flex; align-items: baseline; gap: 1.25rem; }
+    .stat-item { display: flex; align-items: baseline; gap: 0.3rem; padding: 0; background: none; border: none; }
+    .stat-value { font-size: 1.05rem; font-weight: 700; color: var(--primary-light); font-variant-numeric: tabular-nums; }
+    .stat-label { font-size: 0.8rem; text-transform: none; letter-spacing: 0; color: var(--fg-muted); }
+    .display-page .status-badge { background: transparent; border: none; box-shadow: none; padding: 0; font-size: 0.85rem; }
     body.display-page footer { justify-content: center; flex-wrap: wrap; gap: 1rem 2rem; }
     .created-by { font-weight: 600; color: var(--fg); }
     @media (max-width: 768px) {
