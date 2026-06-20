@@ -109,9 +109,9 @@
 
   /* ---------- Rendu ---------- */
   function applyTheme() {
+    // L'admin reste en thème sombre ; le bouton ne pilote QUE l'écran de diffusion.
     const mode = state.data.theme === "day" ? "day" : "night";
-    document.body.dataset.theme = mode;
-    if (el.themeBtn) el.themeBtn.textContent = mode === "day" ? "Passer en mode nuit" : "Passer en mode jour";
+    if (el.themeBtn) el.themeBtn.textContent = mode === "day" ? "Écran : jour" : "Écran : nuit";
   }
 
   function personCard(person, source, blockId) {
@@ -122,19 +122,21 @@
     card.dataset.source = source;
     if (blockId) card.dataset.blockId = blockId;
 
-    const badge = document.createElement("div");
-    badge.className = "beltpack-tag";
-    badge.textContent = "Beltpack n°" + esc(person.beltpack);
+    const bp = document.createElement("div");
+    bp.className = "bp";
+    bp.title = "Beltpack n°" + person.beltpack;
+    bp.textContent = person.beltpack;
 
-    const name = document.createElement("div");
+    const who = document.createElement("div");
+    who.className = "who";
+    const role = document.createElement("span");
+    role.className = "role";
+    role.textContent = person.role || "—";
+    const name = document.createElement("span");
     name.className = "name";
     name.textContent = person.name;
-    const meta = document.createElement("div");
-    meta.className = "meta";
-    const role = document.createElement("span");
-    role.textContent = person.role || "—";
-    meta.append(role, badge);
-    card.append(name, meta);
+    who.append(role, name);
+    card.append(bp, who);
 
     card.addEventListener("dragstart", (e) => {
       card.classList.add("dragging");
@@ -426,6 +428,27 @@
     e.target.value = "";
   }
 
+  /* ---------- Historique des publications ---------- */
+  async function openHistory() {
+    let items = [];
+    try { items = await apiSend("GET", "/api/history"); } catch { alert("Historique indisponible."); return; }
+    const list = document.getElementById("history-list");
+    list.innerHTML = items.length
+      ? items.map((i) => `<li><span>${esc(i.datetime)}</span><button type="button" data-restore="${i.timestamp}">Restaurer</button></li>`).join("")
+      : "<li class='empty-hint'>Aucune publication enregistrée.</li>";
+    list.querySelectorAll("[data-restore]").forEach((b) => b.addEventListener("click", async () => {
+      try {
+        state.data = await apiSend("POST", `/api/history/${b.dataset.restore}/restore`);
+        setUnpublished(true);
+        render();
+        document.getElementById("history-dialog").close();
+        setStatus("Snapshot restauré dans le brouillon", "updated");
+        setTimeout(() => setStatus("Brouillon synchronisé", "idle"), 2500);
+      } catch { alert("Restauration impossible."); }
+    }));
+    document.getElementById("history-dialog").showModal();
+  }
+
   /* ---------- Menu contextuel ---------- */
   function hideContextMenu() { el.contextMenu.style.display = "none"; state.context = null; }
   el.contextMenu.addEventListener("click", (e) => {
@@ -472,6 +495,8 @@
   el.publishBtn.addEventListener("click", publish);
   document.getElementById("export-btn").addEventListener("click", exportConfig);
   el.importInput.addEventListener("change", importConfig);
+  document.getElementById("history-btn").addEventListener("click", openHistory);
+  document.getElementById("history-close").addEventListener("click", () => document.getElementById("history-dialog").close());
   el.colorPicker.addEventListener("input", onColorPick);
   el.colorPicker.addEventListener("change", onColorPick);
   document.querySelectorAll("button[data-close]").forEach((b) =>
