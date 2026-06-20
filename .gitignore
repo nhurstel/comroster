@@ -11,3 +11,6 @@ instance/
 
 # macOS
 .DS_Store
+
+# Archives de référence (itérations précédentes)
+ComRoster archives/

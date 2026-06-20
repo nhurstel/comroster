@@ -16,14 +16,90 @@ def new_id():
     return str(uuid.uuid4())
 
 
+DEFAULT_TITLE = "Affectation Intercom"
+
+
+def sanitize_theme(value):
+    return "day" if value == "day" else "night"
+
+
 def empty_state():
     return {
         "version": 1,
         "updated_at": now_iso(),
+        "title": DEFAULT_TITLE,
+        "subtitle": "",
+        "theme": "night",
         "groups": [],
         "people": [],
         "beltpack_roles": {},
     }
+
+
+def build_draft(payload):
+    """Construit un brouillon valide à partir d'un payload client complet.
+
+    Tolérant sur les détails de présentation (ids manquants → générés, group_id
+    orphelin → pool), mais strict sur les invariants métier : unicité du beltpack
+    et beltpack non vide (validés via validate_state, qui lève ValidationError).
+    """
+    if not isinstance(payload, dict):
+        raise ValidationError("Payload invalide", code="invalid")
+
+    state = empty_state()
+    state["title"] = (payload.get("title") or "").strip() or DEFAULT_TITLE
+    state["subtitle"] = (payload.get("subtitle") or "").strip()
+    state["theme"] = sanitize_theme(payload.get("theme"))
+
+    groups = payload.get("groups")
+    if not isinstance(groups, list):
+        raise ValidationError("groups doit être une liste", code="invalid")
+    group_ids = set()
+    for index, g in enumerate(groups):
+        if not isinstance(g, dict):
+            raise ValidationError("Groupe invalide", code="invalid")
+        gid = g.get("id") or new_id()
+        order = g.get("order")
+        state["groups"].append({
+            "id": gid,
+            "name": (g.get("name") or "").strip() or "Groupe",
+            "color": g.get("color") or "#3AAFA9",
+            "order": order if isinstance(order, int) else index,
+        })
+        group_ids.add(gid)
+
+    people = payload.get("people")
+    if not isinstance(people, list):
+        raise ValidationError("people doit être une liste", code="invalid")
+    for p in people:
+        if not isinstance(p, dict):
+            raise ValidationError("Personne invalide", code="invalid")
+        gid = p.get("group_id")
+        if gid is not None and gid not in group_ids:
+            gid = None  # group_id orphelin → retour au pool
+        state["people"].append({
+            "id": p.get("id") or new_id(),
+            "name": (p.get("name") or "").strip(),
+            "role": (p.get("role") or "").strip(),
+            "beltpack": normalize_beltpack(p.get("beltpack")),
+            "group_id": gid,
+        })
+
+    validate_state(state)  # unicité beltpack + beltpack non vide
+
+    roles = {}
+    incoming = payload.get("beltpack_roles")
+    if isinstance(incoming, dict):
+        for key, value in incoming.items():
+            if value:
+                roles[normalize_beltpack(key)] = value
+    for person in state["people"]:
+        if person["role"]:
+            roles[person["beltpack"]] = person["role"]
+    state["beltpack_roles"] = roles
+
+    touch(state)
+    return state
 
 
 def role_for_beltpack(state, beltpack):
