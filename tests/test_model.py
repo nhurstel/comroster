@@ -101,3 +101,54 @@ def test_role_update_reflected_in_memory():
 def test_role_for_unknown_beltpack_is_none():
     s = model.empty_state()
     assert model.role_for_beltpack(s, "99") is None
+
+
+def test_empty_state_has_meta():
+    s = model.empty_state()
+    assert s["title"]
+    assert s["subtitle"] == ""
+    assert s["theme"] == "night"
+
+
+def test_sanitize_theme():
+    assert model.sanitize_theme("day") == "day"
+    assert model.sanitize_theme("night") == "night"
+    assert model.sanitize_theme("nimporte") == "night"
+
+
+def test_build_draft_basic():
+    payload = {
+        "title": "Festival", "subtitle": "Scène A", "theme": "day",
+        "groups": [{"id": "g1", "name": "Régie", "color": "#ffffff", "order": 0}],
+        "people": [{"id": "p1", "name": "Jean", "role": "Régie", "beltpack": "5", "group_id": "g1"}],
+    }
+    s = model.build_draft(payload)
+    assert s["title"] == "Festival" and s["subtitle"] == "Scène A" and s["theme"] == "day"
+    assert s["groups"][0]["name"] == "Régie"
+    assert s["people"][0]["beltpack"] == "5"
+    assert s["beltpack_roles"]["5"] == "Régie"
+
+
+def test_build_draft_rejects_duplicate_beltpack():
+    payload = {"title": "x", "groups": [], "people": [
+        {"id": "a", "name": "A", "role": "", "beltpack": "5", "group_id": None},
+        {"id": "b", "name": "B", "role": "", "beltpack": "5", "group_id": None}]}
+    with pytest.raises(model.ValidationError) as exc:
+        model.build_draft(payload)
+    assert exc.value.code == "beltpack_conflict"
+
+
+def test_build_draft_orphan_group_goes_to_pool():
+    payload = {"title": "x", "groups": [], "people": [
+        {"id": "a", "name": "A", "role": "R", "beltpack": "5", "group_id": "ghost"}]}
+    s = model.build_draft(payload)
+    assert s["people"][0]["group_id"] is None
+
+
+def test_build_draft_generates_missing_ids():
+    payload = {"title": "x",
+               "groups": [{"name": "G", "color": "#fff"}],
+               "people": [{"name": "Jean", "role": "R", "beltpack": "1"}]}
+    s = model.build_draft(payload)
+    assert s["groups"][0]["id"]
+    assert s["people"][0]["id"]

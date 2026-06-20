@@ -66,6 +66,29 @@ def test_export_import_roundtrip(auth_client):
     assert any(p["name"] == "Jean" for p in state["people"])
 
 
+def test_put_draft_replaces_and_persists(auth_client):
+    payload = {
+        "title": "Festival 2026", "subtitle": "Grande scène", "theme": "day",
+        "groups": [{"id": "g1", "name": "Régie", "color": "#00A8E8", "order": 0}],
+        "people": [{"id": "p1", "name": "Jean", "role": "Régie", "beltpack": "5", "group_id": "g1"}],
+    }
+    r = auth_client.put("/api/draft", json=payload)
+    assert r.status_code == 200
+    state = auth_client.get("/api/state").get_json()
+    assert state["title"] == "Festival 2026"
+    assert state["theme"] == "day"
+    assert state["people"][0]["beltpack"] == "5"
+    assert state["beltpack_roles"]["5"] == "Régie"
+
+
+def test_put_draft_duplicate_beltpack_409(auth_client):
+    payload = {"title": "x", "groups": [], "people": [
+        {"id": "a", "name": "A", "role": "", "beltpack": "5", "group_id": None},
+        {"id": "b", "name": "B", "role": "", "beltpack": "5", "group_id": None}]}
+    r = auth_client.put("/api/draft", json=payload)
+    assert r.status_code == 409
+
+
 def test_import_invalid_400(auth_client):
     r = auth_client.post("/api/import", json={"people": [{"id": "1", "name": "A", "role": "", "beltpack": "1", "group_id": "ghost"}], "groups": [], "version": 1})
     assert r.status_code == 400

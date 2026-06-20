@@ -119,6 +119,19 @@ def delete_person(pid):
     return jsonify({"ok": True})
 
 
+@bp.put("/api/draft")
+@login_required
+def replace_draft():
+    """Remplace le brouillon complet (édition en bloc depuis l'admin)."""
+    payload = request.get_json(force=True)
+    try:
+        state = model.build_draft(payload)
+    except model.ValidationError as exc:
+        return _error(exc)
+    _storage().save_draft(state)
+    return jsonify(state)
+
+
 @bp.get("/api/export")
 @login_required
 def export_state():
