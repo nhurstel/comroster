@@ -13,8 +13,9 @@ mémorise la correspondance n° → rôle et la propose à la saisie.
 ## Pile technique
 
 Python 3.12 · Flask · Flask-WTF (CSRF) · Flask-Limiter (anti-bruteforce) · Werkzeug
-(hashing) · SSE (`EventSource`) · SortableJS (drag-and-drop) · pytest. Persistance par
-fichiers JSON plats avec écriture atomique. Aucun SGBD.
+(hashing) · SSE (`EventSource`) · drag-and-drop HTML5 natif (zéro dépendance JS) ·
+design system glassmorphism (thèmes jour/nuit) · pytest. Persistance par fichiers JSON
+plats avec écriture atomique. Aucun SGBD.
 
 ## Installation
 

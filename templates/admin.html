@@ -1,42 +1,122 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>ComRoster — Admin</title>
+  <title>Administration · {{ initial_data.title }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
-<body class="admin">
-  <header class="toolbar">
-    <h1>ComRoster — Régie</h1>
-    <div class="actions">
-      <button id="add-group">+ Groupe</button>
-      <button id="add-person">+ Personne</button>
-      <button id="history-btn">Historique</button>
-      <button id="export">Exporter</button>
-      <label class="import-btn">Importer<input type="file" id="import" accept="application/json" hidden></label>
-      <button id="publish" class="primary">Publier vers l'affichage</button>
-      <form method="post" action="{{ url_for('auth.logout') }}" style="display:inline">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button>Déconnexion</button>
-      </form>
+<body class="admin-page" data-theme="night">
+  <header>
+    <div class="board-meta">
+      <h1 id="board-title">{{ initial_data.title }}</h1>
+      <h2 id="board-subtitle" {% if not initial_data.subtitle %}hidden{% endif %}>{{ initial_data.subtitle or '' }}</h2>
+    </div>
+    <div class="status-badge" id="sync-status" role="status" aria-live="polite">
+      <span class="pulse" aria-hidden="true"></span>
+      <span class="status-text" id="sync-label">Brouillon synchronisé</span>
     </div>
   </header>
-  <main id="board">
-    <section class="pool">
-      <h2>Disponibles</h2>
-      <ul id="pool" class="people-list" data-group=""></ul>
-    </section>
-    <div id="groups"></div>
+  <main>
+    <div class="admin-toolbar">
+      <button type="button" id="add-block-btn">Ajouter un groupe</button>
+      <button type="button" id="add-user-btn">Ajouter une personne</button>
+      <button type="button" id="edit-meta-btn">Informations du tableau</button>
+      <button type="button" id="toggle-theme-btn">Passer en mode jour</button>
+      <span class="toolbar-spacer" aria-hidden="true"></span>
+      <button type="button" id="export-btn">Exporter</button>
+      <label class="import-label">Importer<input type="file" id="import-input" accept="application/json"></label>
+      <button type="button" id="publish-btn" class="primary">Publier vers l'affichage</button>
+      <a class="logout-link" href="{{ url_for('auth.logout') }}"
+         onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Déconnexion</a>
+      <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      </form>
+    </div>
+    <input type="color" id="block-color-picker" class="visually-hidden" aria-hidden="true">
+
+    <div class="admin-layout">
+      <section class="admin-panel" aria-labelledby="available-heading">
+        <div class="block-header">
+          <h3 id="available-heading">Personnes disponibles</h3>
+          <span class="badge" id="available-count"></span>
+        </div>
+        <div class="user-list" id="available-users"></div>
+        <p class="empty-hint">Glissez les fiches dans un groupe pour les affecter.</p>
+      </section>
+      <section class="admin-panel">
+        <div class="block-header">
+          <h3>Affectations</h3>
+          <span class="badge" id="block-count"></span>
+        </div>
+        <div class="user-list" id="blocks-container"></div>
+      </section>
+    </div>
   </main>
-  <dialog id="history-dialog">
-    <h2>Publications passées</h2>
-    <ul id="history-list"></ul>
-    <menu><button id="history-close">Fermer</button></menu>
+
+  <dialog id="block-dialog" class="admin-dialog">
+    <form id="block-form" method="dialog">
+      <h2>Créer un nouveau groupe</h2>
+      <label class="field"><span>Nom du groupe</span>
+        <input type="text" id="block-name" required maxlength="80"></label>
+      <div class="dialog-actions">
+        <button type="submit" class="primary">Ajouter le groupe</button>
+        <button type="button" data-close="block-dialog">Annuler</button>
+      </div>
+    </form>
   </dialog>
-  <div id="toast" class="toast" hidden></div>
-  <script src="{{ url_for('static', filename='vendor/sortable.min.js') }}"></script>
+
+  <dialog id="meta-dialog" class="admin-dialog">
+    <form id="meta-form" method="dialog">
+      <h2>Informations du tableau</h2>
+      <p class="dialog-hint">Nom de production et sous-titre affichés sur l'écran TV.</p>
+      <label class="field"><span>Nom de la production</span>
+        <input type="text" id="meta-title" required maxlength="120"></label>
+      <label class="field"><span>Sous-titre</span>
+        <input type="text" id="meta-subtitle" maxlength="120"></label>
+      <div class="dialog-actions">
+        <button type="submit" class="primary">Enregistrer</button>
+        <button type="button" data-close="meta-dialog">Annuler</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="person-dialog" class="admin-dialog">
+    <form id="person-form" method="dialog">
+      <h2 id="person-dialog-title">Ajouter une personne</h2>
+      <label class="field beltpack-field"><span>Beltpack (numéro)</span>
+        <div class="beltpack-input">
+          <span class="beltpack-prefix">Beltpack n°</span>
+          <input type="text" id="person-beltpack" inputmode="numeric" required maxlength="12" autocomplete="off">
+        </div>
+      </label>
+      <label class="field"><span>Rôle / fonction <small>(suit le beltpack)</small></span>
+        <input type="text" id="person-role" maxlength="80" placeholder="Régie, Lumière, HF…"></label>
+      <label class="field"><span>Nom complet</span>
+        <input type="text" id="person-name" required maxlength="80"></label>
+      <label class="field"><span>Affecter à un groupe</span>
+        <select id="person-assign"><option value="">Conserver dans la liste disponible</option></select></label>
+      <div class="dialog-actions">
+        <button type="submit" class="primary">Enregistrer</button>
+        <button type="button" data-close="person-dialog">Annuler</button>
+      </div>
+    </form>
+  </dialog>
+
+  <footer>
+    <span id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>
+    <span id="dirty-indicator"></span>
+  </footer>
+
+  <div class="context-menu" id="context-menu" role="menu">
+    <button type="button" data-action="edit">Modifier la fiche…</button>
+    <button type="button" data-action="remove">Retirer du groupe</button>
+    <button type="button" data-action="delete">Supprimer la personne</button>
+  </div>
+
+  <script>window.__INITIAL__ = {{ initial_data|tojson }};</script>
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>

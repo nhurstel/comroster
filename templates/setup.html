@@ -1,14 +1,39 @@
-<!doctype html><meta charset="utf-8"><title>ComRoster — Setup</title>
-{% if recovery_code %}
-  <h1>Compte créé</h1>
-  <p>Code de récupération (affiché une seule fois) : <strong>{{ recovery_code }}</strong></p>
-  <a href="{{ url_for('api.admin_page') }}">Aller à l'admin</a>
-{% else %}
-  <h1>Configuration initiale</h1>
-  {% for m in get_flashed_messages() %}<p>{{ m }}</p>{% endfor %}
-  <form method="post">
-    <input type="password" name="password" placeholder="Mot de passe (8+)" required>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button>Créer</button>
-  </form>
-{% endif %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configuration · ComRoster</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-page" data-theme="night">
+  <div class="auth-card">
+    {% if recovery_code %}
+      <div class="auth-header">
+        <h1>Compte créé</h1>
+        <p>Conservez votre code de récupération en lieu sûr.</p>
+      </div>
+      <div class="recovery-code-display">
+        <div class="stat-label">Code de récupération</div>
+        <div class="recovery-code">{{ recovery_code }}</div>
+        <p class="recovery-hint">Il ne sera affiché qu'une seule fois.</p>
+      </div>
+      <div class="recovery-warning">Sans ce code ni votre mot de passe, l'accès admin devra être réinitialisé manuellement.</div>
+      <a class="btn btn-primary auth-submit" href="{{ url_for('api.admin_page') }}">Accéder à l'administration</a>
+    {% else %}
+      <div class="auth-header">
+        <h1>ComRoster</h1>
+        <p>Configuration initiale — définissez le mot de passe administrateur.</p>
+      </div>
+      {% for m in get_flashed_messages() %}<div class="auth-error">{{ m }}</div>{% endfor %}
+      <form class="auth-form" method="post">
+        <label class="field"><span>Mot de passe (8 caractères minimum)</span>
+          <input type="password" name="password" required minlength="8" autocomplete="new-password" autofocus></label>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="primary auth-submit">Créer le compte</button>
+      </form>
+    {% endif %}
+  </div>
+</body>
+</html>

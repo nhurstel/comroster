@@ -31,10 +31,7 @@ def _error(exc):
 @bp.get("/admin")
 @login_required
 def admin_page():
-    try:
-        return render_template("admin.html")
-    except Exception:
-        return "ADMIN OK"
+    return render_template("admin.html", initial_data=_storage().load_draft())
 
 
 @bp.get("/api/state")
