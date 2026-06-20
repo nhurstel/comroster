@@ -1,0 +1,238 @@
+/* ===================================================================
+   AUTH PAGES STYLES
+   Modern authentication pages (login, setup, reset, recovery)
+   =================================================================== */
+
+.auth-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 450px;
+    background: var(--glass-bg-strong);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-2xl);
+    padding: 3rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+    animation: fadeIn 0.5s var(--ease-out);
+}
+
+.auth-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--glass-highlight);
+    pointer-events: none;
+    border-radius: var(--radius-2xl);
+}
+
+/* Auth Header */
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 1;
+}
+
+.auth-logo {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1.5rem;
+}
+
+.auth-header h1 {
+    font-size: var(--text-3xl);
+    font-weight: 800;
+    margin: 0 0 0.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.auth-header p {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+}
+
+/* Auth Form */
+.auth-form {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.auth-form .field {
+    margin-bottom: 0;
+}
+
+/* Error Messages */
+.auth-error {
+    padding: 1rem 1.25rem;
+    background: rgba(255, 69, 69, 0.1);
+    border: 1px solid rgba(255, 69, 69, 0.3);
+    border-radius: var(--radius-md);
+    color: var(--error);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+body[data-theme="day"] .auth-error {
+    background: rgba(255, 69, 69, 0.08);
+}
+
+/* Submit Button */
+.auth-submit {
+    width: 100%;
+    padding: 1rem 2rem;
+    font-size: var(--text-base);
+    font-weight: 700;
+    margin-top: 0.5rem;
+}
+
+/* Auth Footer */
+.auth-footer {
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    position: relative;
+    z-index: 1;
+}
+
+.auth-footer a {
+    color: var(--primary);
+    font-weight: 600;
+    transition: color var(--duration-fast) var(--ease-out);
+}
+
+.auth-footer a:hover {
+    color: var(--primary-light);
+    text-decoration: underline;
+}
+
+/* Recovery Code Display */
+.recovery-code-display {
+    padding: 2rem;
+    background: rgba(0, 168, 232, 0.08);
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    margin: 1.5rem 0;
+    position: relative;
+    z-index: 1;
+}
+
+.recovery-code {
+    font-family: 'Courier New', monospace;
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--primary-light);
+    letter-spacing: 0.1em;
+    margin: 1rem 0;
+    word-break: break-all;
+    user-select: all;
+}
+
+.recovery-hint {
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    margin-top: 1rem;
+}
+
+.recovery-warning {
+    padding: 1rem 1.5rem;
+    background: rgba(255, 184, 0, 0.1);
+    border: 1px solid rgba(255, 184, 0, 0.3);
+    border-radius: var(--radius-md);
+    color: var(--warning);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.recovery-warning::before {
+    content: "⚠️";
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+/* Password Strength Indicator */
+.password-strength {
+    margin-top: 0.5rem;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.password-strength-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--error);
+    transition: width 0.3s var(--ease-out), background-color 0.3s;
+    border-radius: var(--radius-full);
+}
+
+.password-strength-bar[data-strength="weak"] {
+    width: 33%;
+    background: var(--error);
+}
+
+.password-strength-bar[data-strength="medium"] {
+    width: 66%;
+    background: var(--warning);
+}
+
+.password-strength-bar[data-strength="strong"] {
+    width: 100%;
+    background: var(--success);
+}
+
+.password-hint {
+    font-size: var(--text-xs);
+    color: var(--fg-subtle);
+    margin-top: 0.5rem;
+}
+
+/* Buttons in auth pages */
+.btn-group {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.btn-group button {
+    flex: 1;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .auth-header h1 {
+        font-size: var(--text-2xl);
+    }
+
+    .recovery-code {
+        font-size: var(--text-xl);
+    }
+}

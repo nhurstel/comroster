@@ -17,8 +17,9 @@ def format_sse(event, data):
 
 @bp.get("/display")
 def display_page():
+    published = current_app.extensions["storage"].load_published() or model.empty_state()
     try:
-        return render_template("display.html")
+        return render_template("display.html", initial_data=published)
     except Exception:
         return "DISPLAY OK"
 

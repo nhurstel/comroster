@@ -1,22 +1,56 @@
-<!doctype html><meta charset="utf-8"><title>ComRoster — Connexion</title>
-{% for m in get_flashed_messages() %}<p>{{ m }}</p>{% endfor %}
-{% if recovery_code %}
-  <p>Nouveau code de récupération : <strong>{{ recovery_code }}</strong></p>
-{% endif %}
-{% if recover %}
-  <h1>Réinitialiser</h1>
-  <form method="post" action="{{ url_for('auth.recover') }}">
-    <input name="recovery_code" placeholder="Code de récupération" required>
-    <input type="password" name="password" placeholder="Nouveau mot de passe (8+)" required>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button>Réinitialiser</button>
-  </form>
-{% else %}
-  <h1>Connexion</h1>
-  <form method="post">
-    <input type="password" name="password" required>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button>Se connecter</button>
-  </form>
-  <a href="{{ url_for('auth.recover') }}">Mot de passe oublié ?</a>
-{% endif %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion · ComRoster</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-page" data-theme="night">
+  <div class="auth-card">
+    {% if recovery_code %}
+      <div class="auth-header">
+        <h1>Mot de passe réinitialisé</h1>
+        <p>Voici votre nouveau code de récupération.</p>
+      </div>
+      <div class="recovery-code-display">
+        <div class="stat-label">Nouveau code de récupération</div>
+        <div class="recovery-code">{{ recovery_code }}</div>
+        <p class="recovery-hint">Il remplace l'ancien et ne sera affiché qu'une seule fois.</p>
+      </div>
+      <a class="btn btn-primary auth-submit" href="{{ url_for('api.admin_page') }}">Accéder à l'administration</a>
+
+    {% elif recover %}
+      <div class="auth-header">
+        <h1>Réinitialiser</h1>
+        <p>Saisissez votre code de récupération et un nouveau mot de passe.</p>
+      </div>
+      {% for m in get_flashed_messages() %}<div class="auth-error">{{ m }}</div>{% endfor %}
+      <form class="auth-form" method="post" action="{{ url_for('auth.recover') }}">
+        <label class="field"><span>Code de récupération</span>
+          <input type="text" name="recovery_code" required autocomplete="off" autofocus></label>
+        <label class="field"><span>Nouveau mot de passe (8+)</span>
+          <input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="primary auth-submit">Réinitialiser</button>
+      </form>
+      <div class="auth-footer"><a href="{{ url_for('auth.login') }}">Retour à la connexion</a></div>
+
+    {% else %}
+      <div class="auth-header">
+        <h1>ComRoster</h1>
+        <p>Connexion administrateur</p>
+      </div>
+      {% for m in get_flashed_messages() %}<div class="auth-error">{{ m }}</div>{% endfor %}
+      <form class="auth-form" method="post">
+        <label class="field"><span>Mot de passe</span>
+          <input type="password" name="password" required autocomplete="current-password" autofocus></label>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="primary auth-submit">Se connecter</button>
+      </form>
+      <div class="auth-footer"><a href="{{ url_for('auth.recover') }}">Mot de passe oublié ?</a></div>
+    {% endif %}
+  </div>
+</body>
+</html>
