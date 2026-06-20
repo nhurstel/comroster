@@ -23,8 +23,9 @@
     <div class="admin-toolbar">
       <button type="button" id="add-block-btn">Ajouter un groupe</button>
       <button type="button" id="add-user-btn">Ajouter une personne</button>
-      <button type="button" id="edit-meta-btn">Informations du tableau</button>
-      <button type="button" id="toggle-theme-btn">Passer en mode jour</button>
+      <button type="button" id="edit-meta-btn">Infos tableau</button>
+      <button type="button" id="toggle-theme-btn">Écran : nuit</button>
+      <button type="button" id="history-btn">Historique</button>
       <span class="toolbar-spacer" aria-hidden="true"></span>
       <button type="button" id="export-btn">Exporter</button>
       <label class="import-label">Importer<input type="file" id="import-input" accept="application/json"></label>
@@ -102,6 +103,15 @@
         <button type="submit" class="primary">Enregistrer</button>
         <button type="button" data-close="person-dialog">Annuler</button>
       </div>
+    </form>
+  </dialog>
+
+  <dialog id="history-dialog" class="admin-dialog">
+    <form method="dialog">
+      <h2>Publications passées</h2>
+      <p class="dialog-hint">Restaurer recharge le snapshot choisi comme brouillon (republiez pour l'afficher).</p>
+      <ul id="history-list" class="history-list"></ul>
+      <div class="dialog-actions"><button type="button" id="history-close">Fermer</button></div>
     </form>
   </dialog>
 
