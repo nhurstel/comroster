@@ -51,8 +51,7 @@ def create_app(config_overrides=None):
     from .services.antenna import AntennaClient
     app.extensions["settings"] = Settings(app.extensions["storage"])
     app.extensions["antenna"] = AntennaClient(app.config["DATA_DIR"], app.config.get("SECRET_KEY", ""))
-    if app.extensions["settings"].get("bolero_enabled", False):
-        app.extensions["antenna"].load_persisted()  # reconnexion lazy (testée au 1er /status)
+    app.extensions["antenna"].load_persisted()  # recharge les identifiants s'ils existent
 
     from .services.configs import Configs
     app.extensions["configs"] = Configs(app.extensions["storage"])
