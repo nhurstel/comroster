@@ -337,3 +337,9 @@
 #dash-state { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.9rem; }
 #dash-state .ds-line { display: flex; align-items: center; gap: 0.4rem; }
 #dash-state .ds-sub { color: #8b97ad; font-size: 0.82rem; }
+
+/* ---------- En-tête de panneau : compteur + action ---------- */
+.badge { white-space: nowrap; }
+.panel-head-actions { display: flex; align-items: center; gap: 0.5rem; flex: 0 0 auto; }
+.admin-panel .mini-btn { height: 1.7rem; padding: 0 0.55rem; font-size: 0.74rem; font-weight: 600; background: #131a2a; }
+.admin-panel .mini-btn:hover:not(:disabled) { background: #1f2942; }
