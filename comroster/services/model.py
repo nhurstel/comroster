@@ -233,3 +233,66 @@ def validate_state(state):
         seen.add(norm)
         if person["group_id"] is not None and person["group_id"] not in group_ids:
             raise ValidationError("group_id orphelin", code="orphan_group")
+
+
+def _person_by_beltpack(state, number):
+    norm = normalize_beltpack(number)
+    for person in state["people"]:
+        if normalize_beltpack(person["beltpack"]) == norm:
+            return person
+    return None
+
+
+def merge_beltpacks(state, items):
+    """Synchronise les beltpacks de l'antenne dans l'état (antenne fait foi).
+
+    Crée les numéros absents (au pool, nom vide), met à jour le rôle des
+    existants, préserve nom et groupe, ne supprime jamais.
+    """
+    created = updated = 0
+    roles = state.setdefault("beltpack_roles", {})
+    for item in items:
+        num = normalize_beltpack(item.get("number"))
+        if not num:
+            continue
+        name = (item.get("name") or "").strip()
+        person = _person_by_beltpack(state, num)
+        if person is None:
+            state["people"].append({
+                "id": new_id(), "name": "", "role": name,
+                "beltpack": num, "group_id": None,
+            })
+            created += 1
+        elif name and person["role"] != name:
+            person["role"] = name
+            updated += 1
+        if name:
+            roles[num] = name
+    touch(state)
+    return {"created": created, "updated": updated}
+
+
+def diff_beltpacks(state, items):
+    """Récap d'un import sans muter l'état."""
+    by_num = {normalize_beltpack(p["beltpack"]): p for p in state["people"]}
+    seen = set()
+    new, changed, unchanged = [], [], 0
+    for item in items:
+        num = normalize_beltpack(item.get("number"))
+        if not num:
+            continue
+        seen.add(num)
+        name = (item.get("name") or "").strip()
+        person = by_num.get(num)
+        if person is None:
+            new.append({"number": num, "name": name})
+        elif name and person["role"] != name:
+            changed.append({"number": num, "old_role": person["role"], "new_role": name})
+        else:
+            unchanged += 1
+    missing = [
+        {"number": normalize_beltpack(p["beltpack"]), "role": p["role"]}
+        for p in state["people"]
+        if normalize_beltpack(p["beltpack"]) not in seen
+    ]
+    return {"new": new, "changed": changed, "unchanged": unchanged, "missing": missing}
