@@ -47,6 +47,13 @@ def create_app(config_overrides=None):
     app.extensions["broker"] = Broker()
     app.extensions["history"] = History(app.extensions["storage"])
 
+    from .services.settings import Settings
+    from .services.antenna import AntennaClient
+    app.extensions["settings"] = Settings(app.extensions["storage"])
+    app.extensions["antenna"] = AntennaClient(app.config["DATA_DIR"], app.config.get("SECRET_KEY", ""))
+    if app.extensions["settings"].get("bolero_enabled", False):
+        app.extensions["antenna"].load_persisted()  # reconnexion lazy (testée au 1er /status)
+
     if app.config.get("TESTING"):
         app.config["WTF_CSRF_ENABLED"] = False
     csrf.init_app(app)
@@ -61,5 +68,8 @@ def create_app(config_overrides=None):
     from .display import bp as display_bp
     app.register_blueprint(display_bp)
     csrf.exempt(display_bp)
+
+    from .antenna import bp as antenna_bp
+    app.register_blueprint(antenna_bp)
 
     return app
