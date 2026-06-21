@@ -96,8 +96,20 @@ dans `.gitignore`.
 
 ## Tests
 
-`pytest` est une dépendance de développement (hors `requirements.txt`) :
+Dépendances de dev (hors `requirements.txt`) : voir [requirements-dev.txt](requirements-dev.txt).
 ```bash
-pip install pytest
-pytest -q
+.venv/bin/pip install -r requirements-dev.txt
 ```
+
+**Tests unitaires / intégration** (rapides, sans navigateur) :
+```bash
+.venv/bin/pytest -q
+```
+
+**Tests bout-en-bout** (navigateur Playwright headless, marqueur `e2e`, exclus par défaut) :
+```bash
+.venv/bin/playwright install chromium      # une fois : télécharge le navigateur
+.venv/bin/pytest tests/e2e -m e2e
+```
+Ils démarrent un vrai serveur et valident le parcours complet (configuration → groupe →
+beltpack → publication → affichage TV) dans un vrai navigateur.
