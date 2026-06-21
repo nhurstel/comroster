@@ -224,7 +224,7 @@
       const actions = document.createElement("div");
       actions.className = "block-actions";
       actions.append(
-        chip("Ajouter", () => openPersonDialog(null, block.id)),
+        chip("+ Beltpack", () => openPersonDialog(null, block.id)),
         chip("Renommer", () => renameBlock(block.id)),
         colorChip(block),
         chip("Supprimer", () => deleteBlock(block.id), "danger"),
