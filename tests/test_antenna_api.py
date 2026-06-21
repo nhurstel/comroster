@@ -90,6 +90,28 @@ def test_reconnect_failure_502(auth_client, app, monkeypatch):
     assert r.status_code == 502
 
 
+def test_live_returns_online_map(auth_client, app, monkeypatch):
+    monkeypatch.setattr(app.extensions["antenna"], "_request", _fake_ok)
+    auth_client.post("/api/antenna/connect", json={"ip": "1.1.1.1", "password": ""})
+    r = auth_client.get("/api/antenna/live")
+    assert r.status_code == 200
+    assert r.get_json() == {"connected": True, "online": {"5": True, "7": False}}
+
+
+def test_live_when_not_connected(auth_client):
+    r = auth_client.get("/api/antenna/live")
+    assert r.status_code == 200 and r.get_json() == {"connected": False, "online": {}}
+
+
+def test_live_swallows_antenna_error(auth_client, app, monkeypatch):
+    monkeypatch.setattr(app.extensions["antenna"], "_request", _fake_ok)
+    auth_client.post("/api/antenna/connect", json={"ip": "1.1.1.1", "password": ""})
+    monkeypatch.setattr(app.extensions["antenna"], "_request",
+                        lambda *a, **k: (False, {"error": "timeout", "code": "timeout"}))
+    r = auth_client.get("/api/antenna/live")
+    assert r.status_code == 200 and r.get_json() == {"connected": False, "online": {}}
+
+
 def _fake_three(method, path, body=None, timeout=5):
     if path == "/rest/nodeStatus":
         return True, {"nodeStatus": [{"nodeId": 1, "isLocal": True}]}

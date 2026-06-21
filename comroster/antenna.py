@@ -95,6 +95,20 @@ def antenna_reconnect():
     return jsonify({"connected": True, "info": client.status()["info"]})
 
 
+@bp.get("/api/antenna/live")
+@login_required
+def antenna_live():
+    # État temps réel (non bloquant pour le front : jamais d'erreur 5xx).
+    client = _client()
+    if not client.connected:
+        return jsonify({"connected": False, "online": {}})
+    try:
+        items = client.fetch_beltpacks()
+    except AntennaError:
+        return jsonify({"connected": False, "online": {}})
+    return jsonify({"connected": True, "online": {i["number"]: i["online"] for i in items}})
+
+
 @bp.post("/api/antenna/import/preview")
 @login_required
 def antenna_import_preview():
