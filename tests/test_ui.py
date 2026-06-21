@@ -18,12 +18,14 @@ def test_admin_page_renders(auth_client):
     assert "csrf-token" in html
 
 
-def test_admin_has_settings_and_import_dialogs(auth_client):
+def test_admin_has_antenna_panel(auth_client):
     html = auth_client.get("/admin").get_data(as_text=True)
-    assert "settings-dialog" in html
-    assert "bolero-enabled" in html
-    assert "⚙ Réglages" in html
+    assert 'id="antenna-btn"' in html
+    assert 'id="antenna-dialog"' in html
+    assert "antenna-wizard" in html
+    assert "antenna-dashboard" in html
     assert "import-dialog" in html
+    assert "settings-dialog" not in html      # ancien dialog retiré
 
 
 def test_admin_has_configs_and_selection(auth_client):

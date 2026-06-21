@@ -37,9 +37,9 @@
         <button type="button" id="export-btn">Exporter</button>
         <label class="import-label">Importer<input type="file" id="import-input" accept="application/json"></label>
         <button type="button" id="configs-btn">Configs</button>
+        <button type="button" id="antenna-btn">🛰 Antenne <span class="dot off" id="antenna-dot"></span></button>
       </div>
       <span class="toolbar-spacer" aria-hidden="true"></span>
-      <button type="button" id="settings-btn">⚙ Réglages</button>
       <button type="button" id="publish-btn" class="primary">Publier vers l'affichage</button>
       <a class="logout-link" href="{{ url_for('auth.logout') }}"
          onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Déconnexion</a>
@@ -126,40 +126,71 @@
     </form>
   </dialog>
 
-  <dialog id="settings-dialog" class="admin-dialog">
-    <form method="dialog">
-      <h2>Réglages</h2>
-      <label class="switch-row">
-        <span>Intégration réseau Bolero</span>
-        <input type="checkbox" id="bolero-enabled" class="switch">
-      </label>
-      <div id="antenna-block" hidden>
-        <hr class="dlg-sep">
-        <div class="ranges-editor">
-          <span class="dlg-label">Plages de beltpacks à charger (vide = toutes)</span>
-          <div id="ranges-list"></div>
-          <button type="button" id="add-range-btn">+ Plage</button>
-        </div>
-        <hr class="dlg-sep">
-        <div id="antenna-disconnected">
-          <p class="dialog-hint">Connectez ComRoster à une antenne du réseau intercom.</p>
-          <label class="field"><span>Adresse IP</span>
-            <input type="text" id="antenna-ip" placeholder="192.168.1.11" autocomplete="off"></label>
-          <label class="field"><span>Mot de passe</span>
-            <input type="password" id="antenna-password" autocomplete="off"></label>
-          <button type="button" id="antenna-connect-btn" class="primary">Connecter</button>
-          <p id="antenna-error" class="auth-error" hidden></p>
-        </div>
-        <div id="antenna-connected" hidden>
-          <p id="antenna-info" class="dialog-hint"></p>
-          <div class="dialog-actions" style="justify-content:flex-start">
-            <button type="button" id="antenna-refresh-btn" class="primary">Actualiser depuis l'antenne</button>
-            <button type="button" id="antenna-disconnect-btn">Déconnecter</button>
-          </div>
-        </div>
+  <dialog id="antenna-dialog" class="admin-dialog antenna-dialog">
+    <div id="antenna-wizard" hidden>
+      <div class="wiz-steps">
+        <span class="wiz-dot active" data-dot="1"></span>
+        <span class="wiz-line"></span>
+        <span class="wiz-dot" data-dot="2"></span>
+        <span class="wiz-line"></span>
+        <span class="wiz-dot" data-dot="3"></span>
       </div>
-      <div class="dialog-actions"><button type="button" data-close="settings-dialog">Fermer</button></div>
-    </form>
+      <section class="wiz-step" data-step="1">
+        <h2>Connexion à l'antenne</h2>
+        <label class="field"><span>Adresse IP</span>
+          <input type="text" id="wiz-ip" placeholder="192.168.1.11" autocomplete="off"></label>
+        <label class="field"><span>Mot de passe</span>
+          <input type="password" id="wiz-password" autocomplete="off"></label>
+        <p id="wiz-error" class="auth-error" hidden></p>
+        <div class="dialog-actions">
+          <button type="button" data-close="antenna-dialog">Annuler</button>
+          <button type="button" id="wiz-connect-btn" class="primary">Connecter →</button>
+        </div>
+      </section>
+      <section class="wiz-step" data-step="2" hidden>
+        <h2>Beltpacks à charger</h2>
+        <div class="ranges-editor">
+          <span class="dlg-label">Numéros (vide = tous)</span>
+          <div id="wiz-ranges-list"></div>
+          <button type="button" id="wiz-add-range">+ Plage</button>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" id="wiz-back-2">← Retour</button>
+          <button type="button" id="wiz-next-2" class="primary">Suivant →</button>
+        </div>
+      </section>
+      <section class="wiz-step" data-step="3" hidden>
+        <h2>Import</h2>
+        <ul id="wiz-summary" class="import-summary"></ul>
+        <div class="dialog-actions">
+          <button type="button" id="wiz-back-3">← Retour</button>
+          <button type="button" id="wiz-import-btn" class="primary">Importer</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="antenna-dashboard" hidden>
+      <h2>🛰 Antenne Bolero</h2>
+      <div class="dash-grid">
+        <section class="dash-card">
+          <div class="dash-card-title">État</div>
+          <div id="dash-state"></div>
+        </section>
+        <section class="dash-card">
+          <div class="dash-card-title">Beltpacks à charger</div>
+          <div class="ranges-editor">
+            <div id="dash-ranges-list"></div>
+            <button type="button" id="dash-add-range">+ Plage</button>
+          </div>
+        </section>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" id="dash-reconnect-btn" hidden>Reconnecter</button>
+        <button type="button" id="dash-refresh-btn" class="primary">Actualiser depuis l'antenne</button>
+        <button type="button" id="dash-disconnect-btn">Déconnecter</button>
+        <button type="button" data-close="antenna-dialog">Fermer</button>
+      </div>
+    </div>
   </dialog>
 
   <dialog id="import-dialog" class="admin-dialog">
