@@ -21,14 +21,23 @@
   </header>
   <main>
     <div class="admin-toolbar">
-      <button type="button" id="add-block-btn">Ajouter un groupe</button>
-      <button type="button" id="add-user-btn">Ajouter une personne</button>
-      <button type="button" id="edit-meta-btn">Infos tableau</button>
-      <button type="button" id="toggle-theme-btn">Écran : nuit</button>
-      <button type="button" id="history-btn">Historique</button>
+      <div class="tb-group">
+        <button type="button" id="add-block-btn">+ Groupe</button>
+        <button type="button" id="add-user-btn">+ Personne</button>
+      </div>
+      <span class="tb-sep" aria-hidden="true"></span>
+      <div class="tb-group">
+        <button type="button" id="edit-meta-btn">Infos</button>
+        <button type="button" id="toggle-theme-btn">Écran : nuit</button>
+        <button type="button" id="history-btn">Historique</button>
+      </div>
+      <span class="tb-sep" aria-hidden="true"></span>
+      <div class="tb-group">
+        <button type="button" id="export-btn">Exporter</button>
+        <label class="import-label">Importer<input type="file" id="import-input" accept="application/json"></label>
+      </div>
       <span class="toolbar-spacer" aria-hidden="true"></span>
-      <button type="button" id="export-btn">Exporter</button>
-      <label class="import-label">Importer<input type="file" id="import-input" accept="application/json"></label>
+      <button type="button" id="settings-btn">⚙ Réglages</button>
       <button type="button" id="publish-btn" class="primary">Publier vers l'affichage</button>
       <a class="logout-link" href="{{ url_for('auth.logout') }}"
          onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Déconnexion</a>
@@ -112,6 +121,47 @@
       <p class="dialog-hint">Restaurer recharge le snapshot choisi comme brouillon (republiez pour l'afficher).</p>
       <ul id="history-list" class="history-list"></ul>
       <div class="dialog-actions"><button type="button" id="history-close">Fermer</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="settings-dialog" class="admin-dialog">
+    <form method="dialog">
+      <h2>Réglages</h2>
+      <label class="switch-row">
+        <span>Intégration réseau Bolero</span>
+        <input type="checkbox" id="bolero-enabled" class="switch">
+      </label>
+      <div id="antenna-block" hidden>
+        <hr class="dlg-sep">
+        <div id="antenna-disconnected">
+          <p class="dialog-hint">Connectez ComRoster à une antenne du réseau intercom.</p>
+          <label class="field"><span>Adresse IP</span>
+            <input type="text" id="antenna-ip" placeholder="192.168.1.11" autocomplete="off"></label>
+          <label class="field"><span>Mot de passe</span>
+            <input type="password" id="antenna-password" autocomplete="off"></label>
+          <button type="button" id="antenna-connect-btn" class="primary">Connecter</button>
+          <p id="antenna-error" class="auth-error" hidden></p>
+        </div>
+        <div id="antenna-connected" hidden>
+          <p id="antenna-info" class="dialog-hint"></p>
+          <div class="dialog-actions" style="justify-content:flex-start">
+            <button type="button" id="antenna-import-btn" class="primary">Importer les beltpacks</button>
+            <button type="button" id="antenna-disconnect-btn">Déconnecter</button>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-actions"><button type="button" data-close="settings-dialog">Fermer</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="import-dialog" class="admin-dialog">
+    <form method="dialog">
+      <h2>Récapitulatif de l'import</h2>
+      <ul id="import-summary" class="import-summary"></ul>
+      <div class="dialog-actions">
+        <button type="button" id="import-apply-btn" class="primary">Appliquer</button>
+        <button type="button" data-close="import-dialog">Annuler</button>
+      </div>
     </form>
   </dialog>
 

@@ -18,6 +18,14 @@ def test_admin_page_renders(auth_client):
     assert "csrf-token" in html
 
 
+def test_admin_has_settings_and_import_dialogs(auth_client):
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert "settings-dialog" in html
+    assert "bolero-enabled" in html
+    assert "⚙ Réglages" in html
+    assert "import-dialog" in html
+
+
 def test_display_page_renders(client):
     r = client.get("/display")
     assert r.status_code == 200
