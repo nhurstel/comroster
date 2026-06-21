@@ -144,6 +144,10 @@ body[data-theme="day"] {
   padding: 0;
 }
 
+/* L'attribut [hidden] doit TOUJOURS masquer, même si une règle pose un display
+   (sinon un élément togglé par `.hidden` reste visible). */
+[hidden] { display: none !important; }
+
 html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
