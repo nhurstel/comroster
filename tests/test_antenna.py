@@ -70,6 +70,39 @@ def test_wrong_key_ignores_creds(tmp_path, monkeypatch):
     assert other.ip is None                         # creds illisibles → ignorés
 
 
+def test_live_status_not_connected(tmp_path):
+    c = AntennaClient(str(tmp_path), "secret-key")
+    assert c.live_status() == {"connected": False, "online": {}}
+
+
+def test_live_status_returns_online_map(tmp_path, monkeypatch):
+    c = AntennaClient(str(tmp_path), "secret-key")
+    monkeypatch.setattr(c, "_request", _fake_ok)
+    c.connect("192.168.1.11", "")
+    assert c.live_status() == {"connected": True, "online": {"5": True, "7": False}}
+
+
+def test_live_status_caches_within_ttl(tmp_path, monkeypatch):
+    c = AntennaClient(str(tmp_path), "secret-key")
+    monkeypatch.setattr(c, "_request", _fake_ok)
+    c.connect("192.168.1.11", "")
+    n = []
+    orig = c.fetch_beltpacks
+    monkeypatch.setattr(c, "fetch_beltpacks", lambda: (n.append(1), orig())[1])
+    a = c.live_status(ttl=60)
+    b = c.live_status(ttl=60)
+    assert a == b and len(n) == 1            # 2e appel servi par le cache
+
+
+def test_live_status_disconnect_clears_cache(tmp_path, monkeypatch):
+    c = AntennaClient(str(tmp_path), "secret-key")
+    monkeypatch.setattr(c, "_request", _fake_ok)
+    c.connect("192.168.1.11", "")
+    c.live_status(ttl=60)
+    c.disconnect()
+    assert c.live_status() == {"connected": False, "online": {}}
+
+
 def _client_with_ip(tmp_path):
     c = AntennaClient(str(tmp_path), "secret-key")
     c._ip = "10.0.0.5"
