@@ -297,6 +297,7 @@
 /* ---------- Mode sélection ---------- */
 .person.selectable { cursor: pointer; }
 .person.selected { border-color: var(--primary); background: #14304a; }
-.person .sel-check { margin-right: 0.2rem; }
-.selection-bar { position: fixed; bottom: 4.2rem; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 0.8rem; padding: 0.5rem 0.9rem; background: #131a2a; border: 1px solid #3a4868; border-radius: 9px; box-shadow: 0 8px 24px rgba(0,0,0,.5); z-index: 60; }
+.person .sel-check { margin-right: 0.2rem; width: 1.05rem; height: 1.05rem; accent-color: var(--primary); flex: 0 0 auto; }
+.selection-bar { position: fixed; bottom: 4.2rem; left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 0.8rem; padding: 0.5rem 0.9rem; background: #131a2a; border: 1px solid #3a4868; border-radius: 9px; box-shadow: 0 8px 24px rgba(0,0,0,.5); z-index: 60; }
+.selection-bar.active { display: flex; }
 .selection-bar .danger-btn { background: var(--error); color: #fff; border: none; border-radius: 7px; padding: 0.35rem 0.7rem; cursor: pointer; }
