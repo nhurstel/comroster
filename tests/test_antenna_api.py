@@ -22,14 +22,17 @@ def auth_client(client):
     return client
 
 
-def test_disabled_by_default_returns_409(auth_client):
-    assert auth_client.get("/api/settings").get_json()["bolero_enabled"] is False
-    assert auth_client.get("/api/antenna/status").status_code == 409
-    assert auth_client.post("/api/antenna/connect", json={"ip": "x", "password": "y"}).status_code == 409
+def test_settings_has_only_ranges(auth_client):
+    assert auth_client.get("/api/settings").get_json() == {"antenna_ranges": []}
+
+
+def test_antenna_status_ok_without_config(auth_client):
+    # plus de garde 409 : status répond 200 même rien configuré
+    r = auth_client.get("/api/antenna/status")
+    assert r.status_code == 200 and r.get_json()["connected"] is False
 
 
 def test_enable_connect_import_flow(auth_client, app, monkeypatch):
-    auth_client.put("/api/settings", json={"bolero_enabled": True})
     monkeypatch.setattr(app.extensions["antenna"], "_request", _fake_ok)
 
     r = auth_client.post("/api/antenna/connect", json={"ip": "192.168.1.11", "password": "pw"})
@@ -46,18 +49,9 @@ def test_enable_connect_import_flow(auth_client, app, monkeypatch):
 
 
 def test_connect_failure_502(auth_client, app, monkeypatch):
-    auth_client.put("/api/settings", json={"bolero_enabled": True})
     monkeypatch.setattr(app.extensions["antenna"], "_request", lambda *a, **k: (False, {"error": "timeout"}))
     r = auth_client.post("/api/antenna/connect", json={"ip": "10.0.0.9", "password": "x"})
     assert r.status_code == 502
-
-
-def test_disable_disconnects(auth_client, app, monkeypatch):
-    auth_client.put("/api/settings", json={"bolero_enabled": True})
-    monkeypatch.setattr(app.extensions["antenna"], "_request", _fake_ok)
-    auth_client.post("/api/antenna/connect", json={"ip": "192.168.1.11", "password": "pw"})
-    auth_client.put("/api/settings", json={"bolero_enabled": False})
-    assert app.extensions["antenna"].connected is False
 
 
 def _fake_three(method, path, body=None, timeout=5):
@@ -75,7 +69,7 @@ def _fake_three(method, path, body=None, timeout=5):
 
 
 def test_ranges_filter_import(auth_client, app, monkeypatch):
-    auth_client.put("/api/settings", json={"bolero_enabled": True, "antenna_ranges": [[1, 25]]})
+    auth_client.put("/api/settings", json={"antenna_ranges": [[1, 25]]})
     monkeypatch.setattr(app.extensions["antenna"], "_request", _fake_three)
     auth_client.post("/api/antenna/connect", json={"ip": "1.1.1.1", "password": ""})
     applied = auth_client.post("/api/antenna/import/apply").get_json()
@@ -90,7 +84,6 @@ def test_invalid_ranges_400(auth_client):
 
 
 def test_apply_mirror_removes_absent(auth_client, app, monkeypatch):
-    auth_client.put("/api/settings", json={"bolero_enabled": True})
     monkeypatch.setattr(app.extensions["antenna"], "_request", _fake_three)
     auth_client.post("/api/antenna/connect", json={"ip": "1.1.1.1", "password": ""})
     auth_client.post("/api/antenna/import/apply")
@@ -107,7 +100,6 @@ def test_apply_mirror_removes_absent(auth_client, app, monkeypatch):
 
 
 def test_configs_save_load_disconnects(auth_client, app, monkeypatch):
-    auth_client.put("/api/settings", json={"bolero_enabled": True})
     monkeypatch.setattr(app.extensions["antenna"], "_request", _fake_three)
     auth_client.post("/api/antenna/connect", json={"ip": "1.1.1.1", "password": ""})
     auth_client.post("/api/antenna/import/apply")

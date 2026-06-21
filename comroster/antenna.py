@@ -23,10 +23,6 @@ def _configs():
     return current_app.extensions["configs"]
 
 
-def _enabled():
-    return bool(_settings().get("bolero_enabled", False))
-
-
 def _valid_ranges(ranges):
     if not isinstance(ranges, list):
         return None
@@ -41,43 +37,27 @@ def _valid_ranges(ranges):
     return out
 
 
-def _guard():
-    if not _enabled():
-        return jsonify({"error": "bolero_disabled"}), 409
-    return None
-
-
 @bp.get("/api/settings")
 @login_required
 def get_settings():
-    return jsonify({"bolero_enabled": _enabled(),
-                    "antenna_ranges": _settings().get("antenna_ranges", [])})
+    return jsonify({"antenna_ranges": _settings().get("antenna_ranges", [])})
 
 
 @bp.put("/api/settings")
 @login_required
 def put_settings():
     data = request.get_json(force=True)
-    if "bolero_enabled" in data:
-        enabled = bool(data.get("bolero_enabled"))
-        _settings().set("bolero_enabled", enabled)
-        if not enabled:
-            _client().disconnect()
     if "antenna_ranges" in data:
         ranges = _valid_ranges(data.get("antenna_ranges"))
         if ranges is None:
             return jsonify({"error": "Plages invalides"}), 400
         _settings().set("antenna_ranges", ranges)
-    return jsonify({"bolero_enabled": _enabled(),
-                    "antenna_ranges": _settings().get("antenna_ranges", [])})
+    return jsonify({"antenna_ranges": _settings().get("antenna_ranges", [])})
 
 
 @bp.post("/api/antenna/connect")
 @login_required
 def antenna_connect():
-    guard = _guard()
-    if guard:
-        return guard
     data = request.get_json(force=True)
     ip = (data.get("ip") or "").strip()
     password = data.get("password") or ""
@@ -93,9 +73,6 @@ def antenna_connect():
 @bp.post("/api/antenna/disconnect")
 @login_required
 def antenna_disconnect():
-    guard = _guard()
-    if guard:
-        return guard
     _client().disconnect()
     return jsonify({"connected": False})
 
@@ -103,9 +80,6 @@ def antenna_disconnect():
 @bp.get("/api/antenna/status")
 @login_required
 def antenna_status():
-    guard = _guard()
-    if guard:
-        return guard
     client = _client()
     if client.ip and not client.connected:
         client.reconnect()
@@ -115,9 +89,6 @@ def antenna_status():
 @bp.post("/api/antenna/import/preview")
 @login_required
 def antenna_import_preview():
-    guard = _guard()
-    if guard:
-        return guard
     try:
         items = _client().fetch_beltpacks()
     except AntennaError as exc:
@@ -129,9 +100,6 @@ def antenna_import_preview():
 @bp.post("/api/antenna/import/apply")
 @login_required
 def antenna_import_apply():
-    guard = _guard()
-    if guard:
-        return guard
     try:
         items = _client().fetch_beltpacks()
     except AntennaError as exc:
