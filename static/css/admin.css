@@ -338,8 +338,17 @@
 #dash-state .ds-line { display: flex; align-items: center; gap: 0.4rem; }
 #dash-state .ds-sub { color: #8b97ad; font-size: 0.82rem; }
 
-/* ---------- En-tête de panneau : compteur + action ---------- */
+/* ---------- En-tête de panneau : compteur sur une ligne ---------- */
 .badge { white-space: nowrap; }
-.panel-head-actions { display: flex; align-items: center; gap: 0.5rem; flex: 0 0 auto; }
-.admin-panel .mini-btn { height: 1.7rem; padding: 0 0.55rem; font-size: 0.74rem; font-weight: 600; background: #131a2a; }
-.admin-panel .mini-btn:hover:not(:disabled) { background: #1f2942; }
+
+/* Bouton « Sélectionner » : ligne dédiée discrète sous l'en-tête, dans la largeur du panneau */
+.admin-panel .mini-btn {
+    align-self: flex-start;
+    height: 1.7rem;
+    padding: 0 0.6rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    background: #131a2a;
+    color: #aab6cc;
+}
+.admin-panel .mini-btn:hover:not(:disabled) { background: #1f2942; color: #e6edf3; }
