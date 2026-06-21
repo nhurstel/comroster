@@ -530,84 +530,160 @@
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); publish(); }
   });
 
-  /* ---------- Réglages & intégration Bolero ---------- */
-  const settingsDialog = document.getElementById("settings-dialog");
-  const boleroToggle = document.getElementById("bolero-enabled");
-  const antennaBlock = document.getElementById("antenna-block");
+  /* ---------- Antenne : pastille, assistant, tableau de bord ---------- */
+  const antennaDialog = document.getElementById("antenna-dialog");
+  let currentRanges = [];
+  let rangesListEl = null;
 
-  async function refreshAntenna() {
+  function summaryHtml(p) {
+    return [
+      `<li><b>${p.new.length}</b> à ajouter${p.new.length ? " : " + p.new.map((n) => esc(`#${n.number} ${n.name}`)).join(", ") : ""}</li>`,
+      `<li><b>${p.changed.length}</b> rôle(s) mis à jour${p.changed.length ? " : " + p.changed.map((c) => esc(`#${c.number} ${c.old_role}→${c.new_role}`)).join(", ") : ""}</li>`,
+      `<li><b>${p.unchanged}</b> inchangé(s)</li>`,
+      `<li><b>${p.missing.length}</b> à retirer${p.missing.length ? " : " + p.missing.map((m) => esc(`#${m.number} ${m.role}`)).join(", ") : ""}</li>`,
+    ].join("");
+  }
+
+  async function refreshAntennaBadge() {
+    const dot = document.getElementById("antenna-dot");
     let st;
     try { st = await apiSend("GET", "/api/antenna/status"); } catch { return; }
-    document.getElementById("antenna-connected").hidden = !st.connected;
-    document.getElementById("antenna-disconnected").hidden = !!st.connected;
-    if (st.connected) {
+    dot.className = "dot " + (st.connected ? "online" : st.ip ? "offline" : "off");
+    return st;
+  }
+
+  function renderRanges() {
+    if (!rangesListEl) return;
+    rangesListEl.innerHTML = "";
+    currentRanges.forEach((r, i) => {
+      const row = document.createElement("div");
+      row.className = "range-row";
+      row.innerHTML = `de <input type="number" min="1" value="${r[0]}" data-i="${i}" data-k="0"> à `
+        + `<input type="number" min="1" value="${r[1]}" data-i="${i}" data-k="1">`;
+      const del = document.createElement("button");
+      del.type = "button"; del.className = "range-del"; del.textContent = "✕";
+      del.addEventListener("click", () => { currentRanges.splice(i, 1); renderRanges(); saveRanges(); });
+      row.appendChild(del);
+      rangesListEl.appendChild(row);
+    });
+    rangesListEl.querySelectorAll("input").forEach((inp) => inp.addEventListener("change", () => {
+      currentRanges[+inp.dataset.i][+inp.dataset.k] = parseInt(inp.value || "0", 10);
+      saveRanges();
+    }));
+  }
+  async function saveRanges() {
+    const clean = currentRanges
+      .map((r) => [parseInt(r[0] || 0, 10), parseInt(r[1] || 0, 10)])
+      .filter((r) => r[0] >= 1 && r[1] >= r[0]);
+    try { await apiSend("PUT", "/api/settings", { antenna_ranges: clean }); }
+    catch { toast("Plages invalides", true); }
+  }
+  function addRange() { currentRanges.push([1, 25]); renderRanges(); saveRanges(); }
+  document.getElementById("wiz-add-range").addEventListener("click", addRange);
+  document.getElementById("dash-add-range").addEventListener("click", addRange);
+
+  function wizGo(step) {
+    antennaDialog.querySelectorAll(".wiz-step").forEach((s) => { s.hidden = +s.dataset.step !== step; });
+    antennaDialog.querySelectorAll(".wiz-dot").forEach((d) => {
+      const n = +d.dataset.dot;
+      d.classList.toggle("active", n === step);
+      d.classList.toggle("done", n < step);
+    });
+    if (step === 2) { rangesListEl = document.getElementById("wiz-ranges-list"); renderRanges(); }
+  }
+
+  async function openAntenna() {
+    const settings = await apiSend("GET", "/api/settings");
+    currentRanges = (settings.antenna_ranges || []).map((r) => [r[0], r[1]]);
+    const st = await refreshAntennaBadge();
+    if (st && st.ip) {
+      document.getElementById("antenna-wizard").hidden = true;
+      document.getElementById("antenna-dashboard").hidden = false;
+      const online = st.connected;
       const fw = st.info?.firmware?.version || "?";
       const name = st.info?.local?.name || st.ip;
-      document.getElementById("antenna-info").textContent = `Connecté à ${name} · firmware ${fw}`;
+      const nbp = (st.info?.nodes || []).reduce((a, n) => a + (n.bp ? n.bp.length : 0), 0);
+      document.getElementById("dash-state").innerHTML =
+        `<div class="ds-line"><span class="dot ${online ? "online" : "offline"}"></span>`
+        + `<b>${online ? "Connecté" : "Hors ligne"}</b></div>`
+        + `<div class="ds-sub">${esc(name)}${online ? ` · firmware ${esc(fw)}` : ""}</div>`
+        + (online && nbp ? `<div class="ds-sub">${nbp} beltpack(s) sur le réseau</div>` : "");
+      document.getElementById("dash-reconnect-btn").hidden = online;
+      document.getElementById("dash-refresh-btn").hidden = !online;
+      rangesListEl = document.getElementById("dash-ranges-list"); renderRanges();
+    } else {
+      document.getElementById("antenna-dashboard").hidden = true;
+      document.getElementById("antenna-wizard").hidden = false;
+      document.getElementById("wiz-ip").value = "";
+      document.getElementById("wiz-password").value = "";
+      document.getElementById("wiz-error").hidden = true;
+      wizGo(1);
     }
+    antennaDialog.showModal();
   }
+  document.getElementById("antenna-btn").addEventListener("click", openAntenna);
 
-  async function openSettings() {
-    const s = await apiSend("GET", "/api/settings");
-    boleroToggle.checked = !!s.bolero_enabled;
-    antennaBlock.hidden = !s.bolero_enabled;
-    if (s.bolero_enabled) await refreshAntenna();
-    currentRanges = (s.antenna_ranges || []).map((r) => [r[0], r[1]]);
-    renderRanges();
-    settingsDialog.showModal();
-  }
-
-  boleroToggle.addEventListener("change", async () => {
-    const s = await apiSend("PUT", "/api/settings", { bolero_enabled: boleroToggle.checked });
-    antennaBlock.hidden = !s.bolero_enabled;
-    if (s.bolero_enabled) await refreshAntenna();
-  });
-
-  document.getElementById("antenna-connect-btn").addEventListener("click", async () => {
-    const ip = document.getElementById("antenna-ip").value.trim();
-    const password = document.getElementById("antenna-password").value;
-    const errEl = document.getElementById("antenna-error");
-    errEl.hidden = true;
+  document.getElementById("wiz-connect-btn").addEventListener("click", async () => {
+    const ip = document.getElementById("wiz-ip").value.trim();
+    const password = document.getElementById("wiz-password").value;
+    const err = document.getElementById("wiz-error");
+    err.hidden = true;
     try {
       await apiSend("POST", "/api/antenna/connect", { ip, password });
-      await refreshAntenna();
-      await openImportPreview();   // récap dès la 1ère connexion
+      await refreshAntennaBadge();
+      wizGo(2);
     } catch (e) {
-      errEl.textContent = e.payload?.error || "Connexion échouée";
-      errEl.hidden = false;
+      err.textContent = e.payload?.error || "Connexion échouée";
+      err.hidden = false;
     }
   });
+  document.getElementById("wiz-back-2").addEventListener("click", () => wizGo(1));
+  document.getElementById("wiz-back-3").addEventListener("click", () => wizGo(2));
 
-  document.getElementById("antenna-disconnect-btn").addEventListener("click", async () => {
-    try { await apiSend("POST", "/api/antenna/disconnect"); } finally { await refreshAntenna(); }
-  });
-
-  async function openImportPreview() {
+  document.getElementById("wiz-next-2").addEventListener("click", async () => {
     let p;
     try { p = await apiSend("POST", "/api/antenna/import/preview"); }
     catch { toast("Lecture des beltpacks impossible", true); return; }
-    const li = [];
-    li.push(`<li><b>${p.new.length}</b> à ajouter${p.new.length ? " : " + p.new.map((n) => esc(`#${n.number} ${n.name}`)).join(", ") : ""}</li>`);
-    li.push(`<li><b>${p.changed.length}</b> rôle(s) mis à jour${p.changed.length ? " : " + p.changed.map((c) => esc(`#${c.number} ${c.old_role}→${c.new_role}`)).join(", ") : ""}</li>`);
-    li.push(`<li><b>${p.unchanged}</b> inchangé(s)</li>`);
-    li.push(`<li><b>${p.missing.length}</b> à retirer${p.missing.length ? " : " + p.missing.map((m) => esc(`#${m.number} ${m.role}`)).join(", ") : ""}</li>`);
-    document.getElementById("import-summary").innerHTML = li.join("");
-    document.getElementById("import-dialog").showModal();
-  }
-  document.getElementById("antenna-refresh-btn").addEventListener("click", openImportPreview);
-
-  document.getElementById("import-apply-btn").addEventListener("click", async () => {
+    document.getElementById("wiz-summary").innerHTML = summaryHtml(p);
+    wizGo(3);
+  });
+  document.getElementById("wiz-import-btn").addEventListener("click", async () => {
     try {
-      const res = await apiSend("POST", "/api/antenna/import/apply");
-      document.getElementById("import-dialog").close();
-      settingsDialog.close();
+      await apiSend("POST", "/api/antenna/import/apply");
+      antennaDialog.close();
       setUnpublished(true);
       await load();
-      toast(`Import : ${res.created} ajouté(s), ${res.updated} mis à jour, ${res.removed} retiré(s)`);
+      await refreshAntennaBadge();
+      toast("Beltpacks importés");
     } catch { toast("Import impossible", true); }
   });
 
-  document.getElementById("settings-btn").addEventListener("click", openSettings);
+  document.getElementById("dash-reconnect-btn").addEventListener("click", openAntenna);
+  document.getElementById("dash-disconnect-btn").addEventListener("click", async () => {
+    try { await apiSend("POST", "/api/antenna/disconnect"); } finally {
+      antennaDialog.close();
+      await refreshAntennaBadge();
+    }
+  });
+  document.getElementById("dash-refresh-btn").addEventListener("click", async () => {
+    let p;
+    try { p = await apiSend("POST", "/api/antenna/import/preview"); }
+    catch { toast("Lecture des beltpacks impossible", true); return; }
+    document.getElementById("import-summary").innerHTML = summaryHtml(p);
+    document.getElementById("import-dialog").showModal();
+  });
+
+  document.getElementById("import-apply-btn").addEventListener("click", async () => {
+    try {
+      await apiSend("POST", "/api/antenna/import/apply");
+      document.getElementById("import-dialog").close();
+      antennaDialog.close();
+      setUnpublished(true);
+      await load();
+      await refreshAntennaBadge();
+      toast("Beltpacks importés");
+    } catch { toast("Import impossible", true); }
+  });
 
   /* ---------- Mode sélection ---------- */
   function updateSelectionBar() {
@@ -640,38 +716,6 @@
       await load();
       toast(`${res.deleted} fiche(s) supprimée(s)`);
     } catch { toast("Suppression impossible", true); }
-  });
-
-  /* ---------- Éditeur de plages ---------- */
-  let currentRanges = [];
-  function renderRanges() {
-    const list = document.getElementById("ranges-list");
-    list.innerHTML = "";
-    currentRanges.forEach((r, i) => {
-      const row = document.createElement("div");
-      row.className = "range-row";
-      row.innerHTML = `de <input type="number" min="1" value="${r[0]}" data-i="${i}" data-k="0"> à `
-        + `<input type="number" min="1" value="${r[1]}" data-i="${i}" data-k="1">`;
-      const del = document.createElement("button");
-      del.type = "button"; del.className = "range-del"; del.textContent = "✕";
-      del.addEventListener("click", () => { currentRanges.splice(i, 1); renderRanges(); saveRanges(); });
-      row.appendChild(del);
-      list.appendChild(row);
-    });
-    list.querySelectorAll("input").forEach((inp) => inp.addEventListener("change", () => {
-      currentRanges[+inp.dataset.i][+inp.dataset.k] = parseInt(inp.value || "0", 10);
-      saveRanges();
-    }));
-  }
-  async function saveRanges() {
-    const clean = currentRanges
-      .map((r) => [parseInt(r[0] || 0, 10), parseInt(r[1] || 0, 10)])
-      .filter((r) => r[0] >= 1 && r[1] >= r[0]);
-    try { await apiSend("PUT", "/api/settings", { antenna_ranges: clean }); }
-    catch { toast("Plages invalides", true); }
-  }
-  document.getElementById("add-range-btn").addEventListener("click", () => {
-    currentRanges.push([1, 25]); renderRanges(); saveRanges();
   });
 
   /* ---------- Configurations ---------- */
@@ -711,5 +755,6 @@
   /* ---------- Init ---------- */
   render();
   updateSelectionBar();
+  refreshAntennaBadge();
   setStatus("Brouillon synchronisé", "idle");
 })();
