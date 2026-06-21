@@ -505,6 +505,81 @@
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); publish(); }
   });
 
+  /* ---------- Réglages & intégration Bolero ---------- */
+  const settingsDialog = document.getElementById("settings-dialog");
+  const boleroToggle = document.getElementById("bolero-enabled");
+  const antennaBlock = document.getElementById("antenna-block");
+
+  async function refreshAntenna() {
+    let st;
+    try { st = await apiSend("GET", "/api/antenna/status"); } catch { return; }
+    document.getElementById("antenna-connected").hidden = !st.connected;
+    document.getElementById("antenna-disconnected").hidden = !!st.connected;
+    if (st.connected) {
+      const fw = st.info?.firmware?.version || "?";
+      const name = st.info?.local?.name || st.ip;
+      document.getElementById("antenna-info").textContent = `Connecté à ${name} · firmware ${fw}`;
+    }
+  }
+
+  async function openSettings() {
+    const s = await apiSend("GET", "/api/settings");
+    boleroToggle.checked = !!s.bolero_enabled;
+    antennaBlock.hidden = !s.bolero_enabled;
+    if (s.bolero_enabled) await refreshAntenna();
+    settingsDialog.showModal();
+  }
+
+  boleroToggle.addEventListener("change", async () => {
+    const s = await apiSend("PUT", "/api/settings", { bolero_enabled: boleroToggle.checked });
+    antennaBlock.hidden = !s.bolero_enabled;
+    if (s.bolero_enabled) await refreshAntenna();
+  });
+
+  document.getElementById("antenna-connect-btn").addEventListener("click", async () => {
+    const ip = document.getElementById("antenna-ip").value.trim();
+    const password = document.getElementById("antenna-password").value;
+    const errEl = document.getElementById("antenna-error");
+    errEl.hidden = true;
+    try {
+      await apiSend("POST", "/api/antenna/connect", { ip, password });
+      await refreshAntenna();
+    } catch (e) {
+      errEl.textContent = e.payload?.error || "Connexion échouée";
+      errEl.hidden = false;
+    }
+  });
+
+  document.getElementById("antenna-disconnect-btn").addEventListener("click", async () => {
+    try { await apiSend("POST", "/api/antenna/disconnect"); } finally { await refreshAntenna(); }
+  });
+
+  document.getElementById("antenna-import-btn").addEventListener("click", async () => {
+    let p;
+    try { p = await apiSend("POST", "/api/antenna/import/preview"); }
+    catch { toast("Lecture des beltpacks impossible", true); return; }
+    const li = [];
+    li.push(`<li><b>${p.new.length}</b> nouveau(x)${p.new.length ? " : " + p.new.map((n) => esc(`#${n.number} ${n.name}`)).join(", ") : ""}</li>`);
+    li.push(`<li><b>${p.changed.length}</b> rôle(s) mis à jour${p.changed.length ? " : " + p.changed.map((c) => esc(`#${c.number} ${c.old_role}→${c.new_role}`)).join(", ") : ""}</li>`);
+    li.push(`<li><b>${p.unchanged}</b> inchangé(s)</li>`);
+    li.push(`<li><b>${p.missing.length}</b> absent(s) de l'antenne (conservés)</li>`);
+    document.getElementById("import-summary").innerHTML = li.join("");
+    document.getElementById("import-dialog").showModal();
+  });
+
+  document.getElementById("import-apply-btn").addEventListener("click", async () => {
+    try {
+      const res = await apiSend("POST", "/api/antenna/import/apply");
+      document.getElementById("import-dialog").close();
+      settingsDialog.close();
+      setUnpublished(true);
+      await load();
+      toast(`Import : ${res.created} créé(s), ${res.updated} mis à jour`);
+    } catch { toast("Import impossible", true); }
+  });
+
+  document.getElementById("settings-btn").addEventListener("click", openSettings);
+
   /* ---------- Init ---------- */
   render();
   setStatus("Brouillon synchronisé", "idle");
