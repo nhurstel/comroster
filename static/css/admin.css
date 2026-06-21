@@ -179,6 +179,7 @@
 .person.dragging { opacity: 0.45; cursor: grabbing; }
 
 .person .bp {
+    position: relative;
     flex: 0 0 auto;
     min-width: 2.1rem;
     padding: 0.2rem 0.35rem;
@@ -309,6 +310,11 @@
 .dot.off { background: #5d6a82; }
 .dot.online { background: #2ecc71; box-shadow: 0 0 6px rgba(46,204,113,.6); }
 .dot.offline { background: #e0913a; box-shadow: 0 0 6px rgba(224,145,58,.6); }
+
+/* Pastille temps réel sur la carte beltpack (invisible si antenne déconnectée) */
+.bp-dot { position: absolute; top: -3px; right: -3px; width: 0.5rem; height: 0.5rem; border-radius: 50%; }
+.bp-dot.on { background: #2ecc71; box-shadow: 0 0 5px rgba(46,204,113,.7); border: 1.5px solid #0c111d; }
+.bp-dot.down { background: #5d6a82; border: 1.5px solid #0c111d; }
 
 /* ---------- Panneau Antenne (pas de <form> : on pose le padding ici) ---------- */
 /* NB: ces conteneurs portent l'attribut [hidden] ; ne JAMAIS poser display

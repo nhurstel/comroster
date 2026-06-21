@@ -134,6 +134,10 @@
     bp.className = "bp";
     bp.title = "Beltpack n°" + person.beltpack;
     bp.textContent = person.beltpack;
+    const dot = document.createElement("span");
+    dot.className = "bp-dot";
+    dot.dataset.bp = person.beltpack;
+    bp.append(dot);
 
     const who = document.createElement("div");
     who.className = "who";
@@ -287,6 +291,23 @@
     renderAvailable();
     renderBlocks();
     refreshAssignOptions();
+    applyLiveDots();
+  }
+
+  /* ---------- État temps réel des beltpacks (en ligne / hors ligne) ---------- */
+  let liveOnline = null;   // null = antenne non connectée → pas de pastille
+  function applyLiveDots() {
+    document.querySelectorAll(".bp-dot[data-bp]").forEach((d) => {
+      const on = liveOnline ? liveOnline[d.dataset.bp] : undefined;
+      if (on === undefined) { d.className = "bp-dot"; d.title = ""; }
+      else { d.className = "bp-dot " + (on ? "on" : "down"); d.title = on ? "En ligne" : "Hors ligne"; }
+    });
+  }
+  async function pollLive() {
+    let res;
+    try { res = await apiSend("GET", "/api/antenna/live"); } catch { return; }
+    liveOnline = res.connected ? res.online : null;
+    applyLiveDots();
   }
 
   /* ---------- Mutations ---------- */
@@ -769,5 +790,7 @@
   render();
   updateSelectionBar();
   refreshAntennaBadge();
+  pollLive();
+  setInterval(pollLive, 5000);
   setStatus("Brouillon synchronisé", "idle");
 })();
