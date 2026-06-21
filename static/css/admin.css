@@ -310,16 +310,24 @@
 .dot.online { background: #2ecc71; box-shadow: 0 0 6px rgba(46,204,113,.6); }
 .dot.offline { background: #e0913a; box-shadow: 0 0 6px rgba(224,145,58,.6); }
 
+/* ---------- Panneau Antenne (pas de <form> : on pose le padding ici) ---------- */
+.antenna-dialog { max-width: 460px; }
+#antenna-wizard, #antenna-dashboard { padding: 1.6rem; display: flex; flex-direction: column; gap: 1.1rem; }
+
 /* ---------- Assistant ---------- */
-.antenna-dialog { max-width: 480px; }
-.wiz-steps { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.4rem; }
-.wiz-dot { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: #2a3550; }
+.wiz-steps { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+.wiz-dot { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: #2a3550; transition: background .15s; }
 .wiz-dot.active { background: var(--primary); }
 .wiz-dot.done { background: #2ecc71; }
-.wiz-line { width: 2.2rem; height: 2px; background: #2a3550; }
-.wiz-step h2 { margin: 0.2rem 0 0.4rem; }
+.wiz-line { width: 2.4rem; height: 2px; background: #2a3550; }
+.wiz-step { display: flex; flex-direction: column; gap: 0.8rem; }
+.wiz-step h2 { margin: 0; font-size: 1.15rem; text-align: center; }
+.wiz-step .field { margin-bottom: 0; }
+.wiz-step .dialog-actions { margin-top: 0.4rem; }
 
 /* ---------- Tableau de bord ---------- */
+#antenna-dashboard h2 { font-size: 1.15rem; }
+#antenna-dashboard .dialog-actions { flex-wrap: wrap; }
 .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
 @media (max-width: 520px) { .dash-grid { grid-template-columns: 1fr; } }
 .dash-card { background: #0c111d; border: 1px solid #243049; border-radius: 8px; padding: 0.7rem 0.8rem; }
