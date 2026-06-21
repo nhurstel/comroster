@@ -302,8 +302,9 @@
 .selection-bar.active { display: flex; }
 .selection-bar .danger-btn { background: var(--error); color: #fff; border: none; border-radius: 7px; padding: 0.35rem 0.7rem; cursor: pointer; }
 
-/* ---------- Pastille d'état antenne ---------- */
-#antenna-btn { display: inline-flex; align-items: center; gap: 0.45rem; }
+/* ---------- Indicateur d'état antenne ---------- */
+#antenna-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0 0.85rem; background: #0d1422; border-color: #243049; }
+#antenna-btn:hover:not(:disabled) { background: #18233a; border-color: #3a4868; }
 .dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; flex: 0 0 auto; }
 .dot.off { background: #5d6a82; }
 .dot.online { background: #2ecc71; box-shadow: 0 0 6px rgba(46,204,113,.6); }

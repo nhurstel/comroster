@@ -37,9 +37,11 @@
         <button type="button" id="export-btn">Exporter</button>
         <label class="import-label">Importer<input type="file" id="import-input" accept="application/json"></label>
         <button type="button" id="configs-btn">Configs</button>
-        <button type="button" id="antenna-btn">🛰 Antenne <span class="dot off" id="antenna-dot"></span></button>
       </div>
       <span class="toolbar-spacer" aria-hidden="true"></span>
+      <button type="button" id="antenna-btn" title="Connexion à l'antenne Bolero">
+        <span class="dot off" id="antenna-dot"></span>Antenne</button>
+      <span class="tb-sep" aria-hidden="true"></span>
       <button type="button" id="publish-btn" class="primary">Publier vers l'affichage</button>
       <a class="logout-link" href="{{ url_for('auth.logout') }}"
          onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Déconnexion</a>
