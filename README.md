@@ -57,6 +57,15 @@ FLASK_SECRET_KEY=<clé> DATA_DIR=/opt/comroster/instance \
 Derrière Nginx : voir [deploy/nginx.conf](deploy/nginx.conf) — `proxy_buffering off` sur
 `/events` est **indispensable** au SSE. Service systemd : [deploy/comroster.service](deploy/comroster.service).
 
+> **HTTPS requis en prod.** Le cookie de session est marqué `Secure` : sans TLS, la connexion
+> admin échoue silencieusement. La config Nginx fournie redirige 80 → 443 et termine le TLS.
+> Sur un LAN de régie fermé sans certificat, lancer gunicorn avec `FLASK_DEBUG=true` désactive
+> le flag `Secure` (à réserver à ce cas).
+
+Le mot de passe de l'antenne Bolero est **chiffré au repos** (Fernet, clé dérivée de
+`FLASK_SECRET_KEY`) dans `antenna.json` — dépendance `cryptography`. Changer la clé de session
+rend les identifiants antenne illisibles (ils sont alors ignorés, sans erreur).
+
 ## Premier démarrage
 
 1. Ouvrir `/admin/setup` → définir le mot de passe admin (8 caractères min.).
