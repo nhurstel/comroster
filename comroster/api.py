@@ -116,6 +116,17 @@ def delete_person(pid):
     return jsonify({"ok": True})
 
 
+@bp.post("/api/people/delete-batch")
+@login_required
+def delete_people_batch():
+    data = request.get_json(force=True)
+    ids = data.get("ids") or []
+    state = _storage().load_draft()
+    deleted = model.delete_people(state, ids)
+    _storage().save_draft(state)
+    return jsonify({"deleted": deleted})
+
+
 @bp.put("/api/draft")
 @login_required
 def replace_draft():
