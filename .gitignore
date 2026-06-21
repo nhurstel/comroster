@@ -6,6 +6,8 @@ venv/
 data_draft.json
 data_published.json
 admin_secret.json
+settings.json
+antenna.json
 history/
 instance/
 
