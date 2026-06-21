@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import os
+import socket
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -21,6 +22,10 @@ class AntennaClient:
         self._password = None
         self._connected = False
         self._info = {}
+        try:
+            self.timeout = int(os.environ.get("COMROSTER_ANTENNA_TIMEOUT", "5"))
+        except ValueError:
+            self.timeout = 5
 
     @property
     def connected(self):
@@ -34,7 +39,9 @@ class AntennaClient:
         key = base64.urlsafe_b64encode(hashlib.sha256(self._secret_key.encode()).digest())
         return Fernet(key)
 
-    def _request(self, method, path, body=None, timeout=5):
+    def _request(self, method, path, body=None, timeout=None):
+        if timeout is None:
+            timeout = self.timeout
         if not self._ip:
             return False, {"error": "not connected"}
         url = f"http://{self._ip}{path}"
@@ -51,9 +58,17 @@ class AntennaClient:
                 raw = resp.read()
                 return True, (json.loads(raw) if raw and raw.strip() else {})
         except urllib.error.HTTPError as e:
-            return False, {"error": f"HTTP {e.code}"}
+            if e.code in (401, 403):
+                return False, {"error": "Mot de passe incorrect ou accès refusé", "code": "auth"}
+            return False, {"error": f"Erreur antenne (HTTP {e.code})", "code": "http"}
+        except urllib.error.URLError as e:
+            if isinstance(e.reason, (socket.timeout, TimeoutError)):
+                return False, {"error": "Antenne injoignable (délai dépassé)", "code": "timeout"}
+            return False, {"error": "Antenne injoignable — vérifiez l'IP et le réseau", "code": "network"}
+        except (socket.timeout, TimeoutError):
+            return False, {"error": "Antenne injoignable (délai dépassé)", "code": "timeout"}
         except Exception as e:
-            return False, {"error": str(e)}
+            return False, {"error": str(e), "code": "unknown"}
 
     def connect(self, ip, password):
         self._ip = (ip or "").strip()

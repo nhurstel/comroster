@@ -80,10 +80,19 @@ def antenna_disconnect():
 @bp.get("/api/antenna/status")
 @login_required
 def antenna_status():
+    # Non bloquant : on renvoie l'état mémoire sans tenter de reconnexion réseau.
+    return jsonify(_client().status())
+
+
+@bp.post("/api/antenna/reconnect")
+@login_required
+def antenna_reconnect():
     client = _client()
-    if client.ip and not client.connected:
-        client.reconnect()
-    return jsonify(client.status())
+    if not client.ip:
+        return jsonify({"connected": False, "error": "Aucune antenne configurée"}), 400
+    if not client.reconnect():
+        return jsonify({"connected": False, "error": "Reconnexion échouée — antenne injoignable"}), 502
+    return jsonify({"connected": True, "info": client.status()["info"]})
 
 
 @bp.post("/api/antenna/import/preview")
