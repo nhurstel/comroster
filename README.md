@@ -32,6 +32,7 @@ python3.12 -m venv .venv
 | `DATA_DIR` | Répertoire des fichiers d'état | répertoire courant |
 | `PORT` | Port d'écoute (dev) | `8080` |
 | `FLASK_DEBUG` | Mode debug (`true`/`false`) — désactive `Secure` sur le cookie | `false` |
+| `COMROSTER_ANTENNA_TIMEOUT` | Délai (s) des requêtes vers l'antenne Bolero | `5` |
 
 Générer une clé : `python -c "import secrets; print(secrets.token_hex(32))"`.
 
