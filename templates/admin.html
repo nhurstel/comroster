@@ -24,6 +24,7 @@
       <div class="tb-group">
         <button type="button" id="add-block-btn">+ Groupe</button>
         <button type="button" id="add-user-btn">+ Personne</button>
+        <button type="button" id="select-btn">Sélectionner</button>
       </div>
       <span class="tb-sep" aria-hidden="true"></span>
       <div class="tb-group">
@@ -35,6 +36,7 @@
       <div class="tb-group">
         <button type="button" id="export-btn">Exporter</button>
         <label class="import-label">Importer<input type="file" id="import-input" accept="application/json"></label>
+        <button type="button" id="configs-btn">Configs</button>
       </div>
       <span class="toolbar-spacer" aria-hidden="true"></span>
       <button type="button" id="settings-btn">⚙ Réglages</button>
@@ -133,6 +135,12 @@
       </label>
       <div id="antenna-block" hidden>
         <hr class="dlg-sep">
+        <div class="ranges-editor">
+          <span class="dlg-label">Plages de beltpacks à charger (vide = toutes)</span>
+          <div id="ranges-list"></div>
+          <button type="button" id="add-range-btn">+ Plage</button>
+        </div>
+        <hr class="dlg-sep">
         <div id="antenna-disconnected">
           <p class="dialog-hint">Connectez ComRoster à une antenne du réseau intercom.</p>
           <label class="field"><span>Adresse IP</span>
@@ -145,7 +153,7 @@
         <div id="antenna-connected" hidden>
           <p id="antenna-info" class="dialog-hint"></p>
           <div class="dialog-actions" style="justify-content:flex-start">
-            <button type="button" id="antenna-import-btn" class="primary">Importer les beltpacks</button>
+            <button type="button" id="antenna-refresh-btn" class="primary">Actualiser depuis l'antenne</button>
             <button type="button" id="antenna-disconnect-btn">Déconnecter</button>
           </div>
         </div>
@@ -164,6 +172,24 @@
       </div>
     </form>
   </dialog>
+
+  <dialog id="configs-dialog" class="admin-dialog">
+    <form method="dialog">
+      <h2>Configurations</h2>
+      <div class="save-row">
+        <input type="text" id="config-name" placeholder="Nom (ex. Jour 2)" maxlength="60">
+        <button type="button" id="config-save-btn" class="primary">Sauvegarder</button>
+      </div>
+      <ul id="configs-list" class="configs-list"></ul>
+      <div class="dialog-actions"><button type="button" data-close="configs-dialog">Fermer</button></div>
+    </form>
+  </dialog>
+
+  <div id="selection-bar" class="selection-bar" hidden>
+    <span id="selection-count">0 sélectionné(s)</span>
+    <button type="button" id="selection-delete" class="danger-btn">Supprimer</button>
+    <button type="button" id="selection-cancel">Annuler</button>
+  </div>
 
   <footer>
     <span id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>

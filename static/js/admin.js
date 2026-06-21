@@ -11,6 +11,8 @@
     busy: false,
     unpublished: false,
     editingPersonId: null,
+    selectionMode: false,
+    selection: new Set(),
   };
 
   const el = {
@@ -121,6 +123,29 @@
     card.dataset.userId = person.id;
     card.dataset.source = source;
     if (blockId) card.dataset.blockId = blockId;
+
+    if (state.selectionMode) {
+      card.classList.add("selectable");
+      card.draggable = false;
+      if (state.selection.has(person.id)) card.classList.add("selected");
+      const chk = document.createElement("input");
+      chk.type = "checkbox";
+      chk.className = "sel-check";
+      chk.checked = state.selection.has(person.id);
+      card.prepend(chk);
+      const num = document.createElement("span");
+      num.className = "role";
+      num.textContent = `#${person.beltpack} ${person.role || ""} ${person.name || ""}`.trim();
+      card.append(num);
+      card.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (state.selection.has(person.id)) state.selection.delete(person.id);
+        else state.selection.add(person.id);
+        updateSelectionBar();
+        render();
+      });
+      return card;   // pas de drag/contextmenu/dblclick en mode sélection
+    }
 
     const bp = document.createElement("div");
     bp.className = "bp";
@@ -527,6 +552,8 @@
     boleroToggle.checked = !!s.bolero_enabled;
     antennaBlock.hidden = !s.bolero_enabled;
     if (s.bolero_enabled) await refreshAntenna();
+    currentRanges = (s.antenna_ranges || []).map((r) => [r[0], r[1]]);
+    renderRanges();
     settingsDialog.showModal();
   }
 
@@ -544,6 +571,7 @@
     try {
       await apiSend("POST", "/api/antenna/connect", { ip, password });
       await refreshAntenna();
+      await openImportPreview();   // récap dès la 1ère connexion
     } catch (e) {
       errEl.textContent = e.payload?.error || "Connexion échouée";
       errEl.hidden = false;
@@ -554,18 +582,19 @@
     try { await apiSend("POST", "/api/antenna/disconnect"); } finally { await refreshAntenna(); }
   });
 
-  document.getElementById("antenna-import-btn").addEventListener("click", async () => {
+  async function openImportPreview() {
     let p;
     try { p = await apiSend("POST", "/api/antenna/import/preview"); }
     catch { toast("Lecture des beltpacks impossible", true); return; }
     const li = [];
-    li.push(`<li><b>${p.new.length}</b> nouveau(x)${p.new.length ? " : " + p.new.map((n) => esc(`#${n.number} ${n.name}`)).join(", ") : ""}</li>`);
+    li.push(`<li><b>${p.new.length}</b> à ajouter${p.new.length ? " : " + p.new.map((n) => esc(`#${n.number} ${n.name}`)).join(", ") : ""}</li>`);
     li.push(`<li><b>${p.changed.length}</b> rôle(s) mis à jour${p.changed.length ? " : " + p.changed.map((c) => esc(`#${c.number} ${c.old_role}→${c.new_role}`)).join(", ") : ""}</li>`);
     li.push(`<li><b>${p.unchanged}</b> inchangé(s)</li>`);
-    li.push(`<li><b>${p.missing.length}</b> absent(s) de l'antenne (conservés)</li>`);
+    li.push(`<li><b>${p.missing.length}</b> à retirer${p.missing.length ? " : " + p.missing.map((m) => esc(`#${m.number} ${m.role}`)).join(", ") : ""}</li>`);
     document.getElementById("import-summary").innerHTML = li.join("");
     document.getElementById("import-dialog").showModal();
-  });
+  }
+  document.getElementById("antenna-refresh-btn").addEventListener("click", openImportPreview);
 
   document.getElementById("import-apply-btn").addEventListener("click", async () => {
     try {
@@ -574,11 +603,110 @@
       settingsDialog.close();
       setUnpublished(true);
       await load();
-      toast(`Import : ${res.created} créé(s), ${res.updated} mis à jour`);
+      toast(`Import : ${res.created} ajouté(s), ${res.updated} mis à jour, ${res.removed} retiré(s)`);
     } catch { toast("Import impossible", true); }
   });
 
   document.getElementById("settings-btn").addEventListener("click", openSettings);
+
+  /* ---------- Mode sélection ---------- */
+  function updateSelectionBar() {
+    document.getElementById("selection-count").textContent = `${state.selection.size} sélectionné(s)`;
+    document.getElementById("selection-bar").hidden = !state.selectionMode;
+  }
+  function exitSelection() {
+    state.selectionMode = false;
+    state.selection.clear();
+    document.getElementById("select-btn").textContent = "Sélectionner";
+    updateSelectionBar();
+    render();
+  }
+  document.getElementById("select-btn").addEventListener("click", () => {
+    state.selectionMode = !state.selectionMode;
+    state.selection.clear();
+    document.getElementById("select-btn").textContent = state.selectionMode ? "Quitter la sélection" : "Sélectionner";
+    updateSelectionBar();
+    render();
+  });
+  document.getElementById("selection-cancel").addEventListener("click", exitSelection);
+  document.getElementById("selection-delete").addEventListener("click", async () => {
+    if (!state.selection.size) return;
+    if (!confirm(`Supprimer ${state.selection.size} fiche(s) ?`)) return;
+    const ids = [...state.selection];
+    try {
+      const res = await apiSend("POST", "/api/people/delete-batch", { ids });
+      exitSelection();
+      setUnpublished(true);
+      await load();
+      toast(`${res.deleted} fiche(s) supprimée(s)`);
+    } catch { toast("Suppression impossible", true); }
+  });
+
+  /* ---------- Éditeur de plages ---------- */
+  let currentRanges = [];
+  function renderRanges() {
+    const list = document.getElementById("ranges-list");
+    list.innerHTML = "";
+    currentRanges.forEach((r, i) => {
+      const row = document.createElement("div");
+      row.className = "range-row";
+      row.innerHTML = `de <input type="number" min="1" value="${r[0]}" data-i="${i}" data-k="0"> à `
+        + `<input type="number" min="1" value="${r[1]}" data-i="${i}" data-k="1">`;
+      const del = document.createElement("button");
+      del.type = "button"; del.className = "range-del"; del.textContent = "✕";
+      del.addEventListener("click", () => { currentRanges.splice(i, 1); renderRanges(); saveRanges(); });
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+    list.querySelectorAll("input").forEach((inp) => inp.addEventListener("change", () => {
+      currentRanges[+inp.dataset.i][+inp.dataset.k] = parseInt(inp.value || "0", 10);
+      saveRanges();
+    }));
+  }
+  async function saveRanges() {
+    const clean = currentRanges
+      .map((r) => [parseInt(r[0] || 0, 10), parseInt(r[1] || 0, 10)])
+      .filter((r) => r[0] >= 1 && r[1] >= r[0]);
+    try { await apiSend("PUT", "/api/settings", { antenna_ranges: clean }); }
+    catch { toast("Plages invalides", true); }
+  }
+  document.getElementById("add-range-btn").addEventListener("click", () => {
+    currentRanges.push([1, 25]); renderRanges(); saveRanges();
+  });
+
+  /* ---------- Configurations ---------- */
+  async function openConfigs() {
+    const items = await apiSend("GET", "/api/configs");
+    const ul = document.getElementById("configs-list");
+    ul.innerHTML = items.length
+      ? items.map((c) => `<li><span>${esc(c.name)}</span><span class="cfg-actions">`
+          + `<button type="button" data-load="${esc(c.name)}">Charger</button>`
+          + `<button type="button" data-del="${esc(c.name)}" class="chip-btn danger">Supprimer</button></span></li>`).join("")
+      : "<li class='empty-hint'>Aucune configuration enregistrée.</li>";
+    ul.querySelectorAll("[data-load]").forEach((b) => b.addEventListener("click", async () => {
+      if (!confirm(`Charger « ${b.dataset.load} » ? Le tableau actuel sera remplacé et l'antenne déconnectée.`)) return;
+      await apiSend("POST", `/api/configs/${encodeURIComponent(b.dataset.load)}/load`);
+      document.getElementById("configs-dialog").close();
+      setUnpublished(true);
+      await load();
+      toast("Configuration chargée");
+    }));
+    ul.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
+      if (!confirm(`Supprimer « ${b.dataset.del} » ?`)) return;
+      await apiSend("DELETE", `/api/configs/${encodeURIComponent(b.dataset.del)}`);
+      openConfigs();
+    }));
+    document.getElementById("configs-dialog").showModal();
+  }
+  document.getElementById("configs-btn").addEventListener("click", openConfigs);
+  document.getElementById("config-save-btn").addEventListener("click", async () => {
+    const name = document.getElementById("config-name").value.trim();
+    if (!name) return;
+    await apiSend("POST", "/api/configs", { name });
+    document.getElementById("config-name").value = "";
+    openConfigs();
+    toast("Configuration sauvegardée");
+  });
 
   /* ---------- Init ---------- */
   render();

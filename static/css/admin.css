@@ -279,3 +279,24 @@
 /* ---------- Récap import ---------- */
 .import-summary { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
 .import-summary li { padding: 0.5rem 0.6rem; background: #0c111d; border: 1px solid #243049; border-radius: 7px; font-size: 0.85rem; }
+
+/* ---------- Éditeur de plages ---------- */
+.ranges-editor { display: flex; flex-direction: column; gap: 0.4rem; }
+.dlg-label { font-size: 0.82rem; font-weight: 600; color: #aab6cc; }
+.range-row { display: flex; align-items: center; gap: 0.4rem; }
+.range-row input { width: 5rem; }
+.range-row .range-del { color: #ff8d8d; border-color: #50313a; }
+
+/* ---------- Configurations ---------- */
+.save-row { display: flex; gap: 0.5rem; }
+.save-row input { flex: 1; }
+.configs-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; max-height: 50vh; overflow-y: auto; }
+.configs-list li { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.5rem 0.6rem; background: #0c111d; border: 1px solid #243049; border-radius: 7px; font-size: 0.85rem; }
+.configs-list .cfg-actions { display: flex; gap: 0.35rem; }
+
+/* ---------- Mode sélection ---------- */
+.person.selectable { cursor: pointer; }
+.person.selected { border-color: var(--primary); background: #14304a; }
+.person .sel-check { margin-right: 0.2rem; }
+.selection-bar { position: fixed; bottom: 4.2rem; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 0.8rem; padding: 0.5rem 0.9rem; background: #131a2a; border: 1px solid #3a4868; border-radius: 9px; box-shadow: 0 8px 24px rgba(0,0,0,.5); z-index: 60; }
+.selection-bar .danger-btn { background: var(--error); color: #fff; border: none; border-radius: 7px; padding: 0.35rem 0.7rem; cursor: pointer; }
