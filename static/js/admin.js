@@ -109,6 +109,12 @@
 
   function markDirty() { setUnpublished(true); scheduleSave(); }
 
+  // Recharge l'état du brouillon depuis le serveur et ré-affiche.
+  async function load() {
+    state.data = await apiSend("GET", "/api/state");
+    render();
+  }
+
   /* ---------- Rendu ---------- */
   function applyTheme() {
     // L'admin reste en thème sombre ; le bouton ne pilote QUE l'écran de diffusion.

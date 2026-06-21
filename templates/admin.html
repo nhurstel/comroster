@@ -24,7 +24,6 @@
       <div class="tb-group">
         <button type="button" id="add-block-btn">+ Groupe</button>
         <button type="button" id="add-user-btn">+ Personne</button>
-        <button type="button" id="select-btn">Sélectionner</button>
       </div>
       <span class="tb-sep" aria-hidden="true"></span>
       <div class="tb-group">
@@ -55,7 +54,10 @@
       <section class="admin-panel" aria-labelledby="available-heading">
         <div class="block-header">
           <h3 id="available-heading">Personnes disponibles</h3>
-          <span class="badge" id="available-count"></span>
+          <div class="panel-head-actions">
+            <span class="badge" id="available-count"></span>
+            <button type="button" id="select-btn" class="mini-btn">Sélectionner</button>
+          </div>
         </div>
         <div class="user-list" id="available-users"></div>
         <p class="empty-hint">Glissez les fiches dans un groupe pour les affecter.</p>
