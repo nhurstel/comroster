@@ -296,3 +296,53 @@ def diff_beltpacks(state, items):
         if normalize_beltpack(p["beltpack"]) not in seen
     ]
     return {"new": new, "changed": changed, "unchanged": unchanged, "missing": missing}
+
+
+def filter_by_ranges(items, ranges):
+    if not ranges:
+        return list(items)
+    out = []
+    for item in items:
+        try:
+            n = int(item.get("number"))
+        except (TypeError, ValueError):
+            continue
+        if any(lo <= n <= hi for lo, hi in ranges):
+            out.append(item)
+    return out
+
+
+def mirror_beltpacks(state, items):
+    """Miroir : l'antenne fait foi. Ajoute/maj, retire les absents, préserve nom+groupe."""
+    created = updated = 0
+    roles = state.setdefault("beltpack_roles", {})
+    wanted = {normalize_beltpack(it.get("number")) for it in items if normalize_beltpack(it.get("number"))}
+    for item in items:
+        num = normalize_beltpack(item.get("number"))
+        if not num:
+            continue
+        name = (item.get("name") or "").strip()
+        person = _person_by_beltpack(state, num)
+        if person is None:
+            state["people"].append({"id": new_id(), "name": "", "role": name,
+                                    "beltpack": num, "group_id": None})
+            created += 1
+        elif name and person["role"] != name:
+            person["role"] = name
+            updated += 1
+        if name:
+            roles[num] = name
+    before = len(state["people"])
+    state["people"] = [p for p in state["people"] if normalize_beltpack(p["beltpack"]) in wanted]
+    removed = before - len(state["people"])
+    touch(state)
+    return {"created": created, "updated": updated, "removed": removed}
+
+
+def delete_people(state, ids):
+    idset = set(ids)
+    before = len(state["people"])
+    state["people"] = [p for p in state["people"] if p["id"] not in idset]
+    deleted = before - len(state["people"])
+    touch(state)
+    return deleted
