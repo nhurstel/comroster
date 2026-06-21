@@ -66,6 +66,16 @@ def test_export_import_roundtrip(auth_client):
     assert any(p["name"] == "Jean" for p in state["people"])
 
 
+def test_delete_batch(auth_client):
+    a = auth_client.post("/api/people", json={"name": "A", "role": "", "beltpack": "1"}).get_json()
+    b = auth_client.post("/api/people", json={"name": "B", "role": "", "beltpack": "2"}).get_json()
+    auth_client.post("/api/people", json={"name": "C", "role": "", "beltpack": "3"})
+    r = auth_client.post("/api/people/delete-batch", json={"ids": [a["id"], b["id"]]})
+    assert r.get_json() == {"deleted": 2}
+    state = auth_client.get("/api/state").get_json()
+    assert [p["beltpack"] for p in state["people"]] == ["3"]
+
+
 def test_put_draft_replaces_and_persists(auth_client):
     payload = {
         "title": "Festival 2026", "subtitle": "Grande scène", "theme": "day",
