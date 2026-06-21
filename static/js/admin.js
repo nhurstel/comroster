@@ -651,6 +651,7 @@
     try {
       await apiSend("POST", "/api/antenna/connect", { ip, password });
       await refreshAntennaBadge();
+      await pollLive();
       wizGo(2);
     } catch (e) {
       err.textContent = e.payload?.error || "Connexion échouée";
@@ -674,6 +675,7 @@
       setUnpublished(true);
       await load();
       await refreshAntennaBadge();
+      await pollLive();
       toast("Beltpacks importés");
     } catch { toast("Import impossible", true); }
   });
@@ -697,6 +699,7 @@
     try { await apiSend("POST", "/api/antenna/disconnect"); } finally {
       antennaDialog.close();
       await refreshAntennaBadge();
+      await pollLive();                 // efface les pastilles immédiatement
     }
   });
   document.getElementById("dash-refresh-btn").addEventListener("click", async () => {
@@ -715,6 +718,7 @@
       setUnpublished(true);
       await load();
       await refreshAntennaBadge();
+      await pollLive();
       toast("Beltpacks importés");
     } catch { toast("Import impossible", true); }
   });

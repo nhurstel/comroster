@@ -99,14 +99,13 @@ def antenna_reconnect():
 @login_required
 def antenna_live():
     # État temps réel (non bloquant pour le front : jamais d'erreur 5xx).
-    client = _client()
-    if not client.connected:
-        return jsonify({"connected": False, "online": {}})
-    try:
-        items = client.fetch_beltpacks()
-    except AntennaError:
-        return jsonify({"connected": False, "online": {}})
-    return jsonify({"connected": True, "online": {i["number"]: i["online"] for i in items}})
+    return jsonify(_client().live_status())
+
+
+@bp.get("/api/live")
+def public_live():
+    # Variante publique en lecture seule pour l'affichage TV (pas de session).
+    return jsonify(_client().live_status())
 
 
 @bp.post("/api/antenna/import/preview")

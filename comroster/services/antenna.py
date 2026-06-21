@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import socket
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -22,6 +23,8 @@ class AntennaClient:
         self._password = None
         self._connected = False
         self._info = {}
+        self._live_cache = None
+        self._live_ts = 0.0
         try:
             self.timeout = int(os.environ.get("COMROSTER_ANTENNA_TIMEOUT", "5"))
         except ValueError:
@@ -94,6 +97,8 @@ class AntennaClient:
         self._ip = self._password = None
         self._connected = False
         self._info = {}
+        self._live_cache = None
+        self._live_ts = 0.0
         if os.path.exists(self.path):
             os.unlink(self.path)
 
@@ -109,6 +114,26 @@ class AntennaClient:
 
     def status(self):
         return {"connected": self._connected, "ip": self._ip, "info": self._info}
+
+    def live_status(self, ttl=3.0):
+        """État temps réel {connected, online:{num:bool}} avec cache court.
+
+        Le cache évite de marteler l'antenne quand plusieurs clients (admin + écrans
+        TV) interrogent en parallèle. Jamais d'exception : renvoie déconnecté en cas
+        d'erreur réseau.
+        """
+        if not self._connected:
+            return {"connected": False, "online": {}}
+        now = time.monotonic()
+        if self._live_cache is not None and (now - self._live_ts) < ttl:
+            return self._live_cache
+        try:
+            items = self.fetch_beltpacks()
+        except AntennaError:
+            return {"connected": False, "online": {}}
+        self._live_cache = {"connected": True, "online": {i["number"]: i["online"] for i in items}}
+        self._live_ts = now
+        return self._live_cache
 
     def fetch_beltpacks(self):
         ok, data = self._request("GET", "/rest/bp")
