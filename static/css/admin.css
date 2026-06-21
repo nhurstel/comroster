@@ -341,9 +341,9 @@
 /* ---------- En-tête de panneau : compteur sur une ligne ---------- */
 .badge { white-space: nowrap; }
 
-/* Bouton « Sélectionner » : ligne dédiée discrète sous l'en-tête, dans la largeur du panneau */
+/* Barre d'actions sous l'en-tête de chaque panneau (création + sélection) */
+.panel-actions { display: flex; gap: 0.4rem; align-self: flex-start; flex: 0 0 auto; }
 .admin-panel .mini-btn {
-    align-self: flex-start;
     height: 1.7rem;
     padding: 0 0.6rem;
     font-size: 0.74rem;
@@ -352,3 +352,5 @@
     color: #aab6cc;
 }
 .admin-panel .mini-btn:hover:not(:disabled) { background: #1f2942; color: #e6edf3; }
+.admin-panel .mini-btn.add { color: var(--primary-light); border-color: #2f5a78; }
+.admin-panel .mini-btn.add:hover:not(:disabled) { color: #04121b; background: var(--primary); border-color: transparent; }
