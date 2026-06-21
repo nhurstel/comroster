@@ -1,0 +1,4 @@
+# Dépendances de développement (hors production).
+pytest>=8
+playwright>=1.61
+pytest-playwright>=0.5
