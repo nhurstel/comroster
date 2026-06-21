@@ -124,29 +124,7 @@
     card.dataset.source = source;
     if (blockId) card.dataset.blockId = blockId;
 
-    if (state.selectionMode) {
-      card.classList.add("selectable");
-      card.draggable = false;
-      if (state.selection.has(person.id)) card.classList.add("selected");
-      const chk = document.createElement("input");
-      chk.type = "checkbox";
-      chk.className = "sel-check";
-      chk.checked = state.selection.has(person.id);
-      card.prepend(chk);
-      const num = document.createElement("span");
-      num.className = "role";
-      num.textContent = `#${person.beltpack} ${person.role || ""} ${person.name || ""}`.trim();
-      card.append(num);
-      card.addEventListener("click", (e) => {
-        e.preventDefault();
-        if (state.selection.has(person.id)) state.selection.delete(person.id);
-        else state.selection.add(person.id);
-        updateSelectionBar();
-        render();
-      });
-      return card;   // pas de drag/contextmenu/dblclick en mode sélection
-    }
-
+    // Contenu normal (toujours affiché)
     const bp = document.createElement("div");
     bp.className = "bp";
     bp.title = "Beltpack n°" + person.beltpack;
@@ -162,6 +140,28 @@
     name.textContent = person.name;
     who.append(role, name);
     card.append(bp, who);
+
+    // Mode sélection : checkbox + clic pour cocher, pas de drag
+    if (state.selectionMode) {
+      card.classList.add("selectable");
+      card.draggable = false;
+      if (state.selection.has(person.id)) card.classList.add("selected");
+      const chk = document.createElement("input");
+      chk.type = "checkbox";
+      chk.className = "sel-check";
+      chk.checked = state.selection.has(person.id);
+      chk.tabIndex = -1;
+      card.prepend(chk);
+      card.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (state.selection.has(person.id)) state.selection.delete(person.id);
+        else state.selection.add(person.id);
+        chk.checked = state.selection.has(person.id);
+        card.classList.toggle("selected", state.selection.has(person.id));
+        updateSelectionBar();
+      });
+      return card;
+    }
 
     card.addEventListener("dragstart", (e) => {
       card.classList.add("dragging");
@@ -612,7 +612,7 @@
   /* ---------- Mode sélection ---------- */
   function updateSelectionBar() {
     document.getElementById("selection-count").textContent = `${state.selection.size} sélectionné(s)`;
-    document.getElementById("selection-bar").hidden = !state.selectionMode;
+    document.getElementById("selection-bar").classList.toggle("active", state.selectionMode);
   }
   function exitSelection() {
     state.selectionMode = false;
@@ -710,5 +710,6 @@
 
   /* ---------- Init ---------- */
   render();
+  updateSelectionBar();
   setStatus("Brouillon synchronisé", "idle");
 })();
