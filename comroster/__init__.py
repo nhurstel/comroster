@@ -54,6 +54,9 @@ def create_app(config_overrides=None):
     if app.extensions["settings"].get("bolero_enabled", False):
         app.extensions["antenna"].load_persisted()  # reconnexion lazy (testée au 1er /status)
 
+    from .services.configs import Configs
+    app.extensions["configs"] = Configs(app.extensions["storage"])
+
     if app.config.get("TESTING"):
         app.config["WTF_CSRF_ENABLED"] = False
     csrf.init_app(app)
