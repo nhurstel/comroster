@@ -51,6 +51,10 @@
     const badge = document.createElement("div");
     badge.className = "bp-badge";
     badge.innerHTML = `<span class="bp-n">${esc(beltpackNumber(person.beltpack))}</span><span class="bp-l">BP</span>`;
+    const dot = document.createElement("span");
+    dot.className = "bp-dot";
+    dot.dataset.bp = beltpackNumber(person.beltpack);
+    badge.append(dot);
 
     const body = document.createElement("div");
     body.className = "person-body";
@@ -111,7 +115,24 @@
       grid.append(blockEl);
     });
 
+    applyLiveDots();
     startAutoScroll();
+  }
+
+  /* ---------- État temps réel des beltpacks (pastille en ligne / hors ligne) ---------- */
+  let liveOnline = null;   // null = antenne déconnectée → pas de pastille
+  function applyLiveDots() {
+    grid.querySelectorAll(".bp-dot[data-bp]").forEach((d) => {
+      const on = liveOnline ? liveOnline[d.dataset.bp] : undefined;
+      if (on === undefined) { d.className = "bp-dot"; d.title = ""; }
+      else { d.className = "bp-dot " + (on ? "on" : "down"); d.title = on ? "En ligne" : "Hors ligne"; }
+    });
+  }
+  async function pollLive() {
+    let res;
+    try { res = await fetch("/api/live").then((r) => r.json()); } catch { return; }
+    liveOnline = res.connected ? res.online : null;
+    applyLiveDots();
   }
 
   /* ---------- Auto-scroll fluide avec pauses en haut/bas ---------- */
@@ -205,6 +226,8 @@
   updateClock();
   setInterval(updateClock, 1000);
   subscribe();
+  pollLive();
+  setInterval(pollLive, 5000);
 
   if (scrollContainer) {
     scrollContainer.addEventListener("wheel", (e) => e.cancelable && e.preventDefault(), { passive: false });

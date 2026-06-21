@@ -58,11 +58,16 @@
     }
     body[data-theme="day"] .person { background: rgba(15,23,42,0.03); border-color: rgba(15,23,42,0.1); }
     .bp-badge {
+      position: relative;
       flex: 0 0 auto; min-width: 3rem; height: 3rem; padding: 0 0.6rem;
       display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
       border-radius: var(--radius-md); background: var(--block-accent); color: #04121b;
       font-weight: 800; line-height: 1; box-shadow: var(--shadow-sm);
     }
+    /* Pastille temps réel (invisible si antenne déconnectée) */
+    .bp-badge .bp-dot { position: absolute; top: -4px; right: -4px; width: 0.75rem; height: 0.75rem; border-radius: 50%; }
+    .bp-badge .bp-dot.on { background: #2ecc71; box-shadow: 0 0 7px rgba(46,204,113,.8); border: 2px solid var(--bg, #04121b); }
+    .bp-badge .bp-dot.down { background: #5d6a82; border: 2px solid var(--bg, #04121b); }
     .bp-badge .bp-n { font-size: 1.4rem; font-variant-numeric: tabular-nums; }
     .bp-badge .bp-l { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.8; }
     .person-body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
