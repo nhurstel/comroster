@@ -54,6 +54,42 @@ def test_connect_failure_502(auth_client, app, monkeypatch):
     assert r.status_code == 502
 
 
+def test_status_does_not_autoreconnect(auth_client, app, monkeypatch):
+    monkeypatch.setattr(app.extensions["antenna"], "_request", _fake_ok)
+    auth_client.post("/api/antenna/connect", json={"ip": "1.1.1.1", "password": ""})
+    client = app.extensions["antenna"]
+    client._connected = False                       # simule une perte de lien
+    calls = []
+    monkeypatch.setattr(client, "reconnect", lambda: calls.append(1) or True)
+    r = auth_client.get("/api/antenna/status")
+    assert r.status_code == 200
+    assert calls == []                              # status ne bloque pas / ne reconnecte pas
+
+
+def test_reconnect_endpoint_ok(auth_client, app, monkeypatch):
+    monkeypatch.setattr(app.extensions["antenna"], "_request", _fake_ok)
+    auth_client.post("/api/antenna/connect", json={"ip": "1.1.1.1", "password": ""})
+    client = app.extensions["antenna"]
+    client._connected = False
+    r = auth_client.post("/api/antenna/reconnect")
+    assert r.status_code == 200 and r.get_json()["connected"] is True
+
+
+def test_reconnect_without_config_400(auth_client):
+    r = auth_client.post("/api/antenna/reconnect")
+    assert r.status_code == 400
+
+
+def test_reconnect_failure_502(auth_client, app, monkeypatch):
+    monkeypatch.setattr(app.extensions["antenna"], "_request", _fake_ok)
+    auth_client.post("/api/antenna/connect", json={"ip": "1.1.1.1", "password": ""})
+    client = app.extensions["antenna"]
+    client._connected = False
+    monkeypatch.setattr(client, "_request", lambda *a, **k: (False, {"error": "timeout", "code": "timeout"}))
+    r = auth_client.post("/api/antenna/reconnect")
+    assert r.status_code == 502
+
+
 def _fake_three(method, path, body=None, timeout=5):
     if path == "/rest/nodeStatus":
         return True, {"nodeStatus": [{"nodeId": 1, "isLocal": True}]}

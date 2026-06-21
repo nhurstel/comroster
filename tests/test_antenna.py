@@ -1,5 +1,7 @@
 import json
 import os
+import socket
+import urllib.error
 import pytest
 from comroster.services.antenna import AntennaClient, AntennaError
 
@@ -66,6 +68,99 @@ def test_wrong_key_ignores_creds(tmp_path, monkeypatch):
     other = AntennaClient(str(tmp_path), "AUTRE-CLE")
     other.load_persisted()
     assert other.ip is None                         # creds illisibles → ignorés
+
+
+def _client_with_ip(tmp_path):
+    c = AntennaClient(str(tmp_path), "secret-key")
+    c._ip = "10.0.0.5"
+    return c
+
+
+def test_timeout_configurable_via_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("COMROSTER_ANTENNA_TIMEOUT", "9")
+    c = AntennaClient(str(tmp_path), "secret-key")
+    assert c.timeout == 9
+
+
+def test_timeout_default_when_no_env(tmp_path, monkeypatch):
+    monkeypatch.delenv("COMROSTER_ANTENNA_TIMEOUT", raising=False)
+    c = AntennaClient(str(tmp_path), "secret-key")
+    assert c.timeout == 5
+
+
+def test_request_uses_instance_timeout(tmp_path, monkeypatch):
+    monkeypatch.setenv("COMROSTER_ANTENNA_TIMEOUT", "9")
+    c = _client_with_ip(tmp_path)
+    seen = {}
+
+    def fake_urlopen(req, timeout=None):
+        seen["timeout"] = timeout
+        raise urllib.error.URLError(ConnectionRefusedError("refused"))
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    c._request("GET", "/rest/bp")
+    assert seen["timeout"] == 9
+
+
+def test_request_auth_error_on_401(tmp_path, monkeypatch):
+    c = _client_with_ip(tmp_path)
+
+    def boom(req, timeout=5):
+        raise urllib.error.HTTPError(req.full_url, 401, "Unauthorized", {}, None)
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+    ok, data = c._request("GET", "/rest/nodeStatus")
+    assert ok is False and data["code"] == "auth"
+    assert "mot de passe" in data["error"].lower()
+
+
+def test_request_auth_error_on_403(tmp_path, monkeypatch):
+    c = _client_with_ip(tmp_path)
+
+    def boom(req, timeout=5):
+        raise urllib.error.HTTPError(req.full_url, 403, "Forbidden", {}, None)
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+    ok, data = c._request("GET", "/rest/nodeStatus")
+    assert ok is False and data["code"] == "auth"
+
+
+def test_request_other_http_error(tmp_path, monkeypatch):
+    c = _client_with_ip(tmp_path)
+
+    def boom(req, timeout=5):
+        raise urllib.error.HTTPError(req.full_url, 500, "Server Error", {}, None)
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+    ok, data = c._request("GET", "/rest/nodeStatus")
+    assert ok is False and data["code"] == "http" and "500" in data["error"]
+
+
+def test_request_timeout(tmp_path, monkeypatch):
+    c = _client_with_ip(tmp_path)
+
+    def boom(req, timeout=5):
+        raise urllib.error.URLError(socket.timeout("timed out"))
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+    ok, data = c._request("GET", "/rest/nodeStatus")
+    assert ok is False and data["code"] == "timeout"
+
+
+def test_request_bare_timeout(tmp_path, monkeypatch):
+    c = _client_with_ip(tmp_path)
+
+    def boom(req, timeout=5):
+        raise TimeoutError("timed out")
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+    ok, data = c._request("GET", "/rest/nodeStatus")
+    assert ok is False and data["code"] == "timeout"
+
+
+def test_request_network_error(tmp_path, monkeypatch):
+    c = _client_with_ip(tmp_path)
+
+    def boom(req, timeout=5):
+        raise urllib.error.URLError(ConnectionRefusedError("refused"))
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+    ok, data = c._request("GET", "/rest/nodeStatus")
+    assert ok is False and data["code"] == "network"
+    assert "réseau" in data["error"].lower() or "ip" in data["error"].lower()
 
 
 def test_fetch_beltpacks_parses_registered_only(tmp_path, monkeypatch):

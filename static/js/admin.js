@@ -618,7 +618,7 @@
       document.getElementById("wiz-error").hidden = true;
       wizGo(1);
     }
-    antennaDialog.showModal();
+    if (!antennaDialog.open) antennaDialog.showModal();
   }
   document.getElementById("antenna-btn").addEventListener("click", openAntenna);
 
@@ -657,7 +657,21 @@
     } catch { toast("Import impossible", true); }
   });
 
-  document.getElementById("dash-reconnect-btn").addEventListener("click", openAntenna);
+  document.getElementById("dash-reconnect-btn").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "Connexion…";
+    try {
+      await apiSend("POST", "/api/antenna/reconnect");
+      toast("Antenne reconnectée");
+      await openAntenna();          // ré-affiche le tableau de bord à jour
+    } catch (err) {
+      toast(err.payload?.error || "Reconnexion échouée", true);
+      await refreshAntennaBadge();
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
+  });
   document.getElementById("dash-disconnect-btn").addEventListener("click", async () => {
     try { await apiSend("POST", "/api/antenna/disconnect"); } finally {
       antennaDialog.close();
