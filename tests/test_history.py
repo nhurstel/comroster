@@ -14,10 +14,10 @@ def test_archive_and_list(tmp_path):
 def test_load_snapshot(tmp_path):
     h = History(Storage(str(tmp_path)))
     s = model.empty_state()
-    model.add_person(s, "Jean", "HF", "12")
+    model.add_person(s, "HF", "12")
     ts = h.archive(s)
     loaded = h.load(ts)
-    assert loaded["people"][0]["name"] == "Jean"
+    assert loaded["people"][0]["role"] == "HF"
 
 
 def test_load_unknown_raises(tmp_path):

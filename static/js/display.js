@@ -57,10 +57,7 @@
     const role = document.createElement("span");
     role.className = "role";
     role.textContent = person.role || "—";
-    const name = document.createElement("span");
-    name.className = "name";
-    name.textContent = person.name;
-    body.append(role, name);
+    body.append(role);
 
     el.append(badge, body);
     return el;
