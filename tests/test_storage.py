@@ -7,10 +7,11 @@ from comroster.services import model
 def test_save_and_load_draft(tmp_path):
     st = Storage(str(tmp_path))
     state = model.empty_state()
-    model.add_person(state, "Jean", "HF", "12")
+    model.add_person(state, "HF", "12")
     st.save_draft(state)
     loaded = st.load_draft()
-    assert loaded["people"][0]["name"] == "Jean"
+    assert loaded["people"][0]["role"] == "HF"
+    assert loaded["people"][0]["beltpack"] == "12"
 
 
 def test_load_draft_creates_empty_when_absent(tmp_path):

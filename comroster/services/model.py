@@ -79,7 +79,6 @@ def build_draft(payload):
             gid = None  # group_id orphelin → retour au pool
         state["people"].append({
             "id": p.get("id") or new_id(),
-            "name": (p.get("name") or "").strip(),
             "role": (p.get("role") or "").strip(),
             "beltpack": normalize_beltpack(p.get("beltpack")),
             "group_id": gid,
@@ -173,16 +172,16 @@ def delete_group(state, group_id):
     touch(state)
 
 
-def add_person(state, name, role, beltpack, group_id=None):
+def add_person(state, role, beltpack, group_id=None):
+    """Ajoute un beltpack : ID (beltpack) + Nom (role). Pas de nom de personne."""
     _assert_beltpack_free(state, beltpack)
     if group_id is not None and _find(state["groups"], group_id) is None:
         raise ValidationError("Groupe cible introuvable", code="not_found")
-    # Le rôle suit le beltpack : s'il n'est pas fourni, on hérite du rôle mémorisé.
+    # Le nom suit le beltpack : s'il n'est pas fourni, on hérite du nom mémorisé.
     if not role:
         role = role_for_beltpack(state, beltpack) or ""
     person = {
         "id": new_id(),
-        "name": name,
         "role": role,
         "beltpack": normalize_beltpack(beltpack),
         "group_id": group_id,
@@ -205,9 +204,8 @@ def update_person(state, person_id, **fields):
         if gid is not None and _find(state["groups"], gid) is None:
             raise ValidationError("Groupe cible introuvable", code="not_found")
         person["group_id"] = gid
-    for key in ("name", "role"):
-        if key in fields and fields[key] is not None:
-            person[key] = fields[key]
+    if "role" in fields and fields["role"] is not None:
+        person["role"] = fields["role"]
     _remember_role(state, person["beltpack"], person["role"])
     touch(state)
     return person
@@ -259,7 +257,7 @@ def merge_beltpacks(state, items):
         person = _person_by_beltpack(state, num)
         if person is None:
             state["people"].append({
-                "id": new_id(), "name": "", "role": name,
+                "id": new_id(), "role": name,
                 "beltpack": num, "group_id": None,
             })
             created += 1
@@ -324,7 +322,7 @@ def mirror_beltpacks(state, items):
         name = (item.get("name") or "").strip()
         person = _person_by_beltpack(state, num)
         if person is None:
-            state["people"].append({"id": new_id(), "name": "", "role": name,
+            state["people"].append({"id": new_id(), "role": name,
                                     "beltpack": num, "group_id": None})
             created += 1
         elif name and person["role"] != name:

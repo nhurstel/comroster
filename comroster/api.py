@@ -84,7 +84,7 @@ def create_person():
     data = request.get_json(force=True)
     state = _storage().load_draft()
     try:
-        p = model.add_person(state, data["name"], data.get("role", ""), data["beltpack"], data.get("group_id"))
+        p = model.add_person(state, data.get("role", ""), data["beltpack"], data.get("group_id"))
     except model.ValidationError as exc:
         return _error(exc)
     _storage().save_draft(state)

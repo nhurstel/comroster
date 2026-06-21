@@ -23,7 +23,7 @@
     <div class="admin-toolbar">
       <div class="tb-group">
         <button type="button" id="add-block-btn">+ Groupe</button>
-        <button type="button" id="add-user-btn">+ Personne</button>
+        <button type="button" id="add-user-btn">+ Beltpack</button>
       </div>
       <span class="tb-sep" aria-hidden="true"></span>
       <div class="tb-group">
@@ -53,12 +53,12 @@
     <div class="admin-layout">
       <section class="admin-panel" aria-labelledby="available-heading">
         <div class="block-header">
-          <h3 id="available-heading">Personnes disponibles</h3>
+          <h3 id="available-heading">Beltpacks disponibles</h3>
           <span class="badge" id="available-count"></span>
         </div>
         <button type="button" id="select-btn" class="mini-btn">Sélectionner</button>
         <div class="user-list" id="available-users"></div>
-        <p class="empty-hint">Glissez les fiches dans un groupe pour les affecter.</p>
+        <p class="empty-hint">Glissez les beltpacks dans un groupe pour les affecter.</p>
       </section>
       <section class="admin-panel">
         <div class="block-header">
@@ -99,17 +99,15 @@
 
   <dialog id="person-dialog" class="admin-dialog">
     <form id="person-form" method="dialog">
-      <h2 id="person-dialog-title">Ajouter une personne</h2>
-      <label class="field beltpack-field"><span>Beltpack (numéro)</span>
+      <h2 id="person-dialog-title">Ajouter un beltpack</h2>
+      <label class="field beltpack-field"><span>N°</span>
         <div class="beltpack-input">
-          <span class="beltpack-prefix">Beltpack n°</span>
+          <span class="beltpack-prefix">N°</span>
           <input type="text" id="person-beltpack" inputmode="numeric" required maxlength="12" autocomplete="off">
         </div>
       </label>
-      <label class="field"><span>Rôle / fonction <small>(suit le beltpack)</small></span>
+      <label class="field"><span>Nom</span>
         <input type="text" id="person-role" maxlength="80" placeholder="Régie, Lumière, HF…"></label>
-      <label class="field"><span>Nom complet</span>
-        <input type="text" id="person-name" required maxlength="80"></label>
       <label class="field"><span>Affecter à un groupe</span>
         <select id="person-assign"><option value="">Conserver dans la liste disponible</option></select></label>
       <div class="dialog-actions">
@@ -232,7 +230,7 @@
   <div class="context-menu" id="context-menu" role="menu">
     <button type="button" data-action="edit">Modifier la fiche…</button>
     <button type="button" data-action="remove">Retirer du groupe</button>
-    <button type="button" data-action="delete">Supprimer la personne</button>
+    <button type="button" data-action="delete">Supprimer le beltpack</button>
   </div>
 
   <script>window.__INITIAL__ = {{ initial_data|tojson }};</script>

@@ -40,7 +40,6 @@
     personDialog: document.getElementById("person-dialog"),
     personForm: document.getElementById("person-form"),
     personTitle: document.getElementById("person-dialog-title"),
-    personName: document.getElementById("person-name"),
     personRole: document.getElementById("person-role"),
     personBeltpack: document.getElementById("person-beltpack"),
     personAssign: document.getElementById("person-assign"),
@@ -102,7 +101,7 @@
     } catch (err) {
       setStatus("Échec de l'enregistrement", "error");
       if (err.message === "beltpack_conflict") {
-        alert("Deux personnes ont le même numéro de beltpack. Corrigez avant d'enregistrer.");
+        alert("Deux beltpacks ont le même numéro. Corrigez avant d'enregistrer.");
       }
     }
   }
@@ -141,10 +140,7 @@
     const role = document.createElement("span");
     role.className = "role";
     role.textContent = person.role || "—";
-    const name = document.createElement("span");
-    name.className = "name";
-    name.textContent = person.name;
-    who.append(role, name);
+    who.append(role);
     card.append(bp, who);
 
     // Mode sélection : checkbox + clic pour cocher, pas de drag
@@ -189,11 +185,11 @@
   function renderAvailable() {
     el.available.innerHTML = "";
     const avail = state.data.people.filter((p) => !p.group_id);
-    el.availableCount.textContent = `${avail.length} personne${avail.length > 1 ? "s" : ""}`;
+    el.availableCount.textContent = `${avail.length} beltpack${avail.length > 1 ? "s" : ""}`;
     if (!avail.length) {
       const h = document.createElement("div");
       h.className = "empty-hint";
-      h.textContent = "Toutes les personnes sont affectées";
+      h.textContent = "Tous les beltpacks sont affectés";
       el.available.append(h);
       return;
     }
@@ -246,7 +242,7 @@
       else {
         const h = document.createElement("div");
         h.className = "empty-hint";
-        h.textContent = "Déposez des personnes ici";
+        h.textContent = "Déposez des beltpacks ici";
         list.append(h);
       }
       wrap.append(header, list);
@@ -320,7 +316,7 @@
   }
   function deleteBlock(id) {
     const b = findBlock(id);
-    if (!confirm(`Supprimer le groupe « ${b.name} » ? Les personnes retournent dans la liste disponible.`)) return;
+    if (!confirm(`Supprimer le groupe « ${b.name} » ? Les beltpacks retournent dans la liste disponible.`)) return;
     state.data.people.forEach((p) => { if (p.group_id === id) p.group_id = null; });
     state.data.groups = state.data.groups.filter((g) => g.id !== id);
     markDirty(); render();
@@ -350,20 +346,19 @@
     el.personForm.reset();
     if (personId) {
       const p = findPerson(personId);
-      el.personTitle.textContent = "Modifier la personne";
+      el.personTitle.textContent = "Modifier le beltpack";
       el.personBeltpack.value = p.beltpack;
       el.personRole.value = p.role || "";
-      el.personName.value = p.name;
       el.personAssign.value = p.group_id || "";
     } else {
-      el.personTitle.textContent = "Ajouter une personne";
+      el.personTitle.textContent = "Ajouter un beltpack";
       el.personAssign.value = defaultBlockId || "";
     }
     el.personDialog.showModal();
     requestAnimationFrame(() => el.personBeltpack.focus());
   }
 
-  // Le rôle suit le beltpack : proposer le rôle déjà connu pour ce numéro
+  // Le nom suit le beltpack : proposer le nom déjà connu pour ce numéro
   el.personBeltpack.addEventListener("input", () => {
     const known = state.data.beltpack_roles?.[normBp(el.personBeltpack.value)];
     if (known && !el.personRole.value) el.personRole.value = known;
@@ -374,20 +369,18 @@
     const beltpack = normBp(el.personBeltpack.value);
     if (!beltpack) { el.personBeltpack.focus(); return; }
     if (beltpackTaken(beltpack, state.editingPersonId)) {
-      alert(`Le beltpack n°${beltpack} est déjà attribué à une autre personne.`);
+      alert(`Le beltpack n°${beltpack} est déjà utilisé.`);
       el.personBeltpack.focus();
       return;
     }
-    const name = el.personName.value.trim();
-    if (!name) { el.personName.focus(); return; }
     const role = el.personRole.value.trim();
     const groupId = el.personAssign.value || null;
 
     if (state.editingPersonId) {
       const p = findPerson(state.editingPersonId);
-      Object.assign(p, { beltpack, role, name, group_id: groupId });
+      Object.assign(p, { beltpack, role, group_id: groupId });
     } else {
-      state.data.people.push({ id: uid(), name, role, beltpack, group_id: groupId });
+      state.data.people.push({ id: uid(), role, beltpack, group_id: groupId });
     }
     el.personDialog.close();
     markDirty(); render();
@@ -489,7 +482,7 @@
     const action = btn.dataset.action;
     if (action === "edit") openPersonDialog(userId);
     else if (action === "remove") removeFromGroup(userId);
-    else if (action === "delete") { if (confirm("Supprimer cette personne ?")) deletePerson(userId); }
+    else if (action === "delete") { if (confirm("Supprimer ce beltpack ?")) deletePerson(userId); }
     hideContextMenu();
   });
   document.addEventListener("click", (e) => { if (!el.contextMenu.contains(e.target)) hideContextMenu(); });
@@ -713,14 +706,14 @@
   document.getElementById("selection-cancel").addEventListener("click", exitSelection);
   document.getElementById("selection-delete").addEventListener("click", async () => {
     if (!state.selection.size) return;
-    if (!confirm(`Supprimer ${state.selection.size} fiche(s) ?`)) return;
+    if (!confirm(`Supprimer ${state.selection.size} beltpack(s) ?`)) return;
     const ids = [...state.selection];
     try {
       const res = await apiSend("POST", "/api/people/delete-batch", { ids });
       exitSelection();
       setUnpublished(true);
       await load();
-      toast(`${res.deleted} fiche(s) supprimée(s)`);
+      toast(`${res.deleted} beltpack(s) supprimé(s)`);
     } catch { toast("Suppression impossible", true); }
   });
 

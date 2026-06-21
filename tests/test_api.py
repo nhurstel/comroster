@@ -63,7 +63,7 @@ def test_export_import_roundtrip(auth_client):
     exported = auth_client.get("/api/export").get_json()
     auth_client.post("/api/import", json=exported)
     state = auth_client.get("/api/state").get_json()
-    assert any(p["name"] == "Jean" for p in state["people"])
+    assert any(p["beltpack"] == "12" for p in state["people"])
 
 
 def test_delete_batch(auth_client):
