@@ -301,3 +301,28 @@
 .selection-bar { position: fixed; bottom: 4.2rem; left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 0.8rem; padding: 0.5rem 0.9rem; background: #131a2a; border: 1px solid #3a4868; border-radius: 9px; box-shadow: 0 8px 24px rgba(0,0,0,.5); z-index: 60; }
 .selection-bar.active { display: flex; }
 .selection-bar .danger-btn { background: var(--error); color: #fff; border: none; border-radius: 7px; padding: 0.35rem 0.7rem; cursor: pointer; }
+
+/* ---------- Pastille d'état antenne ---------- */
+#antenna-btn { display: inline-flex; align-items: center; gap: 0.45rem; }
+.dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; flex: 0 0 auto; }
+.dot.off { background: #5d6a82; }
+.dot.online { background: #2ecc71; box-shadow: 0 0 6px rgba(46,204,113,.6); }
+.dot.offline { background: #e0913a; box-shadow: 0 0 6px rgba(224,145,58,.6); }
+
+/* ---------- Assistant ---------- */
+.antenna-dialog { max-width: 480px; }
+.wiz-steps { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+.wiz-dot { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: #2a3550; }
+.wiz-dot.active { background: var(--primary); }
+.wiz-dot.done { background: #2ecc71; }
+.wiz-line { width: 2.2rem; height: 2px; background: #2a3550; }
+.wiz-step h2 { margin: 0.2rem 0 0.4rem; }
+
+/* ---------- Tableau de bord ---------- */
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+@media (max-width: 520px) { .dash-grid { grid-template-columns: 1fr; } }
+.dash-card { background: #0c111d; border: 1px solid #243049; border-radius: 8px; padding: 0.7rem 0.8rem; }
+.dash-card-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #8b97ad; margin-bottom: 0.45rem; }
+#dash-state { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.9rem; }
+#dash-state .ds-line { display: flex; align-items: center; gap: 0.4rem; }
+#dash-state .ds-sub { color: #8b97ad; font-size: 0.82rem; }
