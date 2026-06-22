@@ -1,11 +1,14 @@
 import json
+import logging
 import os
+import shutil
 import tempfile
 import threading
 
 from . import model
 
 _WRITE_LOCK = threading.Lock()
+_log = logging.getLogger("comroster.storage")
 
 
 class Storage:
@@ -20,6 +23,12 @@ class Storage:
         payload = json.dumps(data, ensure_ascii=False, indent=2)
         directory = os.path.dirname(path) or "."
         with _WRITE_LOCK:
+            # Sauvegarde de la dernière version connue-bonne (récupération si corruption)
+            if os.path.exists(path):
+                try:
+                    shutil.copyfile(path, path + ".bak")
+                except OSError:
+                    pass
             fd, tmp = tempfile.mkstemp(dir=directory, suffix=".tmp")
             try:
                 with os.fdopen(fd, "w", encoding="utf-8") as fh:
@@ -27,16 +36,40 @@ class Storage:
                     fh.flush()
                     os.fsync(fh.fileno())
                 os.replace(tmp, path)
+                # Durabilité : fsync du répertoire pour que le rename survive à une coupure
+                try:
+                    dfd = os.open(directory, os.O_RDONLY)
+                    os.fsync(dfd)
+                    os.close(dfd)
+                except OSError:
+                    pass
             except BaseException:
                 if os.path.exists(tmp):
                     os.unlink(tmp)
                 raise
 
+    def _read_json(self, path):
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+
     def _load(self, path):
         if not os.path.exists(path):
             return None
-        with open(path, encoding="utf-8") as fh:
-            return json.load(fh)
+        try:
+            return self._read_json(path)
+        except (OSError, json.JSONDecodeError) as exc:
+            # Fichier corrompu (ex. coupure de courant) → on récupère plutôt que bricker
+            # le boîtier, mais sans masquer : on journalise l'incident.
+            bak = path + ".bak"
+            if os.path.exists(bak):
+                try:
+                    data = self._read_json(bak)
+                    _log.warning("%s corrompu (%s) — récupéré depuis %s", path, exc, bak)
+                    return data
+                except (OSError, json.JSONDecodeError):
+                    pass
+            _log.error("%s corrompu (%s) et aucune sauvegarde valide — état réinitialisé", path, exc)
+            return None
 
     def load_draft(self):
         state = self._load(self.draft_path)

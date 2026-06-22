@@ -23,13 +23,16 @@ def test_duplicate_beltpack_blocked_on_patch(auth_client):
     assert r.status_code == 409
 
 
-def test_corrupted_draft_recovers(app):
-    # un fichier corrompu ne doit pas être masqué silencieusement
+def test_corrupted_draft_recovers(app, caplog):
+    # Politique appliance : un brouillon corrompu ne doit JAMAIS bricker le boîtier.
+    # Sans sauvegarde valide → état vide, mais journalisé (pas masqué silencieusement).
     storage = app.extensions["storage"]
     with open(storage.draft_path, "w") as fh:
         fh.write("{ pas du json")
-    with pytest.raises(Exception):
-        storage.load_draft()
+    with caplog.at_level("ERROR"):
+        state = storage.load_draft()
+    assert state["people"] == [] and state["groups"] == []
+    assert any("corrompu" in r.message for r in caplog.records)
 
 
 def test_publish_then_display_only_sees_published(auth_client, app):
