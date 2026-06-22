@@ -33,6 +33,8 @@ python3.12 -m venv .venv
 | `PORT` | Port d'écoute (dev) | `8080` |
 | `FLASK_DEBUG` | Mode debug (`true`/`false`) — désactive `Secure` sur le cookie | `false` |
 | `COMROSTER_ANTENNA_TIMEOUT` | Délai (s) des requêtes vers l'antenne Bolero | `5` |
+| `COMROSTER_BIND` | Adresse:port d'écoute gunicorn (mettre `0.0.0.0:8080` en Pi autonome) | `127.0.0.1:8080` |
+| `COMROSTER_INSECURE_COOKIE` | Désactive le flag `Secure` du cookie (LAN fermé sans TLS) — **sans** activer le debug | `false` |
 
 Générer une clé : `python -c "import secrets; print(secrets.token_hex(32))"`.
 
@@ -66,13 +68,25 @@ Le mot de passe de l'antenne Bolero est **chiffré au repos** (Fernet, clé dér
 `FLASK_SECRET_KEY`) dans `antenna.json` — dépendance `cryptography`. Changer la clé de session
 rend les identifiants antenne illisibles (ils sont alors ignorés, sans erreur).
 
-### Affichage sur Raspberry Pi (kiosk)
+### Raspberry Pi (mode appliance)
 
-Cible de déploiement principale. Le `/display` est optimisé pour ce matériel : polices
-**auto-hébergées** (aucun appel CDN, fonctionne hors-ligne), auto-scroll en `transform`
-**composé par le GPU** (pas de repaint CPU continu), et **anti-veille** de l'écran (Screen
-Wake Lock + désactivation du blanking OS). Procédure complète kiosk Chromium, accélération
-GPU et démarrage automatique : [deploy/kiosk.md](deploy/kiosk.md).
+Cible de déploiement principale. Installation **en une commande** d'un Pi autonome
+(serveur + affichage kiosk, démarrage auto au boot, relance auto) :
+
+```bash
+git clone <url> ~/comroster && cd ~/comroster
+sudo deploy/setup-pi.sh && sudo reboot
+```
+
+Guide complet (prérequis, admin sur le LAN, mise à jour, robustesse) :
+**[deploy/raspberry-pi.md](deploy/raspberry-pi.md)**.
+
+Le `/display` est optimisé pour ce matériel : polices **auto-hébergées** (aucun appel CDN,
+hors-ligne), auto-scroll en `transform` **composé GPU** (pas de repaint CPU continu),
+**anti-veille** (Screen Wake Lock + blanking OS). Détails kiosk : [deploy/kiosk.md](deploy/kiosk.md).
+
+Flags utiles en appliance : `COMROSTER_BIND` (défaut `127.0.0.1:8080`) et
+`COMROSTER_INSECURE_COOKIE` (désactive le cookie `Secure` pour un LAN fermé sans TLS).
 
 ## Premier démarrage
 
