@@ -1,0 +1,38 @@
+#!/bin/sh
+# Lance Chromium en kiosk plein écran sur l'affichage ComRoster.
+# Pointe sur 127.0.0.1 (contexte sécurisé → Screen Wake Lock actif).
+# Optimisé Raspberry Pi : accélération GPU activée.
+set -eu
+
+URL="${COMROSTER_KIOSK_URL:-http://127.0.0.1:8080/display}"
+HEALTH="${COMROSTER_HEALTH_URL:-http://127.0.0.1:8080/healthz}"
+PROFILE="${HOME}/.comroster-kiosk"
+
+# Binaire Chromium (Bookworm = chromium, anciens = chromium-browser)
+CHROME="$(command -v chromium 2>/dev/null || command -v chromium-browser 2>/dev/null || true)"
+[ -n "$CHROME" ] || { echo "Chromium introuvable (apt install chromium-browser)"; exit 1; }
+
+# Attendre que le serveur réponde (le kiosk ne doit jamais afficher d'erreur au boot)
+echo "Attente du serveur ComRoster…"
+until curl -sf "$HEALTH" >/dev/null 2>&1; do sleep 1; done
+
+# X11 : couper l'économiseur d'écran / DPMS (sans effet ni erreur sous Wayland)
+if [ -n "${DISPLAY:-}" ] && command -v xset >/dev/null 2>&1; then
+  xset s off 2>/dev/null || true
+  xset s noblank 2>/dev/null || true
+  xset -dpms 2>/dev/null || true
+fi
+
+# Masquer le curseur si unclutter est présent
+command -v unclutter >/dev/null 2>&1 && unclutter -idle 0 >/dev/null 2>&1 &
+
+exec "$CHROME" \
+  --kiosk --incognito --start-fullscreen \
+  --noerrordialogs --disable-infobars --disable-session-crashed-bubble \
+  --no-first-run --fast --fast-start \
+  --check-for-update-interval=31536000 \
+  --disable-pinch --overscroll-history-navigation=0 \
+  --autoplay-policy=no-user-gesture-required \
+  --enable-gpu-rasterization --ignore-gpu-blocklist --use-gl=egl \
+  --user-data-dir="$PROFILE" \
+  "$URL"
