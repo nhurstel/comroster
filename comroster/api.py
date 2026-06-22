@@ -24,6 +24,10 @@ def _history():
     return current_app.extensions["history"]
 
 
+def _netconfig():
+    return current_app.extensions["netconfig"]
+
+
 def _error(exc):
     return jsonify({"error": str(exc), "code": exc.code}), _CODE_TO_HTTP.get(exc.code, 400)
 
@@ -38,6 +42,24 @@ def admin_page():
 @login_required
 def get_state():
     return jsonify(_storage().load_draft())
+
+
+@bp.get("/api/network")
+@login_required
+def get_network():
+    return jsonify(_netconfig().load())
+
+
+@bp.put("/api/network")
+@login_required
+def put_network():
+    data = request.get_json(force=True)
+    try:
+        cfg = _netconfig().save(data)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    # L'application réelle (nmcli) se fait au redémarrage par un service système.
+    return jsonify({"ok": True, "config": cfg, "reboot_required": True})
 
 
 @bp.post("/api/groups")
