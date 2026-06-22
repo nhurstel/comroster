@@ -723,6 +723,58 @@
     } catch { toast("Import impossible", true); }
   });
 
+  /* ---------- Réseau du boîtier ---------- */
+  const networkDialog = document.getElementById("network-dialog");
+  function toggleNetFields() {
+    document.getElementById("net-static-fields").hidden =
+      document.getElementById("net-mode").value !== "static";
+  }
+  document.getElementById("net-mode").addEventListener("change", toggleNetFields);
+
+  async function openNetwork() {
+    document.getElementById("net-error").hidden = true;
+    document.getElementById("net-result").hidden = true;
+    let cfg;
+    try { cfg = await apiSend("GET", "/api/network"); } catch { cfg = { mode: "link-local" }; }
+    document.getElementById("net-mode").value = cfg.mode || "link-local";
+    document.getElementById("net-address").value = cfg.address || "";
+    document.getElementById("net-prefix").value = cfg.prefix || 24;
+    document.getElementById("net-gateway").value = cfg.gateway || "";
+    document.getElementById("net-dns").value = (cfg.dns || []).join(", ");
+    toggleNetFields();
+    networkDialog.showModal();
+  }
+  document.getElementById("network-btn").addEventListener("click", openNetwork);
+
+  document.getElementById("network-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const mode = document.getElementById("net-mode").value;
+    const err = document.getElementById("net-error");
+    const res = document.getElementById("net-result");
+    err.hidden = true; res.hidden = true;
+    const cfg = { mode };
+    if (mode === "static") {
+      cfg.address = document.getElementById("net-address").value.trim();
+      cfg.prefix = parseInt(document.getElementById("net-prefix").value || "24", 10);
+      const gw = document.getElementById("net-gateway").value.trim();
+      if (gw) cfg.gateway = gw;
+      const dns = document.getElementById("net-dns").value.split(",").map((s) => s.trim()).filter(Boolean);
+      if (dns.length) cfg.dns = dns;
+    }
+    try {
+      await apiSend("PUT", "/api/network", cfg);
+      res.innerHTML = mode === "static"
+        ? `Enregistré. <b>Redémarrez le boîtier</b> pour appliquer — il repartira sur `
+          + `<b>${esc(cfg.address)}</b> (adresse affichée à l'écran).`
+        : "Enregistré. <b>Redémarrez le boîtier</b> pour appliquer le mode automatique.";
+      res.hidden = false;
+      toast("Configuration réseau enregistrée");
+    } catch (ex) {
+      err.textContent = ex.payload?.error || "Configuration invalide";
+      err.hidden = false;
+    }
+  });
+
   /* ---------- Mode sélection ---------- */
   function updateSelectionBar() {
     document.getElementById("selection-count").textContent = `${state.selection.size} sélectionné(s)`;
