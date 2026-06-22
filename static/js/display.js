@@ -247,6 +247,7 @@
 
   /* ---------- Onboarding (box neuve : guide + QR à l'écran) ---------- */
   const shortUrl = (u) => (u || "").replace(/^https?:\/\//, "").replace(/\/admin$/, "");
+  let onboardingTimer = null;
   async function loadOnboarding() {
     let ob;
     try { ob = await fetch("/api/onboarding").then((r) => r.json()); } catch { return; }
@@ -262,6 +263,8 @@
     } else {
       overlay.hidden = true;
       if (hint) { hint.textContent = "⚙ Admin : " + shortUrl(ob.hostname_url); hint.hidden = false; }
+      // Box configurée : plus besoin de sonder (le tableau arrive par le SSE).
+      if (onboardingTimer) { clearInterval(onboardingTimer); onboardingTimer = null; }
     }
   }
 
@@ -274,7 +277,7 @@
   pollLive();
   setInterval(pollLive, 5000);
   loadOnboarding();
-  setInterval(loadOnboarding, 8000);
+  onboardingTimer = setInterval(loadOnboarding, 8000);
   requestWakeLock();
 
   if (scrollContainer) {
