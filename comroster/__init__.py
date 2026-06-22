@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 from .config import Config
 
@@ -78,4 +78,32 @@ def create_app(config_overrides=None):
     from .antenna import bp as antenna_bp
     app.register_blueprint(antenna_bp)
 
+    _register_security(app)
     return app
+
+
+def _register_security(app):
+    @app.after_request
+    def _headers(resp):
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        resp.headers.setdefault("Referrer-Policy", "no-referrer")
+        return resp
+
+    @app.errorhandler(404)
+    def _404(err):
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "not_found"}), 404
+        return err
+
+    @app.errorhandler(429)
+    def _429(err):
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "rate_limited"}), 429
+        return "Trop de tentatives. Réessayez plus tard.", 429
+
+    @app.errorhandler(500)
+    def _500(err):
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "server_error"}), 500
+        return err
