@@ -89,6 +89,36 @@
     .display-page .status-badge { background: transparent; border: none; box-shadow: none; padding: 0; font-size: 0.85rem; }
     body.display-page footer { justify-content: center; flex-wrap: wrap; gap: 1rem 2rem; }
     .created-by { font-weight: 600; color: var(--fg); }
+    .admin-hint { color: var(--primary-light); font-weight: 600; }
+
+    /* ---------- Écran de bienvenue / onboarding ---------- */
+    #onboarding {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: center; padding: 2rem;
+      background: radial-gradient(circle at 50% 30%, #16243a, var(--bg, #0a1018));
+    }
+    .ob-card {
+      max-width: 1000px; width: 100%; text-align: center;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg, 18px); padding: 3rem 3.5rem; box-shadow: var(--shadow-lg, 0 20px 60px rgba(0,0,0,.5));
+    }
+    .ob-logo { font-size: 1.4rem; font-weight: 800; color: var(--primary-light); letter-spacing: 0.02em; }
+    .ob-card h1 { font-family: var(--font-display); font-size: 2.6rem; margin: 0.6rem 0 0.4rem; color: var(--fg); }
+    .ob-sub { font-size: 1.2rem; color: var(--fg-muted); line-height: 1.5; margin: 0 0 2rem; }
+    .ob-cols { display: flex; align-items: center; gap: 3rem; text-align: left; justify-content: center; }
+    .ob-qr { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; flex: 0 0 auto; }
+    .ob-qr img { width: 220px; height: 220px; background: #fff; border-radius: 14px; padding: 12px; }
+    .ob-qr span { font-size: 0.95rem; color: var(--fg-muted); font-weight: 600; }
+    .ob-steps { font-size: 1.3rem; line-height: 1.7; color: var(--fg); margin: 0; padding-left: 1.4rem; max-width: 480px; }
+    .ob-steps li { margin-bottom: 0.8rem; }
+    .ob-steps b { color: var(--primary-light); }
+    .ob-foot { margin: 2rem 0 0; color: var(--fg-subtle); font-size: 1rem; }
+    .ob-foot #ob-ip { color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+    @media (max-width: 768px) {
+      .ob-cols { flex-direction: column; gap: 1.5rem; }
+      .ob-card { padding: 2rem 1.5rem; }
+      .ob-card h1 { font-size: 2rem; }
+    }
     @media (max-width: 768px) {
       #display-scroll { padding: calc(var(--display-header-height) + 1rem) 1rem calc(var(--display-footer-height) + 1rem); }
       .display-grid { grid-template-columns: 1fr; gap: 1.5rem; }
@@ -117,10 +147,33 @@
   <footer>
     <span class="created-by">Créé par Nathan HURSTEL</span>
     <div class="footer-meta">
+      <span class="admin-hint" id="admin-hint" hidden></span>
       <span>Dernière publication : <time id="updated-at-time">{{ initial_data.updated_at }}</time></span>
       <span class="sync-hint" id="sync-hint">Mises à jour en direct actives</span>
     </div>
   </footer>
+
+  <!-- Écran de bienvenue (box neuve, pas encore configurée) -->
+  <div id="onboarding" hidden>
+    <div class="ob-card">
+      <div class="ob-logo">🎧 ComRoster</div>
+      <h1>Votre boîtier est prêt.</h1>
+      <p class="ob-sub">Cet écran affichera l'affectation des beltpacks pendant le show.<br>Il reste une étape : la configuration, depuis votre téléphone.</p>
+      <div class="ob-cols">
+        <div class="ob-qr">
+          <img id="ob-qr-img" alt="QR code de configuration">
+          <span>Scannez pour configurer</span>
+        </div>
+        <ol class="ob-steps">
+          <li>Sur votre téléphone (même réseau), ouvrez <b id="ob-url">comroster.local</b> — ou scannez le QR code.</li>
+          <li>Créez le <b>mot de passe administrateur</b>.</li>
+          <li>Connectez l'<b>antenne Bolero</b>, créez vos groupes, puis appuyez sur <b>Publier</b>.</li>
+        </ol>
+      </div>
+      <p class="ob-foot">Adresse directe : <span id="ob-ip">—</span></p>
+    </div>
+  </div>
+
   <script>window.__INITIAL__ = {{ initial_data|tojson }};</script>
   <script src="{{ url_for('static', filename='js/display.js') }}"></script>
 </body>
