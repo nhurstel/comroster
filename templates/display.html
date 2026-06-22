@@ -29,15 +29,18 @@
     .display-page .board-meta h1 { font-size: 1.15rem; font-weight: 700; text-shadow: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .display-page .board-meta h2 { font-size: 0.75rem; font-weight: 500; color: var(--fg-muted); }
     .display-page .header-actions { gap: 1.75rem; }
+    /* overflow:hidden — l'auto-scroll se fait par transform GPU (opti Raspberry Pi),
+       pas par scrollTop (qui force layout+repaint en continu). */
     #display-scroll {
-      flex: 1; overflow: auto;
+      flex: 1; overflow: hidden;
       padding: calc(var(--display-header-height) + 2rem) 3rem calc(var(--display-footer-height) + 2rem);
-      scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; -ms-overflow-style: none;
     }
     #display-scroll::-webkit-scrollbar { display: none; }
     .display-grid {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 1.5rem;
+      will-change: transform; backface-visibility: hidden;
     }
     .block {
       --block-accent: var(--primary);
