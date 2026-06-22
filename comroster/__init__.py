@@ -27,7 +27,8 @@ def create_app(config_overrides=None):
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
-        SESSION_COOKIE_SECURE=not (app.config.get("DEBUG") or app.config.get("TESTING")),
+        SESSION_COOKIE_SECURE=not (app.config.get("DEBUG") or app.config.get("TESTING")
+                                   or app.config.get("INSECURE_COOKIE")),
     )
 
     @app.get("/healthz")
