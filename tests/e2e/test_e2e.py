@@ -57,6 +57,38 @@ def test_fresh_box_shows_onboarding(page, live_server):
     assert loaded is True
 
 
+def test_available_filter(page, live_server):
+    _enter_admin(page, live_server)
+    for num, role in [("11", "Regie"), ("22", "Lumiere")]:
+        page.click("#add-user-btn")
+        page.fill("#person-beltpack", num)
+        page.fill("#person-role", role)
+        page.click("#person-form button[type=submit]")
+        page.wait_for_selector(f"#available-users .person .bp:has-text('{num}')")
+    page.fill("#available-filter", "Lumiere")
+    page.wait_for_selector("#available-users .person .bp:has-text('22')")
+    assert page.locator("#available-users .person").count() == 1
+
+
+def test_display_text_scale(page, live_server):
+    _enter_admin(page, live_server)
+    # un groupe pour publier un tableau non vide
+    page.click("#add-block-btn")
+    page.fill("#block-name", "Plateau")
+    page.click("#block-form button[type=submit]")
+    page.wait_for_selector("#blocks-container >> text=Plateau")
+    # régler la taille du texte de l'écran
+    page.click("#edit-meta-btn")
+    page.wait_for_selector("#meta-dialog[open]")
+    page.select_option("#meta-scale", "large")
+    page.click("#meta-form button[type=submit]")
+    page.click("#publish-btn")
+    page.wait_for_selector("text=Publié vers l'affichage")
+    display = page.context.new_page()
+    display.goto(live_server + "/display")
+    display.wait_for_function("() => document.documentElement.style.fontSize === '118%'")
+
+
 def test_network_dialog_sets_static_ip(page, live_server):
     _enter_admin(page, live_server)
     page.click("#network-btn")
