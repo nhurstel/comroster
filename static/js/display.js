@@ -68,9 +68,13 @@
     return el;
   }
 
+  const TEXT_SCALE = { normal: "", large: "118%", xlarge: "135%" };
+
   function render(data) {
     stopAutoScroll();
     bodyEl.dataset.theme = resolveTheme(data.theme);
+    // Taille du texte de l'écran (les polices sont en rem → la racine les met à l'échelle)
+    document.documentElement.style.fontSize = TEXT_SCALE[data.scale] || "";
 
     if (titleEl) titleEl.textContent = data.title || "Affectation Intercom";
     if (subtitleEl) {

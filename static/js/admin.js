@@ -188,17 +188,32 @@
 
   function renderAvailable() {
     el.available.innerHTML = "";
-    const avail = state.data.people.filter((p) => !p.group_id);
-    el.availableCount.textContent = `${avail.length} beltpack${avail.length > 1 ? "s" : ""}`;
-    if (!avail.length) {
+    const all = state.data.people.filter((p) => !p.group_id);
+    el.availableCount.textContent = `${all.length} beltpack${all.length > 1 ? "s" : ""}`;
+    if (!all.length) {
       const h = document.createElement("div");
       h.className = "empty-hint";
       h.textContent = "Tous les beltpacks sont affectés";
       el.available.append(h);
       return;
     }
+    const q = (state.filter || "").trim().toLowerCase();
+    const avail = q
+      ? all.filter((p) => String(p.beltpack).toLowerCase().includes(q) || (p.role || "").toLowerCase().includes(q))
+      : all;
+    if (!avail.length) {
+      const h = document.createElement("div");
+      h.className = "empty-hint";
+      h.textContent = "Aucun beltpack ne correspond";
+      el.available.append(h);
+      return;
+    }
     avail.forEach((p) => el.available.append(personCard(p, "available", null)));
   }
+  document.getElementById("available-filter").addEventListener("input", (e) => {
+    state.filter = e.target.value;
+    renderAvailable();
+  });
 
   function renderBlocks() {
     el.blocks.innerHTML = "";
@@ -411,6 +426,7 @@
   function openMetaDialog() {
     el.metaTitle.value = state.data.title || "";
     el.metaSubtitle.value = state.data.subtitle || "";
+    document.getElementById("meta-scale").value = state.data.scale || "normal";
     el.metaDialog.showModal();
     requestAnimationFrame(() => el.metaTitle.select());
   }
@@ -420,6 +436,7 @@
     if (!t) { el.metaTitle.focus(); return; }
     state.data.title = t;
     state.data.subtitle = el.metaSubtitle.value.trim();
+    state.data.scale = document.getElementById("meta-scale").value;
     el.metaDialog.close();
     markDirty(); render();
   }
@@ -464,6 +481,7 @@
         if (!json || typeof json !== "object") throw new Error("invalide");
         state.data = {
           title: json.title || "", subtitle: json.subtitle || "", theme: json.theme || "night",
+          scale: json.scale || "normal",
           groups: json.groups || [], people: json.people || [], beltpack_roles: json.beltpack_roles || {},
         };
         markDirty(); render();

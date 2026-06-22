@@ -23,6 +23,10 @@ def sanitize_theme(value):
     return "day" if value == "day" else "night"
 
 
+def sanitize_scale(value):
+    return value if value in ("normal", "large", "xlarge") else "normal"
+
+
 def empty_state():
     return {
         "version": 1,
@@ -30,6 +34,7 @@ def empty_state():
         "title": DEFAULT_TITLE,
         "subtitle": "",
         "theme": "night",
+        "scale": "normal",
         "groups": [],
         "people": [],
         "beltpack_roles": {},
@@ -50,6 +55,7 @@ def build_draft(payload):
     state["title"] = (payload.get("title") or "").strip() or DEFAULT_TITLE
     state["subtitle"] = (payload.get("subtitle") or "").strip()
     state["theme"] = sanitize_theme(payload.get("theme"))
+    state["scale"] = sanitize_scale(payload.get("scale"))
 
     groups = payload.get("groups")
     if not isinstance(groups, list):

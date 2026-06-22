@@ -6,6 +6,17 @@ def test_empty_state_shape():
     s = model.empty_state()
     assert s["version"] == 1 and s["groups"] == [] and s["people"] == []
     assert "updated_at" in s
+    assert s["scale"] == "normal"
+
+
+def test_build_draft_keeps_valid_scale():
+    s = model.build_draft({"groups": [], "people": [], "scale": "large"})
+    assert s["scale"] == "large"
+
+
+def test_build_draft_rejects_invalid_scale():
+    s = model.build_draft({"groups": [], "people": [], "scale": "huge"})
+    assert s["scale"] == "normal"
 
 
 def test_add_person_and_group():

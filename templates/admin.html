@@ -56,6 +56,7 @@
           <button type="button" id="add-user-btn" class="mini-btn add">+ Beltpack</button>
           <button type="button" id="select-btn" class="mini-btn">Sélectionner</button>
         </div>
+        <input type="search" id="available-filter" class="panel-filter" placeholder="Rechercher (n° ou nom)…" autocomplete="off">
         <div class="user-list" id="available-users"></div>
         <p class="empty-hint">Glissez les beltpacks dans un groupe pour les affecter.</p>
       </section>
@@ -92,6 +93,12 @@
         <input type="text" id="meta-title" required maxlength="120"></label>
       <label class="field"><span>Sous-titre</span>
         <input type="text" id="meta-subtitle" maxlength="120"></label>
+      <label class="field"><span>Taille du texte de l'écran</span>
+        <select id="meta-scale">
+          <option value="normal">Normale</option>
+          <option value="large">Grande</option>
+          <option value="xlarge">Très grande</option>
+        </select></label>
       <div class="dialog-actions">
         <button type="submit" class="primary">Enregistrer</button>
         <button type="button" data-close="meta-dialog">Annuler</button>
