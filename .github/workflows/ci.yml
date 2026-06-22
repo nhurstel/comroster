@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    name: Tests unitaires & intégration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Dépendances
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: pytest
+        run: pytest -q            # le marqueur e2e est exclu par défaut (pytest.ini)
+
+  e2e:
+    name: Tests bout-en-bout (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Dépendances
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Navigateur Chromium
+        run: python -m playwright install --with-deps chromium
+      - name: pytest e2e
+        run: pytest tests/e2e -m e2e

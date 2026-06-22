@@ -48,6 +48,26 @@ sudo poweroff
 > identifiants antenne désormais effacés). Pour une étanchéité maximale entre clients,
 > la régénérer aussi : `FLASK_SECRET_KEY=$(python3 -c 'import secrets;print(secrets.token_hex(32))')`.
 
+## 2b. IP par défaut (réseau à base de switchs, fortement recommandé)
+
+Sur une infra **sans DHCP ni routeur**, une box sans config réseau n'aurait qu'une adresse
+link-local aléatoire — et le QR d'onboarding ne pourrait pas pointer vers une adresse fiable.
+Donne au master une **IP fixe par défaut prévisible** : crée `instance/network.json` avant
+de réinitialiser/cloner.
+
+```bash
+cat > ~/comroster/instance/network.json <<'JSON'
+{ "mode": "static", "address": "192.168.1.50", "prefix": 24 }
+JSON
+```
+
+Conséquences : chaque box démarre toujours à `192.168.1.50`, l'écran de bienvenue affiche
+cette adresse et **le QR code l'encode** → le client n'a qu'à mettre son téléphone/laptop
+dans le sous-réseau `192.168.1.x`. Il pourra ensuite changer l'IP via la page **Réseau**.
+
+> Adapter l'adresse au plan d'adressage habituel du client (éviter un conflit avec l'antenne
+> Bolero). Ce fichier fait partie de l'état « usine » : ne pas l'effacer à l'étape 2.
+
 ## 3. Cloner l'image
 
 Retirer la carte SD du Pi maître, l'insérer dans un ordinateur.
