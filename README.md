@@ -66,6 +66,14 @@ Le mot de passe de l'antenne Bolero est **chiffré au repos** (Fernet, clé dér
 `FLASK_SECRET_KEY`) dans `antenna.json` — dépendance `cryptography`. Changer la clé de session
 rend les identifiants antenne illisibles (ils sont alors ignorés, sans erreur).
 
+### Affichage sur Raspberry Pi (kiosk)
+
+Cible de déploiement principale. Le `/display` est optimisé pour ce matériel : polices
+**auto-hébergées** (aucun appel CDN, fonctionne hors-ligne), auto-scroll en `transform`
+**composé par le GPU** (pas de repaint CPU continu), et **anti-veille** de l'écran (Screen
+Wake Lock + désactivation du blanking OS). Procédure complète kiosk Chromium, accélération
+GPU et démarrage automatique : [deploy/kiosk.md](deploy/kiosk.md).
+
 ## Premier démarrage
 
 1. Ouvrir `/admin/setup` → définir le mot de passe admin (8 caractères min.).
