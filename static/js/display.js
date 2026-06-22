@@ -20,7 +20,8 @@
 
   const state = { data: window.__INITIAL__ || { groups: [], people: [] } };
   let liveStatusReset = null;
-  const scroll = { frameId: null, pauseId: null, direction: 1, active: false };
+  const scroll = { frameId: null, pauseId: null, direction: 1, active: false, offset: 0 };
+  const REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   let eventSource = null;
   let reconnectTimer = null;
 
@@ -135,7 +136,15 @@
     applyLiveDots();
   }
 
-  /* ---------- Auto-scroll fluide avec pauses en haut/bas ---------- */
+  /* ---------- Auto-scroll fluide (transform GPU) avec pauses en haut/bas ---------- */
+  function setOffset(y) {
+    scroll.offset = y;
+    grid.style.transform = `translate3d(0, ${-y}px, 0)`;
+  }
+  function maxOffset() {
+    return Math.max(scrollContainer.scrollHeight - scrollContainer.clientHeight, 0);
+  }
+
   function stopAutoScroll() {
     scroll.active = false;
     if (scroll.frameId !== null) { cancelAnimationFrame(scroll.frameId); scroll.frameId = null; }
@@ -144,18 +153,17 @@
 
   function animateScrollTo(target, onComplete) {
     if (!scrollContainer || !scroll.active) return;
-    const maxScroll = Math.max(scrollContainer.scrollHeight - scrollContainer.clientHeight, 0);
-    const clamped = Math.min(Math.max(target, 0), maxScroll);
-    const start = scrollContainer.scrollTop;
+    const clamped = Math.min(Math.max(target, 0), maxOffset());
+    const start = scroll.offset;
     const distance = clamped - start;
-    if (Math.abs(distance) < 1) { scrollContainer.scrollTop = clamped; onComplete?.(); return; }
+    if (Math.abs(distance) < 1) { setOffset(clamped); onComplete?.(); return; }
     const duration = Math.max((Math.abs(distance) / AUTO_SCROLL_SPEED) * 1000, AUTO_SCROLL_MIN_DURATION);
     const startTime = performance.now();
     const step = (now) => {
       if (!scroll.active) return;
       const progress = Math.min((now - startTime) / duration, 1);
       const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-      scrollContainer.scrollTop = start + distance * eased;
+      setOffset(start + distance * eased);
       if (progress < 1) scroll.frameId = requestAnimationFrame(step);
       else { scroll.frameId = null; onComplete?.(); }
     };
@@ -164,9 +172,9 @@
 
   function runPhase() {
     if (!scrollContainer || !scroll.active) return;
-    const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
-    if (maxScroll <= 0) { stopAutoScroll(); scrollContainer.scrollTop = 0; return; }
-    const target = scroll.direction > 0 ? maxScroll : 0;
+    const max = maxOffset();
+    if (max <= 0) { stopAutoScroll(); setOffset(0); return; }
+    const target = scroll.direction > 0 ? max : 0;
     animateScrollTo(target, () => {
       if (!scroll.active) return;
       scroll.direction *= -1;
@@ -176,10 +184,10 @@
 
   function startAutoScroll() {
     stopAutoScroll();
-    if (!scrollContainer || document.hidden) return;
+    setOffset(0);
+    if (!scrollContainer || document.hidden || REDUCED_MOTION) return;
+    if (maxOffset() <= 0) return;
     scroll.direction = 1;
-    scrollContainer.scrollTop = 0;
-    if (scrollContainer.scrollHeight - scrollContainer.clientHeight <= 0) return;
     scroll.active = true;
     scroll.pauseId = setTimeout(runPhase, AUTO_SCROLL_INITIAL_DELAY);
   }
