@@ -1,3 +1,5 @@
+import re
+
 from flask import Blueprint, request, jsonify, current_app, render_template
 
 from .security import login_required
@@ -79,9 +81,10 @@ def create_group():
 @login_required
 def patch_group(gid):
     data = request.get_json(force=True)
+    fields = {k: data[k] for k in ("name", "color", "order") if k in data}
     state = _storage().load_draft()
     try:
-        g = model.update_group(state, gid, **data)
+        g = model.update_group(state, gid, **fields)
     except model.ValidationError as exc:
         return _error(exc)
     _storage().save_draft(state)
@@ -117,9 +120,10 @@ def create_person():
 @login_required
 def patch_person(pid):
     data = request.get_json(force=True)
+    fields = {k: data[k] for k in ("role", "beltpack", "group_id") if k in data}
     state = _storage().load_draft()
     try:
-        p = model.update_person(state, pid, **data)
+        p = model.update_person(state, pid, **fields)
     except model.ValidationError as exc:
         return _error(exc)
     _storage().save_draft(state)
@@ -173,16 +177,15 @@ def export_state():
 @bp.post("/api/import")
 @login_required
 def import_state():
-    data = request.get_json(force=True)
+    # Même chemin que PUT /api/draft : build_draft normalise (ids, champs, scale)
+    # et valide — un JSON malformé donne 400/409, jamais un 500.
+    payload = request.get_json(force=True)
     try:
-        if not all(k in data for k in ("version", "groups", "people")):
-            raise model.ValidationError("Structure invalide", code="invalid")
-        model.validate_state(data)
+        state = model.build_draft(payload)
     except model.ValidationError as exc:
-        return jsonify({"error": str(exc), "code": exc.code}), 400
-    model.touch(data)
-    _storage().save_draft(data)
-    return jsonify(data)
+        return _error(exc)
+    _storage().save_draft(state)
+    return jsonify(state)
 
 
 @bp.post("/api/publish")
@@ -209,6 +212,8 @@ def history_list():
 @bp.post("/api/history/<ts>/restore")
 @login_required
 def history_restore(ts):
+    if not re.fullmatch(r"\d{8}T\d{6}\d*Z", ts):     # format des snapshots uniquement
+        return jsonify({"error": "not_found", "code": "not_found"}), 404
     try:
         snapshot = _history().load(ts)
     except KeyError:

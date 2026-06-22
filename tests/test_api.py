@@ -66,6 +66,23 @@ def test_export_import_roundtrip(auth_client):
     assert any(p["beltpack"] == "12" for p in state["people"])
 
 
+def test_patch_person_ignores_unknown_keys(auth_client):
+    # un payload avec des clés parasites (state/person_id) ne doit pas faire un 500
+    p = auth_client.post("/api/people", json={"role": "A", "beltpack": "5"}).get_json()
+    r = auth_client.patch(f"/api/people/{p['id']}", json={"role": "B", "state": "x", "person_id": "y"})
+    assert r.status_code == 200 and r.get_json()["role"] == "B"
+
+
+def test_patch_group_ignores_unknown_keys(auth_client):
+    g = auth_client.post("/api/groups", json={"name": "G", "color": "#111111"}).get_json()
+    r = auth_client.patch(f"/api/groups/{g['id']}", json={"name": "G2", "state": "x", "group_id": "z"})
+    assert r.status_code == 200 and r.get_json()["name"] == "G2"
+
+
+def test_history_restore_invalid_ts_404(auth_client):
+    assert auth_client.post("/api/history/pas-un-timestamp/restore").status_code == 404
+
+
 def test_delete_batch(auth_client):
     a = auth_client.post("/api/people", json={"name": "A", "role": "", "beltpack": "1"}).get_json()
     b = auth_client.post("/api/people", json={"name": "B", "role": "", "beltpack": "2"}).get_json()
@@ -100,5 +117,21 @@ def test_put_draft_duplicate_beltpack_409(auth_client):
 
 
 def test_import_invalid_400(auth_client):
-    r = auth_client.post("/api/import", json={"people": [{"id": "1", "name": "A", "role": "", "beltpack": "1", "group_id": "ghost"}], "groups": [], "version": 1})
+    # structure invalide (groups pas une liste) → 400 via build_draft
+    r = auth_client.post("/api/import", json={"groups": "pas une liste", "people": [], "version": 1})
     assert r.status_code == 400
+
+
+def test_import_orphan_group_is_sanitized(auth_client):
+    # group_id orphelin : toléré comme partout (→ pool), cohérent avec PUT /api/draft
+    r = auth_client.post("/api/import", json={
+        "version": 1, "groups": [],
+        "people": [{"id": "1", "role": "", "beltpack": "7", "group_id": "ghost"}]})
+    assert r.status_code == 200
+    assert r.get_json()["people"][0]["group_id"] is None
+
+
+def test_import_malformed_person_no_500(auth_client):
+    # personne sans clé beltpack : erreur métier propre (409), JAMAIS un 500
+    r = auth_client.post("/api/import", json={"version": 1, "groups": [], "people": [{"role": "x"}]})
+    assert r.status_code in (200, 400, 409)

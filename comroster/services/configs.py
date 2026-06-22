@@ -44,8 +44,10 @@ class Configs:
         path = self._path(name)
         if not os.path.exists(path):
             raise KeyError(name)
-        with open(path, encoding="utf-8") as fh:
-            return json.load(fh)["state"]
+        data = self.storage.read_json(path)   # tolérant à la corruption (.bak / None)
+        if data is None:
+            raise KeyError(name)
+        return data["state"]
 
     def delete(self, name):
         path = self._path(name)
