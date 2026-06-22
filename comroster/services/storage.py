@@ -71,6 +71,14 @@ class Storage:
             _log.error("%s corrompu (%s) et aucune sauvegarde valide — état réinitialisé", path, exc)
             return None
 
+    def read_json(self, path):
+        """Lecture JSON tolérante (récupère depuis .bak si corrompu, None si illisible).
+
+        Partagée par les stores secondaires (settings, configs, history) pour qu'un
+        fichier corrompu ne fasse jamais planter le boîtier.
+        """
+        return self._load(path)
+
     def load_draft(self):
         state = self._load(self.draft_path)
         return state if state is not None else model.empty_state()
