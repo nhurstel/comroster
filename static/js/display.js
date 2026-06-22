@@ -197,6 +197,19 @@
     if (clockEl) clockEl.textContent = new Date().toLocaleTimeString("fr-FR");
   }
 
+  /* ---------- Anti-veille écran (Screen Wake Lock) ----------
+     Empêche l'écran de s'éteindre. Nécessite un contexte sécurisé (HTTPS ou localhost) :
+     sur le Pi en kiosk servi en 127.0.0.1, ça fonctionne. La désactivation du blanking
+     côté OS (voir deploy/kiosk.md) reste le filet de sécurité. */
+  let wakeLock = null;
+  async function requestWakeLock() {
+    if (!("wakeLock" in navigator)) return;
+    try {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    } catch { /* refusé (contexte non sécurisé / onglet masqué) — la config OS prend le relais */ }
+  }
+
   /* ---------- SSE ---------- */
   function apply(eventData) {
     try {
@@ -236,12 +249,16 @@
   subscribe();
   pollLive();
   setInterval(pollLive, 5000);
+  requestWakeLock();
 
   if (scrollContainer) {
     scrollContainer.addEventListener("wheel", (e) => e.cancelable && e.preventDefault(), { passive: false });
     scrollContainer.addEventListener("touchmove", (e) => e.cancelable && e.preventDefault(), { passive: false });
   }
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) startAutoScroll(); else stopAutoScroll(); });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) { startAutoScroll(); requestWakeLock(); }
+    else stopAutoScroll();
+  });
   window.addEventListener("resize", startAutoScroll);
   window.addEventListener("beforeunload", () => { if (eventSource) eventSource.close(); });
 })();
