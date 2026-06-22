@@ -46,6 +46,17 @@ def test_setup_create_publish_display(page, live_server):
     assert "42" in grid and "Régie" in grid
 
 
+def test_fresh_box_shows_onboarding(page, live_server):
+    # Box neuve (aucun mot de passe défini) → l'écran TV affiche le guide + QR.
+    page.goto(live_server + "/display")
+    page.wait_for_selector("#onboarding:not([hidden])")
+    assert page.is_visible("#ob-qr-img")
+    assert page.inner_text("#ob-url").strip() != ""
+    # Le QR est bien servi (image chargée)
+    loaded = page.eval_on_selector("#ob-qr-img", "img => img.complete && img.naturalWidth > 0")
+    assert loaded is True
+
+
 def test_antenna_dialog_opens_wizard_when_unconfigured(page, live_server):
     _enter_admin(page, live_server)
     page.click("#antenna-btn")
