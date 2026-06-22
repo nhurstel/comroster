@@ -52,6 +52,7 @@ def logout():
 
 
 @bp.route("/admin/recover", methods=["GET", "POST"])
+@limiter.limit("5 per 15 minutes", methods=["POST"])
 def recover():
     secret = _secret()
     if request.method == "POST":
