@@ -241,6 +241,26 @@
     };
   }
 
+  /* ---------- Onboarding (box neuve : guide + QR à l'écran) ---------- */
+  const shortUrl = (u) => (u || "").replace(/^https?:\/\//, "").replace(/\/admin$/, "");
+  async function loadOnboarding() {
+    let ob;
+    try { ob = await fetch("/api/onboarding").then((r) => r.json()); } catch { return; }
+    const overlay = document.getElementById("onboarding");
+    const hint = document.getElementById("admin-hint");
+    if (!ob.configured) {
+      document.getElementById("ob-url").textContent = shortUrl(ob.hostname_url);
+      document.getElementById("ob-ip").textContent = shortUrl(ob.admin_url);
+      const img = document.getElementById("ob-qr-img");
+      if (!img.getAttribute("src")) img.src = "/display/qr.svg";
+      overlay.hidden = false;
+      if (hint) hint.hidden = true;
+    } else {
+      overlay.hidden = true;
+      if (hint) { hint.textContent = "⚙ Admin : " + shortUrl(ob.hostname_url); hint.hidden = false; }
+    }
+  }
+
   /* ---------- Init ---------- */
   render(state.data);
   setLive("idle");
@@ -249,6 +269,8 @@
   subscribe();
   pollLive();
   setInterval(pollLive, 5000);
+  loadOnboarding();
+  setInterval(loadOnboarding, 8000);
   requestWakeLock();
 
   if (scrollContainer) {
