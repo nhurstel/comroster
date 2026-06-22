@@ -1,4 +1,3 @@
-import json
 import os
 
 
@@ -8,10 +7,8 @@ class Settings:
         self.path = os.path.join(storage.data_dir, "settings.json")
 
     def all(self):
-        if not os.path.exists(self.path):
-            return {}
-        with open(self.path, encoding="utf-8") as fh:
-            return json.load(fh)
+        # Lecture tolérante : un settings.json corrompu ne doit pas planter le boîtier.
+        return self.storage.read_json(self.path) or {}
 
     def get(self, key, default=None):
         return self.all().get(key, default)

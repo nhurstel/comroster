@@ -47,7 +47,8 @@
   };
 
   /* ---------- Utilitaires ---------- */
-  const esc = (s) => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
+  // Échappe aussi les guillemets : esc() est utilisé en contexte attribut (data-…="…").
+  const esc = (s) => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;"); };
   const uid = () => "x" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   const normBp = (v) => String(v ?? "").trim();
   const sanitizeColor = (v) => (v && HEX.test(String(v).trim()) ? String(v).trim().toUpperCase() : "");
