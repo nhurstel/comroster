@@ -19,6 +19,13 @@ def test_onboarding_configured_after_setup(auth_client):
     assert data["configured"] is True
 
 
+def test_onboarding_uses_configured_static_ip(auth_client):
+    # IP fixe configurée → l'URL admin (et le QR) doivent l'utiliser, pas 127.0.0.1
+    auth_client.put("/api/network", json={"mode": "static", "address": "192.168.42.10", "prefix": 24})
+    data = auth_client.get("/api/onboarding").get_json()
+    assert "192.168.42.10" in data["admin_url"]
+
+
 def test_onboarding_is_public(client):
     # accessible sans session (l'écran TV est public)
     assert client.get("/api/onboarding").status_code == 200

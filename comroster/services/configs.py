@@ -52,3 +52,5 @@ class Configs:
         if not os.path.exists(path):
             raise KeyError(name)
         os.unlink(path)
+        if os.path.exists(path + ".bak"):       # pas d'orphelin de sauvegarde
+            os.unlink(path + ".bak")
