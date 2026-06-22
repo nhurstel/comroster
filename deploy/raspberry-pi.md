@@ -10,6 +10,11 @@ Raspberry Pi
 └─ Chromium kiosk → http://127.0.0.1:8080/display    ← service utilisateur, session graphique
 ```
 
+> **Distribution clé-en-main ?** Pour livrer des boîtiers prêts à brancher (image SD
+> pré-faite + carte de démarrage dans le carton), voir [build-image.md](build-image.md) et
+> [quick-start-card.html](quick-start-card.html). Au branchement, l'écran affiche un guide
+> avec QR code — le client n'a aucune commande à taper.
+
 ## Prérequis
 
 - **Raspberry Pi OS Bookworm 64-bit _Desktop_** (le kiosk a besoin d'un environnement graphique).
