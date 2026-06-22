@@ -57,6 +57,9 @@ def create_app(config_overrides=None):
     from .services.configs import Configs
     app.extensions["configs"] = Configs(app.extensions["storage"])
 
+    from .services.netconfig import NetConfig
+    app.extensions["netconfig"] = NetConfig(app.config["DATA_DIR"])
+
     if app.config.get("TESTING"):
         app.config["WTF_CSRF_ENABLED"] = False
     csrf.init_app(app)
