@@ -57,6 +57,18 @@ def test_fresh_box_shows_onboarding(page, live_server):
     assert loaded is True
 
 
+def test_network_dialog_sets_static_ip(page, live_server):
+    _enter_admin(page, live_server)
+    page.click("#network-btn")
+    page.wait_for_selector("#network-dialog[open]")
+    page.select_option("#net-mode", "static")
+    page.wait_for_selector("#net-static-fields:not([hidden])")
+    page.fill("#net-address", "192.168.1.50")
+    page.click("#network-form button[type=submit]")
+    page.wait_for_selector("#net-result:not([hidden])")
+    assert "192.168.1.50" in page.inner_text("#net-result")
+
+
 def test_antenna_dialog_opens_wizard_when_unconfigured(page, live_server):
     _enter_admin(page, live_server)
     page.click("#antenna-btn")

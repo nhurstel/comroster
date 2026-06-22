@@ -35,6 +35,7 @@
       <span class="toolbar-spacer" aria-hidden="true"></span>
       <button type="button" id="antenna-btn" title="Connexion à l'antenne Bolero">
         <span class="dot off" id="antenna-dot"></span>Antenne</button>
+      <button type="button" id="network-btn" title="Configuration réseau du boîtier">Réseau</button>
       <span class="tb-sep" aria-hidden="true"></span>
       <button type="button" id="publish-btn" class="primary">Publier vers l'affichage</button>
       <a class="logout-link" href="{{ url_for('auth.logout') }}"
@@ -192,6 +193,35 @@
         <button type="button" data-close="antenna-dialog">Fermer</button>
       </div>
     </div>
+  </dialog>
+
+  <dialog id="network-dialog" class="admin-dialog">
+    <form id="network-form" method="dialog">
+      <h2>Réseau du boîtier</h2>
+      <p class="dialog-hint">Adresse IP du boîtier sur le réseau. Infrastructure à base de
+        switchs (sans routeur) : laissez la passerelle vide.</p>
+      <label class="field"><span>Mode</span>
+        <select id="net-mode">
+          <option value="link-local">Automatique (link-local, sans config)</option>
+          <option value="static">IP fixe</option>
+        </select></label>
+      <div id="net-static-fields" hidden>
+        <label class="field"><span>Adresse IP</span>
+          <input type="text" id="net-address" inputmode="decimal" placeholder="192.168.1.50" autocomplete="off"></label>
+        <label class="field"><span>Masque (préfixe CIDR)</span>
+          <input type="number" id="net-prefix" min="1" max="32" value="24"></label>
+        <label class="field"><span>Passerelle <em>(facultatif)</em></span>
+          <input type="text" id="net-gateway" placeholder="aucune (switch)" autocomplete="off"></label>
+        <label class="field"><span>DNS <em>(facultatif)</em></span>
+          <input type="text" id="net-dns" placeholder="ex. 192.168.1.1" autocomplete="off"></label>
+      </div>
+      <p id="net-error" class="auth-error" hidden></p>
+      <p id="net-result" class="dialog-hint" hidden></p>
+      <div class="dialog-actions">
+        <button type="submit" class="primary">Enregistrer</button>
+        <button type="button" data-close="network-dialog">Fermer</button>
+      </div>
+    </form>
   </dialog>
 
   <dialog id="import-dialog" class="admin-dialog">

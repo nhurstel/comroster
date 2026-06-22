@@ -76,6 +76,26 @@ EOF
 systemctl daemon-reload
 systemctl enable --now comroster.service
 
+# --- 4b. Service d'application réseau (IP fixe, au démarrage) -------------
+echo "▶ Service réseau (applique instance/network.json au boot)…"
+chmod +x "$APP_DIR/deploy/apply-network.sh"
+cat > /etc/systemd/system/comroster-network.service <<EOF
+[Unit]
+Description=ComRoster — application de la configuration réseau
+After=NetworkManager.service
+Wants=NetworkManager.service
+Before=comroster.service
+
+[Service]
+Type=oneshot
+ExecStart=$APP_DIR/deploy/apply-network.sh $DATA_DIR/network.json
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable comroster-network.service
+
 # --- 5. Affichage kiosk (service utilisateur) ----------------------------
 echo "▶ Service kiosk (session graphique)…"
 KIOSK_DIR="$TARGET_HOME/.config/systemd/user"

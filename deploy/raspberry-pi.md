@@ -75,6 +75,25 @@ sudo reboot                      # ou: systemctl --user restart comroster-kiosk
   Dans ce cas, garder `DATA_DIR` sur une partition inscriptible si l'admin doit persister
   entre redémarrages, ou accepter un état volatil.
 
+## Configuration réseau / IP fixe
+
+Pensé pour une **infra à base de switchs (sans routeur, donc sans DHCP)**. Par défaut, le
+boîtier utilise une adresse **link-local** auto-assignée et reste joignable via
+`comroster.local` (mDNS) — l'écran de bienvenue affiche aussi l'adresse exacte.
+
+Pour fixer une IP, depuis l'admin (téléphone) → bouton **Réseau** : choisir « IP fixe »,
+saisir l'adresse et le préfixe (passerelle/DNS facultatifs sur une infra de switchs), puis
+**Enregistrer** et **redémarrer le boîtier**. L'écran affiche la nouvelle adresse au boot.
+
+**Comment ça marche (sûr par conception) :** l'admin n'écrit que le souhait dans
+`instance/network.json`. C'est le service système **`comroster-network.service`** qui
+l'applique via `nmcli` **au démarrage** ([apply-network.sh](apply-network.sh)) — jamais en
+cours de requête, donc **pas de risque de se verrouiller** en pleine reconfiguration.
+
+> ⚠️ **À valider sur un vrai Pi.** L'application `nmcli` n'est pas testable hors matériel.
+> Le formulaire, la validation et la persistance sont couverts par les tests ; l'étape
+> d'application réseau doit être vérifiée sur le Pi cible (Bookworm / NetworkManager).
+
 ## Note sécurité — `COMROSTER_INSECURE_COOKIE`
 
 Le cookie de session est marqué `Secure` par défaut (impose HTTPS). En appliance autonome
