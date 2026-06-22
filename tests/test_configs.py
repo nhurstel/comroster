@@ -15,6 +15,17 @@ def test_save_list_load(tmp_path):
     assert loaded["people"][0]["role"] == "Régie"
 
 
+def test_delete_removes_backup_too(tmp_path):
+    import os
+    c = Configs(Storage(str(tmp_path)))
+    c.save("Jour 2", model.empty_state())
+    c.save("Jour 2", model.empty_state())     # 2e écriture → crée le .bak
+    assert os.path.exists(c._path("Jour 2") + ".bak")
+    c.delete("Jour 2")
+    assert not os.path.exists(c._path("Jour 2"))
+    assert not os.path.exists(c._path("Jour 2") + ".bak")   # pas d'orphelin
+
+
 def test_save_empty_name_raises(tmp_path):
     c = Configs(Storage(str(tmp_path)))
     with pytest.raises(ValueError):
