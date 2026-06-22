@@ -21,3 +21,12 @@ def test_set_overwrites(tmp_path):
     s.set("bolero_enabled", True)
     s.set("bolero_enabled", False)
     assert s.get("bolero_enabled") is False
+
+
+def test_corrupt_settings_does_not_crash(tmp_path):
+    st = Storage(str(tmp_path))
+    s = Settings(st)
+    with open(s.path, "w") as fh:
+        fh.write("{ pas du json")
+    assert s.all() == {}                 # lecture défensive : pas de 500
+    assert s.get("antenna_ranges", []) == []
