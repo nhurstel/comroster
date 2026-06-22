@@ -7,6 +7,8 @@ class Config:
         self.DATA_DIR = os.environ.get("DATA_DIR", os.getcwd())
         self.PORT = int(os.environ.get("PORT", "8080"))
         self.DEBUG = os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
+        # LAN fermé sans TLS : désactive le flag Secure du cookie sans activer le debug.
+        self.INSECURE_COOKIE = os.environ.get("COMROSTER_INSECURE_COOKIE", "").lower() in ("1", "true", "yes")
         self.TESTING = False
         if overrides:
             for key, value in overrides.items():
