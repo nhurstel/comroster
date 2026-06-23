@@ -52,9 +52,10 @@
     const badge = document.createElement("div");
     badge.className = "bp-badge";
     badge.innerHTML = `<span class="bp-n">${esc(beltpackNumber(person.beltpack))}</span><span class="bp-l">BP</span>`;
+    const num = beltpackNumber(person.beltpack);
     const dot = document.createElement("span");
     dot.className = "bp-dot";
-    dot.dataset.bp = beltpackNumber(person.beltpack);
+    dot.dataset.bp = num;
     badge.append(dot);
 
     const body = document.createElement("div");
@@ -64,7 +65,13 @@
     role.textContent = person.role || "—";
     body.append(role);
 
-    el.append(badge, body);
+    const live = document.createElement("div");
+    live.className = "card-live";
+    const batt = document.createElement("span"); batt.className = "bp-batt"; batt.dataset.bp = num; batt.hidden = true;
+    const sig = document.createElement("span"); sig.className = "bp-sig"; sig.dataset.bp = num; sig.hidden = true;
+    live.append(batt, sig);
+
+    el.append(badge, body, live);
     return el;
   }
 
@@ -120,24 +127,41 @@
       grid.append(blockEl);
     });
 
-    applyLiveDots();
+    applyLiveIndicators();
     startAutoScroll();
   }
 
-  /* ---------- État temps réel des beltpacks (pastille en ligne / hors ligne) ---------- */
-  let liveOnline = null;   // null = antenne déconnectée → pas de pastille
-  function applyLiveDots() {
+  /* ---------- État temps réel des beltpacks (statut / batterie / réception) ---------- */
+  const DEFAULT_IND = { online: true, battery: true, signal: true };
+  let liveBeltpacks = null;   // null = antenne déconnectée → aucun indicateur
+  function signalBarsHtml(n) {
+    let h = ""; for (let i = 1; i <= 4; i++) h += `<i class="${i <= n ? "on" : ""}"></i>`; return h;
+  }
+  function applyLiveIndicators() {
+    const ind = (state.data && state.data.indicators) || DEFAULT_IND;
     grid.querySelectorAll(".bp-dot[data-bp]").forEach((d) => {
-      const on = liveOnline ? liveOnline[d.dataset.bp] : undefined;
-      if (on === undefined) { d.className = "bp-dot"; d.title = ""; }
+      const on = liveBeltpacks?.[d.dataset.bp]?.online;
+      if (!ind.online || on === undefined) { d.className = "bp-dot"; d.title = ""; }
       else { d.className = "bp-dot " + (on ? "on" : "down"); d.title = on ? "En ligne" : "Hors ligne"; }
+    });
+    grid.querySelectorAll(".bp-batt[data-bp]").forEach((b) => {
+      const info = liveBeltpacks?.[b.dataset.bp];
+      const pct = info?.online ? info.battery : null;
+      if (!ind.battery || pct == null) { b.hidden = true; b.textContent = ""; }
+      else { b.hidden = false; b.textContent = (info.charging ? "⚡" : "") + pct + "%"; b.className = "bp-batt" + (pct <= 20 ? " low" : ""); }
+    });
+    grid.querySelectorAll(".bp-sig[data-bp]").forEach((s) => {
+      const info = liveBeltpacks?.[s.dataset.bp];
+      const bars = info?.online ? info.signal : null;
+      if (!ind.signal || bars == null) { s.hidden = true; s.innerHTML = ""; }
+      else { s.hidden = false; s.innerHTML = signalBarsHtml(bars); }
     });
   }
   async function pollLive() {
     let res;
     try { res = await fetch("/api/live").then((r) => r.json()); } catch { return; }
-    liveOnline = res.connected ? res.online : null;
-    applyLiveDots();
+    liveBeltpacks = res.connected ? res.beltpacks : null;
+    applyLiveIndicators();
   }
 
   /* ---------- Auto-scroll fluide (transform GPU) avec pauses en haut/bas ---------- */
