@@ -4,7 +4,10 @@ import pytest
 def _fake_ok(method, path, body=None, timeout=5):
     # Calqué sur la vraie antenne : id 1 connecté (via nodeStatus), id 2 non.
     if path == "/rest/nodeStatus":
-        return True, {"nodeStatus": [{"isLocal": True, "bp": [{"id": 1}]}]}
+        return True, {"nodeStatus": [{"isLocal": True, "bp": [
+            {"id": 1, "signalLevel": 0,
+             "battery": {"currentCharge": 3120, "maxCharge": 4800, "usbPower": 0}},
+        ]}]}
     if path == "/rest/firmware":
         return True, {"firmware": {"version": "3.4.1-15"}}
     if path == "/rest/bp":
@@ -94,12 +97,15 @@ def test_live_returns_online_map(auth_client, app, monkeypatch):
     auth_client.post("/api/antenna/connect", json={"ip": "1.1.1.1", "password": ""})
     r = auth_client.get("/api/antenna/live")
     assert r.status_code == 200
-    assert r.get_json() == {"connected": True, "online": {"5": True, "7": False}}
+    assert r.get_json() == {"connected": True, "beltpacks": {
+        "5": {"online": True, "battery": 65, "charging": False, "signal": 4},
+        "7": {"online": False},
+    }}
 
 
 def test_public_live_no_auth_when_disconnected(client):
     r = client.get("/api/live")                 # client public, non authentifié
-    assert r.status_code == 200 and r.get_json() == {"connected": False, "online": {}}
+    assert r.status_code == 200 and r.get_json() == {"connected": False, "beltpacks": {}}
 
 
 def test_public_live_returns_map_without_session(auth_client, app, monkeypatch):
@@ -107,12 +113,13 @@ def test_public_live_returns_map_without_session(auth_client, app, monkeypatch):
     auth_client.post("/api/antenna/connect", json={"ip": "1.1.1.1", "password": ""})
     r = app.test_client().get("/api/live")      # nouveau client sans session
     assert r.status_code == 200
-    assert r.get_json() == {"connected": True, "online": {"5": True, "7": False}}
+    assert r.get_json()["beltpacks"]["5"]["online"] is True
+    assert r.get_json()["beltpacks"]["5"]["battery"] == 65
 
 
 def test_live_when_not_connected(auth_client):
     r = auth_client.get("/api/antenna/live")
-    assert r.status_code == 200 and r.get_json() == {"connected": False, "online": {}}
+    assert r.status_code == 200 and r.get_json() == {"connected": False, "beltpacks": {}}
 
 
 def test_live_swallows_antenna_error(auth_client, app, monkeypatch):
@@ -121,7 +128,7 @@ def test_live_swallows_antenna_error(auth_client, app, monkeypatch):
     monkeypatch.setattr(app.extensions["antenna"], "_request",
                         lambda *a, **k: (False, {"error": "timeout", "code": "timeout"}))
     r = auth_client.get("/api/antenna/live")
-    assert r.status_code == 200 and r.get_json() == {"connected": False, "online": {}}
+    assert r.status_code == 200 and r.get_json() == {"connected": False, "beltpacks": {}}
 
 
 def _fake_three(method, path, body=None, timeout=5):

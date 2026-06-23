@@ -325,6 +325,24 @@
 .panel-filter::placeholder { color: #6b778d; }
 .panel-filter:focus { outline: none; border-color: var(--primary); }
 
+/* Indicateurs temps réel sur la carte (batterie + réception) */
+.card-live { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; flex: 0 0 auto; }
+.bp-batt { font-size: 0.72rem; font-weight: 700; color: #8b97ad; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bp-batt.low { color: #e0913a; }
+.bp-sig { display: inline-flex; align-items: flex-end; gap: 1px; height: 0.7rem; }
+.bp-sig i { width: 3px; background: #3a4868; border-radius: 1px; }
+.bp-sig i:nth-child(1) { height: 25%; }
+.bp-sig i:nth-child(2) { height: 50%; }
+.bp-sig i:nth-child(3) { height: 75%; }
+.bp-sig i:nth-child(4) { height: 100%; }
+.bp-sig i.on { background: #2ecc71; }
+
+/* Cases « indicateurs » dans le dialog Infos */
+.ind-fieldset { border: 1px solid #2a3550; border-radius: 6px; padding: 0.5rem 0.7rem; display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; }
+.ind-fieldset legend { font-size: 0.78rem; color: #8b97ad; padding: 0 0.3rem; }
+.ind-check { display: flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; color: #e6edf3; }
+.ind-check input { width: 1rem; height: 1rem; accent-color: var(--primary); }
+
 /* ---------- Panneau Antenne (pas de <form> : on pose le padding ici) ---------- */
 /* NB: ces conteneurs portent l'attribut [hidden] ; ne JAMAIS poser display
    sans :not([hidden]), sinon le hidden est écrasé et tout s'affiche en même temps. */
