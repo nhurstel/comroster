@@ -89,6 +89,21 @@ def test_display_text_scale(page, live_server):
     display.wait_for_function("() => document.documentElement.style.fontSize === '118%'")
 
 
+def test_indicator_toggles_persist(page, live_server):
+    _enter_admin(page, live_server)
+    page.click("#edit-meta-btn")
+    page.wait_for_selector("#meta-dialog[open]")
+    page.uncheck("#ind-battery")
+    page.click("#meta-form button[type=submit]")
+    page.wait_for_selector("#sync-label:has-text('enregistré')")   # brouillon sauvegardé
+    page.reload()
+    page.wait_for_selector("#add-block-btn")
+    page.click("#edit-meta-btn")
+    page.wait_for_selector("#meta-dialog[open]")
+    assert page.is_checked("#ind-battery") is False        # préférence persistée
+    assert page.is_checked("#ind-online") is True
+
+
 def test_network_dialog_sets_static_ip(page, live_server):
     _enter_admin(page, live_server)
     page.click("#network-btn")

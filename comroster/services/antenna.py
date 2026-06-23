@@ -15,6 +15,34 @@ class AntennaError(Exception):
     pass
 
 
+def _battery_percent(battery):
+    """% de charge depuis battery.currentCharge / maxCharge (None si indisponible)."""
+    cur, mx = battery.get("currentCharge"), battery.get("maxCharge")
+    if isinstance(cur, (int, float)) and isinstance(mx, (int, float)) and mx > 0:
+        return max(0, min(100, round(cur / mx * 100)))
+    return None
+
+
+def _signal_bars(level):
+    """signalLevel → barres de réception 0..4 (None si absent).
+
+    ⚠️ À CALIBRER : sur la vraie antenne, signalLevel = 0 quand le beltpack est proche
+    (réception forte). Hypothèse retenue : plus la valeur monte, plus la réception est
+    faible. Ajuster les seuils ci-dessous avec une mesure de mauvaise réception réelle.
+    """
+    if level is None:
+        return None
+    if level <= 0:
+        return 4
+    if level <= 2:
+        return 3
+    if level <= 5:
+        return 2
+    if level <= 10:
+        return 1
+    return 0
+
+
 class AntennaClient:
     def __init__(self, data_dir, secret_key):
         self._secret_key = secret_key or "dev-insecure-key"
@@ -116,32 +144,41 @@ class AntennaClient:
         return {"connected": self._connected, "ip": self._ip, "info": self._info}
 
     def live_status(self, ttl=3.0):
-        """État temps réel {connected, online:{num:bool}} avec cache court.
+        """État temps réel par beltpack (en ligne, batterie %, barres de réception).
 
-        L'antenne expose deux sources distinctes : /rest/bp (config : id↔numéro/nom,
-        AUCUN état de connexion) et /rest/nodeStatus (les `id` réellement connectés,
-        sous nodeStatus[].bp[].id). On croise les deux par `id` interne.
-        Le cache évite de marteler l'antenne ; jamais d'exception réseau remontée.
+        Deux sources : /rest/bp (config id↔numéro/nom) et /rest/nodeStatus (les beltpacks
+        réellement connectés, sous nodeStatus[].bp[] : id, battery, signalLevel). Croisement
+        par `id` interne. Cache court ; jamais d'exception réseau remontée.
+
+        Forme : {"connected": bool, "beltpacks": {num: {"online", "battery", "charging",
+        "signal"}}}. Pour un beltpack hors ligne : {"online": False}.
         """
+        empty = {"connected": False, "beltpacks": {}}
         if not self._connected:
-            return {"connected": False, "online": {}}
+            return empty
         now = time.monotonic()
         if self._live_cache is not None and (now - self._live_ts) < ttl:
             return self._live_cache
         ok_ns, ns = self._request("GET", "/rest/nodeStatus")
         if not ok_ns:
-            return {"connected": False, "online": {}}
+            return empty
         try:
             config = self._beltpack_config()
         except AntennaError:
-            return {"connected": False, "online": {}}
-        connected_ids = {
-            cb.get("id")
-            for node in ns.get("nodeStatus", [])
-            for cb in (node.get("bp") or [])
-        }
-        online = {bp["number"]: (bp["id"] in connected_ids) for bp in config}
-        self._live_cache = {"connected": True, "online": online}
+            return empty
+
+        live_by_id = {}
+        for node in ns.get("nodeStatus", []):
+            for cb in (node.get("bp") or []):
+                bat = cb.get("battery") or {}
+                live_by_id[cb.get("id")] = {
+                    "online": True,
+                    "battery": _battery_percent(bat),
+                    "charging": bool(bat.get("usbPower")),
+                    "signal": _signal_bars(cb.get("signalLevel")),
+                }
+        beltpacks = {bp["number"]: live_by_id.get(bp["id"], {"online": False}) for bp in config}
+        self._live_cache = {"connected": True, "beltpacks": beltpacks}
         self._live_ts = now
         return self._live_cache
 
