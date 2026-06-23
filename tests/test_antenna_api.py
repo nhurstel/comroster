@@ -2,16 +2,15 @@ import pytest
 
 
 def _fake_ok(method, path, body=None, timeout=5):
+    # Calqué sur la vraie antenne : id 1 connecté (via nodeStatus), id 2 non.
     if path == "/rest/nodeStatus":
-        return True, {"nodeStatus": [{"nodeId": 1, "isLocal": True}]}
+        return True, {"nodeStatus": [{"isLocal": True, "bp": [{"id": 1}]}]}
     if path == "/rest/firmware":
         return True, {"firmware": {"version": "3.4.1-15"}}
     if path == "/rest/bp":
         return True, {"bp": [
-            {"registered": True, "id": 1, "connectedNodeId": 1,
-             "bpConfig": {"bpNumber": 5, "bpName": "Régie Son"}},
-            {"registered": True, "id": 2, "connectedNodeId": 0,
-             "bpConfig": {"bpNumber": 7, "bpName": "Lumière"}},
+            {"registered": True, "id": 1, "bpConfig": {"bpNumber": 5, "bpName": "Régie Son"}},
+            {"registered": True, "id": 2, "bpConfig": {"bpNumber": 7, "bpName": "Lumière"}},
         ]}
     return False, {"error": "unexpected"}
 

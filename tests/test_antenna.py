@@ -7,16 +7,19 @@ from comroster.services.antenna import AntennaClient, AntennaError
 
 
 def _fake_ok(method, path, body=None, timeout=5):
+    # Calqué sur la vraie antenne : nodeStatus[].bp[].id = beltpacks connectés (ici id 1),
+    # /rest/bp = config (id ↔ bpNumber/bpName, sans état de connexion).
     if path == "/rest/nodeStatus":
-        return True, {"nodeStatus": [{"nodeId": 1, "isLocal": True, "ip": "192.168.1.11"}]}
+        return True, {"nodeStatus": [
+            {"isLocal": True, "ip": "192.168.1.11", "bp": [{"id": 1}]},   # id 1 connecté
+            {"isLocal": False, "bp": []},
+        ]}
     if path == "/rest/firmware":
         return True, {"firmware": {"version": "3.4.1-15"}}
     if path == "/rest/bp":
         return True, {"bp": [
-            {"registered": True, "id": 1, "connectedNodeId": 1,
-             "bpConfig": {"bpNumber": 5, "bpName": "Régie Son"}},
-            {"registered": True, "id": 2, "connectedNodeId": 0,
-             "bpConfig": {"bpNumber": 7, "bpName": "Lumière"}},
+            {"registered": True, "id": 1, "bpConfig": {"bpNumber": 5, "bpName": "Régie Son"}},
+            {"registered": True, "id": 2, "bpConfig": {"bpNumber": 7, "bpName": "Lumière"}},
             {"registered": False, "id": 3, "bpConfig": {"bpNumber": 9, "bpName": "x"}},
         ]}
     return False, {"error": "unexpected"}
@@ -31,6 +34,20 @@ def test_connect_persists_encrypted(tmp_path, monkeypatch):
     raw = open(os.path.join(str(tmp_path), "antenna.json")).read()
     assert "motdepasse" not in raw                  # mot de passe chiffré
     assert json.loads(raw)["ip"] == "192.168.1.11"
+
+
+def test_live_status_all_offline_when_none_connected(tmp_path, monkeypatch):
+    # Régression : si nodeStatus ne liste aucun bp connecté, tout doit être hors ligne
+    # (et non « tout en ligne » comme l'ancien bug, ni l'inverse).
+    def fake(method, path, body=None, timeout=5):
+        if path == "/rest/nodeStatus":
+            return True, {"nodeStatus": [{"isLocal": True, "bp": []}]}
+        return _fake_ok(method, path, body, timeout)
+    c = AntennaClient(str(tmp_path), "secret-key")
+    monkeypatch.setattr(c, "_request", _fake_ok)
+    c.connect("192.168.1.11", "")
+    monkeypatch.setattr(c, "_request", fake)
+    assert c.live_status() == {"connected": True, "online": {"5": False, "7": False}}
 
 
 def test_status_never_leaks_password(tmp_path, monkeypatch):
@@ -87,8 +104,8 @@ def test_live_status_caches_within_ttl(tmp_path, monkeypatch):
     monkeypatch.setattr(c, "_request", _fake_ok)
     c.connect("192.168.1.11", "")
     n = []
-    orig = c.fetch_beltpacks
-    monkeypatch.setattr(c, "fetch_beltpacks", lambda: (n.append(1), orig())[1])
+    orig = c._beltpack_config
+    monkeypatch.setattr(c, "_beltpack_config", lambda: (n.append(1), orig())[1])
     a = c.live_status(ttl=60)
     b = c.live_status(ttl=60)
     assert a == b and len(n) == 1            # 2e appel servi par le cache
@@ -202,6 +219,6 @@ def test_fetch_beltpacks_parses_registered_only(tmp_path, monkeypatch):
     c.connect("192.168.1.11", "")
     bps = c.fetch_beltpacks()
     assert bps == [
-        {"number": "5", "name": "Régie Son", "online": True},
-        {"number": "7", "name": "Lumière", "online": False},
+        {"number": "5", "name": "Régie Son"},
+        {"number": "7", "name": "Lumière"},
     ]

@@ -118,24 +118,35 @@ class AntennaClient:
     def live_status(self, ttl=3.0):
         """État temps réel {connected, online:{num:bool}} avec cache court.
 
-        Le cache évite de marteler l'antenne quand plusieurs clients (admin + écrans
-        TV) interrogent en parallèle. Jamais d'exception : renvoie déconnecté en cas
-        d'erreur réseau.
+        L'antenne expose deux sources distinctes : /rest/bp (config : id↔numéro/nom,
+        AUCUN état de connexion) et /rest/nodeStatus (les `id` réellement connectés,
+        sous nodeStatus[].bp[].id). On croise les deux par `id` interne.
+        Le cache évite de marteler l'antenne ; jamais d'exception réseau remontée.
         """
         if not self._connected:
             return {"connected": False, "online": {}}
         now = time.monotonic()
         if self._live_cache is not None and (now - self._live_ts) < ttl:
             return self._live_cache
+        ok_ns, ns = self._request("GET", "/rest/nodeStatus")
+        if not ok_ns:
+            return {"connected": False, "online": {}}
         try:
-            items = self.fetch_beltpacks()
+            config = self._beltpack_config()
         except AntennaError:
             return {"connected": False, "online": {}}
-        self._live_cache = {"connected": True, "online": {i["number"]: i["online"] for i in items}}
+        connected_ids = {
+            cb.get("id")
+            for node in ns.get("nodeStatus", [])
+            for cb in (node.get("bp") or [])
+        }
+        online = {bp["number"]: (bp["id"] in connected_ids) for bp in config}
+        self._live_cache = {"connected": True, "online": online}
         self._live_ts = now
         return self._live_cache
 
-    def fetch_beltpacks(self):
+    def _beltpack_config(self):
+        """Beltpacks enregistrés depuis /rest/bp : [{id, number, name}] (config seule)."""
         ok, data = self._request("GET", "/rest/bp")
         if not ok:
             raise AntennaError(data.get("error", "Lecture des beltpacks impossible"))
@@ -147,9 +158,13 @@ class AntennaClient:
             num = cfg.get("bpNumber")
             if num is None:
                 continue
-            out.append({"number": str(num), "name": cfg.get("bpName", "") or "",
-                        "online": bool(bp.get("connectedNodeId"))})
+            out.append({"id": bp.get("id"), "number": str(num),
+                        "name": cfg.get("bpName", "") or ""})
         return out
+
+    def fetch_beltpacks(self):
+        """Pour l'import : numéro + nom (l'état en ligne n'est pas dans /rest/bp)."""
+        return [{"number": bp["number"], "name": bp["name"]} for bp in self._beltpack_config()]
 
     def _persist(self):
         token = self._fernet().encrypt(self._password.encode()).decode() if self._password else ""
