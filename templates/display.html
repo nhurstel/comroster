@@ -74,6 +74,17 @@
     .bp-badge .bp-n { font-size: 1.4rem; font-variant-numeric: tabular-nums; }
     .bp-badge .bp-l { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.8; }
     .person-body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+    /* Indicateurs temps réel (batterie + réception) sur la carte TV */
+    .card-live { margin-left: auto; display: flex; align-items: center; gap: 0.7rem; flex: 0 0 auto; padding-left: 0.6rem; }
+    .bp-batt { font-size: 1rem; font-weight: 700; color: var(--fg-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .bp-batt.low { color: #e0913a; }
+    .bp-sig { display: inline-flex; align-items: flex-end; gap: 2px; height: 1rem; }
+    .bp-sig i { width: 4px; background: var(--fg-subtle); border-radius: 1px; }
+    .bp-sig i:nth-child(1) { height: 25%; }
+    .bp-sig i:nth-child(2) { height: 50%; }
+    .bp-sig i:nth-child(3) { height: 75%; }
+    .bp-sig i:nth-child(4) { height: 100%; }
+    .bp-sig i.on { background: #2ecc71; }
     .person .role { font-size: 1.3rem; font-weight: 700; color: var(--fg); }
     .person .name { font-size: 1rem; color: var(--fg-muted); }
     .empty-hint { padding: 1.5rem; text-align: center; color: var(--fg-subtle); font-style: italic; }

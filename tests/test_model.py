@@ -14,6 +14,20 @@ def test_build_draft_keeps_valid_scale():
     assert s["scale"] == "large"
 
 
+def test_empty_state_indicators_default_on():
+    assert model.empty_state()["indicators"] == {"online": True, "battery": True, "signal": True}
+
+
+def test_build_draft_indicators_partial():
+    s = model.build_draft({"groups": [], "people": [], "indicators": {"battery": False}})
+    assert s["indicators"] == {"online": True, "battery": False, "signal": True}
+
+
+def test_build_draft_indicators_invalid_defaults_on():
+    s = model.build_draft({"groups": [], "people": [], "indicators": "nope"})
+    assert s["indicators"] == {"online": True, "battery": True, "signal": True}
+
+
 def test_build_draft_rejects_invalid_scale():
     s = model.build_draft({"groups": [], "people": [], "scale": "huge"})
     assert s["scale"] == "normal"

@@ -3,7 +3,21 @@ import os
 import socket
 import urllib.error
 import pytest
-from comroster.services.antenna import AntennaClient, AntennaError
+from comroster.services.antenna import AntennaClient, AntennaError, _battery_percent, _signal_bars
+
+
+def test_battery_percent():
+    assert _battery_percent({"currentCharge": 2400, "maxCharge": 4800}) == 50
+    assert _battery_percent({"currentCharge": 4800, "maxCharge": 4800}) == 100
+    assert _battery_percent({}) is None                       # données absentes
+    assert _battery_percent({"currentCharge": 100, "maxCharge": 0}) is None
+
+
+def test_signal_bars():
+    assert _signal_bars(0) == 4                               # 0 = réception forte
+    assert _signal_bars(4) == 2
+    assert _signal_bars(100) == 0
+    assert _signal_bars(None) is None
 
 
 def _fake_ok(method, path, body=None, timeout=5):
@@ -11,7 +25,10 @@ def _fake_ok(method, path, body=None, timeout=5):
     # /rest/bp = config (id ↔ bpNumber/bpName, sans état de connexion).
     if path == "/rest/nodeStatus":
         return True, {"nodeStatus": [
-            {"isLocal": True, "ip": "192.168.1.11", "bp": [{"id": 1}]},   # id 1 connecté
+            {"isLocal": True, "ip": "192.168.1.11", "bp": [   # id 1 connecté
+                {"id": 1, "signalLevel": 0,
+                 "battery": {"currentCharge": 3120, "maxCharge": 4800, "usbPower": 0}},
+            ]},
             {"isLocal": False, "bp": []},
         ]}
     if path == "/rest/firmware":
@@ -47,7 +64,9 @@ def test_live_status_all_offline_when_none_connected(tmp_path, monkeypatch):
     monkeypatch.setattr(c, "_request", _fake_ok)
     c.connect("192.168.1.11", "")
     monkeypatch.setattr(c, "_request", fake)
-    assert c.live_status() == {"connected": True, "online": {"5": False, "7": False}}
+    assert c.live_status() == {"connected": True, "beltpacks": {
+        "5": {"online": False}, "7": {"online": False},
+    }}
 
 
 def test_status_never_leaks_password(tmp_path, monkeypatch):
@@ -89,14 +108,17 @@ def test_wrong_key_ignores_creds(tmp_path, monkeypatch):
 
 def test_live_status_not_connected(tmp_path):
     c = AntennaClient(str(tmp_path), "secret-key")
-    assert c.live_status() == {"connected": False, "online": {}}
+    assert c.live_status() == {"connected": False, "beltpacks": {}}
 
 
 def test_live_status_returns_online_map(tmp_path, monkeypatch):
     c = AntennaClient(str(tmp_path), "secret-key")
     monkeypatch.setattr(c, "_request", _fake_ok)
     c.connect("192.168.1.11", "")
-    assert c.live_status() == {"connected": True, "online": {"5": True, "7": False}}
+    assert c.live_status() == {"connected": True, "beltpacks": {
+        "5": {"online": True, "battery": 65, "charging": False, "signal": 4},
+        "7": {"online": False},
+    }}
 
 
 def test_live_status_caches_within_ttl(tmp_path, monkeypatch):
@@ -117,7 +139,7 @@ def test_live_status_disconnect_clears_cache(tmp_path, monkeypatch):
     c.connect("192.168.1.11", "")
     c.live_status(ttl=60)
     c.disconnect()
-    assert c.live_status() == {"connected": False, "online": {}}
+    assert c.live_status() == {"connected": False, "beltpacks": {}}
 
 
 def _client_with_ip(tmp_path):
