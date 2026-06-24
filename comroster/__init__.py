@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, jsonify, request
 
 from .config import Config
@@ -79,6 +81,18 @@ def create_app(config_overrides=None):
     app.register_blueprint(antenna_bp)
 
     _register_security(app)
+
+    @app.url_defaults
+    def _bust_static_cache(endpoint, values):
+        # Ajoute ?v=<mtime> aux URLs static → toute modif de JS/CSS force le rechargement
+        # navigateur (indispensable en kiosk : pas de hard-refresh possible).
+        if endpoint == "static" and "filename" in values:
+            try:
+                fpath = os.path.join(app.static_folder, values["filename"])
+                values["v"] = int(os.stat(fpath).st_mtime)
+            except OSError:
+                pass
+
     return app
 
 
