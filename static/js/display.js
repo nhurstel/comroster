@@ -18,7 +18,12 @@
   const totalGroupsEl = document.getElementById("total-groups");
   const totalPeopleEl = document.getElementById("total-people");
 
-  const state = { data: window.__INITIAL__ || { groups: [], people: [] } };
+  // Données initiales injectées via un bloc <script type="application/json">
+  // (non exécuté → compatible CSP stricte sans script inline).
+  let INITIAL = null;
+  try { INITIAL = JSON.parse(document.getElementById("initial-data")?.textContent || "null"); } catch { /* bloc absent ou invalide */ }
+
+  const state = { data: INITIAL || { groups: [], people: [] } };
   let liveStatusReset = null;
   const scroll = { frameId: null, pauseId: null, direction: 1, active: false, offset: 0 };
   const REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;

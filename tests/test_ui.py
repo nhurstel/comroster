@@ -44,3 +44,16 @@ def test_display_page_renders(client):
     assert "js/display.js" in html
     assert "css/main.css" in html
     assert "display-grid" in html
+
+
+def test_display_template_error_is_not_swallowed(client, monkeypatch):
+    # Politique appliance : fail-safe sur les DONNÉES, jamais de masquage des BUGS.
+    # Une erreur de template doit remonter (500/exception), pas un faux "OK".
+    import pytest
+    import comroster.display as display_mod
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("template cassé")
+    monkeypatch.setattr(display_mod, "render_template", boom)
+    with pytest.raises(RuntimeError):
+        client.get("/display")

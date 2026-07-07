@@ -38,8 +38,7 @@
       <button type="button" id="network-btn" title="Configuration réseau du boîtier">Réseau</button>
       <span class="tb-sep" aria-hidden="true"></span>
       <button type="button" id="publish-btn" class="primary">Publier vers l'affichage</button>
-      <a class="logout-link" href="{{ url_for('auth.logout') }}"
-         onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Déconnexion</a>
+      <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
       <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       </form>
@@ -277,7 +276,8 @@
     <button type="button" data-action="delete">Supprimer le beltpack</button>
   </div>
 
-  <script>window.__INITIAL__ = {{ initial_data|tojson }};</script>
+  {# Bloc de données non exécuté : compatible CSP stricte (pas de script inline). #}
+  <script type="application/json" id="initial-data">{{ initial_data|tojson }}</script>
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>

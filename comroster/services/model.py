@@ -284,8 +284,8 @@ def merge_beltpacks(state, items):
     return {"created": created, "updated": updated}
 
 
-def diff_beltpacks(state, items):
-    """Récap d'un import sans muter l'état."""
+def diff_beltpacks(state, items, ranges=None):
+    """Récap d'un import sans muter l'état (même périmètre que mirror_beltpacks)."""
     by_num = {normalize_beltpack(p["beltpack"]): p for p in state["people"]}
     seen = set()
     new, changed, unchanged = [], [], 0
@@ -306,26 +306,32 @@ def diff_beltpacks(state, items):
         {"number": normalize_beltpack(p["beltpack"]), "role": p["role"]}
         for p in state["people"]
         if normalize_beltpack(p["beltpack"]) not in seen
+        and _in_ranges(normalize_beltpack(p["beltpack"]), ranges)
     ]
     return {"new": new, "changed": changed, "unchanged": unchanged, "missing": missing}
 
 
-def filter_by_ranges(items, ranges):
+def _in_ranges(number, ranges):
+    """True si le numéro entre dans le périmètre géré (plages vides = tout géré)."""
     if not ranges:
-        return list(items)
-    out = []
-    for item in items:
-        try:
-            n = int(item.get("number"))
-        except (TypeError, ValueError):
-            continue
-        if any(lo <= n <= hi for lo, hi in ranges):
-            out.append(item)
-    return out
+        return True
+    try:
+        n = int(number)
+    except (TypeError, ValueError):
+        return False
+    return any(lo <= n <= hi for lo, hi in ranges)
 
 
-def mirror_beltpacks(state, items):
-    """Miroir : l'antenne fait foi. Ajoute/maj, retire les absents, préserve nom+groupe."""
+def filter_by_ranges(items, ranges):
+    return [item for item in items if _in_ranges(item.get("number"), ranges)]
+
+
+def mirror_beltpacks(state, items, ranges=None):
+    """Miroir : l'antenne fait foi. Ajoute/maj, retire les absents, préserve nom+groupe.
+
+    Les plages définissent le PÉRIMÈTRE du miroir : un beltpack hors plage
+    (ajouté à la main) n'est jamais retiré, l'antenne ne fait foi que dans la plage.
+    """
     created = updated = 0
     roles = state.setdefault("beltpack_roles", {})
     wanted = {normalize_beltpack(it.get("number")) for it in items if normalize_beltpack(it.get("number"))}
@@ -345,7 +351,11 @@ def mirror_beltpacks(state, items):
         if name:
             roles[num] = name
     before = len(state["people"])
-    state["people"] = [p for p in state["people"] if normalize_beltpack(p["beltpack"]) in wanted]
+    state["people"] = [
+        p for p in state["people"]
+        if normalize_beltpack(p["beltpack"]) in wanted
+        or not _in_ranges(normalize_beltpack(p["beltpack"]), ranges)
+    ]
     removed = before - len(state["people"])
     touch(state)
     return {"created": created, "updated": updated, "removed": removed}

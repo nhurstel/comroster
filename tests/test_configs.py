@@ -53,3 +53,10 @@ def test_load_missing_raises(tmp_path):
     c = Configs(Storage(str(tmp_path)))
     with pytest.raises(KeyError):
         c.load("Nope")
+
+
+def test_slug_transliterates_accents():
+    # "Éclairage" doit donner "eclairage", pas "clairage" (accents translittérés)
+    from comroster.services.configs import _slug
+    assert _slug("Éclairage") == "eclairage"
+    assert _slug("Régie São") == "regie-sao"

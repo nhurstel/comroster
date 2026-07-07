@@ -7,23 +7,40 @@
 - CSRF : Flask-WTF · Rate-limit login : Flask-Limiter
 - Persistance : JSON plats + écriture atomique sous lock · IDs UUID4
 - SSE broker mémoire → **1 seul worker gunicorn** en prod
+- **Mot de passe admin : 4 caractères minimum** (setup ET recover) — décision 2026-07-06
+- **Plages beltpack = périmètre du miroir** : un beltpack hors plage n'est jamais retiré par l'import antenne
 
-## État des phases — TERMINÉ (59 tests verts)
-- [x] P0 — Socle (factory, config, /healthz)
-- [x] P1 — Données & validation (model, storage atomique) — *TDD strict*
-- [x] P1b — Rôle mémorisé par beltpack (beltpack_roles)
-- [x] P2 — Auth & sécurité (setup/login/recover, CSRF, rate-limit, cookies durcis)
-- [x] P3 — API CRUD (groupes, personnes, import/export)
-- [x] P4 — Publication & SSE (pubsub, history, /events) — *TDD strict*
-- [x] P5 — UI Admin (DnD SortableJS, publier, historique)
-- [x] P6 — UI Display (EventSource, glassmorphism, auto-scroll, reconnexion)
-- [x] P7 — Historique (UI en P5 + API testée en P4)
-- [x] P8 — Durcissement & déploiement (systemd, nginx, gunicorn 1 worker)
+## État des phases — TERMINÉ
+- [x] P0 → P8 (voir historique git)
+
+## Durcissement post-revue (2026-07-06) — TERMINÉ (191 tests unitaires + 8 e2e verts)
+Correctifs approuvés par Nathan :
+- [x] 1. Mdp min 4 caractères sur setup + recover (recover acceptait un mdp vide)
+- [x] 2. ProxyFix opt-in (`COMROSTER_BEHIND_PROXY`) — rate-limit voyait 127.0.0.1 derrière nginx
+- [x] 3. MAX_CONTENT_LENGTH 1 Mo → 413 (DoS mémoire en Pi autonome)
+- [x] 4. Cap connexions SSE (`COMROSTER_SSE_MAX`, défaut 12) + gunicorn threads 8→16
+- [x] 5. Lock global read-modify-write (`exclusive_state` / `state_lock`) sur toutes les mutations
+- [x] 6. Suppression du `except Exception: return "DISPLAY OK"` de display_page
+- [x] 7. Setup premier boot : INCHANGÉ (décision Nathan)
+
+Carte blanche — réalisé :
+- [x] Validation IP antenne (littéral ipaddress uniquement, anti-SSRF)
+- [x] Session admin : expiration 12 h (`PERMANENT_SESSION_LIFETIME`)
+- [x] 400 (pas 500) sur payloads JSON invalides/incomplets (`json_body()`)
+- [x] Miroir antenne borné aux plages (préview + apply cohérents)
+- [x] Slug configs : translittération des accents (Éclairage → eclairage)
+- [x] _valid_ranges : rejet des booléens
+- [x] CSP stricte `default-src 'self'` (initial_data → `<script type="application/json">`,
+      onclick logout → addEventListener) + HSTS nginx
+- [x] apply-network.sh : revalidation des IP en root (défense en profondeur)
+- [x] setup-pi.sh : avertissement explicite sur COMROSTER_INSECURE_COOKIE
 
 ## Vérifié en réel
-- Flux SSE bout-en-bout (snapshot + published poussé après publication).
-- Démarrage prod gunicorn (1 worker, en-têtes SSE corrects).
-- beltpack→rôle remonte jusqu'au display (`beltpack_roles`).
+- Smoke test serveur : CSP présente, bloc initial-data OK, aucun script inline, body 2 Mo → 413.
+- 8 tests e2e Playwright verts (vrai navigateur) après le passage CSP/initial-data.
 
-## Reste manuel (navigateur)
-Drag-and-drop SortableJS, auto-scroll, bascule jour/nuit : à valider à l'œil dans un vrai navigateur.
+## Non traité (choix assumés)
+- `venv/` (Python 3.14, 44 Mo) coexiste avec `.venv/` (3.12 utilisé partout) → à supprimer
+  à la main si plus utile, je n'ai pas voulu détruire un environnement potentiellement utilisé.
+- `beltpack_roles` jamais purgé (croissance négligeable).
+- Compteurs rate-limit en mémoire (reset au restart) : acceptable appliance mono-process.

@@ -185,7 +185,8 @@
     </div>
   </div>
 
-  <script>window.__INITIAL__ = {{ initial_data|tojson }};</script>
+  {# Bloc de données non exécuté : compatible CSP stricte (pas de script inline). #}
+  <script type="application/json" id="initial-data">{{ initial_data|tojson }}</script>
   <script src="{{ url_for('static', filename='js/display.js') }}"></script>
 </body>
 </html>

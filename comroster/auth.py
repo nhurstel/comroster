@@ -7,6 +7,10 @@ from .security import limiter, log_in, log_out
 
 bp = Blueprint("auth", __name__)
 
+# Politique appliance : 4 caractères minimum, appliquée au setup ET à la
+# récupération (sinon le recover permettrait un mot de passe vide).
+MIN_PASSWORD_LENGTH = 4
+
 
 def _secret():
     return current_app.extensions["secret"]
@@ -21,8 +25,8 @@ def setup():
         return redirect(url_for("auth.login"))
     if request.method == "POST":
         password = request.form.get("password", "")
-        if len(password) < 8:
-            flash("Mot de passe : 8 caractères minimum.")
+        if len(password) < MIN_PASSWORD_LENGTH:
+            flash(f"Mot de passe : {MIN_PASSWORD_LENGTH} caractères minimum.")
             return render_template("setup.html"), 400
         code = secret.setup(password)
         log_in()
@@ -56,10 +60,14 @@ def logout():
 def recover():
     secret = _secret()
     if request.method == "POST":
+        password = request.form.get("password", "")
+        if len(password) < MIN_PASSWORD_LENGTH:
+            flash(f"Mot de passe : {MIN_PASSWORD_LENGTH} caractères minimum.")
+            return render_template("login.html", recover=True), 400
         try:
             new_code = secret.recover(
                 request.form.get("recovery_code", ""),
-                request.form.get("password", ""),
+                password,
             )
         except ValueError:
             flash("Code de récupération invalide.")

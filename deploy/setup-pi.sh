@@ -44,7 +44,11 @@ if [ ! -f "$ENV_FILE" ]; then
 FLASK_SECRET_KEY=$SECRET
 DATA_DIR=$DATA_DIR
 COMROSTER_BIND=0.0.0.0:8080
-# LAN fermé sans HTTPS : nécessaire pour que l'admin se connecte sur http://<ip-du-pi>:8080
+# ⚠️ LAN fermé sans HTTPS : nécessaire pour que l'admin se connecte sur
+# http://<ip-du-pi>:8080, MAIS le mot de passe et le cookie de session circulent
+# en clair sur le réseau. À réserver à une régie isolée (pas de Wi-Fi ouvert,
+# pas d'accès invité). Pour un réseau partagé : passer par Nginx + TLS
+# (deploy/nginx.conf) et supprimer cette ligne.
 COMROSTER_INSECURE_COOKIE=true
 EOF
   chmod 600 "$ENV_FILE"
