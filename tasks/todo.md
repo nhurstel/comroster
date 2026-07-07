@@ -39,6 +39,17 @@ Carte blanche — réalisé :
 - Smoke test serveur : CSP présente, bloc initial-data OK, aucun script inline, body 2 Mo → 413.
 - 8 tests e2e Playwright verts (vrai navigateur) après le passage CSP/initial-data.
 
+## Réseau Filaire/Wi-Fi (2026-07-06) — TERMINÉ côté code, À VALIDER SUR PI
+Spec validée : [docs/superpowers/specs/2026-07-06-network-wifi-ethernet-design.md](../docs/superpowers/specs/2026-07-06-network-wifi-ethernet-design.md)
+- [x] netconfig : schéma `link` ethernet/wifi, validation SSID/PSK, rétro-compat, psk conservé si omis
+- [x] API : psk write-only (`psk_set` en lecture, jamais dans les réponses)
+- [x] UI admin : sélecteur Liaison, champs SSID/mdp, option link-local masquée en Wi-Fi, DHCP ajouté
+- [x] apply-network.sh : branche wifi (connexion `comroster-wifi`, radio off en filaire,
+      RJ45 port de service link-local en Wi-Fi), revalidation root SSID/PSK/IP
+- [x] Doc raspberry-pi.md : section Filaire/Wi-Fi + procédure port de service
+- [ ] **⚠️ Validation sur vrai Pi** : la branche nmcli wifi n'a jamais tourné sur matériel
+      (association AP, bascule radio on/off, port de service). À tester avant livraison.
+
 ## Non traité (choix assumés)
 - `venv/` (Python 3.14, 44 Mo) coexiste avec `.venv/` (3.12 utilisé partout) → à supprimer
   à la main si plus utile, je n'ai pas voulu détruire un environnement potentiellement utilisé.

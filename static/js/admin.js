@@ -787,16 +787,30 @@
   /* ---------- Réseau du boîtier ---------- */
   const networkDialog = document.getElementById("network-dialog");
   function toggleNetFields() {
-    document.getElementById("net-static-fields").hidden =
-      document.getElementById("net-mode").value !== "static";
+    const link = document.getElementById("net-link").value;
+    const modeSel = document.getElementById("net-mode");
+    document.getElementById("net-wifi-fields").hidden = link !== "wifi";
+    // link-local n'a pas de sens en Wi-Fi : option masquée, bascule vers DHCP
+    const ll = modeSel.querySelector('option[value="link-local"]');
+    ll.disabled = link === "wifi";
+    ll.hidden = link === "wifi";
+    if (link === "wifi" && modeSel.value === "link-local") modeSel.value = "dhcp";
+    document.getElementById("net-static-fields").hidden = modeSel.value !== "static";
   }
   document.getElementById("net-mode").addEventListener("change", toggleNetFields);
+  document.getElementById("net-link").addEventListener("change", toggleNetFields);
 
   async function openNetwork() {
     document.getElementById("net-error").hidden = true;
     document.getElementById("net-result").hidden = true;
     let cfg;
     try { cfg = await apiSend("GET", "/api/network"); } catch { cfg = { mode: "link-local" }; }
+    document.getElementById("net-link").value = cfg.link || "ethernet";
+    document.getElementById("net-ssid").value = (cfg.wifi && cfg.wifi.ssid) || "";
+    const pskInput = document.getElementById("net-psk");
+    pskInput.value = "";
+    // Le psk ne redescend jamais de l'API : champ vide = « conserver l'existant »
+    pskInput.placeholder = cfg.wifi && cfg.wifi.psk_set ? "•••••••• (inchangé si vide)" : "";
     document.getElementById("net-mode").value = cfg.mode || "link-local";
     document.getElementById("net-address").value = cfg.address || "";
     document.getElementById("net-prefix").value = cfg.prefix || 24;
@@ -809,11 +823,17 @@
 
   document.getElementById("network-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    const link = document.getElementById("net-link").value;
     const mode = document.getElementById("net-mode").value;
     const err = document.getElementById("net-error");
     const res = document.getElementById("net-result");
     err.hidden = true; res.hidden = true;
-    const cfg = { mode };
+    const cfg = { link, mode };
+    if (link === "wifi") {
+      cfg.wifi = { ssid: document.getElementById("net-ssid").value.trim() };
+      const psk = document.getElementById("net-psk").value;
+      if (psk) cfg.wifi.psk = psk;   // vide → le serveur conserve le psk existant
+    }
     if (mode === "static") {
       cfg.address = document.getElementById("net-address").value.trim();
       cfg.prefix = parseInt(document.getElementById("net-prefix").value || "24", 10);
@@ -824,10 +844,11 @@
     }
     try {
       await apiSend("PUT", "/api/network", cfg);
+      const where = link === "wifi" ? `en Wi-Fi sur <b>${esc(cfg.wifi.ssid)}</b>` : "en filaire (RJ45)";
       res.innerHTML = mode === "static"
-        ? `Enregistré. <b>Redémarrez le boîtier</b> pour appliquer — il repartira sur `
+        ? `Enregistré. <b>Redémarrez le boîtier</b> pour appliquer — il repartira ${where} sur `
           + `<b>${esc(cfg.address)}</b> (adresse affichée à l'écran).`
-        : "Enregistré. <b>Redémarrez le boîtier</b> pour appliquer le mode automatique.";
+        : `Enregistré. <b>Redémarrez le boîtier</b> pour appliquer — il repartira ${where} en adresse automatique.`;
       res.hidden = false;
       toast("Configuration réseau enregistrée");
     } catch (ex) {

@@ -210,11 +210,25 @@
   <dialog id="network-dialog" class="admin-dialog">
     <form id="network-form" method="dialog">
       <h2>Réseau du boîtier</h2>
-      <p class="dialog-hint">Adresse IP du boîtier sur le réseau. Infrastructure à base de
+      <p class="dialog-hint">Connexion du boîtier au réseau intercom. Infrastructure à base de
         switchs (sans routeur) : laissez la passerelle vide.</p>
+      <label class="field"><span>Liaison</span>
+        <select id="net-link">
+          <option value="ethernet">Filaire (RJ45)</option>
+          <option value="wifi">Wi-Fi (point d'accès du réseau intercom)</option>
+        </select></label>
+      <div id="net-wifi-fields" hidden>
+        <label class="field"><span>Nom du réseau (SSID)</span>
+          <input type="text" id="net-ssid" maxlength="32" autocomplete="off"></label>
+        <label class="field"><span>Mot de passe Wi-Fi (WPA2)</span>
+          <input type="password" id="net-psk" minlength="8" maxlength="63" autocomplete="new-password"></label>
+        <p class="dialog-hint">En Wi-Fi, la prise RJ45 reste un port de service : un câble
+          direct vers un ordinateur permet toujours d'ouvrir cette page (comroster.local).</p>
+      </div>
       <label class="field"><span>Mode</span>
         <select id="net-mode">
           <option value="link-local">Automatique (link-local, sans config)</option>
+          <option value="dhcp">Automatique (DHCP)</option>
           <option value="static">IP fixe</option>
         </select></label>
       <div id="net-static-fields" hidden>
