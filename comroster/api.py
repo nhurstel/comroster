@@ -49,7 +49,8 @@ def get_state():
 @bp.get("/api/network")
 @login_required
 def get_network():
-    return jsonify(_netconfig().load())
+    # Vue publique : le psk Wi-Fi est write-only (psk_set en lecture).
+    return jsonify(_netconfig().load_public())
 
 
 @bp.put("/api/network")
@@ -57,11 +58,12 @@ def get_network():
 def put_network():
     data = json_body()
     try:
-        cfg = _netconfig().save(data)
+        _netconfig().save(data)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     # L'application réelle (nmcli) se fait au redémarrage par un service système.
-    return jsonify({"ok": True, "config": cfg, "reboot_required": True})
+    # Vue publique dans la réponse : le psk ne doit jamais ressortir.
+    return jsonify({"ok": True, "config": _netconfig().load_public(), "reboot_required": True})
 
 
 @bp.post("/api/groups")

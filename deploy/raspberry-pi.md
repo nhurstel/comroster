@@ -75,20 +75,36 @@ sudo reboot                      # ou: systemctl --user restart comroster-kiosk
   Dans ce cas, garder `DATA_DIR` sur une partition inscriptible si l'admin doit persister
   entre redémarrages, ou accepter un état volatil.
 
-## Configuration réseau / IP fixe
+## Configuration réseau — Filaire ou Wi-Fi
 
+Le boîtier rejoint le réseau intercom **au choix, de façon pérenne** (admin → bouton
+**Réseau** → « Liaison ») :
+
+### Filaire (RJ45) — défaut
 Pensé pour une **infra à base de switchs (sans routeur, donc sans DHCP)**. Par défaut, le
 boîtier utilise une adresse **link-local** auto-assignée et reste joignable via
 `comroster.local` (mDNS) — l'écran de bienvenue affiche aussi l'adresse exacte.
+Modes disponibles : link-local / DHCP / IP fixe (passerelle et DNS facultatifs).
+En mode filaire, la **radio Wi-Fi est coupée** au boot (pas d'émission parasite en régie).
 
-Pour fixer une IP, depuis l'admin (téléphone) → bouton **Réseau** : choisir « IP fixe »,
-saisir l'adresse et le préfixe (passerelle/DNS facultatifs sur une infra de switchs), puis
-**Enregistrer** et **redémarrer le boîtier**. L'écran affiche la nouvelle adresse au boot.
+### Wi-Fi (point d'accès du réseau intercom)
+Le boîtier s'associe à un AP relié au réseau intercom : **SSID + mot de passe WPA2**,
+adresse en **DHCP ou IP fixe** (IP fixe recommandée si le réseau n'a pas de DHCP — l'AP
+n'est alors qu'un pont). En mode Wi-Fi, **la prise RJ45 reste un port de service
+permanent** (link-local) : un câble direct entre un ordinateur et le boîtier permet
+toujours d'ouvrir l'admin (`comroster.local`), pour la première configuration comme
+pour le dépannage si le Wi-Fi est injoignable (mauvais mot de passe, AP éteint…).
+
+**Première configuration d'un boîtier destiné au Wi-Fi :** brancher un câble RJ45 direct
+PC↔boîtier → `http://comroster.local:8080/admin` → Réseau → Liaison « Wi-Fi », SSID,
+mot de passe, mode IP → Enregistrer → redémarrer. Le câble peut ensuite être retiré.
 
 **Comment ça marche (sûr par conception) :** l'admin n'écrit que le souhait dans
-`instance/network.json`. C'est le service système **`comroster-network.service`** qui
-l'applique via `nmcli` **au démarrage** ([apply-network.sh](apply-network.sh)) — jamais en
-cours de requête, donc **pas de risque de se verrouiller** en pleine reconfiguration.
+`instance/network.json` (le mot de passe Wi-Fi n'en ressort jamais par l'API). C'est le
+service système **`comroster-network.service`** qui l'applique via `nmcli` **au
+démarrage** ([apply-network.sh](apply-network.sh)) — jamais en cours de requête, donc
+**pas de risque de se verrouiller** en pleine reconfiguration. Une config invalide est
+rejetée avant tout appel `nmcli` : l'état réseau précédent est conservé.
 
 > ⚠️ **À valider sur un vrai Pi.** L'application `nmcli` n'est pas testable hors matériel.
 > Le formulaire, la validation et la persistance sont couverts par les tests ; l'étape
