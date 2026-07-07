@@ -135,3 +135,49 @@ def test_import_malformed_person_no_500(auth_client):
     # personne sans clé beltpack : erreur métier propre (409), JAMAIS un 500
     r = auth_client.post("/api/import", json={"version": 1, "groups": [], "people": [{"role": "x"}]})
     assert r.status_code in (200, 400, 409)
+
+
+# --- Robustesse des payloads (durcissement 2026-07-06) ---
+
+def test_non_dict_json_returns_400(auth_client):
+    # Un JSON valide mais non-objet (liste) ne doit jamais produire un 500
+    r = auth_client.post("/api/groups", json=[1, 2, 3])
+    assert r.status_code == 400
+    r2 = auth_client.post("/api/people", json="texte")
+    assert r2.status_code == 400
+    r3 = auth_client.put("/api/settings", json=[["a"]])
+    assert r3.status_code == 400
+
+
+def test_missing_required_keys_return_4xx(auth_client):
+    # Clé obligatoire absente → erreur client (4xx), pas un KeyError → 500
+    r = auth_client.post("/api/groups", json={"color": "#fff"})
+    assert r.status_code == 400
+    r2 = auth_client.post("/api/people", json={"role": "HF"})
+    assert r2.status_code in (400, 409)   # beltpack manquant = beltpack vide
+
+
+def test_concurrent_mutations_are_not_lost(app, auth_client):
+    # Deux mutations simultanées ne doivent pas s'écraser (read-modify-write sous lock)
+    import threading
+    import time as _time
+
+    storage = app.extensions["storage"]
+    original = storage.load_draft
+    def slow_load(*a, **k):
+        state = original(*a, **k)
+        _time.sleep(0.05)   # élargit la fenêtre load→save pour rendre la course certaine
+        return state
+    storage.load_draft = slow_load
+    try:
+        def post(bp):
+            with app.test_client() as c:
+                c.post("/admin/login", data={"password": "motdepasse8"})
+                c.post("/api/people", json={"role": "X", "beltpack": bp})
+        t1 = threading.Thread(target=post, args=("101",))
+        t2 = threading.Thread(target=post, args=("102",))
+        t1.start(); t2.start(); t1.join(); t2.join()
+    finally:
+        storage.load_draft = original
+    people = auth_client.get("/api/state").get_json()["people"]
+    assert {p["beltpack"] for p in people} == {"101", "102"}

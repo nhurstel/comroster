@@ -4,8 +4,13 @@
   const DEFAULT_COLOR = "#3AAFA9";
   const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
+  // Données initiales injectées via un bloc <script type="application/json">
+  // (non exécuté → compatible CSP stricte sans script inline).
+  let INITIAL = null;
+  try { INITIAL = JSON.parse(document.getElementById("initial-data")?.textContent || "null"); } catch { /* bloc absent ou invalide */ }
+
   const state = {
-    data: window.__INITIAL__ || { title: "", subtitle: "", theme: "night", groups: [], people: [], beltpack_roles: {} },
+    data: INITIAL || { title: "", subtitle: "", theme: "night", groups: [], people: [], beltpack_roles: {} },
     drag: null,
     context: null,
     busy: false,
@@ -570,6 +575,11 @@
   });
 
   /* ---------- Branchements ---------- */
+  // Déconnexion en POST (CSRF) via le formulaire caché — pas de onclick inline (CSP).
+  document.getElementById("logout-link")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("logout-form").submit();
+  });
   document.getElementById("add-block-btn").addEventListener("click", () => {
     el.blockForm.reset(); el.blockDialog.showModal();
     requestAnimationFrame(() => el.blockName.focus());

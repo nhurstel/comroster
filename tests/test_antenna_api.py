@@ -185,3 +185,12 @@ def test_configs_save_load_disconnects(auth_client, app, monkeypatch):
     r = auth_client.post("/api/configs/Base/load")
     assert r.status_code == 200
     assert app.extensions["antenna"].connected is False
+
+
+def test_connect_rejects_non_ip_host(client):
+    # Anti-SSRF : seul un littéral IP est accepté, pas un nom d'hôte/une URL
+    client.post("/admin/setup", data={"password": "motdepasse8"})
+    r = client.post("/api/antenna/connect", json={"ip": "evil.com", "password": "x"})
+    assert r.status_code == 400
+    r2 = client.post("/api/antenna/connect", json={"ip": "10.0.0.5:8080", "password": "x"})
+    assert r2.status_code == 400

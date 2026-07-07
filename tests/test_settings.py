@@ -30,3 +30,10 @@ def test_corrupt_settings_does_not_crash(tmp_path):
         fh.write("{ pas du json")
     assert s.all() == {}                 # lecture défensive : pas de 500
     assert s.get("antenna_ranges", []) == []
+
+
+def test_ranges_reject_booleans(app, client):
+    # True/False sont des int en Python : ils ne sont pas des bornes valides
+    client.post("/admin/setup", data={"password": "motdepasse8"})
+    r = client.put("/api/settings", json={"antenna_ranges": [[True, 5]]})
+    assert r.status_code == 400

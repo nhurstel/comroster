@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 from flask import Flask, jsonify, request
 
@@ -13,6 +14,10 @@ def create_app(config_overrides=None):
     )
     config = Config(config_overrides)
     app.config.from_mapping(config.as_dict())
+
+    if app.config.get("BEHIND_PROXY"):
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     if not app.config.get("TESTING") and not app.config.get("DEBUG"):
         if not app.config.get("SECRET_KEY"):
@@ -31,6 +36,8 @@ def create_app(config_overrides=None):
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=not (app.config.get("DEBUG") or app.config.get("TESTING")
                                    or app.config.get("INSECURE_COOKIE")),
+        # Session admin bornée : un cookie volé ne reste pas valable indéfiniment.
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
     )
 
     @app.get("/healthz")
@@ -102,7 +109,20 @@ def _register_security(app):
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
         resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
         resp.headers.setdefault("Referrer-Policy", "no-referrer")
+        # Toutes les ressources sont locales (JS/CSS/fonts vendorisés) et il n'y a
+        # ni script ni style inline : une CSP stricte est possible sans nonce.
+        resp.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; object-src 'none'; base-uri 'self'; "
+            "frame-ancestors 'self'; form-action 'self'",
+        )
         return resp
+
+    @app.errorhandler(400)
+    def _400(err):
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "bad_request"}), 400
+        return err
 
     @app.errorhandler(404)
     def _404(err):

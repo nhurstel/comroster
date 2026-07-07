@@ -2,7 +2,7 @@ import re
 
 from flask import Blueprint, request, jsonify, current_app, render_template
 
-from .security import login_required
+from .security import login_required, exclusive_state, json_body
 from .services import model
 
 bp = Blueprint("api", __name__)
@@ -55,7 +55,7 @@ def get_network():
 @bp.put("/api/network")
 @login_required
 def put_network():
-    data = request.get_json(force=True)
+    data = json_body()
     try:
         cfg = _netconfig().save(data)
     except ValueError as exc:
@@ -66,11 +66,15 @@ def put_network():
 
 @bp.post("/api/groups")
 @login_required
+@exclusive_state
 def create_group():
-    data = request.get_json(force=True)
+    data = json_body()
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "Nom de groupe requis", "code": "invalid"}), 400
     state = _storage().load_draft()
     try:
-        g = model.add_group(state, data["name"], data.get("color", "#888888"), data.get("order"))
+        g = model.add_group(state, name, data.get("color", "#888888"), data.get("order"))
     except model.ValidationError as exc:
         return _error(exc)
     _storage().save_draft(state)
@@ -79,8 +83,9 @@ def create_group():
 
 @bp.patch("/api/groups/<gid>")
 @login_required
+@exclusive_state
 def patch_group(gid):
-    data = request.get_json(force=True)
+    data = json_body()
     fields = {k: data[k] for k in ("name", "color", "order") if k in data}
     state = _storage().load_draft()
     try:
@@ -93,6 +98,7 @@ def patch_group(gid):
 
 @bp.delete("/api/groups/<gid>")
 @login_required
+@exclusive_state
 def delete_group(gid):
     state = _storage().load_draft()
     try:
@@ -105,11 +111,12 @@ def delete_group(gid):
 
 @bp.post("/api/people")
 @login_required
+@exclusive_state
 def create_person():
-    data = request.get_json(force=True)
+    data = json_body()
     state = _storage().load_draft()
     try:
-        p = model.add_person(state, data.get("role", ""), data["beltpack"], data.get("group_id"))
+        p = model.add_person(state, data.get("role", ""), data.get("beltpack"), data.get("group_id"))
     except model.ValidationError as exc:
         return _error(exc)
     _storage().save_draft(state)
@@ -118,8 +125,9 @@ def create_person():
 
 @bp.patch("/api/people/<pid>")
 @login_required
+@exclusive_state
 def patch_person(pid):
-    data = request.get_json(force=True)
+    data = json_body()
     fields = {k: data[k] for k in ("role", "beltpack", "group_id") if k in data}
     state = _storage().load_draft()
     try:
@@ -132,6 +140,7 @@ def patch_person(pid):
 
 @bp.delete("/api/people/<pid>")
 @login_required
+@exclusive_state
 def delete_person(pid):
     state = _storage().load_draft()
     try:
@@ -144,8 +153,9 @@ def delete_person(pid):
 
 @bp.post("/api/people/delete-batch")
 @login_required
+@exclusive_state
 def delete_people_batch():
-    data = request.get_json(force=True)
+    data = json_body()
     ids = data.get("ids") or []
     state = _storage().load_draft()
     deleted = model.delete_people(state, ids)
@@ -155,9 +165,10 @@ def delete_people_batch():
 
 @bp.put("/api/draft")
 @login_required
+@exclusive_state
 def replace_draft():
     """Remplace le brouillon complet (édition en bloc depuis l'admin)."""
-    payload = request.get_json(force=True)
+    payload = json_body()
     try:
         state = model.build_draft(payload)
     except model.ValidationError as exc:
@@ -176,10 +187,11 @@ def export_state():
 
 @bp.post("/api/import")
 @login_required
+@exclusive_state
 def import_state():
     # Même chemin que PUT /api/draft : build_draft normalise (ids, champs, scale)
     # et valide — un JSON malformé donne 400/409, jamais un 500.
-    payload = request.get_json(force=True)
+    payload = json_body()
     try:
         state = model.build_draft(payload)
     except model.ValidationError as exc:
@@ -190,6 +202,7 @@ def import_state():
 
 @bp.post("/api/publish")
 @login_required
+@exclusive_state
 def publish():
     state = _storage().load_draft()
     try:
@@ -211,6 +224,7 @@ def history_list():
 
 @bp.post("/api/history/<ts>/restore")
 @login_required
+@exclusive_state
 def history_restore(ts):
     if not re.fullmatch(r"\d{8}T\d{6}\d*Z", ts):     # format des snapshots uniquement
         return jsonify({"error": "not_found", "code": "not_found"}), 404

@@ -10,6 +10,9 @@ WorkingDirectory=/opt/comroster
 # Clé de session OBLIGATOIRE : générer avec `python -c "import secrets;print(secrets.token_hex(32))"`
 Environment=FLASK_SECRET_KEY=__REMPLACER_PAR_UNE_CLE_LONGUE_ET_ALEATOIRE__
 Environment=DATA_DIR=/opt/comroster/instance
+# Ce déploiement est derrière Nginx (deploy/nginx.conf) : fait confiance à
+# X-Forwarded-For pour que le rate-limit du login voie l'IP réelle des clients.
+Environment=COMROSTER_BEHIND_PROXY=true
 # Optionnel : délai (s) des requêtes vers l'antenne Bolero (défaut 5).
 # Environment=COMROSTER_ANTENNA_TIMEOUT=5
 ExecStart=/opt/comroster/.venv/bin/gunicorn -c gunicorn.conf.py app:app

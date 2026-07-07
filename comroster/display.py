@@ -90,16 +90,19 @@ def qr_svg():
 @bp.get("/display")
 def display_page():
     published = current_app.extensions["storage"].load_published() or model.empty_state()
-    try:
-        return render_template("display.html", initial_data=published)
-    except Exception:
-        return "DISPLAY OK"
+    return render_template("display.html", initial_data=published)
 
 
 @bp.get("/events")
 def events():
     broker = current_app.extensions["broker"]
     storage = current_app.extensions["storage"]
+
+    # Chaque flux occupe un thread gunicorn : au-delà du cap on répond 503 plutôt
+    # que de saturer le pool (le display retente automatiquement 4 s plus tard).
+    if broker.subscriber_count >= current_app.config["SSE_MAX_CLIENTS"]:
+        return Response("Trop d'écrans connectés", status=503,
+                        headers={"Retry-After": "5"})
 
     def stream():
         q = broker.subscribe()

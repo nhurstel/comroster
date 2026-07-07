@@ -1,11 +1,14 @@
 import json
 import os
 import re
+import unicodedata
 from datetime import datetime, timezone
 
 
 def _slug(name):
-    s = re.sub(r"[^a-z0-9]+", "-", name.strip().lower()).strip("-")
+    # Translittère les accents ("Éclairage" → "eclairage") au lieu de les supprimer
+    ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
+    s = re.sub(r"[^a-z0-9]+", "-", ascii_name.strip().lower()).strip("-")
     return s or "config"
 
 

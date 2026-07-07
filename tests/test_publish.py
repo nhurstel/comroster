@@ -56,3 +56,22 @@ def test_restore_history(auth_client, app):
     ts = app.extensions["history"].list()[0]["timestamp"]
     r = auth_client.post(f"/api/history/{ts}/restore")
     assert r.status_code == 200
+
+
+def test_events_rejects_when_at_capacity(app, client):
+    # Protection du pool de threads : au-delà du cap, /events répond 503 (le client
+    # display retentera 4 s plus tard) au lieu de bloquer tout le serveur.
+    broker = app.extensions["broker"]
+    cap = app.config["SSE_MAX_CLIENTS"]
+    queues = [broker.subscribe() for _ in range(cap)]
+    try:
+        resp = client.get("/events")
+        assert resp.status_code == 503
+        assert resp.headers.get("Retry-After")
+    finally:
+        for q in queues:
+            broker.unsubscribe(q)
+    # Une fois une place libérée, le flux repasse
+    resp2 = client.get("/events")
+    assert resp2.status_code == 200
+    resp2.close()
