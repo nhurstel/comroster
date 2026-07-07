@@ -57,3 +57,11 @@ def test_display_template_error_is_not_swallowed(client, monkeypatch):
     monkeypatch.setattr(display_mod, "render_template", boom)
     with pytest.raises(RuntimeError):
         client.get("/display")
+
+
+def test_display_has_no_inline_style_block(client):
+    # CSP stricte (default-src 'self') : tout <style>/style inline est bloqué par le
+    # navigateur → mise en page cassée. Le CSS du display doit être un fichier statique.
+    html = client.get("/display").data.decode()
+    assert "<style" not in html
+    assert "/static/css/display.css?v=" in html
