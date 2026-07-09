@@ -85,6 +85,8 @@
   function render(data) {
     stopAutoScroll();
     bodyEl.dataset.theme = resolveTheme(data.theme);
+    // Mode performance : désactive le flou GPU (voir display.css [data-perf="on"])
+    bodyEl.dataset.perf = data.perf ? "on" : "off";
     // Taille du texte de l'écran (les polices sont en rem → la racine les met à l'échelle)
     document.documentElement.style.fontSize = TEXT_SCALE[data.scale] || "";
 

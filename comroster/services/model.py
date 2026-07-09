@@ -33,6 +33,12 @@ def sanitize_indicators(value):
     return {k: bool(v.get(k, True)) for k in ("online", "battery", "signal")}
 
 
+def sanitize_perf(value):
+    """Mode performance : désactive le flou GPU (glassmorphism) sur les afficheurs
+    à faible GPU (Raspberry Pi 3). Défaut désactivé."""
+    return bool(value)
+
+
 def empty_state():
     return {
         "version": 1,
@@ -42,6 +48,7 @@ def empty_state():
         "theme": "night",
         "scale": "normal",
         "indicators": {"online": True, "battery": True, "signal": True},
+        "perf": False,
         "groups": [],
         "people": [],
         "beltpack_roles": {},
@@ -64,6 +71,7 @@ def build_draft(payload):
     state["theme"] = sanitize_theme(payload.get("theme"))
     state["scale"] = sanitize_scale(payload.get("scale"))
     state["indicators"] = sanitize_indicators(payload.get("indicators"))
+    state["perf"] = sanitize_perf(payload.get("perf"))
 
     groups = payload.get("groups")
     if not isinstance(groups, list):

@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/display.css') }}">
 </head>
-<body class="display-page" data-theme="{{ initial_data.theme or 'night' }}">
+<body class="display-page" data-theme="{{ initial_data.theme or 'night' }}" data-perf="{{ 'on' if initial_data.perf else 'off' }}">
   <header>
     <div class="board-meta">
       <h1 id="board-title">{{ initial_data.title }}</h1>
