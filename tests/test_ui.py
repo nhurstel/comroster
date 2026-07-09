@@ -65,3 +65,18 @@ def test_display_has_no_inline_style_block(client):
     html = client.get("/display").data.decode()
     assert "<style" not in html
     assert "/static/css/display.css?v=" in html
+
+
+def test_display_reflects_perf_mode(app, client):
+    # Le mode perf publié doit produire data-perf="on" sur le body du display,
+    # ce qui déclenche la surcharge CSS (flou désactivé).
+    from comroster.services import model
+    st = model.empty_state()
+    st["perf"] = True
+    app.extensions["storage"].save_published(st)
+    html = client.get("/display").data.decode()
+    assert 'data-perf="on"' in html
+
+def test_display_perf_off_by_default(client):
+    html = client.get("/display").data.decode()
+    assert 'data-perf="off"' in html

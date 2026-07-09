@@ -127,3 +127,21 @@ body.display-page footer { justify-content: center; flex-wrap: wrap; gap: 1rem 2
   #display-scroll { padding: calc(var(--display-header-height) + 1rem) 1rem calc(var(--display-footer-height) + 1rem); }
   .display-grid { grid-template-columns: 1fr; gap: 1.5rem; }
 }
+
+/* ---------- Mode performance (afficheurs à faible GPU, ex. Raspberry Pi 3) ----------
+   Le flou (backdrop-filter) recalculé à chaque frame pendant l'auto-scroll est le
+   plus gros coût GPU du VideoCore IV. En mode perf on le supprime et on opacifie
+   les fonds : rendu quasi identique, mais fluide. Piloté par data-perf sur le body
+   (préférence publiée depuis l'admin). */
+.display-page[data-perf="on"] header,
+.display-page[data-perf="on"] .block,
+.display-page[data-perf="on"] .ob-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.display-page[data-perf="on"] header { background: #0b1524; }
+.display-page[data-perf="on"] .block { background: #13223b; box-shadow: none; }
+.display-page[data-perf="on"] .ob-card { background: #0f1d30; }
+.display-page[data-perf="on"][data-theme="day"] header { background: #eaf1f9; }
+.display-page[data-perf="on"][data-theme="day"] .block { background: #ffffff; }
+.display-page[data-perf="on"][data-theme="day"] .ob-card { background: #ffffff; }

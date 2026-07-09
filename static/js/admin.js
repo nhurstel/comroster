@@ -460,6 +460,7 @@
     document.getElementById("ind-online").checked = ind.online !== false;
     document.getElementById("ind-battery").checked = ind.battery !== false;
     document.getElementById("ind-signal").checked = ind.signal !== false;
+    document.getElementById("meta-perf").checked = state.data.perf === true;
     el.metaDialog.showModal();
     requestAnimationFrame(() => el.metaTitle.select());
   }
@@ -475,6 +476,7 @@
       battery: document.getElementById("ind-battery").checked,
       signal: document.getElementById("ind-signal").checked,
     };
+    state.data.perf = document.getElementById("meta-perf").checked;
     el.metaDialog.close();
     markDirty(); render();
   }
@@ -520,6 +522,7 @@
         state.data = {
           title: json.title || "", subtitle: json.subtitle || "", theme: json.theme || "night",
           scale: json.scale || "normal", indicators: json.indicators || DEFAULT_IND,
+          perf: json.perf === true,
           groups: json.groups || [], people: json.people || [], beltpack_roles: json.beltpack_roles || {},
         };
         markDirty(); render();

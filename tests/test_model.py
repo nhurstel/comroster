@@ -179,3 +179,23 @@ def test_build_draft_generates_missing_ids():
     s = model.build_draft(payload)
     assert s["groups"][0]["id"]
     assert s["people"][0]["id"]
+
+
+# --- Mode performance (Raspberry Pi bas de gamme : désactive le flou GPU) ---
+
+def test_empty_state_perf_default_off():
+    assert model.empty_state()["perf"] is False
+
+def test_build_draft_perf_on():
+    s = model.build_draft({"groups": [], "people": [], "perf": True})
+    assert s["perf"] is True
+
+def test_build_draft_perf_absent_defaults_off():
+    s = model.build_draft({"groups": [], "people": []})
+    assert s["perf"] is False
+
+def test_build_draft_perf_coerces_to_bool():
+    s = model.build_draft({"groups": [], "people": [], "perf": "nope"})
+    assert s["perf"] is True   # chaîne non vide → activé (cohérent avec bool())
+    s2 = model.build_draft({"groups": [], "people": [], "perf": 0})
+    assert s2["perf"] is False
