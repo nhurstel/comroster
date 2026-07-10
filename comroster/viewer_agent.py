@@ -1,7 +1,11 @@
 import http.server
+import io
 import json
 import urllib.parse
 
+import segno
+
+from . import viewer_pages
 from .services.viewer import ViewerConfig, probe_server
 from .services.netconfig import NetConfig, validate as validate_network
 
@@ -22,6 +26,19 @@ def make_handler(data_dir):
             self.end_headers()
             self.wfile.write(body)
 
+        def _html(self, status, body):
+            data = body.encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def _host_ip(self):
+            # IP par laquelle le client nous joint (pour le QR pointant vers cet afficheur)
+            host = self.headers.get("Host", "")
+            return host.split(":")[0] or "comroster.local"
+
         def do_GET(self):
             if self.path.startswith("/api/server-status"):
                 reachable = probe_server(viewer.health_url(), timeout=1.5)
@@ -29,6 +46,19 @@ def make_handler(data_dir):
                     "reachable": reachable,
                     "display_url": viewer.display_url(),
                 })
+            if self.path == "/" or self.path.startswith("/?"):
+                return self._html(200, viewer_pages.boot_html(viewer.display_url()))
+            if self.path.rstrip("/") == "/config":
+                return self._html(200, viewer_pages.config_html(viewer.load(), netcfg.load()))
+            if self.path.startswith("/qr.svg"):
+                buf = io.BytesIO()
+                segno.make("http://%s:8081/config" % self._host_ip(), error="m").save(
+                    buf, kind="svg", scale=5, border=2)
+                self.send_response(200)
+                self.send_header("Content-Type", "image/svg+xml")
+                self.end_headers()
+                self.wfile.write(buf.getvalue())
+                return
             return self._json(404, {"error": "not_found"})
 
         def do_POST(self):
@@ -52,6 +82,11 @@ def make_handler(data_dir):
             if not ok:
                 return self._json(400, {"error": err})
             netcfg.save(net)
+            if "text/html" in self.headers.get("Accept", ""):
+                return self._html(200, "<!DOCTYPE html><meta charset=utf-8>"
+                    "<body style='background:#0A1628;color:#7CFFB2;font-family:sans-serif;"
+                    "text-align:center;padding-top:20vh'><h1>✅ Enregistré</h1>"
+                    "<p>Redémarrez l'afficheur pour appliquer.</p></body>")
             return self._json(200, {"ok": True, "reboot_required": True})
 
     return Handler

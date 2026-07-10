@@ -68,3 +68,26 @@ def test_post_config_dhcp_no_address(agent):
     status, _ = _post(base, "/config", {"server_ip": "192.168.42.10", "network_mode": "dhcp"})
     assert status == 200
     assert json.load(open(tmp / "network.json"))["mode"] == "dhcp"
+
+
+def test_boot_page_served(agent):
+    base, _ = agent
+    status, body = _get(base, "/")
+    assert status == 200
+    assert "server-status" in body        # le JS interroge l'agent
+    assert "Configurer" in body           # bannière de config
+
+
+def test_config_page_has_fields(agent):
+    base, _ = agent
+    status, body = _get(base, "/config")
+    assert status == 200
+    assert 'name="server_ip"' in body
+    assert 'name="network_mode"' in body
+
+
+def test_qr_is_svg(agent):
+    base, _ = agent
+    status, body = _get(base, "/qr.svg")
+    assert status == 200
+    assert "<svg" in body
