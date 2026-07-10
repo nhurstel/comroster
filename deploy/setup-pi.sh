@@ -55,7 +55,7 @@ RUNS_SERVER=false
 echo "▶ Installation des paquets…"
 apt-get update -qq
 PKGS="python3 python3-venv python3-pip curl ca-certificates"
-$NEEDS_DISPLAY && PKGS="$PKGS chromium-browser unclutter"
+$NEEDS_DISPLAY && PKGS="$PKGS chromium-browser unclutter swaybg"
 apt-get install -y --no-install-recommends $PKGS
 
 # --- 2. Environnement Python ---------------------------------------------
@@ -202,29 +202,26 @@ EOF
       systemctl --user enable comroster-viewer.service || true
   fi
 
-  # Déclenchement du kiosk via l'autostart de la session graphique.
-  # Sur Bookworm/labwc (Wayland), graphical-session.target n'est jamais émis :
-  # le service --user seul ne démarrerait pas. On l'amorce depuis l'autostart du
-  # compositeur, qui s'exécute une fois l'affichage Wayland prêt.
-  echo "▶ Autostart kiosk (labwc/Wayland)…"
+  # Autostart minimal de la session labwc : écran NOIR + kiosk, sans bureau
+  # (ni fond d'écran, ni barre des tâches, ni icônes). Sur Bookworm/labwc
+  # (Wayland), graphical-session.target n'est jamais émis → on amorce le service
+  # nous-mêmes, une fois l'affichage Wayland prêt.
+  echo "▶ Autostart kiosk (labwc/Wayland, écran noir)…"
   LABWC_DIR="$TARGET_HOME/.config/labwc"
   install -d -o "$TARGET_USER" -g "$TARGET_USER" "$LABWC_DIR"
-  if [ ! -f "$LABWC_DIR/autostart" ]; then
-    if [ -f /etc/xdg/labwc/autostart ]; then
-      cp /etc/xdg/labwc/autostart "$LABWC_DIR/autostart"   # préserve le bureau par défaut
-    else
-      : > "$LABWC_DIR/autostart"
-    fi
-  fi
-  if ! grep -q comroster-kiosk "$LABWC_DIR/autostart"; then
-    cat >> "$LABWC_DIR/autostart" <<'LABWC'
-# ComRoster : amorce le kiosk (labwc/Wayland n'émet pas graphical-session.target)
+  cat > "$LABWC_DIR/autostart" <<'LABWC'
+# ComRoster appliance — écran noir + kiosk, pas de bureau.
+command -v swaybg >/dev/null 2>&1 && swaybg -c '#000000' >/dev/null 2>&1 &
 systemctl --user import-environment WAYLAND_DISPLAY 2>/dev/null
 systemctl --user start comroster-kiosk.service
 LABWC
-  fi
   chmod +x "$LABWC_DIR/autostart"
   chown -R "$TARGET_USER:$TARGET_USER" "$LABWC_DIR"
+
+  # Boot silencieux : plus de logo Raspberry ni de logs → écran noir jusqu'au splash.
+  echo "▶ Boot silencieux (config.txt / cmdline.txt)…"
+  chmod +x "$APP_DIR/deploy/quiet-boot.sh"
+  "$APP_DIR/deploy/quiet-boot.sh" || echo "⚠ boot silencieux non appliqué (vérifier /boot/firmware)"
 
   # --- 6. Autologin bureau (lance la session graphique au boot) ----------
   if command -v raspi-config >/dev/null 2>&1; then
