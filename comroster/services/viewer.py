@@ -1,6 +1,19 @@
 import ipaddress
 import json
 import os
+import urllib.error
+import urllib.request
+
+
+def probe_server(health_url, timeout=2.0):
+    """True si le serveur ComRoster distant répond sur son /healthz."""
+    if not health_url:
+        return False
+    try:
+        with urllib.request.urlopen(health_url, timeout=timeout) as resp:
+            return 200 <= resp.status < 400
+    except (urllib.error.URLError, OSError, ValueError):
+        return False
 
 
 class ViewerConfig:
