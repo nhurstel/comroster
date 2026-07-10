@@ -67,6 +67,20 @@ sudo systemctl restart comroster
 sudo reboot                      # ou: systemctl --user restart comroster-kiosk
 ```
 
+## Désinstallation
+
+Pour retirer ComRoster d'un Pi (inverse de `setup-pi.sh`) :
+
+```bash
+sudo deploy/uninstall-pi.sh
+```
+
+Le script demande confirmation (taper `oui`), puis propose de **conserver ou effacer les
+données** (`instance/` : mot de passe admin, config antenne, historique, réseau). Il arrête
+et supprime les services (système + utilisateur), `/etc/comroster.env` et le profil kiosk.
+Le dépôt, le venv et les paquets apt (partagés) sont **conservés** — le script indique comment
+les retirer à la main si besoin. Fonctionne quel que soit le rôle (autonome/serveur/afficheur).
+
 ## Robustesse (« ça s'arrête plus »)
 
 - `Restart=on-failure` sur le serveur **et** le kiosk → relance auto après un crash.
