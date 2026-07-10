@@ -56,17 +56,17 @@ Accès distant : `ssh pi@comroster.local`
 |----------|------------------|
 | Voir les logs du serveur en direct | `journalctl -u comroster -f` |
 | État du serveur | `systemctl status comroster` |
-| État de l'affichage (kiosk) | `systemctl --user status comroster-kiosk` |
+| État de l'affichage (kiosk cage) | `systemctl status comroster-kiosk` · logs : `journalctl -u comroster-kiosk -b` |
 | État de l'application réseau au boot | `systemctl status comroster-network` |
-| Écran noir au boot | Vérifier l'autologin bureau : `sudo raspi-config` → System → Boot → Desktop Autologin |
+| Écran noir / kiosk absent au boot | `journalctl -u comroster-kiosk -b` (erreurs cage/seat/DRM) ; vérifier que l'utilisateur est dans les groupes `video render input` (`groups`) |
 | Admin injoignable sur le LAN | Vérifier `COMROSTER_BIND=0.0.0.0:8080` dans `/etc/comroster.env`, puis `sudo systemctl restart comroster` |
-| « Chromium introuvable » | `sudo apt install chromium-browser` (ou `chromium` selon la version de Bookworm) |
+| « Chromium introuvable » | `sudo apt install chromium-browser cage` |
 | Connaître l'IP actuelle du Pi | `hostname -I` |
 | Config réseau enregistrée | `cat instance/network.json` (le mot de passe Wi-Fi n'apparaît pas via l'admin, mais il est en clair dans ce fichier — normal) |
 | Revenir au réseau auto en urgence | `sudo nmcli con mod "Wired connection 1" ipv4.method auto && sudo reboot` |
 | **(2 Pi)** Afficheur bloqué sur « Serveur introuvable » | Vérifier `cat instance/viewer.json` et que le serveur répond : `curl http://<ip-serveur>:8080/healthz` |
 | **(2 Pi)** Reconfigurer un afficheur | Rebooter et appuyer sur ⚙ pendant les 5 s, ou ouvrir `http://<ip-afficheur>:8081/config` |
-| **(2 Pi)** État de l'agent afficheur | `systemctl --user status comroster-viewer` |
+| **(2 Pi)** État de l'agent afficheur | `systemctl status comroster-viewer` |
 
 ---
 
@@ -98,7 +98,7 @@ Après un `git push` depuis le Mac :
 cd ~/comroster && git pull
 sudo deploy/setup-pi.sh          # réinstalle deps + services (config conservée)
 sudo systemctl restart comroster
-sudo reboot                      # ou : systemctl --user restart comroster-kiosk
+sudo reboot                      # ou : sudo systemctl restart comroster-kiosk
 ```
 
 ## 5b. Repartir de zéro / désinstaller

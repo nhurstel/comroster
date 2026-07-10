@@ -7,7 +7,8 @@ Méthode recommandée : **golden master par clonage** (simple, fiable, sans pipe
 
 ## 1. Préparer le Pi maître
 
-Partir d'un Raspberry Pi OS **Bookworm 64-bit Desktop** fraîchement installé sur un Pi.
+Partir d'un Raspberry Pi OS **Bookworm 64-bit Lite** fraîchement installé sur un Pi
+(l'affichage passe par cage, installé par `setup-pi.sh` — pas besoin du bureau).
 
 ```bash
 # Hostname = comroster  → l'écran et l'admin seront joignables via comroster.local
