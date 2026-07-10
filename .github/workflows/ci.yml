@@ -5,6 +5,20 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    name: Lint (ruff + shellcheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: ruff (Python)
+        run: pip install ruff && ruff check comroster app.py
+      - name: shellcheck (scripts déploiement)
+        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck && shellcheck deploy/*.sh
+
   unit:
     name: Tests unitaires & intégration
     runs-on: ubuntu-latest
