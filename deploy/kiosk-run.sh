@@ -34,6 +34,14 @@ fi
 # Masquer le curseur si unclutter est présent
 command -v unclutter >/dev/null 2>&1 && unclutter -idle 0 >/dev/null 2>&1 &
 
+# Rendu : Wayland natif si la session l'est (Bookworm/labwc), sinon réglages X11.
+# --use-gl=egl (ancien) demande « gl=none » et casse le GPU sur Chromium récent → retiré.
+if [ "${XDG_SESSION_TYPE:-}" = "wayland" ] || [ -n "${WAYLAND_DISPLAY:-}" ]; then
+  RENDER_FLAGS="--ozone-platform=wayland"
+else
+  RENDER_FLAGS="--enable-gpu-rasterization --ignore-gpu-blocklist"
+fi
+
 exec "$CHROME" \
   --kiosk --incognito --start-fullscreen \
   --noerrordialogs --disable-infobars --disable-session-crashed-bubble \
@@ -41,6 +49,8 @@ exec "$CHROME" \
   --check-for-update-interval=31536000 \
   --disable-pinch --overscroll-history-navigation=0 \
   --autoplay-policy=no-user-gesture-required \
-  --enable-gpu-rasterization --ignore-gpu-blocklist --use-gl=egl \
+  --password-store=basic \
+  --disable-features=Translate,TranslateUI \
+  $RENDER_FLAGS \
   --user-data-dir="$PROFILE" \
   "$URL"
