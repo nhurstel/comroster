@@ -202,6 +202,30 @@ EOF
       systemctl --user enable comroster-viewer.service || true
   fi
 
+  # Déclenchement du kiosk via l'autostart de la session graphique.
+  # Sur Bookworm/labwc (Wayland), graphical-session.target n'est jamais émis :
+  # le service --user seul ne démarrerait pas. On l'amorce depuis l'autostart du
+  # compositeur, qui s'exécute une fois l'affichage Wayland prêt.
+  echo "▶ Autostart kiosk (labwc/Wayland)…"
+  LABWC_DIR="$TARGET_HOME/.config/labwc"
+  install -d -o "$TARGET_USER" -g "$TARGET_USER" "$LABWC_DIR"
+  if [ ! -f "$LABWC_DIR/autostart" ]; then
+    if [ -f /etc/xdg/labwc/autostart ]; then
+      cp /etc/xdg/labwc/autostart "$LABWC_DIR/autostart"   # préserve le bureau par défaut
+    else
+      : > "$LABWC_DIR/autostart"
+    fi
+  fi
+  if ! grep -q comroster-kiosk "$LABWC_DIR/autostart"; then
+    cat >> "$LABWC_DIR/autostart" <<'LABWC'
+# ComRoster : amorce le kiosk (labwc/Wayland n'émet pas graphical-session.target)
+systemctl --user import-environment WAYLAND_DISPLAY 2>/dev/null
+systemctl --user start comroster-kiosk.service
+LABWC
+  fi
+  chmod +x "$LABWC_DIR/autostart"
+  chown -R "$TARGET_USER:$TARGET_USER" "$LABWC_DIR"
+
   # --- 6. Autologin bureau (lance la session graphique au boot) ----------
   if command -v raspi-config >/dev/null 2>&1; then
     echo "▶ Activation de l'autologin bureau…"
