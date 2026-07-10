@@ -1,74 +1,51 @@
-# Affichage en kiosk sur Raspberry Pi
+# Affichage kiosk (cage) — notes techniques
 
-Le Pi affiche `/display` en plein écran dans Chromium, en permanence, sans veille.
-Deux niveaux complémentaires empêchent l'écran de s'éteindre :
+Le Pi affiche `/display` en plein écran, en permanence, via **cage** — un compositeur
+Wayland qui n'affiche qu'**une seule application** (Chromium), sans bureau. Tout est
+installé et configuré par [setup-pi.sh](setup-pi.sh) ; ce document explique le « comment ».
 
-1. **Screen Wake Lock** (déjà intégré au `display.js`) — actif si la page est servie en
-   contexte sécurisé (HTTPS ou `http://127.0.0.1`). C'est pour ça qu'on pointe le kiosk sur
-   **127.0.0.1** plutôt que l'IP LAN.
-2. **Désactivation du blanking côté OS** (ci-dessous) — le filet de sécurité fiable.
+## Chaîne de lancement
 
-## 1. Désactiver la veille / le blanking
-
-### Raspberry Pi OS **Bookworm** (Wayland / labwc, par défaut)
-Éditer `~/.config/labwc/autostart` (le créer si absent) :
-```sh
-# Pas d'extinction ni d'économiseur d'écran
-swayidle -w timeout 0 '' &
 ```
-Plus simple et robuste : désactiver l'économiseur via `~/.config/wayfire.ini` ou simplement
-s'appuyer sur le Wake Lock + le flag Chromium ci-dessous. Vérifier qu'aucun `swayidle`/
-`xdg-screensaver` ne tourne avec un timeout.
-
-### Raspberry Pi OS **Bullseye** ou antérieur (X11)
-Ajouter à `~/.config/lxsession/LXDE-pi/autostart` :
-```
-@xset s off
-@xset s noblank
-@xset -dpms
+comroster-kiosk.service (systemd, système)
+  └─ cage -- kiosk-run.sh        ← cage ouvre l'affichage Wayland sur tty1
+        └─ chromium --ozone-platform=wayland … file://…/boot-splash.html
+              └─ bascule vers http://127.0.0.1:8080/display dès que le serveur répond
 ```
 
-## 2. Lancer Chromium en kiosk (optimisé Pi)
+- **Service système** (pas `--user`) : Raspberry Pi OS Lite n'a pas de session
+  graphique. Le service ouvre lui-même une session logind (`PAMName=login`,
+  `TTYPath=/dev/tty1`) pour obtenir le « seat » (accès écran DRM + entrées).
+- L'utilisateur doit être dans les groupes `video`, `render`, `input` (fait par le script).
+- `Conflicts=getty@tty1.service` : cage prend le `tty1`.
 
-Script `~/comroster-kiosk.sh` :
-```sh
-#!/bin/sh
-# Attendre que le serveur réponde
-until curl -sf http://127.0.0.1:8080/healthz >/dev/null; do sleep 1; done
+## Flags Chromium (dans [kiosk-run.sh](kiosk-run.sh))
 
-exec chromium-browser \
-  --kiosk --incognito --noerrordialogs --disable-infobars --no-first-run \
-  --check-for-update-interval=31536000 \
-  --disable-pinch --overscroll-history-navigation=0 \
-  --autoplay-policy=no-user-gesture-required \
-  --enable-gpu-rasterization --ignore-gpu-blocklist --use-gl=egl \
-  http://127.0.0.1:8080/display
-```
-> Sur Pi, `--use-gl=egl --enable-gpu-rasterization --ignore-gpu-blocklist` activent
-> l'accélération GPU : combiné à l'auto-scroll en `transform`, le rendu reste fluide et froid.
-> Adapter l'URL si servi en HTTPS via Nginx (`https://comroster.local/display`).
+- `--ozone-platform=wayland` — rendu Wayland natif (cage). **Ne pas** utiliser
+  `--use-gl=egl` : obsolète sur Chromium récent, provoque `gl=none` (GPU KO, rendu lent).
+- `--password-store=basic` — pas de popup « trousseau » (gnome-keyring).
+- `--disable-features=Translate,TranslateUI` — pas de popup de traduction.
+- `--kiosk --incognito` — plein écran, sans état persistant.
 
-## 3. Démarrage automatique
+## Anti-veille (écran qui ne s'éteint pas)
 
-Service utilisateur systemd `~/.config/systemd/user/comroster-kiosk.service` :
-```ini
-[Unit]
-Description=ComRoster — affichage kiosk
-After=graphical-session.target
-PartOf=graphical-session.target
+Trois niveaux :
+1. **`consoleblank=0`** dans `cmdline.txt` (posé par [quiet-boot.sh](quiet-boot.sh)) —
+   empêche le blanking console.
+2. **Screen Wake Lock** — `display.js` peut le demander ; actif car `http://127.0.0.1`
+   est un contexte sécurisé.
+3. Si le DPMS s'active encore sous cage, ajouter un **idle-inhibitor** Wayland
+   (à valider sur le matériel — dépend de la version de cage/wlroots).
 
-[Service]
-ExecStart=%h/comroster-kiosk.sh
-Restart=on-failure
-RestartSec=3
+## Anti-veille par le firmware
 
-[Install]
-WantedBy=graphical-session.target
-```
-Activer : `chmod +x ~/comroster-kiosk.sh && systemctl --user enable --now comroster-kiosk`.
+Le boot silencieux ([quiet-boot.sh](quiet-boot.sh)) pose aussi `disable_splash=1`
+(config.txt) et `quiet logo.nologo plymouth.enable=0 vt.global_cursor_default=0`
+(cmdline.txt) : écran noir de l'allumage jusqu'au splash « Booting ComRoster ».
 
 ## Rappel
 
-Le **serveur** ComRoster (gunicorn) tourne via [comroster.service](comroster.service) (service
-système). Le **kiosk** ci-dessus est un service *utilisateur* lié à la session graphique. Les
-deux sont indépendants : le serveur peut tourner sur un autre hôte que l'écran.
+Le **serveur** (gunicorn, [comroster.service](comroster.service)) et le **kiosk** (cage)
+sont deux services système indépendants : en mode « 2 Pi », le serveur peut tourner sur
+un autre hôte que l'écran (voir la section « Déploiement 2 Pi » de
+[raspberry-pi.md](raspberry-pi.md)).

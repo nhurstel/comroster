@@ -32,7 +32,7 @@ if [ -f "$CMDLINE" ]; then
   line="$(tr -d '\n' < "$CMDLINE")"
   # retire le paramètre plymouth « splash » (mot entier)
   line="$(printf '%s' "$line" | sed -E 's/(^| )splash( |$)/\1\2/g')"
-  for p in quiet logo.nologo vt.global_cursor_default=0 loglevel=3 plymouth.enable=0; do
+  for p in quiet logo.nologo vt.global_cursor_default=0 loglevel=3 plymouth.enable=0 consoleblank=0; do
     case " $line " in
       *" $p "*) : ;;                 # déjà présent
       *) line="$line $p" ;;

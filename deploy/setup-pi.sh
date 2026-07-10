@@ -8,8 +8,8 @@
 # À lancer avec sudo depuis le dépôt cloné :
 #     sudo deploy/setup-pi.sh
 #
-# Cible : Raspberry Pi OS Bookworm (64-bit). Desktop pour Autonome/Afficheur,
-# Lite possible pour Serveur. Idempotent (relançable).
+# Cible : Raspberry Pi OS Bookworm (64-bit) LITE. L'affichage utilise cage
+# (compositeur Wayland « une seule app plein écran »), sans bureau. Idempotent.
 set -euo pipefail
 
 # --- Contexte -------------------------------------------------------------
@@ -55,7 +55,9 @@ RUNS_SERVER=false
 echo "▶ Installation des paquets…"
 apt-get update -qq
 PKGS="python3 python3-venv python3-pip curl ca-certificates"
-$NEEDS_DISPLAY && PKGS="$PKGS chromium-browser unclutter swaybg"
+# Affichage kiosk minimal : cage (compositeur mono-app) + Chromium + police mono
+# pour le splash. Aucun bureau, aucun gestionnaire de fenêtres.
+$NEEDS_DISPLAY && PKGS="$PKGS cage chromium-browser fonts-dejavu-core"
 apt-get install -y --no-install-recommends $PKGS
 
 # --- 2. Environnement Python ---------------------------------------------
@@ -154,34 +156,47 @@ systemctl enable comroster-network.service
 systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
 systemctl disable systemd-networkd-wait-online.service 2>/dev/null || true
 
-# --- 5. Services utilisateur (kiosk + agent afficheur) -------------------
-# Les services --user ne peuvent pas lire /etc/comroster.env (root 600) :
-# on injecte les variables nécessaires directement dans les unités.
+# --- 5. Affichage kiosk via cage (Wayland mono-app, pas de bureau) --------
+# cage lance Chromium plein écran directement sur tty1, en service SYSTÈME.
+# PAMName=login + TTYPath ouvrent une session logind avec accès au « seat »
+# (écran DRM + entrées), sans root et sans gestionnaire d'affichage.
 if $NEEDS_DISPLAY; then
-  echo "▶ Services utilisateur (session graphique)…"
-  KIOSK_DIR="$TARGET_HOME/.config/systemd/user"
-  install -d -o "$TARGET_USER" -g "$TARGET_USER" "$KIOSK_DIR"
-
-  cat > "$KIOSK_DIR/comroster-kiosk.service" <<EOF
-[Unit]
-Description=ComRoster — affichage kiosk
-After=graphical-session.target
-PartOf=graphical-session.target
-
-[Service]
-Environment=COMROSTER_ROLE=$ROLE
-ExecStart=$APP_DIR/deploy/kiosk-run.sh
-Restart=on-failure
-RestartSec=3
-
-[Install]
-WantedBy=graphical-session.target
-EOF
+  echo "▶ Affichage kiosk (cage)…"
   chmod +x "$APP_DIR/deploy/kiosk-run.sh"
 
-  # Agent de configuration afficheur (sert la page de config locale sur :8081)
+  # Accès matériel (écran DRM, entrées) pour l'utilisateur du kiosk.
+  for g in video render input tty; do
+    getent group "$g" >/dev/null 2>&1 && usermod -aG "$g" "$TARGET_USER" || true
+  done
+
+  cat > /etc/systemd/system/comroster-kiosk.service <<EOF
+[Unit]
+Description=ComRoster — affichage kiosk (cage)
+After=systemd-user-sessions.service comroster.service getty@tty1.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+User=$TARGET_USER
+PAMName=login
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+TTYReset=yes
+TTYVHangup=yes
+Environment=COMROSTER_ROLE=$ROLE
+ExecStart=/usr/bin/cage -- $APP_DIR/deploy/kiosk-run.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  # Agent de configuration afficheur (page locale sur :8081), service système.
   if [ "$ROLE" = "viewer" ]; then
-    cat > "$KIOSK_DIR/comroster-viewer.service" <<EOF
+    cat > /etc/systemd/system/comroster-viewer.service <<EOF
 [Unit]
 Description=ComRoster — agent de configuration afficheur
 After=network.target
@@ -194,61 +209,20 @@ Restart=on-failure
 RestartSec=3
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
 EOF
   fi
-
-  chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.config/systemd"
-
-  # Le manager utilisateur doit tourner même hors session SSH → linger
-  loginctl enable-linger "$TARGET_USER"
-  sudo -u "$TARGET_USER" XDG_RUNTIME_DIR="/run/user/$TARGET_UID" \
-    systemctl --user daemon-reload || true
-  sudo -u "$TARGET_USER" XDG_RUNTIME_DIR="/run/user/$TARGET_UID" \
-    systemctl --user enable comroster-kiosk.service || true
-  if [ "$ROLE" = "viewer" ]; then
-    sudo -u "$TARGET_USER" XDG_RUNTIME_DIR="/run/user/$TARGET_UID" \
-      systemctl --user enable comroster-viewer.service || true
-  fi
-
-  # Neutralise le bureau Pi (barre + icônes) lancé par l'autostart GLOBAL de labwc.
-  # labwc exécute /etc/xdg/labwc/autostart EN PLUS de ~/.config/labwc/autostart :
-  # on commente les lignes pcmanfm-pi/wf-panel-pi (on garde kanshi + lxsession).
-  LABWC_GLOBAL=/etc/xdg/labwc/autostart
-  if [ -f "$LABWC_GLOBAL" ] && grep -qE '^[^#].*(pcmanfm-pi|wf-panel-pi)' "$LABWC_GLOBAL"; then
-    echo "▶ Neutralisation du bureau (barre + icônes)…"
-    [ -f "$LABWC_GLOBAL.comroster.bak" ] || cp "$LABWC_GLOBAL" "$LABWC_GLOBAL.comroster.bak"
-    sed -i -E 's@^([^#].*(pcmanfm-pi|wf-panel-pi).*)$@# ComRoster kiosk (désactivé): \1@' "$LABWC_GLOBAL"
-  fi
-
-  # Autostart minimal de la session labwc : écran NOIR + kiosk, sans bureau
-  # (ni fond d'écran, ni barre des tâches, ni icônes). Sur Bookworm/labwc
-  # (Wayland), graphical-session.target n'est jamais émis → on amorce le service
-  # nous-mêmes, une fois l'affichage Wayland prêt.
-  echo "▶ Autostart kiosk (labwc/Wayland, écran noir)…"
-  LABWC_DIR="$TARGET_HOME/.config/labwc"
-  install -d -o "$TARGET_USER" -g "$TARGET_USER" "$LABWC_DIR"
-  cat > "$LABWC_DIR/autostart" <<'LABWC'
-# ComRoster appliance — écran noir + kiosk, pas de bureau.
-command -v swaybg >/dev/null 2>&1 && swaybg -c '#000000' >/dev/null 2>&1 &
-systemctl --user import-environment WAYLAND_DISPLAY 2>/dev/null
-systemctl --user start comroster-kiosk.service
-LABWC
-  chmod +x "$LABWC_DIR/autostart"
-  chown -R "$TARGET_USER:$TARGET_USER" "$LABWC_DIR"
 
   # Boot silencieux : plus de logo Raspberry ni de logs → écran noir jusqu'au splash.
   echo "▶ Boot silencieux (config.txt / cmdline.txt)…"
   chmod +x "$APP_DIR/deploy/quiet-boot.sh"
   "$APP_DIR/deploy/quiet-boot.sh" || echo "⚠ boot silencieux non appliqué (vérifier /boot/firmware)"
 
-  # --- 6. Autologin bureau (lance la session graphique au boot) ----------
-  if command -v raspi-config >/dev/null 2>&1; then
-    echo "▶ Activation de l'autologin bureau…"
-    raspi-config nonint do_boot_behaviour B4 || true
-  else
-    echo "⚠ raspi-config absent : configurer manuellement l'autologin vers le bureau."
-  fi
+  # Démarrage en console (Lite n'a pas de gestionnaire d'affichage) : cage prend tty1.
+  systemctl set-default multi-user.target >/dev/null 2>&1 || true
+  systemctl daemon-reload
+  systemctl enable comroster-kiosk.service
+  [ "$ROLE" = "viewer" ] && systemctl enable comroster-viewer.service
 fi
 
 IP="$(hostname -I | awk '{print $1}')"
