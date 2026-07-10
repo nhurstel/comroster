@@ -28,16 +28,19 @@ déploiement. Le mode Autonome reste le défaut → aucune régression pour l'ex
 | Kiosk Chromium | ✅ (→ 127.0.0.1) | ❌ | ✅ (→ serveur distant) |
 | `comroster-viewer.service` (agent config) | ❌ | ❌ | ✅ |
 | Bureau / Chromium requis | oui | non (Lite OK) | oui |
-| Dépendances Python | complètes | complètes | minimales (segno) |
+| Dépendances Python | complètes | complètes | complètes (Flask présent, jamais lancé) |
 
 `setup-pi.sh` lit le profil et n'installe/active que les services voulus. Idempotent.
 
 ## Composant : agent de configuration afficheur
 
 Petit serveur Python autonome (`comroster/viewer_agent.py`), bibliothèque standard
-(`http.server`) + `segno` pour le QR. Service **utilisateur** (pas root), écoute sur
-`0.0.0.0:8081`. ~150 lignes. Ne duplique pas le serveur ComRoster : il ne sait faire
-que la config afficheur.
+(`http.server`) + `segno` pour le QR + réutilisation des modules `services`
+(`viewer`, `netconfig`). Il ne démarre jamais Flask/gunicorn. Service **utilisateur**
+(pas root), écoute sur `0.0.0.0:8081`. ~150 lignes. Ne duplique pas le serveur
+ComRoster : il ne sait faire que la config afficheur. (Note : le paquet `comroster`
+importe Flask au chargement, donc l'afficheur installe les dépendances complètes ;
+Flask est présent mais jamais lancé — cf. plan, Global Constraints.)
 
 **Routes :**
 - `GET /` — page de boot : bannière 5 s (« ⚙ Configurer » + QR + compte à rebours),
