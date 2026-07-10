@@ -30,7 +30,9 @@ sudo deploy/setup-pi.sh
 sudo reboot
 ```
 
-C'est tout. Au redémarrage, l'écran affiche ComRoster automatiquement.
+`setup-pi.sh` demande d'abord le **rôle** du boîtier (voir la section « Déploiement
+2 Pi » plus bas) ; par défaut (**Autonome**), un simple Entrée suffit et le Pi fait
+tout. Au redémarrage, l'écran affiche ComRoster automatiquement.
 
 ### Ce que fait `setup-pi.sh`
 
@@ -74,6 +76,36 @@ sudo reboot                      # ou: systemctl --user restart comroster-kiosk
   **overlayfs en lecture seule** (`raspi-config` → Performance → Overlay File System).
   Dans ce cas, garder `DATA_DIR` sur une partition inscriptible si l'admin doit persister
   entre redémarrages, ou accepter un état volatil.
+
+## Déploiement 2 Pi (serveur + afficheur)
+
+Par défaut un Pi est **Autonome** (serveur + affichage). Pour répartir sur deux Pi —
+utile sur un Pi 3 où Chromium et le serveur se disputent les ressources, ou pour
+piloter **plusieurs écrans** depuis un serveur unique — `setup-pi.sh` propose trois rôles :
+
+| Rôle | Fait tourner | Écran | OS conseillé |
+|------|--------------|-------|--------------|
+| **Autonome** (défaut) | serveur + kiosk | oui | Bookworm Desktop |
+| **Serveur** | serveur + admin | non | Bookworm **Lite** possible |
+| **Afficheur** | kiosk seul, vise un serveur distant | oui | Bookworm Desktop |
+
+**Procédure :**
+1. Installer le **serveur** d'abord : `sudo deploy/setup-pi.sh` → choix **2**. Noter son IP
+   (`hostname -I`), idéalement la fixer (admin → Réseau → IP fixe).
+2. Installer l'**afficheur** : `sudo deploy/setup-pi.sh` → choix **3**, puis saisir l'IP
+   du serveur. Redémarrer.
+
+**Au boot de l'afficheur :** une page d'accueil laisse **5 secondes** pour ouvrir la
+configuration (bouton ⚙ ou QR code au téléphone) ; sans action, il bascule sur l'écran
+du serveur. Si le serveur est injoignable, la page de configuration s'affiche d'office.
+
+**Reconfigurer un afficheur** (changer l'IP serveur visée ou sa propre IP réseau) :
+`http://<ip-afficheur>:8081/config` — ou rebooter et appuyer sur ⚙ pendant les 5 s.
+La saisie est appliquée au redémarrage.
+
+> ⚠️ **Sécurité :** la page de config de l'afficheur (port 8081) n'a **pas de mot de
+> passe** — à réserver à un réseau de régie isolé, même posture que
+> `COMROSTER_INSECURE_COOKIE`. Sur un réseau exposé, ne pas utiliser le mode afficheur en l'état.
 
 ## Configuration réseau — Filaire ou Wi-Fi
 
