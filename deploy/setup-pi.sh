@@ -202,6 +202,16 @@ EOF
       systemctl --user enable comroster-viewer.service || true
   fi
 
+  # Neutralise le bureau Pi (barre + icônes) lancé par l'autostart GLOBAL de labwc.
+  # labwc exécute /etc/xdg/labwc/autostart EN PLUS de ~/.config/labwc/autostart :
+  # on commente les lignes pcmanfm-pi/wf-panel-pi (on garde kanshi + lxsession).
+  LABWC_GLOBAL=/etc/xdg/labwc/autostart
+  if [ -f "$LABWC_GLOBAL" ] && grep -qE '^[^#].*(pcmanfm-pi|wf-panel-pi)' "$LABWC_GLOBAL"; then
+    echo "▶ Neutralisation du bureau (barre + icônes)…"
+    [ -f "$LABWC_GLOBAL.comroster.bak" ] || cp "$LABWC_GLOBAL" "$LABWC_GLOBAL.comroster.bak"
+    sed -i -E 's@^([^#].*(pcmanfm-pi|wf-panel-pi).*)$@# ComRoster kiosk (désactivé): \1@' "$LABWC_GLOBAL"
+  fi
+
   # Autostart minimal de la session labwc : écran NOIR + kiosk, sans bureau
   # (ni fond d'écran, ni barre des tâches, ni icônes). Sur Bookworm/labwc
   # (Wayland), graphical-session.target n'est jamais émis → on amorce le service
