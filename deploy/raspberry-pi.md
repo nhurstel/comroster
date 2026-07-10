@@ -17,9 +17,10 @@ Raspberry Pi
 
 ## Prérequis
 
-- **Raspberry Pi OS Bookworm 64-bit _Desktop_** (le kiosk a besoin d'un environnement graphique).
+- **Raspberry Pi OS Bookworm 64-bit _Lite_** (pas de bureau : l'affichage se fait via
+  **cage**, un compositeur kiosk minimal installé par le script).
 - Réseau local (pour administrer depuis un téléphone/laptop). Pas besoin d'Internet en exploitation.
-- Pi 3B+ minimum recommandé (le Pi 4 / 5 reste plus confortable pour Chromium).
+- Pi 4B recommandé (le Pi 3 fonctionne mais Chromium y démarre plus lentement).
 
 ## Installation en une commande
 
@@ -36,17 +37,18 @@ tout. Au redémarrage, l'écran affiche ComRoster automatiquement.
 
 ### Ce que fait `setup-pi.sh`
 
-1. Installe les paquets (`python3-venv`, `chromium-browser`, `unclutter`, `curl`).
+1. Installe les paquets (`python3-venv`, `cage`, `chromium-browser`, `curl`).
 2. Crée le venv et installe `requirements.txt`.
 3. Génère une **clé de session** et écrit `/etc/comroster.env` (droits 600) avec :
    - `COMROSTER_BIND=0.0.0.0:8080` (admin accessible sur le LAN),
    - `COMROSTER_INSECURE_COOKIE=true` (LAN fermé sans TLS — voir note sécurité).
 4. Installe et active le **service serveur** `comroster.service` (`Restart=on-failure`).
-5. Installe le **service kiosk** utilisateur (`comroster-kiosk.service`) qui lance
-   [kiosk-run.sh](kiosk-run.sh) : attente de `/healthz`, puis Chromium kiosk avec
-   accélération GPU, anti-veille et curseur masqué.
-6. Active l'**autologin bureau** et le *linger* utilisateur (le kiosk démarre au boot,
-   sans clavier ni intervention).
+5. Installe le **service kiosk** système `comroster-kiosk.service` qui lance
+   `cage -- `[kiosk-run.sh](kiosk-run.sh) sur `tty1` : Chromium plein écran affiche
+   immédiatement le splash « Booting ComRoster », qui bascule sur `/display` dès que
+   le serveur répond. cage donne l'accès écran/entrées via une session logind.
+6. Rend le **boot silencieux** ([quiet-boot.sh](quiet-boot.sh)) : écran noir dès
+   l'allumage (ni logo Raspberry, ni logs), et démarrage en console (pas de bureau).
 
 Le script est **idempotent** : on peut le relancer après une mise à jour du code.
 
@@ -64,7 +66,7 @@ L'IP du Pi : `hostname -I`. Pour une IP stable, réserver un bail DHCP ou fixer 
 cd ~/comroster && git pull
 sudo deploy/setup-pi.sh          # réinstalle deps + services (config conservée)
 sudo systemctl restart comroster
-sudo reboot                      # ou: systemctl --user restart comroster-kiosk
+sudo reboot                      # ou: sudo systemctl restart comroster-kiosk
 ```
 
 ## Désinstallation
@@ -97,11 +99,11 @@ Par défaut un Pi est **Autonome** (serveur + affichage). Pour répartir sur deu
 utile sur un Pi 3 où Chromium et le serveur se disputent les ressources, ou pour
 piloter **plusieurs écrans** depuis un serveur unique — `setup-pi.sh` propose trois rôles :
 
-| Rôle | Fait tourner | Écran | OS conseillé |
-|------|--------------|-------|--------------|
-| **Autonome** (défaut) | serveur + kiosk | oui | Bookworm Desktop |
-| **Serveur** | serveur + admin | non | Bookworm **Lite** possible |
-| **Afficheur** | kiosk seul, vise un serveur distant | oui | Bookworm Desktop |
+| Rôle | Fait tourner | Écran | OS |
+|------|--------------|-------|----|
+| **Autonome** (défaut) | serveur + kiosk cage | oui | Bookworm Lite |
+| **Serveur** | serveur + admin | non | Bookworm Lite |
+| **Afficheur** | kiosk cage seul, vise un serveur distant | oui | Bookworm Lite |
 
 **Procédure :**
 1. Installer le **serveur** d'abord : `sudo deploy/setup-pi.sh` → choix **2**. Noter son IP
@@ -167,10 +169,9 @@ HTTPS (voir [nginx.conf](nginx.conf)) et retirer `COMROSTER_INSECURE_COOKIE`.
 
 | Symptôme | Piste |
 |----------|-------|
-| Écran noir au boot | `systemctl --user status comroster-kiosk` ; vérifier l'autologin bureau (`raspi-config` → System → Boot/Auto Login → Desktop Autologin). |
-| « Chromium introuvable » | `sudo apt install chromium-browser`. |
+| Kiosk absent / écran noir | `journalctl -u comroster-kiosk -b` (erreurs cage/seat/DRM). Vérifier que l'utilisateur est dans les groupes `video render input` : `groups`. |
+| « Chromium introuvable » | `sudo apt install cage chromium-browser`. |
+| cage ne démarre pas (seat/DRM) | Le service ouvre une session logind (`PAMName=login`, `TTYPath=/dev/tty1`). Vérifier qu'aucun `getty@tty1` ne tourne (`systemctl status getty@tty1`) et que le boot est en console (`systemctl get-default` → `multi-user.target`). |
 | Admin inaccessible sur le LAN | Vérifier `COMROSTER_BIND=0.0.0.0:8080` dans `/etc/comroster.env` puis `sudo systemctl restart comroster`. |
 | Page d'erreur au lieu du display | Le serveur n'est pas prêt : `systemctl status comroster` et logs `journalctl -u comroster`. |
-| L'écran s'éteint quand même | Vérifier l'anti-veille (Wake Lock sur 127.0.0.1) ; sous X11 le kiosk coupe le DPMS, sous Wayland voir [kiosk.md](kiosk.md). |
-
-Détails kiosk avancés (flags Chromium, Wayland/X11, blanking) : [kiosk.md](kiosk.md).
+| L'écran s'éteint quand même | `consoleblank=0` est posé par [quiet-boot.sh](quiet-boot.sh) ; si le DPMS s'active encore sous cage, envisager un idle-inhibitor (Wake Lock possible car `127.0.0.1` est un contexte sécurisé). |

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
 # Désinstalle proprement ComRoster d'un Raspberry Pi — inverse de setup-pi.sh.
-# Arrête et retire les services (système + utilisateur), la config et le profil
-# kiosk. Les données (instance/) et le dépôt lui-même sont conservés par défaut.
+# Arrête et retire les services système (serveur, réseau, kiosk cage, agent), la
+# config, le profil kiosk et restaure le boot. Les données (instance/) et le dépôt
+# sont conservés par défaut.
 #
 #     sudo deploy/uninstall-pi.sh
 #
@@ -18,11 +19,6 @@ TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DATA_DIR="$APP_DIR/instance"
 ENV_FILE="/etc/comroster.env"
-KIOSK_DIR="$TARGET_HOME/.config/systemd/user"
-
-run_user() {
-  sudo -u "$TARGET_USER" XDG_RUNTIME_DIR="/run/user/$TARGET_UID" "$@"
-}
 
 echo "▶ Désinstallation de ComRoster (utilisateur : $TARGET_USER, dépôt : $APP_DIR)"
 echo "  → arrêt et suppression des services, de $ENV_FILE et du profil kiosk."
@@ -37,22 +33,29 @@ if read -r ANS </dev/tty 2>/dev/null; then
   case "$ANS" in [nN]*) KEEP_DATA=false ;; esac
 fi
 
-# --- 1. Services système --------------------------------------------------
-echo "▶ Arrêt des services système…"
-systemctl disable --now comroster.service comroster-network.service 2>/dev/null || true
-rm -f /etc/systemd/system/comroster.service /etc/systemd/system/comroster-network.service
+# --- 1. Services système (tous : serveur, réseau, kiosk cage, agent) ------
+echo "▶ Arrêt et suppression des services…"
+systemctl disable --now comroster.service comroster-network.service \
+  comroster-kiosk.service comroster-viewer.service 2>/dev/null || true
+rm -f /etc/systemd/system/comroster.service \
+      /etc/systemd/system/comroster-network.service \
+      /etc/systemd/system/comroster-kiosk.service \
+      /etc/systemd/system/comroster-viewer.service
 systemctl daemon-reload
+# Réactive la console sur tty1 (cage la prenait via Conflicts=getty@tty1)
+systemctl enable getty@tty1.service 2>/dev/null || true
 
-# --- 2. Services utilisateur (kiosk + agent afficheur) --------------------
-echo "▶ Arrêt des services utilisateur…"
-run_user systemctl --user disable --now comroster-kiosk.service comroster-viewer.service 2>/dev/null || true
-rm -f "$KIOSK_DIR/comroster-kiosk.service" "$KIOSK_DIR/comroster-viewer.service"
-run_user systemctl --user daemon-reload 2>/dev/null || true
-
-# --- 3. Configuration + profil kiosk -------------------------------------
+# --- 2. Configuration + profil kiosk -------------------------------------
 echo "▶ Suppression de la configuration…"
 rm -f "$ENV_FILE"
 rm -rf "$TARGET_HOME/.comroster-kiosk"
+
+# --- 3. Restauration du boot (annule quiet-boot.sh) ----------------------
+echo "▶ Restauration du boot (config.txt / cmdline.txt)…"
+for f in /boot/firmware/config.txt /boot/config.txt \
+         /boot/firmware/cmdline.txt /boot/cmdline.txt; do
+  [ -f "$f.comroster.bak" ] && mv "$f.comroster.bak" "$f"
+done
 
 # --- 4. Données -----------------------------------------------------------
 if $KEEP_DATA; then
@@ -62,14 +65,9 @@ else
   rm -rf "$DATA_DIR"
 fi
 
-# --- 5. Maintien de session utilisateur (linger) -------------------------
-# Plus aucun service --user ComRoster : on retire le linger posé par setup-pi.sh.
-loginctl disable-linger "$TARGET_USER" 2>/dev/null || true
-
 echo ""
 echo "✅ ComRoster désinstallé (rôle quelconque)."
 echo "   • Dépôt et venv CONSERVÉS ($APP_DIR) — supprime-les à la main si besoin :"
 echo "       rm -rf \"$APP_DIR\""
-echo "   • Paquets apt (chromium, unclutter…) conservés : partagés, à retirer toi-même si dédiés :"
-echo "       sudo apt purge chromium-browser unclutter"
-echo "   • Autologin bureau inchangé : sudo raspi-config → System → Boot pour le modifier."
+echo "   • Paquets apt (cage, chromium…) conservés : à retirer toi-même si dédiés :"
+echo "       sudo apt purge cage chromium-browser"

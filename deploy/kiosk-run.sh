@@ -1,7 +1,7 @@
 #!/bin/sh
 # Lance Chromium en kiosk plein écran sur l'affichage ComRoster.
-# Pointe sur 127.0.0.1 (contexte sécurisé → Screen Wake Lock actif).
-# Optimisé Raspberry Pi : accélération GPU activée.
+# Prévu pour être lancé par cage (Wayland mono-app) : `cage -- kiosk-run.sh`.
+# Pointe sur 127.0.0.1 (contexte sécurisé → Screen Wake Lock possible).
 set -eu
 
 ROLE="${COMROSTER_ROLE:-autonomous}"
@@ -35,26 +35,11 @@ if [ "$WAIT_SERVER" = "1" ]; then
   until curl -sf "$HEALTH" >/dev/null 2>&1; do sleep 1; done
 fi
 
-# X11 : couper l'économiseur d'écran / DPMS (sans effet ni erreur sous Wayland)
-if [ -n "${DISPLAY:-}" ] && command -v xset >/dev/null 2>&1; then
-  xset s off 2>/dev/null || true
-  xset s noblank 2>/dev/null || true
-  xset -dpms 2>/dev/null || true
-fi
-
-# Masquer le curseur si unclutter est présent
-command -v unclutter >/dev/null 2>&1 && unclutter -idle 0 >/dev/null 2>&1 &
-
-# Rendu : Wayland natif si la session l'est (Bookworm/labwc), sinon réglages X11.
-# --use-gl=egl (ancien) demande « gl=none » et casse le GPU sur Chromium récent → retiré.
-if [ "${XDG_SESSION_TYPE:-}" = "wayland" ] || [ -n "${WAYLAND_DISPLAY:-}" ]; then
-  RENDER_FLAGS="--ozone-platform=wayland"
-else
-  RENDER_FLAGS="--enable-gpu-rasterization --ignore-gpu-blocklist"
-fi
-
+# cage fournit un affichage Wayland → Chromium en Ozone/Wayland natif.
+# (Pas de xset/unclutter : c'étaient des outils X11, inutiles sous cage.)
 exec "$CHROME" \
   --kiosk --incognito --start-fullscreen \
+  --ozone-platform=wayland \
   --noerrordialogs --disable-infobars --disable-session-crashed-bubble \
   --no-first-run --fast --fast-start \
   --check-for-update-interval=31536000 \
@@ -62,6 +47,5 @@ exec "$CHROME" \
   --autoplay-policy=no-user-gesture-required \
   --password-store=basic \
   --disable-features=Translate,TranslateUI \
-  $RENDER_FLAGS \
   --user-data-dir="$PROFILE" \
   "$URL"
