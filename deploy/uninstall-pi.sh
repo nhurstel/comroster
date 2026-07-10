@@ -14,7 +14,6 @@ set -euo pipefail
 # --- Contexte -------------------------------------------------------------
 [ "$(id -u)" -eq 0 ] || { echo "Lancer avec sudo : sudo deploy/uninstall-pi.sh"; exit 1; }
 TARGET_USER="${SUDO_USER:-pi}"
-TARGET_UID="$(id -u "$TARGET_USER")"
 TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DATA_DIR="$APP_DIR/instance"
