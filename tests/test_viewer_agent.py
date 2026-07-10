@@ -91,3 +91,8 @@ def test_qr_is_svg(agent):
     status, body = _get(base, "/qr.svg")
     assert status == 200
     assert "<svg" in body
+
+
+def test_main_callable_exists():
+    from comroster import viewer_agent
+    assert callable(viewer_agent.main)

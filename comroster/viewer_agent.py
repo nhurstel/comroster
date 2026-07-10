@@ -1,6 +1,7 @@
 import http.server
 import io
 import json
+import os
 import urllib.parse
 
 import segno
@@ -94,3 +95,15 @@ def make_handler(data_dir):
 
 def build_server(data_dir, port=8081):
     return http.server.HTTPServer(("0.0.0.0", port), make_handler(data_dir))
+
+
+def main():
+    data_dir = os.environ.get("DATA_DIR", os.path.join(os.getcwd(), "instance"))
+    port = int(os.environ.get("COMROSTER_VIEWER_PORT", "8081"))
+    srv = build_server(data_dir, port=port)
+    print(f"ComRoster viewer-agent sur 0.0.0.0:{port} (data={data_dir})")
+    srv.serve_forever()
+
+
+if __name__ == "__main__":
+    main()
