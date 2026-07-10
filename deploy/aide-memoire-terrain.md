@@ -101,6 +101,14 @@ sudo systemctl restart comroster
 sudo reboot                      # ou : systemctl --user restart comroster-kiosk
 ```
 
+## 5b. Repartir de zéro / désinstaller
+
+| Besoin | Commande |
+|--------|----------|
+| Réinitialiser la config (garder l'install) | `rm -rf ~/comroster/instance/*` puis `sudo systemctl restart comroster` |
+| Désinstaller proprement | `sudo deploy/uninstall-pi.sh` (confirme par `oui`, puis conserver/effacer les données) |
+| Tout retirer y compris le dépôt | `sudo deploy/uninstall-pi.sh` puis `rm -rf ~/comroster` |
+
 ---
 
 ## 6. Services du boîtier (pour mémoire)
