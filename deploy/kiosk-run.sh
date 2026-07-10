@@ -4,8 +4,16 @@
 # Optimisé Raspberry Pi : accélération GPU activée.
 set -eu
 
-URL="${COMROSTER_KIOSK_URL:-http://127.0.0.1:8080/display}"
-HEALTH="${COMROSTER_HEALTH_URL:-http://127.0.0.1:8080/healthz}"
+ROLE="${COMROSTER_ROLE:-autonomous}"
+if [ "$ROLE" = "viewer" ]; then
+  # Afficheur : le kiosk ouvre l'agent local, qui teste le serveur distant et
+  # bascule (display distant ou page de config). Attente de l'agent, pas du serveur.
+  URL="${COMROSTER_KIOSK_URL:-http://127.0.0.1:8081/}"
+  HEALTH="${COMROSTER_HEALTH_URL:-http://127.0.0.1:8081/api/server-status}"
+else
+  URL="${COMROSTER_KIOSK_URL:-http://127.0.0.1:8080/display}"
+  HEALTH="${COMROSTER_HEALTH_URL:-http://127.0.0.1:8080/healthz}"
+fi
 PROFILE="${HOME}/.comroster-kiosk"
 
 # Binaire Chromium (Bookworm = chromium, anciens = chromium-browser)
