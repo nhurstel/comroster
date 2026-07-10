@@ -14,7 +14,6 @@ set -euo pipefail
 # --- Contexte -------------------------------------------------------------
 [ "$(id -u)" -eq 0 ] || { echo "Lancer avec sudo : sudo deploy/uninstall-pi.sh"; exit 1; }
 TARGET_USER="${SUDO_USER:-pi}"
-TARGET_UID="$(id -u "$TARGET_USER")"
 TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DATA_DIR="$APP_DIR/instance"
@@ -50,11 +49,16 @@ echo "▶ Suppression de la configuration…"
 rm -f "$ENV_FILE"
 rm -rf "$TARGET_HOME/.comroster-kiosk"
 
-# --- 3. Restauration du boot (annule quiet-boot.sh) ----------------------
-echo "▶ Restauration du boot (config.txt / cmdline.txt)…"
+# --- 3. Restauration du boot (annule quiet-boot.sh) + watchdog -----------
+echo "▶ Restauration du boot (config.txt / cmdline.txt) et watchdog…"
+rm -f /etc/systemd/system.conf.d/comroster-watchdog.conf
 for f in /boot/firmware/config.txt /boot/config.txt \
          /boot/firmware/cmdline.txt /boot/cmdline.txt; do
   [ -f "$f.comroster.bak" ] && mv "$f.comroster.bak" "$f"
+done
+# Retire les lignes ajoutées à config.txt (watchdog) si le .bak ne les couvrait pas
+for f in /boot/firmware/config.txt /boot/config.txt; do
+  [ -f "$f" ] && sed -i -E '/^# ComRoster : watchdog/d; /^dtparam=watchdog=on/d' "$f"
 done
 
 # --- 4. Données -----------------------------------------------------------

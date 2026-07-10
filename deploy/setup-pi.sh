@@ -15,8 +15,6 @@ set -euo pipefail
 # --- Contexte -------------------------------------------------------------
 [ "$(id -u)" -eq 0 ] || { echo "Lancer avec sudo : sudo deploy/setup-pi.sh"; exit 1; }
 TARGET_USER="${SUDO_USER:-pi}"
-TARGET_UID="$(id -u "$TARGET_USER")"
-TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 VENV="$APP_DIR/.venv"
 DATA_DIR="$APP_DIR/instance"
@@ -54,11 +52,11 @@ RUNS_SERVER=false
 # --- 1. Dépendances système ----------------------------------------------
 echo "▶ Installation des paquets…"
 apt-get update -qq
-PKGS="python3 python3-venv python3-pip curl ca-certificates"
+PKGS=(python3 python3-venv python3-pip curl ca-certificates)
 # Affichage kiosk minimal : cage (compositeur mono-app) + Chromium + police mono
 # pour le splash. Aucun bureau, aucun gestionnaire de fenêtres.
-$NEEDS_DISPLAY && PKGS="$PKGS cage chromium-browser fonts-dejavu-core"
-apt-get install -y --no-install-recommends $PKGS
+if $NEEDS_DISPLAY; then PKGS+=(cage chromium-browser fonts-dejavu-core); fi
+apt-get install -y --no-install-recommends "${PKGS[@]}"
 
 # --- 2. Environnement Python ---------------------------------------------
 # Tous les rôles installent requirements.txt (segno inclus). Sur l'afficheur,
@@ -155,6 +153,22 @@ systemctl enable comroster-network.service
 # ci-dessus, volontairement sans dépendance réseau).
 systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
 systemctl disable systemd-networkd-wait-online.service 2>/dev/null || true
+
+# --- 4c. Watchdog matériel : redémarre le Pi s'il se fige -----------------
+# systemd « nourrit » le watchdog matériel du Pi (bcm2835_wdt). Si le système
+# ne répond plus (kernel hang, blocage GPU), le Pi redémarre tout seul.
+echo "▶ Watchdog matériel…"
+CONFIG_TXT=/boot/firmware/config.txt; [ -f "$CONFIG_TXT" ] || CONFIG_TXT=/boot/config.txt
+if [ -f "$CONFIG_TXT" ] && ! grep -q '^dtparam=watchdog=on' "$CONFIG_TXT"; then
+  printf '\n# ComRoster : watchdog matériel\ndtparam=watchdog=on\n' >> "$CONFIG_TXT"
+fi
+install -d /etc/systemd/system.conf.d
+cat > /etc/systemd/system.conf.d/comroster-watchdog.conf <<'WDOG'
+[Manager]
+# systemd redémarre le matériel s'il ne peut plus pinguer le watchdog en 15 s.
+RuntimeWatchdogSec=15
+RebootWatchdogSec=2min
+WDOG
 
 # --- 5. Affichage kiosk via cage (Wayland mono-app, pas de bureau) --------
 # cage lance Chromium plein écran directement sur tty1, en service SYSTÈME.

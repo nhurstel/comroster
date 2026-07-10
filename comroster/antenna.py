@@ -1,6 +1,6 @@
 import ipaddress
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, jsonify, current_app
 
 from .security import login_required, exclusive_state, json_body, state_lock
 from .services import model

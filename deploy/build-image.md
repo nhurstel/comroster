@@ -85,6 +85,35 @@ Réduire l'image (optionnel, pour un fichier plus léger et un flash plus rapide
 [PiShrink](https://github.com/Drewsif/PiShrink) — `sudo pishrink.sh -z comroster-master.img`.
 PiShrink active aussi l'**auto-expansion** au 1er boot (la partition remplit toute la SD).
 
+## 3b. Racine en lecture seule + données persistantes (recommandé en prod)
+
+Pour qu'une **coupure de courant** ne corrompe jamais la carte SD, on met la racine en
+**lecture seule (overlayfs)** : les écritures système vont en RAM. Mais les données
+ComRoster (`instance/` : mot de passe admin, config antenne, historique) doivent, elles,
+**persister** — donc vivre sur une partition inscriptible distincte de la racine.
+
+**À faire sur le Pi maître, avant de cloner l'image :**
+
+1. Créer une petite partition **ext4** dédiée aux données (sur la SD après le rootfs, ou
+   sur une clé USB). Exemple avec une partition déjà créée `/dev/mmcblk0p3` :
+   ```bash
+   sudo mkfs.ext4 -L comroster-data /dev/mmcblk0p3
+   ```
+2. La monter **à la place** de `instance/` via `/etc/fstab` (par label, robuste) :
+   ```
+   LABEL=comroster-data  /home/comroster/comroster/instance  ext4  defaults,noatime  0  2
+   ```
+   Puis `sudo mount -a` et recréer l'arborescence si besoin (`setup-pi.sh` la régénère).
+3. Activer l'overlay (le script **refuse** si `instance/` n'est pas sur une partition
+   persistante — garde-fou) :
+   ```bash
+   sudo deploy/readonly-fs.sh
+   sudo reboot
+   ```
+
+Pour modifier la config d'un boîtier en lecture seule : `sudo deploy/readonly-fs.sh off`,
+faire les changements, puis réactiver. En exploitation, plus rien n'écrit sur la racine.
+
 ## 4. Distribuer
 
 Flasher `comroster-master.img` sur chaque carte SD (Raspberry Pi Imager → « Utiliser une

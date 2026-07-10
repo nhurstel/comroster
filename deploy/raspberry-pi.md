@@ -85,13 +85,14 @@ les retirer à la main si besoin. Fonctionne quel que soit le rôle (autonome/se
 
 ## Robustesse (« ça s'arrête plus »)
 
-- `Restart=on-failure` sur le serveur **et** le kiosk → relance auto après un crash.
+- `Restart=on-failure`/`always` sur le serveur **et** le kiosk → relance auto après un crash.
 - Le kiosk **attend** `/healthz` avant d'afficher : pas d'écran d'erreur si le serveur
   démarre un peu après.
-- **Coupures de courant** : pour éviter toute corruption de la carte SD, envisager le mode
-  **overlayfs en lecture seule** (`raspi-config` → Performance → Overlay File System).
-  Dans ce cas, garder `DATA_DIR` sur une partition inscriptible si l'admin doit persister
-  entre redémarrages, ou accepter un état volatil.
+- **Watchdog matériel** (activé par `setup-pi.sh`) : si le Pi se **fige** (kernel hang,
+  blocage GPU), systemd ne peut plus « nourrir » le watchdog → le Pi **redémarre tout seul**
+  au bout de ~15 s. Réglé dans `/etc/systemd/system.conf.d/comroster-watchdog.conf`.
+- **Coupures de courant** : le mode **racine en lecture seule (overlayfs)** protège la carte
+  SD de la corruption. Voir [readonly-fs.sh](readonly-fs.sh) — `instance/` reste inscriptible.
 
 ## Déploiement 2 Pi (serveur + afficheur)
 
