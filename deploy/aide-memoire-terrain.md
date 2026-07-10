@@ -64,6 +64,9 @@ Accès distant : `ssh pi@comroster.local`
 | Connaître l'IP actuelle du Pi | `hostname -I` |
 | Config réseau enregistrée | `cat instance/network.json` (le mot de passe Wi-Fi n'apparaît pas via l'admin, mais il est en clair dans ce fichier — normal) |
 | Revenir au réseau auto en urgence | `sudo nmcli con mod "Wired connection 1" ipv4.method auto && sudo reboot` |
+| **(2 Pi)** Afficheur bloqué sur « Serveur introuvable » | Vérifier `cat instance/viewer.json` et que le serveur répond : `curl http://<ip-serveur>:8080/healthz` |
+| **(2 Pi)** Reconfigurer un afficheur | Rebooter et appuyer sur ⚙ pendant les 5 s, ou ouvrir `http://<ip-afficheur>:8081/config` |
+| **(2 Pi)** État de l'agent afficheur | `systemctl --user status comroster-viewer` |
 
 ---
 
