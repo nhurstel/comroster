@@ -28,9 +28,23 @@
     const params = new URLSearchParams(location.search);
     const next   = params.get("next")   || "http://127.0.0.1:8080/display";
     const health = params.get("health") || "http://127.0.0.1:8080/healthz";
+    const MIN_MS = 1000;   // durée minimale d'affichage (garde l'effet visible)
 
     const logEl = document.getElementById("log");
     const brand = document.getElementById("brand");
+
+    // 1) On sonde le serveur IMMÉDIATEMENT, en parallèle de l'animation, pour
+    //    basculer dès qu'il répond — pas d'attente artificielle.
+    let serverReady = false, minElapsed = false;
+    function maybeGo() { if (serverReady && minElapsed) location.href = next; }
+    setTimeout(() => { minElapsed = true; maybeGo(); }, MIN_MS);
+    (function check() {
+      fetch(health, { mode: "no-cors", cache: "no-store" })
+        .then(() => { serverReady = true; maybeGo(); })
+        .catch(() => setTimeout(check, 300));
+    })();
+
+    // 2) Animation « boot log » (purement esthétique, n'attend rien).
     const lines = [
       ["dim", "[ OK ] "], ["ok", "Intercom roster service\n"],
       ["dim", "[ OK ] "], ["ok", "Chargement des affectations beltpack\n"],
@@ -38,39 +52,23 @@
       ["dim", "[ .. ] "], ["bang", "Connexion au serveur d'affichage"],
     ];
     let i = 0;
+    const dotSpan = document.createElement("span");
     function type() {
       if (i < lines.length) {
         const [cls, txt] = lines[i++];
         const s = document.createElement("span");
         s.className = cls; s.textContent = txt;
         logEl.appendChild(s);
-        setTimeout(type, 260);
+        setTimeout(type, 220);
       } else {
         brand.hidden = false;
-        poll();          // toutes les lignes affichées → on attend le serveur
+        logEl.appendChild(dotSpan);
+        (function animate() {
+          dotSpan.textContent = ".".repeat((dotSpan.textContent.length + 1) % 4);
+          setTimeout(animate, 350);
+        })();
       }
     }
-
-    let dots = 0;
-    async function poll() {
-      const dotSpan = document.createElement("span");
-      logEl.appendChild(dotSpan);
-      (function animate() {
-        dots = (dots + 1) % 4;
-        dotSpan.textContent = ".".repeat(dots);
-        pollTimer = setTimeout(animate, 400);
-      })();
-      check();
-    }
-    let pollTimer = null;
-    async function check() {
-      let up = false;
-      try { await fetch(health, { mode: "no-cors", cache: "no-store" }); up = true; }
-      catch (e) { up = false; }
-      if (up) { location.href = next; return; }
-      setTimeout(check, 800);
-    }
-
     type();
   </script>
 </body>

@@ -104,7 +104,9 @@ if $RUNS_SERVER; then
   cat > /etc/systemd/system/comroster.service <<EOF
 [Unit]
 Description=ComRoster — serveur (appliance)
-After=network.target
+# Aucune dépendance réseau : l'affichage est LOCAL (127.0.0.1), gunicorn doit
+# démarrer au plus tôt. Le réseau (nmcli) se configure en parallèle ; le bind
+# 0.0.0.0 écoute aussi les interfaces qui montent ensuite (admin distant OK).
 
 [Service]
 Type=simple
@@ -133,7 +135,8 @@ cat > /etc/systemd/system/comroster-network.service <<EOF
 Description=ComRoster — application de la configuration réseau
 After=NetworkManager.service
 Wants=NetworkManager.service
-Before=comroster.service
+# Volontairement PAS de Before=comroster.service : le serveur n'attend pas la
+# configuration réseau (affichage local). Le réseau s'applique en parallèle.
 
 [Service]
 Type=oneshot
@@ -144,6 +147,12 @@ WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
 systemctl enable comroster-network.service
+
+# Boot rapide : ne pas bloquer multi-user.target en attendant le réseau « online ».
+# L'appliance répond en local ; le réseau se configure en parallèle (cf. services
+# ci-dessus, volontairement sans dépendance réseau).
+systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
+systemctl disable systemd-networkd-wait-online.service 2>/dev/null || true
 
 # --- 5. Services utilisateur (kiosk + agent afficheur) -------------------
 # Les services --user ne peuvent pas lire /etc/comroster.env (root 600) :

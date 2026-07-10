@@ -1,6 +1,7 @@
 [Unit]
 Description=ComRoster — tableau d'affectation beltpacks intercom
-After=network.target
+# Démarrage au plus tôt : l'affichage local (127.0.0.1) n'attend pas le réseau.
+# (Derrière Nginx : le proxy retentera tant que gunicorn n'écoute pas encore.)
 
 [Service]
 Type=simple
