@@ -1,6 +1,6 @@
 import re
 
-from flask import Blueprint, request, jsonify, current_app, render_template
+from flask import Blueprint, jsonify, current_app, render_template
 
 from .security import login_required, exclusive_state, json_body
 from .services import model

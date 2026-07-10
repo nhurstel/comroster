@@ -123,3 +123,21 @@ def test_antenna_dialog_opens_wizard_when_unconfigured(page, live_server):
     page.wait_for_selector("#antenna-wizard:not([hidden])")
     assert page.is_hidden("#antenna-dashboard")
     assert page.is_visible("#wiz-ip")
+
+
+def test_display_requests_screen_wake_lock(page, live_server):
+    # Anti-veille : /display doit demander un Screen Wake Lock au chargement.
+    # On instrumente l'API AVANT le chargement pour capturer l'appel (le vrai
+    # verrou peut être refusé en headless, peu importe : on teste l'intention).
+    page.add_init_script(
+        """
+        window.__wakeLockType = null;
+        const fake = { addEventListener() {}, release() { return Promise.resolve(); } };
+        const spy = (type) => { window.__wakeLockType = type; return Promise.resolve(fake); };
+        if (navigator.wakeLock) { navigator.wakeLock.request = spy; }
+        else { Object.defineProperty(navigator, 'wakeLock', { value: { request: spy }, configurable: true }); }
+        """
+    )
+    page.goto(live_server + "/display")
+    page.wait_for_timeout(400)
+    assert page.evaluate("window.__wakeLockType") == "screen"
