@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booting ComRoster…</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    body {
+      display: flex; align-items: center; justify-content: center;
+      font-family: "DejaVu Sans Mono", "Courier New", monospace;
+      color: #33ff66; font-size: 2.2vmin; text-shadow: 0 0 6px rgba(51,255,102,.45);
+    }
+    #term { width: min(80ch, 92vw); white-space: pre-wrap; line-height: 1.5; }
+    .dim { color: #1f9c46; }
+    .ok  { color: #33ff66; }
+    .bang{ color: #ffd23f; }
+    #cursor { display: inline-block; width: .6ch; background: #33ff66; animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    #brand { margin-top: 1.5em; font-size: 3.2vmin; letter-spacing: .25ch; color: #7CFFB2; }
+  </style>
+</head>
+<body>
+  <div id="term"><span id="log"></span><span id="cursor">&nbsp;</span>
+    <div id="brand" hidden>◤ ComRoster ◢</div>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const next   = params.get("next")   || "http://127.0.0.1:8080/display";
+    const health = params.get("health") || "http://127.0.0.1:8080/healthz";
+
+    const logEl = document.getElementById("log");
+    const brand = document.getElementById("brand");
+    const lines = [
+      ["dim", "[ OK ] "], ["ok", "Intercom roster service\n"],
+      ["dim", "[ OK ] "], ["ok", "Chargement des affectations beltpack\n"],
+      ["dim", "[ OK ] "], ["ok", "Interface d'administration\n"],
+      ["dim", "[ .. ] "], ["bang", "Connexion au serveur d'affichage"],
+    ];
+    let i = 0;
+    function type() {
+      if (i < lines.length) {
+        const [cls, txt] = lines[i++];
+        const s = document.createElement("span");
+        s.className = cls; s.textContent = txt;
+        logEl.appendChild(s);
+        setTimeout(type, 260);
+      } else {
+        brand.hidden = false;
+        poll();          // toutes les lignes affichées → on attend le serveur
+      }
+    }
+
+    let dots = 0;
+    async function poll() {
+      const dotSpan = document.createElement("span");
+      logEl.appendChild(dotSpan);
+      (function animate() {
+        dots = (dots + 1) % 4;
+        dotSpan.textContent = ".".repeat(dots);
+        pollTimer = setTimeout(animate, 400);
+      })();
+      check();
+    }
+    let pollTimer = null;
+    async function check() {
+      let up = false;
+      try { await fetch(health, { mode: "no-cors", cache: "no-store" }); up = true; }
+      catch (e) { up = false; }
+      if (up) { location.href = next; return; }
+      setTimeout(check, 800);
+    }
+
+    type();
+  </script>
+</body>
+</html>
