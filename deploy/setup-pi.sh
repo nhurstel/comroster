@@ -180,7 +180,7 @@ if $NEEDS_DISPLAY; then
 
   # Accès matériel (écran DRM, entrées) pour l'utilisateur du kiosk.
   for g in video render input tty; do
-    getent group "$g" >/dev/null 2>&1 && usermod -aG "$g" "$TARGET_USER" || true
+    if getent group "$g" >/dev/null 2>&1; then usermod -aG "$g" "$TARGET_USER" || true; fi
   done
 
   cat > /etc/systemd/system/comroster-kiosk.service <<EOF
