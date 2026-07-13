@@ -98,7 +98,7 @@ def test_live_returns_online_map(auth_client, app, monkeypatch):
     r = auth_client.get("/api/antenna/live")
     assert r.status_code == 200
     assert r.get_json() == {"connected": True, "beltpacks": {
-        "5": {"online": True, "battery": 65, "charging": False, "signal": 4},
+        "5": {"online": True, "battery": 65, "charging": False, "signal": 4, "raw_signal": 0},
         "7": {"online": False},
     }}
 

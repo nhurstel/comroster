@@ -176,6 +176,7 @@ class AntennaClient:
                     "battery": _battery_percent(bat),
                     "charging": bool(bat.get("usbPower")),
                     "signal": _signal_bars(cb.get("signalLevel")),
+                    "raw_signal": cb.get("signalLevel"),   # brut, pour le calibrage
                 }
         beltpacks = {bp["number"]: live_by_id.get(bp["id"], {"online": False}) for bp in config}
         self._live_cache = {"connected": True, "beltpacks": beltpacks}
