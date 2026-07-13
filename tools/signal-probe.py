@@ -22,6 +22,8 @@ import time
 import urllib.request
 
 BASE = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "http://127.0.0.1:8080"
+if not BASE.startswith(("http://", "https://")):
+    BASE = "http://" + BASE    # tolère « 192.168.1.50:8080 » sans le schéma
 URL = BASE + "/api/live"       # endpoint public (pas d'authentification)
 
 
