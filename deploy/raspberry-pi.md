@@ -25,11 +25,16 @@ Raspberry Pi
 ## Installation en une commande
 
 ```bash
+sudo apt update && sudo apt install -y git   # git n'est pas préinstallé sur Lite
 git clone <url-du-dépôt> ~/comroster
 cd ~/comroster
 sudo deploy/setup-pi.sh
 sudo reboot
 ```
+
+> 💡 Sur un Pi lent, lance l'installation dans `tmux` (`sudo apt install -y tmux` puis
+> `tmux`) : si le SSH se coupe pendant les téléchargements, l'install continue et tu
+> la récupères avec `tmux attach`.
 
 `setup-pi.sh` demande d'abord le **rôle** du boîtier (voir la section « Déploiement
 2 Pi » plus bas) ; par défaut (**Autonome**), un simple Entrée suffit et le Pi fait
