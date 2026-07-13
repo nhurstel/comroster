@@ -116,7 +116,8 @@ def test_live_status_returns_online_map(tmp_path, monkeypatch):
     monkeypatch.setattr(c, "_request", _fake_ok)
     c.connect("192.168.1.11", "")
     assert c.live_status() == {"connected": True, "beltpacks": {
-        "5": {"online": True, "battery": 65, "charging": False, "signal": 4},
+        # raw_signal = signalLevel BRUT de l'antenne (pour le calibrage des barres)
+        "5": {"online": True, "battery": 65, "charging": False, "signal": 4, "raw_signal": 0},
         "7": {"online": False},
     }}
 
