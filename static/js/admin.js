@@ -12,12 +12,14 @@
   const state = {
     data: INITIAL || { title: "", subtitle: "", theme: "night", groups: [], people: [], beltpack_roles: {} },
     drag: null,
+    dragGroup: null,        // id du groupe en cours de réordonnancement
     context: null,
     busy: false,
     unpublished: false,
     editingPersonId: null,
     selectionMode: false,
     selection: new Set(),
+    lastSelectedId: null,   // pour la sélection par plage (MAJ+clic)
   };
 
   const el = {
@@ -158,10 +160,10 @@
     live.append(batt);
     card.append(bp, who, live);
 
-    // Mode sélection : checkbox + clic pour cocher, pas de drag
+    // Mode sélection : checkbox + clic pour cocher (MAJ = plage) + drag de la sélection
     if (state.selectionMode) {
       card.classList.add("selectable");
-      card.draggable = false;
+      card.draggable = true;
       if (state.selection.has(person.id)) card.classList.add("selected");
       const chk = document.createElement("input");
       chk.type = "checkbox";
@@ -171,12 +173,25 @@
       card.prepend(chk);
       card.addEventListener("click", (e) => {
         e.preventDefault();
-        if (state.selection.has(person.id)) state.selection.delete(person.id);
-        else state.selection.add(person.id);
-        chk.checked = state.selection.has(person.id);
-        card.classList.toggle("selected", state.selection.has(person.id));
+        if (e.shiftKey && state.lastSelectedId) {
+          selectRange(state.lastSelectedId, person.id);        // MAJ+clic : plage
+        } else if (state.selection.has(person.id)) {
+          state.selection.delete(person.id);
+        } else {
+          state.selection.add(person.id);
+        }
+        state.lastSelectedId = person.id;
+        render();                                              // reflète la (dé)sélection
         updateSelectionBar();
       });
+      card.addEventListener("dragstart", (e) => {
+        if (!state.selection.has(person.id)) state.selection.add(person.id);
+        const ids = [...state.selection];
+        state.drag = { multi: true, ids, source, blockId: blockId || null };
+        card.classList.add("dragging");
+        if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", ids.join(",")); } catch (_) { /* IE */ } }
+      });
+      card.addEventListener("dragend", () => { card.classList.remove("dragging"); state.drag = null; });
       return card;
     }
 
@@ -226,6 +241,19 @@
     renderAvailable();
   });
 
+  // Déplace un groupe à la position d'un autre et renumérote les 'order'.
+  function moveGroup(draggedId, targetId) {
+    if (draggedId === targetId) return;
+    const groups = [...state.data.groups].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const from = groups.findIndex((g) => g.id === draggedId);
+    const to = groups.findIndex((g) => g.id === targetId);
+    if (from < 0 || to < 0) return;
+    const [moved] = groups.splice(from, 1);
+    groups.splice(to, 0, moved);
+    groups.forEach((g, i) => { g.order = i; });
+    markDirty(); render();
+  }
+
   function renderBlocks() {
     el.blocks.innerHTML = "";
     const groups = [...state.data.groups].sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -236,6 +264,14 @@
       wrap.className = "admin-block";
       wrap.dataset.blockId = block.id;
       wrap.style.setProperty("--block-accent", sanitizeColor(block.color) || "var(--primary)");
+      // Réordonnancement des groupes : dépose un groupe (glissé par son titre) sur un autre.
+      wrap.addEventListener("dragover", (e) => {
+        if (state.dragGroup && state.dragGroup !== block.id) { e.preventDefault(); wrap.classList.add("group-drop-target"); }
+      });
+      wrap.addEventListener("dragleave", (e) => { if (e.target === wrap) wrap.classList.remove("group-drop-target"); });
+      wrap.addEventListener("drop", (e) => {
+        if (state.dragGroup && state.dragGroup !== block.id) { e.preventDefault(); wrap.classList.remove("group-drop-target"); moveGroup(state.dragGroup, block.id); }
+      });
 
       const header = document.createElement("div");
       header.className = "block-header";
@@ -250,6 +286,14 @@
       badge.className = "badge";
       badge.textContent = `${members.length} affectation${members.length > 1 ? "s" : ""}`;
       titleWrap.append(swatch, h3, badge);
+      // Poignée de réordonnancement : on glisse le groupe par son titre.
+      titleWrap.draggable = true;
+      titleWrap.title = "Glisser pour réordonner les groupes";
+      titleWrap.addEventListener("dragstart", (e) => {
+        state.dragGroup = block.id; wrap.classList.add("group-dragging");
+        if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", "group"); } catch (_) { /* IE */ } }
+      });
+      titleWrap.addEventListener("dragend", () => { state.dragGroup = null; wrap.classList.remove("group-dragging"); });
 
       const actions = document.createElement("div");
       actions.className = "block-actions";
@@ -264,9 +308,14 @@
       const list = document.createElement("div");
       list.className = "block-items";
       list.dataset.blockId = block.id;
-      list.addEventListener("dragover", (e) => { e.preventDefault(); list.dataset.dragover = "true"; if (e.dataTransfer) e.dataTransfer.dropEffect = "move"; });
+      list.addEventListener("dragover", (e) => { if (state.dragGroup) return; e.preventDefault(); list.dataset.dragover = "true"; if (e.dataTransfer) e.dataTransfer.dropEffect = "move"; });
       list.addEventListener("dragleave", () => { delete list.dataset.dragover; });
-      list.addEventListener("drop", (e) => { e.preventDefault(); delete list.dataset.dragover; if (state.drag) assign(state.drag.userId, block.id); });
+      list.addEventListener("drop", (e) => {
+        e.preventDefault(); delete list.dataset.dragover;
+        if (!state.drag || state.dragGroup) return;
+        if (state.drag.multi) assignMany(state.drag.ids, block.id);
+        else assign(state.drag.userId, block.id);
+      });
 
       if (members.length) members.forEach((p) => list.append(personCard(p, "block", block.id)));
       else {
@@ -353,6 +402,23 @@
   function removeFromGroup(personId) {
     const p = findPerson(personId);
     if (p && p.group_id) { p.group_id = null; markDirty(); render(); }
+  }
+  // Affectation/retrait en lot (drag d'une sélection multiple)
+  function assignMany(ids, groupId) {
+    ids.forEach((id) => { const p = findPerson(id); if (p) p.group_id = groupId; });
+    exitSelection(); markDirty(); render();
+  }
+  function removeManyFromGroup(ids) {
+    ids.forEach((id) => { const p = findPerson(id); if (p) p.group_id = null; });
+    exitSelection(); markDirty(); render();
+  }
+  // Sélection d'une plage (MAJ+clic) selon l'ordre visuel des cartes.
+  function selectRange(fromId, toId) {
+    const ids = [...document.querySelectorAll(".person[data-user-id]")].map((c) => c.dataset.userId);
+    let i = ids.indexOf(fromId), j = ids.indexOf(toId);
+    if (i < 0 || j < 0) { state.selection.add(toId); return; }
+    if (i > j) { const t = i; i = j; j = t; }
+    for (let k = i; k <= j; k++) state.selection.add(ids[k]);
   }
   function deletePerson(personId) {
     state.data.people = state.data.people.filter((p) => p.id !== personId);
@@ -562,7 +628,9 @@
   el.available.addEventListener("drop", (e) => {
     e.preventDefault();
     delete el.available.dataset.dragover;
-    if (state.drag && state.drag.source === "block") removeFromGroup(state.drag.userId);
+    if (!state.drag) return;
+    if (state.drag.multi) removeManyFromGroup(state.drag.ids.filter((id) => { const p = findPerson(id); return p && p.group_id; }));
+    else if (state.drag.source === "block") removeFromGroup(state.drag.userId);
   });
 
   /* ---------- Branchements ---------- */
@@ -862,6 +930,7 @@
   function exitSelection() {
     state.selectionMode = false;
     state.selection.clear();
+    state.lastSelectedId = null;
     document.getElementById("select-btn").textContent = "Sélectionner";
     updateSelectionBar();
     render();
