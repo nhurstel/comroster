@@ -155,8 +155,7 @@
     const live = document.createElement("div");
     live.className = "card-live";
     const batt = document.createElement("span"); batt.className = "bp-batt"; batt.dataset.bp = person.beltpack; batt.hidden = true;
-    const sig = document.createElement("span"); sig.className = "bp-sig"; sig.dataset.bp = person.beltpack; sig.hidden = true;
-    live.append(batt, sig);
+    live.append(batt);
     card.append(bp, who, live);
 
     // Mode sélection : checkbox + clic pour cocher, pas de drag
@@ -321,12 +320,9 @@
     applyLiveIndicators();
   }
 
-  /* ---------- État temps réel des beltpacks (statut / batterie / réception) ---------- */
-  const DEFAULT_IND = { online: true, battery: true, signal: true };
+  /* ---------- État temps réel des beltpacks (statut connecté / batterie) ---------- */
+  const DEFAULT_IND = { online: true, battery: true };
   let liveBeltpacks = null;   // null = antenne non connectée → aucun indicateur
-  function signalBarsHtml(n) {
-    let h = ""; for (let i = 1; i <= 4; i++) h += `<i class="${i <= n ? "on" : ""}"></i>`; return h;
-  }
   function applyLiveIndicators() {
     const ind = state.data.indicators || DEFAULT_IND;
     document.querySelectorAll(".bp-dot[data-bp]").forEach((d) => {
@@ -339,12 +335,6 @@
       const pct = info?.online ? info.battery : null;
       if (!ind.battery || pct == null) { b.hidden = true; b.textContent = ""; }
       else { b.hidden = false; b.textContent = (info.charging ? "⚡" : "") + pct + "%"; b.className = "bp-batt" + (pct <= 20 ? " low" : ""); b.title = "Batterie " + pct + "%"; }
-    });
-    document.querySelectorAll(".bp-sig[data-bp]").forEach((s) => {
-      const info = liveBeltpacks?.[s.dataset.bp];
-      const bars = info?.online ? info.signal : null;
-      if (!ind.signal || bars == null) { s.hidden = true; s.innerHTML = ""; }
-      else { s.hidden = false; s.innerHTML = signalBarsHtml(bars); s.title = "Réception " + bars + "/4"; }
     });
   }
   async function pollLive() {
@@ -455,12 +445,11 @@
   function openMetaDialog() {
     el.metaTitle.value = state.data.title || "";
     el.metaSubtitle.value = state.data.subtitle || "";
-    document.getElementById("meta-scale").value = state.data.scale || "normal";
     const ind = state.data.indicators || DEFAULT_IND;
     document.getElementById("ind-online").checked = ind.online !== false;
     document.getElementById("ind-battery").checked = ind.battery !== false;
-    document.getElementById("ind-signal").checked = ind.signal !== false;
     document.getElementById("meta-perf").checked = state.data.perf === true;
+    document.getElementById("meta-columns").value = String(state.data.columns || 0);
     el.metaDialog.showModal();
     requestAnimationFrame(() => el.metaTitle.select());
   }
@@ -470,13 +459,12 @@
     if (!t) { el.metaTitle.focus(); return; }
     state.data.title = t;
     state.data.subtitle = el.metaSubtitle.value.trim();
-    state.data.scale = document.getElementById("meta-scale").value;
     state.data.indicators = {
       online: document.getElementById("ind-online").checked,
       battery: document.getElementById("ind-battery").checked,
-      signal: document.getElementById("ind-signal").checked,
     };
     state.data.perf = document.getElementById("meta-perf").checked;
+    state.data.columns = parseInt(document.getElementById("meta-columns").value, 10) || 0;
     el.metaDialog.close();
     markDirty(); render();
   }
@@ -521,7 +509,7 @@
         if (!json || typeof json !== "object") throw new Error("invalide");
         state.data = {
           title: json.title || "", subtitle: json.subtitle || "", theme: json.theme || "night",
-          scale: json.scale || "normal", indicators: json.indicators || DEFAULT_IND,
+          indicators: json.indicators || DEFAULT_IND, columns: json.columns || 0,
           perf: json.perf === true,
           groups: json.groups || [], people: json.people || [], beltpack_roles: json.beltpack_roles || {},
         };
@@ -838,8 +826,14 @@
       if (psk) cfg.wifi.psk = psk;   // vide → le serveur conserve le psk existant
     }
     if (mode === "static") {
-      cfg.address = document.getElementById("net-address").value.trim();
-      cfg.prefix = parseInt(document.getElementById("net-prefix").value || "24", 10);
+      let addr = document.getElementById("net-address").value.trim();
+      let prefix = parseInt(document.getElementById("net-prefix").value || "24", 10);
+      // Tolère « 192.168.1.50/24 » saisi dans le champ IP → sépare IP et masque.
+      const cidr = addr.match(/^(.+?)\s*\/\s*(\d{1,2})$/);
+      if (cidr) { addr = cidr[1].trim(); prefix = parseInt(cidr[2], 10); }
+      if (!addr) { err.textContent = "Saisissez l'adresse IP fixe (ex. 192.168.1.50)."; err.hidden = false; return; }
+      cfg.address = addr;
+      cfg.prefix = Number.isFinite(prefix) ? prefix : 24;
       const gw = document.getElementById("net-gateway").value.trim();
       if (gw) cfg.gateway = gw;
       const dns = document.getElementById("net-dns").value.split(",").map((s) => s.trim()).filter(Boolean);
