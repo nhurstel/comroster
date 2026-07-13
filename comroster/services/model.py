@@ -23,14 +23,15 @@ def sanitize_theme(value):
     return "day" if value == "day" else "night"
 
 
-def sanitize_scale(value):
-    return value if value in ("normal", "large", "xlarge") else "normal"
-
-
 def sanitize_indicators(value):
-    """Préférences d'affichage des indicateurs beltpack (statut/batterie/réception)."""
+    """Préférences d'affichage des indicateurs beltpack (statut connecté / batterie).
+
+    La « réception » a été retirée : l'antenne Bolero n'expose pas le vrai RSSI
+    via l'API REST (il faut le monitoring WebSocket), donc on n'affiche plus de
+    barres potentiellement fausses.
+    """
     v = value if isinstance(value, dict) else {}
-    return {k: bool(v.get(k, True)) for k in ("online", "battery", "signal")}
+    return {k: bool(v.get(k, True)) for k in ("online", "battery")}
 
 
 def sanitize_perf(value):
@@ -46,8 +47,7 @@ def empty_state():
         "title": DEFAULT_TITLE,
         "subtitle": "",
         "theme": "night",
-        "scale": "normal",
-        "indicators": {"online": True, "battery": True, "signal": True},
+        "indicators": {"online": True, "battery": True},
         "perf": False,
         "groups": [],
         "people": [],
@@ -69,7 +69,6 @@ def build_draft(payload):
     state["title"] = (payload.get("title") or "").strip() or DEFAULT_TITLE
     state["subtitle"] = (payload.get("subtitle") or "").strip()
     state["theme"] = sanitize_theme(payload.get("theme"))
-    state["scale"] = sanitize_scale(payload.get("scale"))
     state["indicators"] = sanitize_indicators(payload.get("indicators"))
     state["perf"] = sanitize_perf(payload.get("perf"))
 

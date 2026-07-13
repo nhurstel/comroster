@@ -70,25 +70,6 @@ def test_available_filter(page, live_server):
     assert page.locator("#available-users .person").count() == 1
 
 
-def test_display_text_scale(page, live_server):
-    _enter_admin(page, live_server)
-    # un groupe pour publier un tableau non vide
-    page.click("#add-block-btn")
-    page.fill("#block-name", "Plateau")
-    page.click("#block-form button[type=submit]")
-    page.wait_for_selector("#blocks-container >> text=Plateau")
-    # régler la taille du texte de l'écran
-    page.click("#edit-meta-btn")
-    page.wait_for_selector("#meta-dialog[open]")
-    page.select_option("#meta-scale", "large")
-    page.click("#meta-form button[type=submit]")
-    page.click("#publish-btn")
-    page.wait_for_selector("text=Publié vers l'affichage")
-    display = page.context.new_page()
-    display.goto(live_server + "/display")
-    display.wait_for_function("() => document.documentElement.style.fontSize === '118%'")
-
-
 def test_indicator_toggles_persist(page, live_server):
     _enter_admin(page, live_server)
     page.click("#edit-meta-btn")

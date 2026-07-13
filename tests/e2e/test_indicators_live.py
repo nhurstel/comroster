@@ -57,11 +57,8 @@ def antenna_server(tmp_path):
         t.join(timeout=5)
 
 
-def test_display_shows_battery_and_signal(page, antenna_server):
+def test_display_shows_battery(page, antenna_server):
     page.goto(antenna_server + "/display")
     page.wait_for_selector("#display-grid .person")
     page.wait_for_selector(".bp-batt[data-bp='13']:not([hidden])")
     assert "65%" in page.inner_text(".bp-batt[data-bp='13']")
-    bars_on = page.eval_on_selector(".bp-sig[data-bp='13']",
-                                    "el => el.querySelectorAll('i.on').length")
-    assert bars_on == 4

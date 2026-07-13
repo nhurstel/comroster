@@ -3,7 +3,7 @@ import os
 import socket
 import urllib.error
 import pytest
-from comroster.services.antenna import AntennaClient, AntennaError, _battery_percent, _signal_bars
+from comroster.services.antenna import AntennaClient, AntennaError, _battery_percent
 
 
 def test_battery_percent():
@@ -11,13 +11,6 @@ def test_battery_percent():
     assert _battery_percent({"currentCharge": 4800, "maxCharge": 4800}) == 100
     assert _battery_percent({}) is None                       # données absentes
     assert _battery_percent({"currentCharge": 100, "maxCharge": 0}) is None
-
-
-def test_signal_bars():
-    assert _signal_bars(0) == 4                               # 0 = réception forte
-    assert _signal_bars(4) == 2
-    assert _signal_bars(100) == 0
-    assert _signal_bars(None) is None
 
 
 def _fake_ok(method, path, body=None, timeout=5):
@@ -117,7 +110,7 @@ def test_live_status_returns_online_map(tmp_path, monkeypatch):
     c.connect("192.168.1.11", "")
     assert c.live_status() == {"connected": True, "beltpacks": {
         # raw_signal = signalLevel BRUT de l'antenne (pour le calibrage des barres)
-        "5": {"online": True, "battery": 65, "charging": False, "signal": 4, "raw_signal": 0},
+        "5": {"online": True, "battery": 65, "charging": False},
         "7": {"online": False},
     }}
 

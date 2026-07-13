@@ -23,26 +23,6 @@ def _battery_percent(battery):
     return None
 
 
-def _signal_bars(level):
-    """signalLevel → barres de réception 0..4 (None si absent).
-
-    ⚠️ À CALIBRER : sur la vraie antenne, signalLevel = 0 quand le beltpack est proche
-    (réception forte). Hypothèse retenue : plus la valeur monte, plus la réception est
-    faible. Ajuster les seuils ci-dessous avec une mesure de mauvaise réception réelle.
-    """
-    if level is None:
-        return None
-    if level <= 0:
-        return 4
-    if level <= 2:
-        return 3
-    if level <= 5:
-        return 2
-    if level <= 10:
-        return 1
-    return 0
-
-
 class AntennaClient:
     def __init__(self, data_dir, secret_key):
         self._secret_key = secret_key or "dev-insecure-key"
@@ -175,8 +155,6 @@ class AntennaClient:
                     "online": True,
                     "battery": _battery_percent(bat),
                     "charging": bool(bat.get("usbPower")),
-                    "signal": _signal_bars(cb.get("signalLevel")),
-                    "raw_signal": cb.get("signalLevel"),   # brut, pour le calibrage
                 }
         beltpacks = {bp["number"]: live_by_id.get(bp["id"], {"online": False}) for bp in config}
         self._live_cache = {"connected": True, "beltpacks": beltpacks}

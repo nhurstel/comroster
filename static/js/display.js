@@ -73,22 +73,17 @@
     const live = document.createElement("div");
     live.className = "card-live";
     const batt = document.createElement("span"); batt.className = "bp-batt"; batt.dataset.bp = num; batt.hidden = true;
-    const sig = document.createElement("span"); sig.className = "bp-sig"; sig.dataset.bp = num; sig.hidden = true;
-    live.append(batt, sig);
+    live.append(batt);
 
     el.append(badge, body, live);
     return el;
   }
-
-  const TEXT_SCALE = { normal: "", large: "118%", xlarge: "135%" };
 
   function render(data) {
     stopAutoScroll();
     bodyEl.dataset.theme = resolveTheme(data.theme);
     // Mode performance : désactive le flou GPU (voir display.css [data-perf="on"])
     bodyEl.dataset.perf = data.perf ? "on" : "off";
-    // Taille du texte de l'écran (les polices sont en rem → la racine les met à l'échelle)
-    document.documentElement.style.fontSize = TEXT_SCALE[data.scale] || "";
 
     if (titleEl) titleEl.textContent = data.title || "Affectation Intercom";
     if (subtitleEl) {
@@ -138,12 +133,9 @@
     startAutoScroll();
   }
 
-  /* ---------- État temps réel des beltpacks (statut / batterie / réception) ---------- */
-  const DEFAULT_IND = { online: true, battery: true, signal: true };
+  /* ---------- État temps réel des beltpacks (statut connecté / batterie) ---------- */
+  const DEFAULT_IND = { online: true, battery: true };
   let liveBeltpacks = null;   // null = antenne déconnectée → aucun indicateur
-  function signalBarsHtml(n) {
-    let h = ""; for (let i = 1; i <= 4; i++) h += `<i class="${i <= n ? "on" : ""}"></i>`; return h;
-  }
   function applyLiveIndicators() {
     const ind = (state.data && state.data.indicators) || DEFAULT_IND;
     grid.querySelectorAll(".bp-dot[data-bp]").forEach((d) => {
@@ -156,12 +148,6 @@
       const pct = info?.online ? info.battery : null;
       if (!ind.battery || pct == null) { b.hidden = true; b.textContent = ""; }
       else { b.hidden = false; b.textContent = (info.charging ? "⚡" : "") + pct + "%"; b.className = "bp-batt" + (pct <= 20 ? " low" : ""); }
-    });
-    grid.querySelectorAll(".bp-sig[data-bp]").forEach((s) => {
-      const info = liveBeltpacks?.[s.dataset.bp];
-      const bars = info?.online ? info.signal : null;
-      if (!ind.signal || bars == null) { s.hidden = true; s.innerHTML = ""; }
-      else { s.hidden = false; s.innerHTML = signalBarsHtml(bars); }
     });
   }
   async function pollLive() {
