@@ -6,31 +6,21 @@ def test_empty_state_shape():
     s = model.empty_state()
     assert s["version"] == 1 and s["groups"] == [] and s["people"] == []
     assert "updated_at" in s
-    assert s["scale"] == "normal"
-
-
-def test_build_draft_keeps_valid_scale():
-    s = model.build_draft({"groups": [], "people": [], "scale": "large"})
-    assert s["scale"] == "large"
+    assert "scale" not in s          # taille du texte retirée
 
 
 def test_empty_state_indicators_default_on():
-    assert model.empty_state()["indicators"] == {"online": True, "battery": True, "signal": True}
+    assert model.empty_state()["indicators"] == {"online": True, "battery": True}
 
 
 def test_build_draft_indicators_partial():
     s = model.build_draft({"groups": [], "people": [], "indicators": {"battery": False}})
-    assert s["indicators"] == {"online": True, "battery": False, "signal": True}
+    assert s["indicators"] == {"online": True, "battery": False}
 
 
 def test_build_draft_indicators_invalid_defaults_on():
     s = model.build_draft({"groups": [], "people": [], "indicators": "nope"})
-    assert s["indicators"] == {"online": True, "battery": True, "signal": True}
-
-
-def test_build_draft_rejects_invalid_scale():
-    s = model.build_draft({"groups": [], "people": [], "scale": "huge"})
-    assert s["scale"] == "normal"
+    assert s["indicators"] == {"online": True, "battery": True}
 
 
 def test_add_person_and_group():
@@ -199,3 +189,16 @@ def test_build_draft_perf_coerces_to_bool():
     assert s["perf"] is True   # chaîne non vide → activé (cohérent avec bool())
     s2 = model.build_draft({"groups": [], "people": [], "perf": 0})
     assert s2["perf"] is False
+
+
+def test_columns_default_auto():
+    assert model.empty_state()["columns"] == 0
+
+
+def test_build_draft_columns():
+    assert model.build_draft({"groups": [], "people": [], "columns": 3})["columns"] == 3
+
+
+def test_build_draft_columns_invalid_defaults_auto():
+    assert model.build_draft({"groups": [], "people": [], "columns": "nope"})["columns"] == 0
+    assert model.build_draft({"groups": [], "people": [], "columns": 99})["columns"] == 0

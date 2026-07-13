@@ -92,20 +92,24 @@
         <input type="text" id="meta-title" required maxlength="120"></label>
       <label class="field"><span>Sous-titre</span>
         <input type="text" id="meta-subtitle" maxlength="120"></label>
-      <label class="field"><span>Taille du texte de l'écran</span>
-        <select id="meta-scale">
-          <option value="normal">Normale</option>
-          <option value="large">Grande</option>
-          <option value="xlarge">Très grande</option>
+      <label class="field"><span>Colonnes de groupes sur l'écran</span>
+        <select id="meta-columns">
+          <option value="0">Automatique (selon la largeur)</option>
+          <option value="1">1 colonne</option>
+          <option value="2">2 colonnes</option>
+          <option value="3">3 colonnes</option>
+          <option value="4">4 colonnes</option>
         </select></label>
       <fieldset class="field ind-fieldset">
         <legend>Indicateurs beltpack (antenne)</legend>
         <label class="ind-check"><input type="checkbox" id="ind-online"> Statut connecté</label>
         <label class="ind-check"><input type="checkbox" id="ind-battery"> Batterie</label>
-        <label class="ind-check"><input type="checkbox" id="ind-signal"> Réception</label>
       </fieldset>
-      <label class="ind-check"><input type="checkbox" id="meta-perf"> Mode performance
-        <em>(écran fluide sur Raspberry Pi ancien — désactive les effets de flou)</em></label>
+      <fieldset class="field ind-fieldset">
+        <legend>Affichage</legend>
+        <label class="ind-check"><input type="checkbox" id="meta-perf"> Mode performance</label>
+        <p class="dialog-hint">Écran plus fluide sur Raspberry Pi ancien (désactive les effets de flou).</p>
+      </fieldset>
       <div class="dialog-actions">
         <button type="submit" class="primary">Enregistrer</button>
         <button type="button" data-close="meta-dialog">Annuler</button>
@@ -287,7 +291,7 @@
   </footer>
 
   <div class="context-menu" id="context-menu" role="menu">
-    <button type="button" data-action="edit">Modifier la fiche…</button>
+    <button type="button" data-action="edit">Modifier les informations…</button>
     <button type="button" data-action="remove">Retirer du groupe</button>
     <button type="button" data-action="delete">Supprimer le beltpack</button>
   </div>

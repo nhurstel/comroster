@@ -329,13 +329,6 @@
 .card-live { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; flex: 0 0 auto; }
 .bp-batt { font-size: 0.72rem; font-weight: 700; color: #8b97ad; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bp-batt.low { color: #e0913a; }
-.bp-sig { display: inline-flex; align-items: flex-end; gap: 1px; height: 0.7rem; }
-.bp-sig i { width: 3px; background: #3a4868; border-radius: 1px; }
-.bp-sig i:nth-child(1) { height: 25%; }
-.bp-sig i:nth-child(2) { height: 50%; }
-.bp-sig i:nth-child(3) { height: 75%; }
-.bp-sig i:nth-child(4) { height: 100%; }
-.bp-sig i.on { background: #2ecc71; }
 
 /* Cases « indicateurs » dans le dialog Infos */
 .ind-fieldset { border: 1px solid #2a3550; border-radius: 6px; padding: 0.5rem 0.7rem; display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; }

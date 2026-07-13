@@ -23,20 +23,30 @@ def sanitize_theme(value):
     return "day" if value == "day" else "night"
 
 
-def sanitize_scale(value):
-    return value if value in ("normal", "large", "xlarge") else "normal"
-
-
 def sanitize_indicators(value):
-    """Préférences d'affichage des indicateurs beltpack (statut/batterie/réception)."""
+    """Préférences d'affichage des indicateurs beltpack (statut connecté / batterie).
+
+    La « réception » a été retirée : l'antenne Bolero n'expose pas le vrai RSSI
+    via l'API REST (il faut le monitoring WebSocket), donc on n'affiche plus de
+    barres potentiellement fausses.
+    """
     v = value if isinstance(value, dict) else {}
-    return {k: bool(v.get(k, True)) for k in ("online", "battery", "signal")}
+    return {k: bool(v.get(k, True)) for k in ("online", "battery")}
 
 
 def sanitize_perf(value):
     """Mode performance : désactive le flou GPU (glassmorphism) sur les afficheurs
     à faible GPU (Raspberry Pi 3). Défaut désactivé."""
     return bool(value)
+
+
+def sanitize_columns(value):
+    """Nombre de colonnes de groupes sur l'écran (0 = automatique selon la largeur)."""
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return n if 0 <= n <= 6 else 0
 
 
 def empty_state():
@@ -46,9 +56,9 @@ def empty_state():
         "title": DEFAULT_TITLE,
         "subtitle": "",
         "theme": "night",
-        "scale": "normal",
-        "indicators": {"online": True, "battery": True, "signal": True},
+        "indicators": {"online": True, "battery": True},
         "perf": False,
+        "columns": 0,
         "groups": [],
         "people": [],
         "beltpack_roles": {},
@@ -69,9 +79,9 @@ def build_draft(payload):
     state["title"] = (payload.get("title") or "").strip() or DEFAULT_TITLE
     state["subtitle"] = (payload.get("subtitle") or "").strip()
     state["theme"] = sanitize_theme(payload.get("theme"))
-    state["scale"] = sanitize_scale(payload.get("scale"))
     state["indicators"] = sanitize_indicators(payload.get("indicators"))
     state["perf"] = sanitize_perf(payload.get("perf"))
+    state["columns"] = sanitize_columns(payload.get("columns"))
 
     groups = payload.get("groups")
     if not isinstance(groups, list):

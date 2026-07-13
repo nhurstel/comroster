@@ -73,13 +73,6 @@ body[data-theme="day"] .person { background: rgba(15,23,42,0.03); border-color: 
 .card-live { margin-left: auto; display: flex; align-items: center; gap: 0.7rem; flex: 0 0 auto; padding-left: 0.6rem; }
 .bp-batt { font-size: 1rem; font-weight: 700; color: var(--fg-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bp-batt.low { color: #e0913a; }
-.bp-sig { display: inline-flex; align-items: flex-end; gap: 2px; height: 1rem; }
-.bp-sig i { width: 4px; background: var(--fg-subtle); border-radius: 1px; }
-.bp-sig i:nth-child(1) { height: 25%; }
-.bp-sig i:nth-child(2) { height: 50%; }
-.bp-sig i:nth-child(3) { height: 75%; }
-.bp-sig i:nth-child(4) { height: 100%; }
-.bp-sig i.on { background: #2ecc71; }
 .person .role { font-size: 1.3rem; font-weight: 700; color: var(--fg); }
 .person .name { font-size: 1rem; color: var(--fg-muted); }
 .empty-hint { padding: 1.5rem; text-align: center; color: var(--fg-subtle); font-style: italic; }
@@ -93,9 +86,9 @@ body[data-theme="day"] .person { background: rgba(15,23,42,0.03); border-color: 
 .stat-value { font-size: 1.05rem; font-weight: 700; color: var(--primary-light); font-variant-numeric: tabular-nums; }
 .stat-label { font-size: 0.8rem; text-transform: none; letter-spacing: 0; color: var(--fg-muted); }
 .display-page .status-badge { background: transparent; border: none; box-shadow: none; padding: 0; font-size: 0.85rem; }
-body.display-page footer { justify-content: center; flex-wrap: wrap; gap: 1rem 2rem; }
-.created-by { font-weight: 600; color: var(--fg); }
-.admin-hint { color: var(--primary-light); font-weight: 600; }
+body.display-page footer { justify-content: space-between; align-items: center; gap: 1rem; }
+.created-by { font-weight: 400; font-size: 0.8rem; color: var(--fg-subtle); }
+.footer-updated { font-size: 0.8rem; color: var(--fg-muted); margin-left: auto; }
 
 /* ---------- Écran de bienvenue / onboarding ---------- */
 #onboarding {
