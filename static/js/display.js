@@ -84,6 +84,8 @@
     bodyEl.dataset.theme = resolveTheme(data.theme);
     // Mode performance : désactive le flou GPU (voir display.css [data-perf="on"])
     bodyEl.dataset.perf = data.perf ? "on" : "off";
+    // Nombre de colonnes de groupes (0 = automatique selon la largeur d'écran)
+    if (grid) grid.style.gridTemplateColumns = data.columns > 0 ? `repeat(${data.columns}, minmax(0, 1fr))` : "";
 
     if (titleEl) titleEl.textContent = data.title || "Affectation Intercom";
     if (subtitleEl) {

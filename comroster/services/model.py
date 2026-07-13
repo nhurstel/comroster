@@ -40,6 +40,15 @@ def sanitize_perf(value):
     return bool(value)
 
 
+def sanitize_columns(value):
+    """Nombre de colonnes de groupes sur l'écran (0 = automatique selon la largeur)."""
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return n if 0 <= n <= 6 else 0
+
+
 def empty_state():
     return {
         "version": 1,
@@ -49,6 +58,7 @@ def empty_state():
         "theme": "night",
         "indicators": {"online": True, "battery": True},
         "perf": False,
+        "columns": 0,
         "groups": [],
         "people": [],
         "beltpack_roles": {},
@@ -71,6 +81,7 @@ def build_draft(payload):
     state["theme"] = sanitize_theme(payload.get("theme"))
     state["indicators"] = sanitize_indicators(payload.get("indicators"))
     state["perf"] = sanitize_perf(payload.get("perf"))
+    state["columns"] = sanitize_columns(payload.get("columns"))
 
     groups = payload.get("groups")
     if not isinstance(groups, list):
