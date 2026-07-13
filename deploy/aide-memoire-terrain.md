@@ -11,6 +11,8 @@ au dépannage. Détails complets : [raspberry-pi.md](raspberry-pi.md).
 > Ensuite le boîtier fonctionne 100 % hors ligne.
 
 ```bash
+sudo apt update && sudo apt install -y git tmux   # Lite : git absent ; tmux = install résiliente au SSH
+tmux                                               # session persistante (récup. : tmux attach)
 git clone https://github.com/nhurstel/comroster ~/comroster
 cd ~/comroster
 sudo deploy/setup-pi.sh
