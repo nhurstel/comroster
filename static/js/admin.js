@@ -12,12 +12,14 @@
   const state = {
     data: INITIAL || { title: "", subtitle: "", theme: "night", groups: [], people: [], beltpack_roles: {} },
     drag: null,
+    dragGroup: null,        // id du groupe en cours de réordonnancement
     context: null,
     busy: false,
     unpublished: false,
     editingPersonId: null,
     selectionMode: false,
     selection: new Set(),
+    lastSelectedId: null,   // pour la sélection par plage (MAJ+clic)
   };
 
   const el = {
@@ -226,6 +228,19 @@
     renderAvailable();
   });
 
+  // Déplace un groupe à la position d'un autre et renumérote les 'order'.
+  function moveGroup(draggedId, targetId) {
+    if (draggedId === targetId) return;
+    const groups = [...state.data.groups].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const from = groups.findIndex((g) => g.id === draggedId);
+    const to = groups.findIndex((g) => g.id === targetId);
+    if (from < 0 || to < 0) return;
+    const [moved] = groups.splice(from, 1);
+    groups.splice(to, 0, moved);
+    groups.forEach((g, i) => { g.order = i; });
+    markDirty(); render();
+  }
+
   function renderBlocks() {
     el.blocks.innerHTML = "";
     const groups = [...state.data.groups].sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -236,6 +251,14 @@
       wrap.className = "admin-block";
       wrap.dataset.blockId = block.id;
       wrap.style.setProperty("--block-accent", sanitizeColor(block.color) || "var(--primary)");
+      // Réordonnancement des groupes : dépose un groupe (glissé par son titre) sur un autre.
+      wrap.addEventListener("dragover", (e) => {
+        if (state.dragGroup && state.dragGroup !== block.id) { e.preventDefault(); wrap.classList.add("group-drop-target"); }
+      });
+      wrap.addEventListener("dragleave", (e) => { if (e.target === wrap) wrap.classList.remove("group-drop-target"); });
+      wrap.addEventListener("drop", (e) => {
+        if (state.dragGroup && state.dragGroup !== block.id) { e.preventDefault(); wrap.classList.remove("group-drop-target"); moveGroup(state.dragGroup, block.id); }
+      });
 
       const header = document.createElement("div");
       header.className = "block-header";
@@ -250,6 +273,14 @@
       badge.className = "badge";
       badge.textContent = `${members.length} affectation${members.length > 1 ? "s" : ""}`;
       titleWrap.append(swatch, h3, badge);
+      // Poignée de réordonnancement : on glisse le groupe par son titre.
+      titleWrap.draggable = true;
+      titleWrap.title = "Glisser pour réordonner les groupes";
+      titleWrap.addEventListener("dragstart", (e) => {
+        state.dragGroup = block.id; wrap.classList.add("group-dragging");
+        if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", "group"); } catch (_) { /* IE */ } }
+      });
+      titleWrap.addEventListener("dragend", () => { state.dragGroup = null; wrap.classList.remove("group-dragging"); });
 
       const actions = document.createElement("div");
       actions.className = "block-actions";
@@ -264,7 +295,7 @@
       const list = document.createElement("div");
       list.className = "block-items";
       list.dataset.blockId = block.id;
-      list.addEventListener("dragover", (e) => { e.preventDefault(); list.dataset.dragover = "true"; if (e.dataTransfer) e.dataTransfer.dropEffect = "move"; });
+      list.addEventListener("dragover", (e) => { if (state.dragGroup) return; e.preventDefault(); list.dataset.dragover = "true"; if (e.dataTransfer) e.dataTransfer.dropEffect = "move"; });
       list.addEventListener("dragleave", () => { delete list.dataset.dragover; });
       list.addEventListener("drop", (e) => { e.preventDefault(); delete list.dataset.dragover; if (state.drag) assign(state.drag.userId, block.id); });
 

@@ -380,3 +380,9 @@
 .admin-panel .mini-btn:hover:not(:disabled) { background: #1f2942; color: #e6edf3; }
 .admin-panel .mini-btn.add { color: var(--primary-light); border-color: #2f5a78; }
 .admin-panel .mini-btn.add:hover:not(:disabled) { color: #04121b; background: var(--primary); border-color: transparent; }
+
+/* Réordonnancement des groupes par glisser-déposer du titre */
+.block-title[draggable="true"] { cursor: grab; }
+.block-title[draggable="true"]:active { cursor: grabbing; }
+.admin-block.group-dragging { opacity: 0.5; }
+.admin-block.group-drop-target { outline: 2px dashed var(--primary); outline-offset: 3px; border-radius: var(--radius-md); }
