@@ -189,3 +189,16 @@ def test_build_draft_perf_coerces_to_bool():
     assert s["perf"] is True   # chaîne non vide → activé (cohérent avec bool())
     s2 = model.build_draft({"groups": [], "people": [], "perf": 0})
     assert s2["perf"] is False
+
+
+def test_columns_default_auto():
+    assert model.empty_state()["columns"] == 0
+
+
+def test_build_draft_columns():
+    assert model.build_draft({"groups": [], "people": [], "columns": 3})["columns"] == 3
+
+
+def test_build_draft_columns_invalid_defaults_auto():
+    assert model.build_draft({"groups": [], "people": [], "columns": "nope"})["columns"] == 0
+    assert model.build_draft({"groups": [], "people": [], "columns": 99})["columns"] == 0

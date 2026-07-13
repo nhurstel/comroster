@@ -449,6 +449,7 @@
     document.getElementById("ind-online").checked = ind.online !== false;
     document.getElementById("ind-battery").checked = ind.battery !== false;
     document.getElementById("meta-perf").checked = state.data.perf === true;
+    document.getElementById("meta-columns").value = String(state.data.columns || 0);
     el.metaDialog.showModal();
     requestAnimationFrame(() => el.metaTitle.select());
   }
@@ -463,6 +464,7 @@
       battery: document.getElementById("ind-battery").checked,
     };
     state.data.perf = document.getElementById("meta-perf").checked;
+    state.data.columns = parseInt(document.getElementById("meta-columns").value, 10) || 0;
     el.metaDialog.close();
     markDirty(); render();
   }
@@ -507,7 +509,7 @@
         if (!json || typeof json !== "object") throw new Error("invalide");
         state.data = {
           title: json.title || "", subtitle: json.subtitle || "", theme: json.theme || "night",
-          indicators: json.indicators || DEFAULT_IND,
+          indicators: json.indicators || DEFAULT_IND, columns: json.columns || 0,
           perf: json.perf === true,
           groups: json.groups || [], people: json.people || [], beltpack_roles: json.beltpack_roles || {},
         };
