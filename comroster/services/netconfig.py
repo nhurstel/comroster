@@ -52,7 +52,7 @@ def validate(cfg):
     try:
         ipaddress.ip_address(cfg.get("address", ""))
     except ValueError:
-        return False, "Adresse IP invalide"
+        return False, "Adresse IP invalide — saisir une IP seule (ex. 192.168.1.50, sans /24)"
 
     prefix = cfg.get("prefix", 24)
     if not (isinstance(prefix, int) and not isinstance(prefix, bool) and 1 <= prefix <= 32):

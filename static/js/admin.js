@@ -824,8 +824,14 @@
       if (psk) cfg.wifi.psk = psk;   // vide → le serveur conserve le psk existant
     }
     if (mode === "static") {
-      cfg.address = document.getElementById("net-address").value.trim();
-      cfg.prefix = parseInt(document.getElementById("net-prefix").value || "24", 10);
+      let addr = document.getElementById("net-address").value.trim();
+      let prefix = parseInt(document.getElementById("net-prefix").value || "24", 10);
+      // Tolère « 192.168.1.50/24 » saisi dans le champ IP → sépare IP et masque.
+      const cidr = addr.match(/^(.+?)\s*\/\s*(\d{1,2})$/);
+      if (cidr) { addr = cidr[1].trim(); prefix = parseInt(cidr[2], 10); }
+      if (!addr) { err.textContent = "Saisissez l'adresse IP fixe (ex. 192.168.1.50)."; err.hidden = false; return; }
+      cfg.address = addr;
+      cfg.prefix = Number.isFinite(prefix) ? prefix : 24;
       const gw = document.getElementById("net-gateway").value.trim();
       if (gw) cfg.gateway = gw;
       const dns = document.getElementById("net-dns").value.split(",").map((s) => s.trim()).filter(Boolean);
