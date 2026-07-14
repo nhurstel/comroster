@@ -152,11 +152,14 @@
       else { b.hidden = false; b.textContent = (info.charging ? "⚡" : "") + pct + "%"; b.className = "bp-batt" + (pct <= 20 ? " low" : ""); }
     });
   }
-  async function pollLive() {
-    let res;
-    try { res = await fetch("/api/live").then((r) => r.json()); } catch { return; }
-    liveBeltpacks = res.connected ? res.beltpacks : null;
+  function applyLive(res) {
+    liveBeltpacks = res && res.connected ? res.beltpacks : null;
     applyLiveIndicators();
+  }
+  // Récupération initiale (au chargement) ; les mises à jour arrivent ensuite
+  // en push via le SSE `live` — plus aucune requête périodique.
+  async function pollLive() {
+    try { applyLive(await fetch("/api/live").then((r) => r.json())); } catch { /* ignore */ }
   }
 
   /* ---------- Auto-scroll fluide (transform GPU) avec pauses en haut/bas ---------- */
@@ -255,6 +258,7 @@
     eventSource = new EventSource("/events");
     eventSource.addEventListener("snapshot", (e) => { apply(e.data); setLive("idle"); });
     eventSource.addEventListener("published", (e) => apply(e.data));
+    eventSource.addEventListener("live", (e) => { try { applyLive(JSON.parse(e.data)); } catch { /* ignore */ } });
     eventSource.onopen = () => { setLive("idle"); if (syncHint) syncHint.textContent = "Mises à jour en direct actives"; };
     eventSource.onerror = () => {
       setLive("error");
@@ -293,8 +297,7 @@
   updateClock();
   setInterval(updateClock, 1000);
   subscribe();
-  pollLive();
-  setInterval(pollLive, 5000);
+  pollLive();                 // état initial ; les MAJ arrivent en push via le SSE `live`
   loadOnboarding();
   onboardingTimer = setInterval(loadOnboarding, 8000);
   requestWakeLock();
