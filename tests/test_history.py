@@ -39,6 +39,26 @@ def test_history_caps_snapshots(tmp_path):
     assert items[0]["timestamp"].startswith("202") and items[0]["timestamp"] > "2026010199"
 
 
+def test_history_clear(tmp_path):
+    h = History(Storage(str(tmp_path)))
+    h.archive(model.empty_state())
+    h.archive(model.empty_state())
+    assert h.clear() == 2
+    assert h.list() == []
+
+
+def test_history_prunes_snapshots_older_than_30_days(tmp_path):
+    import os
+    from datetime import datetime, timedelta, timezone
+    h = History(Storage(str(tmp_path)))
+    old_ts = (datetime.now(timezone.utc) - timedelta(days=History.RETENTION_DAYS + 5)).strftime("%Y%m%dT%H%M%S%fZ")
+    open(os.path.join(h.dir, f"{old_ts}.json"), "w").write("{}")
+    recent_ts = h.archive(model.empty_state())      # déclenche la purge
+    stamps = [i["timestamp"] for i in h.list()]
+    assert old_ts not in stamps                     # > 30 jours → supprimé automatiquement
+    assert recent_ts in stamps                      # récent → conservé
+
+
 def test_load_corrupt_snapshot_raises(tmp_path):
     import os
     h = History(Storage(str(tmp_path)))

@@ -5,72 +5,116 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Administration · {{ initial_data.title }}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/comroster-badge.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body class="admin-page" data-theme="night">
-  <header>
-    <div class="board-meta">
-      <h1 id="board-title">{{ initial_data.title }}</h1>
-      <h2 id="board-subtitle" {% if not initial_data.subtitle %}hidden{% endif %}>{{ initial_data.subtitle or '' }}</h2>
-    </div>
-    <div class="status-badge" id="sync-status" role="status" aria-live="polite">
-      <span class="pulse" aria-hidden="true"></span>
-      <span class="status-text" id="sync-label">Brouillon synchronisé</span>
-    </div>
-  </header>
-  <main>
-    <div class="admin-toolbar">
-      <div class="tb-group">
-        <button type="button" id="edit-meta-btn">Infos</button>
-        <button type="button" id="toggle-theme-btn">Écran : nuit</button>
-        <button type="button" id="history-btn">Historique</button>
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <div class="side-brand">
+        <img class="admin-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="" width="20" height="20">
+        <span class="side-name">ComRoster</span>
       </div>
-      <span class="tb-sep" aria-hidden="true"></span>
-      <div class="tb-group">
-        <button type="button" id="export-btn">Exporter</button>
-        <label class="import-label">Importer<input type="file" id="import-input" accept="application/json"></label>
-        <button type="button" id="configs-btn">Configs</button>
-      </div>
-      <span class="toolbar-spacer" aria-hidden="true"></span>
-      <button type="button" id="antenna-btn" title="Connexion à l'antenne Bolero">
-        <span class="dot off" id="antenna-dot"></span>Antenne</button>
-      <button type="button" id="network-btn" title="Configuration réseau du boîtier">Réseau</button>
-      <span class="tb-sep" aria-hidden="true"></span>
-      <button type="button" id="publish-btn" class="primary">Publier vers l'affichage</button>
-      <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
-      <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      </form>
-    </div>
-    <input type="color" id="block-color-picker" class="visually-hidden" aria-hidden="true">
 
-    <div class="admin-layout">
-      <section class="admin-panel" aria-labelledby="available-heading">
-        <div class="block-header">
-          <h3 id="available-heading">Beltpacks disponibles</h3>
-          <span class="badge" id="available-count"></span>
+      <div class="side-scroll">
+        <div class="nav-label">Tableau</div>
+        <label class="side-field"><span>Nom de la production</span>
+          <input type="text" id="meta-title" maxlength="120" autocomplete="off"></label>
+        <label class="side-field"><span>Sous-titre</span>
+          <input type="text" id="meta-subtitle" maxlength="120" autocomplete="off"></label>
+
+        <div class="nav-label">Réglages écran</div>
+        <label class="side-field"><span>Mode de luminosité</span>
+          <select id="theme-select">
+            <option value="night">Sombre</option>
+            <option value="day">Clair</option>
+          </select></label>
+        <label class="side-field"><span>Nombre de colonnes</span>
+          <select id="meta-columns">
+            <option value="0">Automatique</option>
+            <option value="1">1 colonne</option>
+            <option value="2">2 colonnes</option>
+            <option value="3">3 colonnes</option>
+            <option value="4">4 colonnes</option>
+          </select></label>
+        <label class="side-check"><input type="checkbox" id="ind-online"> État Beltpack</label>
+        <label class="side-check"><input type="checkbox" id="ind-battery"> Batterie Beltpack</label>
+        <label class="side-check"><input type="checkbox" id="meta-perf"> Mode performance</label>
+
+        <nav class="side-nav">
+          <div class="nav-label">Matériel</div>
+          <button type="button" id="antenna-btn" class="nav-item" title="Connexion au réseau intercom">
+            <span class="dot off" id="antenna-dot"></span>Intercom Net</button>
+          <button type="button" id="network-btn" class="nav-item" title="Configuration réseau du boîtier">
+            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2C6 4 6 12 8 14"/></svg>Réseau</button>
+
+          <div class="nav-label">Données</div>
+          <button type="button" id="history-btn" class="nav-item">
+            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 4v4l2.5 1.5"/><circle cx="8" cy="8" r="6"/></svg>Historique</button>
+          <button type="button" id="configs-btn" class="nav-item">
+            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/><circle cx="5.5" cy="4.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="10.5" cy="8" r="1.4" fill="currentColor" stroke="none"/><circle cx="6.5" cy="11.5" r="1.4" fill="currentColor" stroke="none"/></svg>Configurations</button>
+          <label class="nav-item import-label">
+            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.5M5 7l3 3 3-3M3 12.5h10"/></svg>Importer<input type="file" id="import-input" accept=".rost,application/json"></label>
+          <button type="button" id="export-btn" class="nav-item">
+            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5V10M5 5.5l3-3 3 3M3 12.5h10"/></svg>Exporter</button>
+        </nav>
+      </div>
+
+      <div class="side-foot">
+        <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
+        <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        </form>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-head">
+        <div class="board-meta">
+          <h1 id="board-title">{{ initial_data.title }}</h1>
+          <h2 id="board-subtitle" {% if not initial_data.subtitle %}hidden{% endif %}>{{ initial_data.subtitle or '' }}</h2>
         </div>
-        <div class="panel-actions">
-          <button type="button" id="add-user-btn" class="mini-btn add">+ Beltpack</button>
-          <button type="button" id="select-btn" class="mini-btn">Sélectionner</button>
+        <div class="head-actions">
+          <div class="status-badge" id="sync-status" role="status" aria-live="polite">
+            <span class="pulse" aria-hidden="true"></span>
+            <span class="status-text" id="sync-label">Brouillon synchronisé</span>
+          </div>
+          <button type="button" id="publish-btn" class="primary">Envoyer</button>
         </div>
-        <input type="search" id="available-filter" class="panel-filter" placeholder="Rechercher (n° ou nom)…" autocomplete="off">
-        <div class="user-list" id="available-users"></div>
-        <p class="empty-hint">Glissez les beltpacks dans un groupe pour les affecter.</p>
-      </section>
-      <section class="admin-panel">
-        <div class="block-header">
-          <h3>Affectations</h3>
-          <span class="badge" id="block-count"></span>
-        </div>
-        <div class="panel-actions">
-          <button type="button" id="add-block-btn" class="mini-btn add">+ Groupe</button>
-        </div>
-        <div class="user-list" id="blocks-container"></div>
-      </section>
-    </div>
-  </main>
+      </header>
+
+      <input type="color" id="block-color-picker" class="visually-hidden" aria-hidden="true">
+
+      <div class="admin-layout">
+        <section class="admin-panel" aria-labelledby="available-heading">
+          <div class="block-header">
+            <h3 id="available-heading">Beltpacks disponibles</h3>
+            <span class="badge" id="available-count"></span>
+          </div>
+          <input type="search" id="available-filter" class="panel-filter" placeholder="Rechercher (n° ou nom)…" autocomplete="off">
+          <div class="user-list" id="available-users"></div>
+          <p class="empty-hint">Glissez les beltpacks dans un groupe pour les affecter.</p>
+        </section>
+        <section class="admin-panel">
+          <div class="block-header">
+            <h3>Affectations</h3>
+            <span class="badge" id="block-count"></span>
+          </div>
+          <div class="panel-actions">
+            <button type="button" id="add-block-btn" class="mini-btn add">+ Groupe</button>
+          </div>
+          <div class="user-list" id="blocks-container"></div>
+        </section>
+      </div>
+
+      <footer class="admin-foot">
+        <span id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>
+        <span id="dirty-indicator"></span>
+        <span class="admin-credit">par Nathan Hurstel</span>
+      </footer>
+    </main>
+  </div>
 
   <dialog id="block-dialog" class="admin-dialog">
     <form id="block-form" method="dialog">
@@ -80,39 +124,6 @@
       <div class="dialog-actions">
         <button type="submit" class="primary">Ajouter le groupe</button>
         <button type="button" data-close="block-dialog">Annuler</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="meta-dialog" class="admin-dialog">
-    <form id="meta-form" method="dialog">
-      <h2>Informations du tableau</h2>
-      <p class="dialog-hint">Nom de production et sous-titre affichés sur l'écran TV.</p>
-      <label class="field"><span>Nom de la production</span>
-        <input type="text" id="meta-title" required maxlength="120"></label>
-      <label class="field"><span>Sous-titre</span>
-        <input type="text" id="meta-subtitle" maxlength="120"></label>
-      <label class="field"><span>Colonnes de groupes sur l'écran</span>
-        <select id="meta-columns">
-          <option value="0">Automatique (selon la largeur)</option>
-          <option value="1">1 colonne</option>
-          <option value="2">2 colonnes</option>
-          <option value="3">3 colonnes</option>
-          <option value="4">4 colonnes</option>
-        </select></label>
-      <fieldset class="field ind-fieldset">
-        <legend>Indicateurs beltpack (antenne)</legend>
-        <label class="ind-check"><input type="checkbox" id="ind-online"> Statut connecté</label>
-        <label class="ind-check"><input type="checkbox" id="ind-battery"> Batterie</label>
-      </fieldset>
-      <fieldset class="field ind-fieldset">
-        <legend>Affichage</legend>
-        <label class="ind-check"><input type="checkbox" id="meta-perf"> Mode performance</label>
-        <p class="dialog-hint">Écran plus fluide sur Raspberry Pi ancien (désactive les effets de flou).</p>
-      </fieldset>
-      <div class="dialog-actions">
-        <button type="submit" class="primary">Enregistrer</button>
-        <button type="button" data-close="meta-dialog">Annuler</button>
       </div>
     </form>
   </dialog>
@@ -140,9 +151,12 @@
   <dialog id="history-dialog" class="admin-dialog">
     <form method="dialog">
       <h2>Publications passées</h2>
-      <p class="dialog-hint">Restaurer recharge le snapshot choisi comme brouillon (republiez pour l'afficher).</p>
+      <p class="dialog-hint">Restaurer recharge le snapshot choisi comme brouillon (renvoyez pour l'afficher). L'historique est conservé 30 jours, puis supprimé automatiquement.</p>
       <ul id="history-list" class="history-list"></ul>
-      <div class="dialog-actions"><button type="button" id="history-close">Fermer</button></div>
+      <div class="dialog-actions">
+        <button type="button" id="history-clear" class="danger">Supprimer l'historique</button>
+        <button type="button" id="history-close">Fermer</button>
+      </div>
     </form>
   </dialog>
 
@@ -156,11 +170,12 @@
         <span class="wiz-dot" data-dot="3"></span>
       </div>
       <section class="wiz-step" data-step="1">
-        <h2>Connexion à l'antenne</h2>
+        <h2>Connexion à Intercom Net</h2>
         <label class="field"><span>Adresse IP</span>
           <input type="text" id="wiz-ip" placeholder="192.168.1.11" autocomplete="off"></label>
         <label class="field"><span>Mot de passe</span>
           <input type="password" id="wiz-password" autocomplete="off"></label>
+        <div id="wiz-progress" class="conn-progress" hidden></div>
         <p id="wiz-error" class="auth-error" hidden></p>
         <div class="dialog-actions">
           <button type="button" data-close="antenna-dialog">Annuler</button>
@@ -190,7 +205,7 @@
     </div>
 
     <div id="antenna-dashboard" hidden>
-      <h2>🛰 Antenne Bolero</h2>
+      <h2>🛰 Intercom Net</h2>
       <div class="dash-grid">
         <section class="dash-card">
           <div class="dash-card-title">État</div>
@@ -247,9 +262,11 @@
         <label class="field"><span>DNS <em>(facultatif)</em></span>
           <input type="text" id="net-dns" placeholder="ex. 192.168.1.1" autocomplete="off"></label>
       </div>
+      <div id="net-progress" class="conn-progress" hidden></div>
       <p id="net-error" class="auth-error" hidden></p>
-      <p id="net-result" class="dialog-hint" hidden></p>
+      <p id="net-result" class="dialog-status" hidden></p>
       <div class="dialog-actions">
+        <button type="button" id="reboot-btn" class="reboot-btn" hidden>⟳ Redémarrer le boîtier</button>
         <button type="submit" class="primary">Enregistrer</button>
         <button type="button" data-close="network-dialog">Fermer</button>
       </div>
@@ -284,11 +301,6 @@
     <button type="button" id="selection-delete" class="danger-btn">Supprimer</button>
     <button type="button" id="selection-cancel">Annuler</button>
   </div>
-
-  <footer>
-    <span id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>
-    <span id="dirty-indicator"></span>
-  </footer>
 
   <div class="context-menu" id="context-menu" role="menu">
     <button type="button" data-action="edit">Modifier les informations…</button>

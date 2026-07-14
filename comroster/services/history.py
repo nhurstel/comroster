@@ -1,9 +1,10 @@
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 
 class History:
-    MAX_SNAPSHOTS = 50      # rétention : évite que l'historique gonfle la SD du boîtier
+    RETENTION_DAYS = 30     # les publications de plus de 30 jours sont supprimées automatiquement
+    MAX_SNAPSHOTS = 50      # garde-fou anti-débordement de la carte SD du boîtier
 
     def __init__(self, storage):
         self.storage = storage
@@ -16,13 +17,38 @@ class History:
         self._prune()
         return ts
 
+    def _remove(self, fname):
+        try:
+            os.unlink(os.path.join(self.dir, fname))
+            return True
+        except OSError:
+            return False
+
     def _prune(self):
         snaps = sorted(f for f in os.listdir(self.dir) if f.endswith(".json"))
-        for fname in snaps[:-self.MAX_SNAPSHOTS]:      # on garde les MAX_SNAPSHOTS plus récents
-            try:
-                os.unlink(os.path.join(self.dir, fname))
-            except OSError:
-                pass
+        cutoff = datetime.now(timezone.utc) - timedelta(days=self.RETENTION_DAYS)
+        kept = []
+        for fname in snaps:
+            dt = self._parse_ts(fname[:-5])
+            if dt is not None and dt < cutoff:
+                self._remove(fname)                    # trop ancien (> 30 jours)
+            else:
+                kept.append(fname)
+        for fname in kept[:-self.MAX_SNAPSHOTS]:       # garde-fou : au-delà du plafond, on coupe les plus vieux
+            self._remove(fname)
+
+    def clear(self):
+        """Supprime tout l'historique. Retourne le nombre de snapshots effacés."""
+        return sum(
+            self._remove(f) for f in os.listdir(self.dir) if f.endswith(".json")
+        )
+
+    @staticmethod
+    def _parse_ts(ts):
+        try:
+            return datetime.strptime(ts, "%Y%m%dT%H%M%S%fZ").replace(tzinfo=timezone.utc)
+        except ValueError:
+            return None
 
     def list(self):
         items = []
