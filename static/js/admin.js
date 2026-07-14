@@ -17,7 +17,6 @@
     busy: false,
     unpublished: false,
     editingPersonId: null,
-    selectionMode: false,
     selection: new Set(),
     lastSelectedId: null,   // pour la sélection par plage (MAJ+clic)
   };
@@ -34,16 +33,11 @@
     dirty: document.getElementById("dirty-indicator"),
     lastUpdated: document.getElementById("last-updated"),
     publishBtn: document.getElementById("publish-btn"),
-    themeBtn: document.getElementById("toggle-theme-btn"),
     colorPicker: document.getElementById("block-color-picker"),
     contextMenu: document.getElementById("context-menu"),
     blockDialog: document.getElementById("block-dialog"),
     blockForm: document.getElementById("block-form"),
     blockName: document.getElementById("block-name"),
-    metaDialog: document.getElementById("meta-dialog"),
-    metaForm: document.getElementById("meta-form"),
-    metaTitle: document.getElementById("meta-title"),
-    metaSubtitle: document.getElementById("meta-subtitle"),
     personDialog: document.getElementById("person-dialog"),
     personForm: document.getElementById("person-form"),
     personTitle: document.getElementById("person-dialog-title"),
@@ -68,6 +62,21 @@
   function setUnpublished(v) {
     state.unpublished = v;
     el.dirty.textContent = v ? "Modifications non publiées" : "";
+  }
+
+  /* ---------- Notification transitoire (toast) ----------
+     NB: cette fonction manquait — chaque appel `toast(...)` levait un ReferenceError.
+     Comme les succès l'appellent DANS le try, le catch se déclenchait et affichait un
+     faux message d'erreur (historique, réseau, imports, reconnexion antenne…). */
+  let toastTimer = null;
+  function toast(msg, isError) {
+    let t = document.getElementById("cr-toast");
+    if (!t) { t = document.createElement("div"); t.id = "cr-toast"; t.className = "cr-toast"; document.body.appendChild(t); }
+    t.textContent = msg;
+    t.classList.toggle("error", !!isError);
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
   }
 
   function findBlock(id) { return state.data.groups.find((g) => g.id === id); }
@@ -124,9 +133,8 @@
 
   /* ---------- Rendu ---------- */
   function applyTheme() {
-    // L'admin reste en thème sombre ; le bouton ne pilote QUE l'écran de diffusion.
-    const mode = state.data.theme === "day" ? "day" : "night";
-    if (el.themeBtn) el.themeBtn.textContent = mode === "day" ? "Écran : jour" : "Écran : nuit";
+    // Le mode Clair/Sombre ne pilote QUE l'écran de diffusion ; l'admin reste sombre.
+    // (Le sélecteur est synchronisé via syncSettingsInputs.)
   }
 
   function personCard(person, source, blockId) {
@@ -160,45 +168,32 @@
     live.append(batt);
     card.append(bp, who, live);
 
-    // Mode sélection : checkbox + clic pour cocher (MAJ = plage) + drag de la sélection
-    if (state.selectionMode) {
-      card.classList.add("selectable");
-      card.draggable = true;
-      if (state.selection.has(person.id)) card.classList.add("selected");
-      const chk = document.createElement("input");
-      chk.type = "checkbox";
-      chk.className = "sel-check";
-      chk.checked = state.selection.has(person.id);
-      chk.tabIndex = -1;
-      card.prepend(chk);
-      card.addEventListener("click", (e) => {
-        e.preventDefault();
-        if (e.shiftKey && state.lastSelectedId) {
-          selectRange(state.lastSelectedId, person.id);        // MAJ+clic : plage
-        } else if (state.selection.has(person.id)) {
-          state.selection.delete(person.id);
-        } else {
-          state.selection.add(person.id);
-        }
-        state.lastSelectedId = person.id;
-        render();                                              // reflète la (dé)sélection
-        updateSelectionBar();
-      });
-      card.addEventListener("dragstart", (e) => {
-        if (!state.selection.has(person.id)) state.selection.add(person.id);
-        const ids = [...state.selection];
-        state.drag = { multi: true, ids, source, blockId: blockId || null };
-        card.classList.add("dragging");
-        if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", ids.join(",")); } catch (_) { /* IE */ } }
-      });
-      card.addEventListener("dragend", () => { card.classList.remove("dragging"); state.drag = null; });
-      return card;
-    }
-
+    // Clic = (dé)sélection (MAJ+clic = plage). Le drag déplace la sélection si l'item
+    // en fait partie, sinon juste lui. Double-clic = éditer, clic droit = menu.
+    card.classList.add("selectable");
+    if (state.selection.has(person.id)) card.classList.add("selected");
+    card.addEventListener("click", (e) => {
+      if (e.shiftKey && state.lastSelectedId) {
+        selectRange(state.lastSelectedId, person.id);
+      } else if (state.selection.has(person.id)) {
+        state.selection.delete(person.id);
+      } else {
+        state.selection.add(person.id);
+      }
+      state.lastSelectedId = person.id;
+      refreshSelectionClasses();
+      updateSelectionBar();
+    });
     card.addEventListener("dragstart", (e) => {
       card.classList.add("dragging");
-      state.drag = { userId: person.id, source, blockId: blockId || null };
-      if (e.dataTransfer) { e.dataTransfer.setData("text/plain", person.id); e.dataTransfer.effectAllowed = "move"; }
+      if (state.selection.has(person.id) && state.selection.size) {
+        const ids = [...state.selection];
+        state.drag = { multi: true, ids, source, blockId: blockId || null };
+        if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", ids.join(",")); } catch (_) { /* IE */ } }
+      } else {
+        state.drag = { userId: person.id, source, blockId: blockId || null };
+        if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", person.id); } catch (_) { /* IE */ } }
+      }
     });
     card.addEventListener("dragend", () => { card.classList.remove("dragging"); state.drag = null; });
     card.addEventListener("contextmenu", (e) => {
@@ -208,33 +203,84 @@
       el.contextMenu.style.left = e.pageX + "px";
       el.contextMenu.style.top = e.pageY + "px";
     });
-    card.addEventListener("dblclick", () => openPersonDialog(person.id));
+    // Double-clic directement sur le numéro ou le nom → édition sur place.
+    bp.title = "Double-cliquez pour changer le numéro";
+    role.title = "Double-cliquez pour renommer";
+    bp.addEventListener("dblclick", (e) => { e.preventDefault(); e.stopPropagation(); startInlineEdit(person, "beltpack", bp); });
+    role.addEventListener("dblclick", (e) => { e.preventDefault(); e.stopPropagation(); startInlineEdit(person, "role", role); });
     return card;
+  }
+
+  // Case « + » ajoutée en fin de liste pour créer un beltpack (remplace le bouton dédié).
+  function addTile(onClick) {
+    const t = document.createElement("button");
+    t.type = "button";
+    t.className = "person-add";
+    t.title = "Ajouter un beltpack";
+    t.innerHTML = '<span class="pa-chip" aria-hidden="true">+</span><span class="pa-label">Beltpack</span>';
+    t.addEventListener("click", onClick);
+    return t;
+  }
+
+  // Édition sur place du nom (rôle) ou du numéro, déclenchée au double-clic.
+  function startInlineEdit(person, field, target) {
+    const input = document.createElement("input");
+    input.className = "inline-edit";
+    input.value = field === "beltpack" ? String(person.beltpack) : (person.role || "");
+    if (field === "beltpack") { input.inputMode = "numeric"; input.maxLength = 12; }
+    else input.maxLength = 80;
+    target.textContent = "";
+    target.appendChild(input);
+    input.focus(); input.select();
+    let done = false;
+    const commit = () => {
+      if (done) return; done = true;
+      const v = input.value.trim();
+      if (field === "beltpack") {
+        if (!v) { toast("Numéro de beltpack requis", true); render(); return; }
+        if (beltpackTaken(v, person.id)) { toast("Ce numéro de beltpack existe déjà", true); render(); return; }
+        person.beltpack = v;
+      } else {
+        person.role = v;
+      }
+      markDirty(); render();
+    };
+    const cancel = () => { if (done) return; done = true; render(); };
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") { e.preventDefault(); commit(); }
+      else if (e.key === "Escape") { e.preventDefault(); cancel(); }
+    });
+    // On n'écoute le blur qu'au frame suivant : sinon un blur parasite synchrone,
+    // en fin de double-clic, referme le champ aussitôt (bug intermittent).
+    requestAnimationFrame(() => input.addEventListener("blur", commit));
+    input.addEventListener("click", (e) => e.stopPropagation());
+    input.addEventListener("dblclick", (e) => e.stopPropagation());
   }
 
   function renderAvailable() {
     el.available.innerHTML = "";
     const all = state.data.people.filter((p) => !p.group_id);
     el.availableCount.textContent = `${all.length} beltpack${all.length > 1 ? "s" : ""}`;
+    const q = (state.filter || "").trim().toLowerCase();
+    const avail = q
+      ? all.filter((p) => String(p.beltpack).toLowerCase().includes(q) || (p.role || "").toLowerCase().includes(q))
+      : all;
     if (!all.length) {
       const h = document.createElement("div");
       h.className = "empty-hint";
       h.textContent = "Tous les beltpacks sont affectés";
       el.available.append(h);
-      return;
-    }
-    const q = (state.filter || "").trim().toLowerCase();
-    const avail = q
-      ? all.filter((p) => String(p.beltpack).toLowerCase().includes(q) || (p.role || "").toLowerCase().includes(q))
-      : all;
-    if (!avail.length) {
+    } else if (!avail.length) {
       const h = document.createElement("div");
       h.className = "empty-hint";
       h.textContent = "Aucun beltpack ne correspond";
       el.available.append(h);
-      return;
+    } else {
+      avail.forEach((p) => el.available.append(personCard(p, "available", null)));
     }
-    avail.forEach((p) => el.available.append(personCard(p, "available", null)));
+    // La case « + » n'apparaît pas pendant une recherche (on cherche, on n'ajoute pas).
+    if (!q) el.available.append(addTile(() => openPersonDialog(null, null)));
   }
   document.getElementById("available-filter").addEventListener("input", (e) => {
     state.filter = e.target.value;
@@ -280,6 +326,15 @@
       const swatch = document.createElement("span");
       swatch.className = "color-swatch";
       swatch.style.setProperty("--swatch-color", sanitizeColor(block.color) || "transparent");
+      // Cliquer la case colorée change la couleur du groupe (remplace le bouton « Couleur »).
+      swatch.title = "Changer la couleur du groupe";
+      swatch.setAttribute("role", "button");
+      swatch.setAttribute("aria-label", "Changer la couleur du groupe");
+      swatch.tabIndex = 0;
+      swatch.draggable = false;
+      swatch.addEventListener("mousedown", (e) => e.stopPropagation());
+      swatch.addEventListener("click", (e) => { e.stopPropagation(); openColorPicker(block.id); });
+      swatch.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openColorPicker(block.id); } });
       const h3 = document.createElement("h3");
       h3.textContent = block.name;
       const badge = document.createElement("span");
@@ -298,9 +353,7 @@
       const actions = document.createElement("div");
       actions.className = "block-actions";
       actions.append(
-        chip("+ Beltpack", () => openPersonDialog(null, block.id)),
         chip("Renommer", () => renameBlock(block.id)),
-        colorChip(block),
         chip("Supprimer", () => deleteBlock(block.id), "danger"),
       );
       header.append(titleWrap, actions);
@@ -321,9 +374,10 @@
       else {
         const h = document.createElement("div");
         h.className = "empty-hint";
-        h.textContent = "Déposez des beltpacks ici";
+        h.textContent = "Déposez des beltpacks ici, ou";
         list.append(h);
       }
+      list.append(addTile(() => openPersonDialog(null, block.id)));   // case « + » du groupe
       wrap.append(header, list);
       el.blocks.append(wrap);
     });
@@ -335,11 +389,6 @@
     b.className = "chip-btn" + (extra ? " " + extra : "");
     b.textContent = label;
     b.addEventListener("click", onClick);
-    return b;
-  }
-  function colorChip(block) {
-    const b = chip("Couleur", () => openColorPicker(block.id), "color-chip");
-    b.style.setProperty("--chip-color", sanitizeColor(block.color) || DEFAULT_COLOR);
     return b;
   }
 
@@ -363,6 +412,7 @@
       else el.subtitle.hidden = true;
     }
     applyTheme();
+    syncSettingsInputs();
     renderAvailable();
     renderBlocks();
     refreshAssignOptions();
@@ -419,6 +469,12 @@
     if (i < 0 || j < 0) { state.selection.add(toId); return; }
     if (i > j) { const t = i; i = j; j = t; }
     for (let k = i; k <= j; k++) state.selection.add(ids[k]);
+  }
+  // Reflète la sélection sans reconstruire le DOM (sinon le double-clic est cassé).
+  function refreshSelectionClasses() {
+    document.querySelectorAll(".person[data-user-id]").forEach((c) => {
+      c.classList.toggle("selected", state.selection.has(c.dataset.userId));
+    });
   }
   function deletePerson(personId) {
     state.data.people = state.data.people.filter((p) => p.id !== personId);
@@ -507,32 +563,54 @@
     markDirty(); render();
   }
 
-  /* ---------- Dialog meta ---------- */
-  function openMetaDialog() {
-    el.metaTitle.value = state.data.title || "";
-    el.metaSubtitle.value = state.data.subtitle || "";
-    const ind = state.data.indicators || DEFAULT_IND;
-    document.getElementById("ind-online").checked = ind.online !== false;
-    document.getElementById("ind-battery").checked = ind.battery !== false;
-    document.getElementById("meta-perf").checked = state.data.perf === true;
-    document.getElementById("meta-columns").value = String(state.data.columns || 0);
-    el.metaDialog.showModal();
-    requestAnimationFrame(() => el.metaTitle.select());
+  /* ---------- Réglages du tableau (inline dans la sidebar, live) ---------- */
+  function syncSettingsInputs() {
+    const d = state.data;
+    const setVal = (id, v) => { const n = document.getElementById(id); if (n && document.activeElement !== n) n.value = v; };
+    const setChk = (id, v) => { const n = document.getElementById(id); if (n) n.checked = v; };
+    setVal("meta-title", d.title || "");
+    setVal("meta-subtitle", d.subtitle || "");
+    setVal("meta-columns", String(d.columns || 0));
+    setVal("theme-select", d.theme === "day" ? "day" : "night");
+    const ind = d.indicators || DEFAULT_IND;
+    setChk("ind-online", ind.online !== false);
+    setChk("ind-battery", ind.battery !== false);
+    setChk("meta-perf", d.perf === true);
   }
-  function submitMeta(e) {
-    e.preventDefault();
-    const t = el.metaTitle.value.trim();
-    if (!t) { el.metaTitle.focus(); return; }
-    state.data.title = t;
-    state.data.subtitle = el.metaSubtitle.value.trim();
-    state.data.indicators = {
-      online: document.getElementById("ind-online").checked,
-      battery: document.getElementById("ind-battery").checked,
+  function bindSettings() {
+    const title = document.getElementById("meta-title");
+    title.addEventListener("input", () => {
+      state.data.title = title.value;
+      el.title.textContent = title.value.trim() || "Affectation Intercom";
+      document.title = "Administration · " + (title.value.trim() || "ComRoster");
+      markDirty();
+    });
+    const sub = document.getElementById("meta-subtitle");
+    sub.addEventListener("input", () => {
+      state.data.subtitle = sub.value;
+      if (sub.value.trim()) { el.subtitle.textContent = sub.value.trim(); el.subtitle.hidden = false; }
+      else el.subtitle.hidden = true;
+      markDirty();
+    });
+    document.getElementById("meta-columns").addEventListener("change", (e) => {
+      state.data.columns = parseInt(e.target.value, 10) || 0; markDirty();
+    });
+    document.getElementById("theme-select").addEventListener("change", (e) => {
+      state.data.theme = e.target.value === "day" ? "day" : "night"; markDirty();
+    });
+    const onInd = () => {
+      state.data.indicators = {
+        online: document.getElementById("ind-online").checked,
+        battery: document.getElementById("ind-battery").checked,
+      };
+      markDirty(); applyLiveIndicators();
     };
-    state.data.perf = document.getElementById("meta-perf").checked;
-    state.data.columns = parseInt(document.getElementById("meta-columns").value, 10) || 0;
-    el.metaDialog.close();
-    markDirty(); render();
+    document.getElementById("ind-online").addEventListener("change", onInd);
+    document.getElementById("ind-battery").addEventListener("change", onInd);
+    document.getElementById("meta-perf").addEventListener("change", (e) => {
+      state.data.perf = e.target.checked; markDirty();
+    });
+    syncSettingsInputs();
   }
 
   /* ---------- Publication ---------- */
@@ -544,7 +622,7 @@
       if (savePending || saveTimer) await saveDraft();
       await apiSend("POST", "/api/publish");
       setUnpublished(false);
-      setStatus("Publié vers l'affichage ✓", "updated");
+      setStatus("Envoyé à l'affichage ✓", "updated");
       setTimeout(() => setStatus("Brouillon synchronisé", "idle"), 2500);
     } catch (err) {
       if (err.message === "beltpack_conflict") alert("Beltpack en double : impossible de publier.");
@@ -558,10 +636,11 @@
 
   /* ---------- Export / Import ---------- */
   function exportConfig() {
+    // Fichier de configuration ComRoster — extension .rost (contenu JSON).
     const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `comroster-${Date.now()}.json`;
+    a.download = `comroster-${Date.now()}.rost`;
     document.body.append(a); a.click(); a.remove();
     URL.revokeObjectURL(a.href);
   }
@@ -587,7 +666,7 @@
   }
 
   /* ---------- Historique des publications ---------- */
-  async function openHistory() {
+  async function refreshHistory() {
     let items = [];
     try { items = await apiSend("GET", "/api/history"); } catch { alert("Historique indisponible."); return; }
     const list = document.getElementById("history-list");
@@ -604,7 +683,17 @@
         setTimeout(() => setStatus("Brouillon synchronisé", "idle"), 2500);
       } catch { alert("Restauration impossible."); }
     }));
+    const clearBtn = document.getElementById("history-clear");
+    if (clearBtn) clearBtn.disabled = !items.length;
+  }
+  async function openHistory() {
+    await refreshHistory();
     document.getElementById("history-dialog").showModal();
+  }
+  async function clearHistory() {
+    if (!confirm("Supprimer tout l'historique des publications ? Cette action est irréversible.")) return;
+    try { await apiSend("POST", "/api/history/clear"); await refreshHistory(); toast("Historique supprimé"); }
+    catch { alert("Suppression impossible."); }
   }
 
   /* ---------- Menu contextuel ---------- */
@@ -649,18 +738,13 @@
     if (!v) return;
     el.blockDialog.close(); createBlock(v);
   });
-  document.getElementById("add-user-btn").addEventListener("click", () => openPersonDialog(null, null));
   el.personForm.addEventListener("submit", submitPerson);
-  el.metaForm.addEventListener("submit", submitMeta);
-  document.getElementById("edit-meta-btn").addEventListener("click", openMetaDialog);
-  el.themeBtn.addEventListener("click", () => {
-    state.data.theme = state.data.theme === "day" ? "night" : "day";
-    markDirty(); render();
-  });
+  bindSettings();
   el.publishBtn.addEventListener("click", publish);
   document.getElementById("export-btn").addEventListener("click", exportConfig);
   el.importInput.addEventListener("change", importConfig);
   document.getElementById("history-btn").addEventListener("click", openHistory);
+  document.getElementById("history-clear").addEventListener("click", clearHistory);
   document.getElementById("history-close").addEventListener("click", () => document.getElementById("history-dialog").close());
   el.colorPicker.addEventListener("input", onColorPick);
   el.colorPicker.addEventListener("change", onColorPick);
@@ -763,19 +847,25 @@
   }
   document.getElementById("antenna-btn").addEventListener("click", openAntenna);
 
-  document.getElementById("wiz-connect-btn").addEventListener("click", async () => {
+  document.getElementById("wiz-connect-btn").addEventListener("click", async (ev) => {
+    const btn = ev.currentTarget;
     const ip = document.getElementById("wiz-ip").value.trim();
     const password = document.getElementById("wiz-password").value;
     const err = document.getElementById("wiz-error");
+    const prog = document.getElementById("wiz-progress");
     err.hidden = true;
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "Connexion…"; if (prog) prog.hidden = false;
     try {
       await apiSend("POST", "/api/antenna/connect", { ip, password });
       await refreshAntennaBadge();
       await pollLive();
       wizGo(2);
     } catch (e) {
-      err.textContent = e.payload?.error || "Connexion échouée";
+      err.textContent = e.payload?.error || "Connexion échouée — vérifiez l'adresse IP et le mot de passe.";
       err.hidden = false;
+    } finally {
+      btn.disabled = false; btn.textContent = label; if (prog) prog.hidden = true;
     }
   });
   document.getElementById("wiz-back-2").addEventListener("click", () => wizGo(1));
@@ -907,41 +997,55 @@
       const dns = document.getElementById("net-dns").value.split(",").map((s) => s.trim()).filter(Boolean);
       if (dns.length) cfg.dns = dns;
     }
+    const submitBtn = e.submitter || document.querySelector("#network-form button[type=submit]");
+    const prog = document.getElementById("net-progress");
+    const rebootBtn = document.getElementById("reboot-btn");
+    const label = submitBtn ? submitBtn.textContent : "";
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Enregistrement…"; }
+    if (prog) prog.hidden = false;
     try {
-      await apiSend("PUT", "/api/network", cfg);
+      const r = await apiSend("PUT", "/api/network", cfg);
       const where = link === "wifi" ? `en Wi-Fi sur <b>${esc(cfg.wifi.ssid)}</b>` : "en filaire (RJ45)";
       res.innerHTML = mode === "static"
         ? `Enregistré. <b>Redémarrez le boîtier</b> pour appliquer — il repartira ${where} sur `
           + `<b>${esc(cfg.address)}</b> (adresse affichée à l'écran).`
         : `Enregistré. <b>Redémarrez le boîtier</b> pour appliquer — il repartira ${where} en adresse automatique.`;
       res.hidden = false;
+      if (rebootBtn && r && r.reboot_required) rebootBtn.hidden = false;
       toast("Configuration réseau enregistrée");
     } catch (ex) {
       err.textContent = ex.payload?.error || "Configuration invalide";
       err.hidden = false;
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = label; }
+      if (prog) prog.hidden = true;
     }
   });
 
-  /* ---------- Mode sélection ---------- */
+  document.getElementById("reboot-btn").addEventListener("click", async (ev) => {
+    if (!confirm("Redémarrer le boîtier maintenant ? L'écran et l'administration seront indisponibles ~1 minute.")) return;
+    const btn = ev.currentTarget;
+    btn.disabled = true; btn.textContent = "Redémarrage…";
+    try {
+      await apiSend("POST", "/api/reboot");
+      toast("Redémarrage du boîtier en cours…");
+    } catch {
+      toast("Redémarrage impossible", true);
+      btn.disabled = false; btn.textContent = "⟳ Redémarrer le boîtier";
+    }
+  });
+
+  /* ---------- Sélection (clic direct sur un beltpack) ---------- */
   function updateSelectionBar() {
     document.getElementById("selection-count").textContent = `${state.selection.size} sélectionné(s)`;
-    document.getElementById("selection-bar").classList.toggle("active", state.selectionMode);
+    document.getElementById("selection-bar").classList.toggle("active", state.selection.size > 0);
   }
   function exitSelection() {
-    state.selectionMode = false;
     state.selection.clear();
     state.lastSelectedId = null;
-    document.getElementById("select-btn").textContent = "Sélectionner";
+    refreshSelectionClasses();
     updateSelectionBar();
-    render();
   }
-  document.getElementById("select-btn").addEventListener("click", () => {
-    state.selectionMode = !state.selectionMode;
-    state.selection.clear();
-    document.getElementById("select-btn").textContent = state.selectionMode ? "Quitter la sélection" : "Sélectionner";
-    updateSelectionBar();
-    render();
-  });
   document.getElementById("selection-cancel").addEventListener("click", exitSelection);
   document.getElementById("selection-delete").addEventListener("click", async () => {
     if (!state.selection.size) return;

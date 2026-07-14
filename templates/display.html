@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Tableau d'affectation des beltpacks d'intercom – {{ initial_data.title }}">
   <title>{{ initial_data.title }} – ComRoster</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/comroster-badge.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/display.css') }}">
 </head>
 <body class="display-page" data-theme="{{ initial_data.theme or 'night' }}" data-perf="{{ 'on' if initial_data.perf else 'off' }}">
   <header>
+    <img class="board-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="ComRoster" width="30" height="30">
     <div class="board-meta">
       <h1 id="board-title">{{ initial_data.title }}</h1>
       <h2 id="board-subtitle" {% if not initial_data.subtitle %}hidden{% endif %}>{{ initial_data.subtitle or '' }}</h2>
@@ -28,7 +30,7 @@
   </header>
   <main id="display-scroll"><div class="display-grid" id="display-grid"></div></main>
   <footer>
-    <span class="created-by">Créé par Nathan Hurstel</span>
+    <span class="created-by">COMROSTER par Nathan Hurstel</span>
     <span class="footer-updated">Dernière mise à jour : <time id="updated-at-time">{{ initial_data.updated_at }}</time></span>
   </footer>
 

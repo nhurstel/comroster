@@ -6,116 +6,190 @@
 .admin-page {
     height: 100vh;
     overflow: hidden;
-    background: #0c111d;
-    color: #e6edf3;
+    background: #141821;
+    color: #EEF1F7;
 }
 
-/* Header / footer : solides, compacts (override du glass de main.css) */
-.admin-page header,
-.admin-page footer {
-    background: #0f1524;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border-color: #1e2740;
-    box-shadow: none;
-    height: 3.4rem;
-}
-.admin-page header::before { display: none; }
-.admin-page .board-meta h1 { font-size: 1.05rem; font-weight: 700; text-shadow: none; }
-.admin-page .board-meta h2 { font-size: 0.78rem; color: #8b97ad; }
-
-.admin-page main {
-    padding: 4.4rem 1.1rem 4rem;
-    height: 100vh;
-    min-height: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    max-width: none;
-}
-
-/* Statut de synchro discret */
-.admin-page .status-badge {
-    background: #131a2a;
-    border-color: #243049;
-    box-shadow: none;
-    font-size: 0.8rem;
-    font-weight: 500;
-}
-
-/* ---------- Boutons : plats, compacts ---------- */
+/* ---------- Boutons compacts (dialogs, actions de panneau) ---------- */
 .admin-page button,
-.admin-page .import-label,
-.admin-page .logout-link {
-    display: inline-flex;
-    align-items: center;
-    line-height: 1;
-    height: 2rem;
-    padding: 0 0.7rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    border-radius: 7px;
-    box-shadow: none;
-    background: #1a2336;
-    border: 1px solid #2a3550;
-    color: #e6edf3;
-    cursor: pointer;
-    transition: background 0.12s, border-color 0.12s;
-    text-decoration: none;
-    white-space: nowrap;
+.admin-page .import-label {
+    display: inline-flex; align-items: center; line-height: 1;
+    height: 2rem; padding: 0 0.7rem;
+    font-size: 0.82rem; font-weight: 600; border-radius: 7px; box-shadow: none;
+    background: #1E2330; border: 1px solid #333A49; color: #EEF1F7;
+    cursor: pointer; transition: background 0.12s, border-color 0.12s;
+    text-decoration: none; white-space: nowrap;
 }
 .admin-page button:hover:not(:disabled),
-.admin-page .import-label:hover {
-    background: #232e49;
-    border-color: #3a4868;
-    transform: none;
-}
-.admin-page button.primary {
-    background: var(--primary);
-    color: #04121b;
-    border-color: transparent;
-}
+.admin-page .import-label:hover { background: #262C3B; border-color: #454E63; transform: none; }
+.admin-page button.primary { background: var(--primary); color: #0B0D12; border-color: transparent; }
 .admin-page button.primary:hover { background: var(--primary-light); }
-.admin-page .logout-link { color: #ff8d8d; border-color: #50313a; background: transparent; }
-.admin-page .logout-link:hover { background: #3a2228; color: #fff; box-shadow: none; }
-.admin-page .import-label input[type="file"] { display: none; }
 
-/* ---------- Toolbar ---------- */
-.admin-toolbar {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 0.6rem 0.7rem;
-    background: #111726;
-    border: 1px solid #1e2740;
-    border-radius: 9px;
-    margin-bottom: 0.85rem;
+/* ---------- Shell : sidebar + espace de travail (registre Linear) ---------- */
+.admin-shell { flex: 1; display: flex; min-height: 0; height: 100vh; }
+
+/* ---------- Sidebar : actions rangées par section ---------- */
+.admin-sidebar {
+    width: 244px; flex: 0 0 244px;
+    background: #0E1119;
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 0.85rem 0.7rem;
+    overflow: hidden;
 }
-.toolbar-spacer { flex: 1; min-width: 0.5rem; }
+/* Zone médiane défilante : réglages inline + nav (la marque et la déconnexion restent fixes) */
+.side-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.06rem; padding-right: 0.15rem; }
+.side-scroll::-webkit-scrollbar { width: 7px; }
+.side-scroll::-webkit-scrollbar-thumb { background: #333A49; border-radius: 7px; }
+.side-scroll .side-nav { margin-top: 0.35rem; }
 
-/* ---------- Layout 2 colonnes ---------- */
+/* Réglages inline (nom, sous-titre, luminosité, colonnes) */
+.side-field { display: flex; flex-direction: column; gap: 0.22rem; padding: 0.1rem 0.5rem 0.3rem; }
+.side-field > span { font-size: 0.7rem; color: #7D828C; font-weight: 500; }
+.side-field input, .side-field select {
+    width: 100%; height: 1.9rem; padding: 0 0.5rem;
+    background: #0E1119; border: 1px solid #333A49; border-radius: 6px;
+    color: #EEF1F7; font-size: 0.82rem; font-family: inherit; cursor: pointer;
+}
+.side-field input { cursor: text; }
+.side-field input:focus, .side-field select:focus { outline: none; border-color: var(--primary); }
+.side-check {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.32rem 0.5rem; font-size: 0.82rem; color: #B9BDC6; cursor: pointer;
+}
+.side-check input { width: 1rem; height: 1rem; accent-color: var(--primary); flex: 0 0 auto; margin: 0; }
+.side-brand { display: flex; align-items: center; gap: 0.5rem; padding: 0.15rem 0.4rem 0.85rem; }
+.admin-badge { width: 1.2rem; height: 1.2rem; flex: 0 0 auto; }
+.side-name { font-size: 0.82rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #EEF1F7; }
+
+.side-nav { display: flex; flex-direction: column; gap: 0.08rem; }
+.nav-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.13em; color: #626871; font-weight: 600; padding: 0.75rem 0.5rem 0.28rem; }
+.admin-sidebar .nav-item {
+    display: flex; align-items: center; gap: 0.55rem;
+    width: 100%; height: 2rem; padding: 0 0.5rem;
+    justify-content: flex-start; text-align: left;
+    background: transparent; border: none; border-radius: 6px;
+    color: #B9BDC6; font-size: 0.83rem; font-weight: 500;
+    cursor: pointer; white-space: nowrap; transition: background 0.12s, color 0.12s;
+}
+.admin-sidebar .nav-item:hover:not(:disabled) { background: #1E2330; color: #EEF1F7; }
+.nav-ico { width: 1rem; height: 1rem; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
+.admin-sidebar .import-label { cursor: pointer; }
+.admin-sidebar .import-label input[type="file"] { display: none; }
+
+.side-foot { margin-top: auto; padding-top: 0.7rem; }
+.admin-sidebar .logout-link {
+    display: flex; align-items: center; gap: 0.55rem;
+    width: 100%; height: 2rem; padding: 0 0.5rem;
+    background: transparent; border: none; border-radius: 6px;
+    color: #F0857A; font-size: 0.83rem; font-weight: 500; text-decoration: none; cursor: pointer;
+}
+.admin-sidebar .logout-link:hover { background: #2E1C1F; }
+
+/* Item de nav surligné tant que son dialog est ouvert (repère de contexte Linear) */
+.admin-page:has(#meta-dialog[open]) #edit-meta-btn,
+.admin-page:has(#antenna-dialog[open]) #antenna-btn,
+.admin-page:has(#network-dialog[open]) #network-btn,
+.admin-page:has(#history-dialog[open]) #history-btn,
+.admin-page:has(#configs-dialog[open]) #configs-btn,
+.admin-page:has(#import-dialog[open]) #export-btn {
+    background: rgba(51, 214, 198, 0.12);
+    color: #EEF1F7;
+    box-shadow: inset 2px 0 0 var(--primary);
+}
+
+/* ---------- Espace de travail ---------- */
+/* Neutralise la règle globale `main { max-width; margin:auto; padding }` qui
+   plafonnait/centrait/rembourrait le plan de travail (→ « pas fullscreen »). */
+.admin-main {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; min-height: 0;
+    max-width: none; width: auto; margin: 0; padding: 0;
+}
+
+.admin-head {
+    position: static;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    flex: 0 0 auto; height: 3.4rem; padding: 0 1.1rem;
+    background: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+    border: none; border-bottom: 1px solid var(--border);
+}
+.admin-head::before { display: none; }
+.admin-head .board-meta { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.admin-head .board-meta h1 { font-size: 1rem; font-weight: 700; text-shadow: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.admin-head .board-meta h2 { font-size: 0.76rem; font-weight: 500; color: #7D828C; }
+.head-actions { display: flex; align-items: center; gap: 0.7rem; flex: 0 0 auto; }
+
+.admin-main .admin-layout { padding: 0; }
+
+.admin-foot {
+    position: static;
+    flex: 0 0 auto; height: 2.3rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0 1.1rem;
+    background: transparent; box-shadow: none;
+    border: none; border-top: 1px solid var(--border);
+    font-size: 0.74rem; color: #7D828C;
+}
+.admin-credit { margin-left: auto; color: #626871; }
+
+/* ---------- Toast (notification transitoire) ---------- */
+.cr-toast {
+    position: fixed; bottom: 1.3rem; left: 50%;
+    transform: translateX(-50%) translateY(0.8rem);
+    background: #1E2330; border: 1px solid #39404F; color: #EEF1F7;
+    padding: 0.65rem 1.05rem; border-radius: 8px;
+    font-size: 0.86rem; font-weight: 500;
+    box-shadow: 0 14px 36px rgba(0,0,0,0.55);
+    z-index: 2000; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s var(--ease-out, ease), transform 0.2s var(--ease-out, ease);
+}
+.cr-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.cr-toast.error { border-color: #4A2A2E; color: #F0857A; }
+.cr-toast.error::before { content: "⚠  "; }
+
+/* Statut de synchro : même langage que la pastille « En direct » du display */
+.admin-page .status-badge {
+    background: transparent; border: none; box-shadow: none; padding: 0;
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: #7D828C;
+}
+.admin-page .status-badge .pulse { width: 0.5rem; height: 0.5rem; border-radius: 0; background: #626871; flex: 0 0 auto; }
+.admin-page .status-badge[data-state="idle"] .pulse { background: var(--primary); }
+.admin-page .status-badge[data-state="updated"] .pulse { background: var(--success); box-shadow: 0 0 6px rgba(46,204,113,.55); }
+.admin-page .status-badge[data-state="error"] .pulse { background: var(--error); }
+.admin-page .status-badge[data-state="error"] .status-text { color: var(--error); }
+
+/* ---------- Layout 2 colonnes : panneaux sans couture, séparés par un filet ---------- */
 .admin-layout {
     display: grid;
-    grid-template-columns: minmax(260px, 320px) 1fr;
-    gap: 0.85rem;
+    grid-template-columns: minmax(240px, 300px) 1fr;
+    gap: 0;
     flex: 1;
     min-height: 0;
     height: 100%;
 }
 
 .admin-panel {
-    background: #0f1524;
-    border: 1px solid #1e2740;
-    border-radius: 9px;
-    padding: 0.85rem;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.7rem;
+    gap: 0.65rem;
     min-height: 0;
 }
+/* 3 zones qui s'assombrissent de gauche à droite (nav → disponibles → contenu),
+   bord à bord, chaque colonne remplit toute la hauteur. */
+.admin-layout > .admin-panel:first-child {
+    background: #111520;
+    border-right: 1px solid var(--border);
+    padding: 0.9rem 1rem;
+}
+.admin-layout > .admin-panel:last-child { padding: 0.9rem 1.1rem; }
 .admin-panel .block-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-.admin-panel .block-header h3 { margin: 0; font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #aab6cc; }
+.admin-panel .block-header h3 { margin: 0; font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #B9BDC6; }
 
 /* ---------- Listes scrollables ---------- */
 .user-list,
@@ -127,101 +201,190 @@
     overscroll-behavior-y: contain;
     padding-right: 0.3rem;
     scrollbar-width: thin;
-    scrollbar-color: #2a3550 transparent;
+    scrollbar-color: #333A49 transparent;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0;
 }
 .user-list::-webkit-scrollbar,
 #available-users::-webkit-scrollbar,
 #blocks-container::-webkit-scrollbar { width: 8px; }
 .user-list::-webkit-scrollbar-thumb,
 #available-users::-webkit-scrollbar-thumb,
-#blocks-container::-webkit-scrollbar-thumb { background: #2a3550; border-radius: 8px; }
+#blocks-container::-webkit-scrollbar-thumb { background: #333A49; border-radius: 8px; }
 
-.empty-hint { padding: 1rem; text-align: center; color: #5d6a82; font-size: 0.82rem; }
+.empty-hint { padding: 1rem; text-align: center; color: #7D828C; font-size: 0.82rem; }
 
-/* ---------- Groupes ---------- */
+/* ---------- Groupes (empilés sur une seule colonne) ---------- */
 .admin-block {
     --block-accent: var(--primary);
-    background: #131a2a;
-    border: 1px solid #1e2740;
+    background: transparent;
+    border: 1px solid var(--border);
     border-left: 3px solid var(--block-accent);
-    border-radius: 8px;
-    padding: 0.75rem 0.85rem;
-    margin-bottom: 0.5rem;
+    border-radius: 6px;
+    overflow: hidden;
+    padding: 0;
+    margin-bottom: 0.7rem;
+    /* Ne jamais écraser un groupe pour tenir dans la colonne : il garde sa hauteur
+       naturelle (tous ses beltpacks visibles) et c'est la colonne qui défile. */
+    flex: 0 0 auto;
 }
-.admin-block .block-header { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+/* En-tête de section : bandeau marqué (repère de groupe à la Jira) */
+.admin-block .block-header {
+    display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    margin-bottom: 0;
+    padding: 0.4rem 0.6rem;
+    background: #212633;
+    border-bottom: 1px solid var(--border);
+}
 .admin-block .block-title { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0; }
-.admin-block .block-title h3 { margin: 0; font-size: 0.95rem; font-weight: 700; }
+.admin-block .block-title h3 { margin: 0; font-size: 0.86rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+.admin-block .block-items { padding: 0 0.6rem; }
 
-.color-swatch { width: 0.8rem; height: 0.8rem; border-radius: 3px; border: 1px solid rgba(255,255,255,0.2); background: var(--swatch-color, var(--primary)); flex: 0 0 auto; }
+/* Case couleur cliquable : clic dessus → sélecteur de couleur du groupe */
+.color-swatch {
+    width: 1.05rem; height: 1.05rem; border-radius: 4px;
+    border: 1px solid rgba(238,241,247,0.35);
+    background: var(--swatch-color, var(--primary));
+    flex: 0 0 auto; cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+.color-swatch:hover { transform: scale(1.12); box-shadow: 0 0 0 2px rgba(238,241,247,0.18); }
+.color-swatch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
+/* Actions de groupe : TOUJOURS visibles, lisibles et confortables (admin = clarté avant tout) */
 .block-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; }
-.chip-btn { padding: 0.25rem 0.5rem; font-size: 0.72rem; font-weight: 600; border-radius: 6px; }
-.chip-btn.color-chip { background: var(--chip-color, var(--primary)); color: #04121b; border-color: transparent; }
-.chip-btn.danger { color: #ff8d8d; border-color: #50313a; }
+.chip-btn { font-size: 0.8rem; font-weight: 600; border-radius: 6px; }
+.block-actions .chip-btn { height: 1.85rem; padding: 0 0.75rem; background: #1E2330; border: 1px solid #39404F; color: #C9CFDA; }
+.block-actions .chip-btn:hover:not(:disabled) { background: #262C3B; border-color: #454E63; color: #EEF1F7; }
+.block-actions .chip-btn.danger { color: #F0857A; border-color: #4A2A2E; }
+.block-actions .chip-btn.danger:hover:not(:disabled) { background: #2E1C1F; border-color: #4A2A2E; color: #F0857A; }
 
-.block-items { display: flex; flex-direction: column; gap: 0.4rem; }
+.block-items { display: flex; flex-direction: column; gap: 0; }
 
-/* ---------- Fiche personne (dense, une ligne) ---------- */
+/* ---------- Ligne beltpack : lignes denses à séparateurs hairline (Linear) ---------- */
 .person {
-    background: #1a2336;
-    border: 1px solid #283450;
-    border-radius: 7px;
-    padding: 0.5rem 0.6rem;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    padding: 0.32rem 0.4rem;
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.6rem;
     cursor: grab;
+    flex: 0 0 auto;
 }
-.person:hover { border-color: #3a4868; background: #1f2942; }
+.person:last-child { border-bottom: none; }
+.person:hover { background: #212633; }
 .person.dragging { opacity: 0.45; cursor: grabbing; }
 
+/* Numéro = « id » muet (mono, à la Jira ENG-###), pas un accent */
 .person .bp {
     position: relative;
     flex: 0 0 auto;
-    min-width: 2.1rem;
-    padding: 0.2rem 0.35rem;
+    min-width: 1.9rem;
+    padding: 0.1rem 0.3rem;
     text-align: center;
-    border-radius: 5px;
-    background: #0c111d;
-    border: 1px solid #2a3550;
-    color: var(--primary-light);
-    font-weight: 700;
+    border-radius: 4px;
+    background: #212633;
+    border: 1px solid #39404F;
+    color: #B9BDC6;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
-.person .who { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
-.person .role { font-size: 0.86rem; font-weight: 600; color: #e6edf3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.person .name { font-size: 0.76rem; color: #8b97ad; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Rôle + nom sur une seule ligne → rangée fine */
+.person .who { display: flex; flex-direction: row; align-items: baseline; min-width: 0; gap: 0.45rem; line-height: 1.2; }
+.person .role { font-size: 0.84rem; font-weight: 600; color: #EEF1F7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.person .name { font-size: 0.78rem; color: #969DAD; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+
+/* Case « + » d'ajout : exactement le même gabarit qu'une ligne beltpack (puce + libellé) */
+.admin-page .person-add {
+    background: transparent; border: none; border-bottom: 1px solid var(--border); border-radius: 0;
+    padding: 0.32rem 0.4rem;
+    display: flex; align-items: center; justify-content: flex-start; text-align: left;
+    gap: 0.6rem; width: 100%; height: auto;
+    color: #7D828C; font-weight: 600; cursor: pointer; transition: color 0.12s;
+}
+.admin-page .person-add:hover { color: #EEF1F7; }
+.person-add .pa-chip {
+    flex: 0 0 auto; min-width: 1.9rem; padding: 0.1rem 0.3rem; text-align: center;
+    border-radius: 4px; background: #212633; border: 1px solid #39404F; color: #B9BDC6;
+    font-size: 1rem; font-weight: 700; line-height: 1.15;
+    transition: color 0.12s, border-color 0.12s;
+}
+.admin-page .person-add:hover .pa-chip { color: var(--primary); border-color: var(--primary); }
+.person-add .pa-label { font-size: 0.84rem; }
+
+/* Édition sur place du numéro / nom (double-clic) */
+.inline-edit {
+    font: inherit; color: #EEF1F7; background: #0E1119;
+    border: 1px solid var(--primary); border-radius: 4px;
+    padding: 0.04rem 0.25rem; margin: 0; box-sizing: border-box;
+}
+.inline-edit:focus { outline: none; }
+.person .bp .inline-edit { width: 3.6ch; text-align: center; padding: 0.04rem 0.1rem; }
+.person .role .inline-edit { width: 100%; min-width: 7ch; }
 
 /* ---------- Dialogs : solides ---------- */
 .admin-dialog {
     max-width: 440px;
     width: calc(100% - 2rem);
+    /* Recentrage : le reset global `* { margin: 0 }` écrase le margin:auto que le
+       navigateur applique aux <dialog> modaux → sans ça, ils collent en haut à gauche. */
+    margin: auto;
     padding: 0;
-    background: #131a2a;
-    border: 1px solid #283450;
+    background: #212633;
+    border: 1px solid #39404F;
     border-radius: 12px;
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-    color: #e6edf3;
+    color: #EEF1F7;
 }
-.admin-dialog::backdrop { background: rgba(5, 8, 15, 0.6); }
+.admin-dialog::backdrop { background: rgba(4,6,10,0.62); }
 .admin-dialog form { padding: 1.4rem; display: flex; flex-direction: column; gap: 0.9rem; }
 .admin-dialog h2 { margin: 0; font-size: 1.2rem; font-weight: 700; }
-.dialog-hint { margin: 0; font-size: 0.82rem; color: #8b97ad; }
+.dialog-hint { margin: 0; font-size: 0.82rem; color: #7D828C; }
 .dialog-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.3rem; }
-.admin-dialog .field span { font-size: 0.82rem; font-weight: 600; color: #aab6cc; }
-.admin-dialog .field small { font-weight: 400; color: #5d6a82; }
-.admin-dialog input, .admin-dialog select {
-    background: #0c111d; border: 1px solid #2a3550; color: #e6edf3; border-radius: 7px;
+.admin-dialog .dialog-actions .danger { color: #F0857A; border-color: #4A2A2E; margin-right: auto; }
+.admin-dialog .dialog-actions .danger:hover:not(:disabled) { background: #2E1C1F; color: #F0857A; }
+.admin-dialog .dialog-actions .danger:disabled { opacity: 0.4; cursor: default; }
+
+/* Barre de progression indéterminée (connexion antenne / enregistrement réseau) */
+.conn-progress { height: 3px; border-radius: 3px; overflow: hidden; background: #262C3B; position: relative; margin: 0.1rem 0; }
+.conn-progress::before {
+    content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 40%;
+    background: var(--primary); border-radius: 3px;
+    animation: conn-slide 1.1s ease-in-out infinite;
 }
-.admin-dialog input:focus, .admin-dialog select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0,168,232,0.15); }
+@keyframes conn-slide { 0% { left: -40%; } 100% { left: 100%; } }
+
+/* Messages de statut / erreur mis en page (les dialogs ne chargent pas auth.css) */
+.admin-dialog .auth-error {
+    margin: 0; padding: 0.6rem 0.8rem;
+    background: rgba(240, 77, 62, 0.12); border: 1px solid rgba(240, 77, 62, 0.4);
+    border-radius: 7px; color: #F0857A; font-size: 0.83rem; font-weight: 500;
+}
+.dialog-status {
+    margin: 0; padding: 0.6rem 0.8rem;
+    background: rgba(51, 214, 198, 0.1); border: 1px solid rgba(51, 214, 198, 0.32);
+    border-radius: 7px; color: #C9CFDA; font-size: 0.83rem; line-height: 1.5;
+}
+.dialog-status b { color: #EEF1F7; }
+
+/* Bouton de redémarrage (action notable, non destructive) */
+.admin-dialog .reboot-btn { background: var(--warning); color: #0B0D12; border-color: transparent; margin-right: auto; font-weight: 700; }
+.admin-dialog .reboot-btn:hover:not(:disabled) { background: #F2B457; border-color: transparent; }
+.admin-dialog .field span { font-size: 0.82rem; font-weight: 600; color: #B9BDC6; }
+.admin-dialog .field small { font-weight: 400; color: #626871; }
+.admin-dialog input, .admin-dialog select {
+    background: #0E1119; border: 1px solid #333A49; color: #EEF1F7; border-radius: 7px;
+}
+.admin-dialog input:focus, .admin-dialog select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(51, 214, 198,0.15); }
 
 /* Beltpack input */
-.beltpack-input { display: flex; align-items: center; background: #0c111d; border: 1px solid #2a3550; border-radius: 7px; overflow: hidden; }
-.beltpack-prefix { padding: 0.5rem 0.7rem; font-size: 0.82rem; font-weight: 600; color: #8b97ad; background: #11182a; border-right: 1px solid #2a3550; }
+.beltpack-input { display: flex; align-items: center; background: #0E1119; border: 1px solid #333A49; border-radius: 7px; overflow: hidden; }
+.beltpack-prefix { padding: 0.5rem 0.7rem; font-size: 0.82rem; font-weight: 600; color: #7D828C; background: #131722; border-right: 1px solid #333A49; }
 .beltpack-input input { flex: 1; border: none; background: transparent; box-shadow: none !important; margin: 0; padding: 0.5rem 0.7rem; }
 .beltpack-input input:focus { outline: none; }
 .beltpack-input:focus-within { border-color: var(--primary); }
@@ -230,8 +393,8 @@
 .context-menu {
     position: absolute;
     display: none;
-    background: #131a2a;
-    border: 1px solid #283450;
+    background: #212633;
+    border: 1px solid #39404F;
     border-radius: 8px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     padding: 0.3rem;
@@ -239,14 +402,14 @@
     min-width: 190px;
 }
 .context-menu button { width: 100%; justify-content: flex-start; text-align: left; padding: 0.45rem 0.6rem; border: none; background: transparent; box-shadow: none; border-radius: 5px; }
-.context-menu button:hover { background: #232e49; }
+.context-menu button:hover { background: #262C3B; }
 
 /* ---------- Historique ---------- */
 .history-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; max-height: 50vh; overflow-y: auto; }
-.history-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.5rem 0.6rem; background: #0c111d; border: 1px solid #243049; border-radius: 7px; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.history-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.5rem 0.6rem; background: #0E1119; border: 1px solid #2C3242; border-radius: 7px; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 
 /* ---------- Footer ---------- */
-.admin-page footer { justify-content: space-between; font-size: 0.78rem; color: #8b97ad; }
+.admin-page footer { justify-content: space-between; font-size: 0.78rem; color: #7D828C; }
 #dirty-indicator { color: var(--warning); font-weight: 600; font-size: 0.78rem; }
 
 /* ---------- Drop zones ---------- */
@@ -265,75 +428,72 @@
 
 /* ---------- Toolbar groupée ---------- */
 .tb-group { display: flex; gap: 0.4rem; }
-.tb-sep { width: 1px; align-self: stretch; background: #2a3550; margin: 0 0.1rem; }
+.tb-sep { width: 1px; align-self: stretch; background: #333A49; margin: 0 0.1rem; }
 
 /* ---------- Interrupteur ---------- */
 .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; font-weight: 600; }
-.switch { appearance: none; -webkit-appearance: none; width: 2.4rem; height: 1.35rem; border-radius: 999px; background: #2a3550; position: relative; cursor: pointer; transition: background .15s; flex: 0 0 auto; }
+.switch { appearance: none; -webkit-appearance: none; width: 2.4rem; height: 1.35rem; border-radius: 999px; background: #333A49; position: relative; cursor: pointer; transition: background .15s; flex: 0 0 auto; }
 .switch:checked { background: var(--primary); }
-.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 1.05rem; height: 1.05rem; border-radius: 50%; background: #fff; transition: left .15s; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 1.05rem; height: 1.05rem; border-radius: 50%; background: #EEF1F7; transition: left .15s; }
 .switch:checked::after { left: 1.2rem; }
-.dlg-sep { border: none; border-top: 1px solid #243049; margin: 0.6rem 0; }
+.dlg-sep { border: none; border-top: 1px solid #2C3242; margin: 0.6rem 0; }
 #antenna-block { display: flex; flex-direction: column; gap: 0.7rem; }
 #antenna-error { margin: 0.4rem 0 0; }
 
 /* ---------- Récap import ---------- */
 .import-summary { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-.import-summary li { padding: 0.5rem 0.6rem; background: #0c111d; border: 1px solid #243049; border-radius: 7px; font-size: 0.85rem; }
+.import-summary li { padding: 0.5rem 0.6rem; background: #0E1119; border: 1px solid #2C3242; border-radius: 7px; font-size: 0.85rem; }
 
 /* ---------- Éditeur de plages ---------- */
 .ranges-editor { display: flex; flex-direction: column; gap: 0.4rem; }
-.dlg-label { font-size: 0.82rem; font-weight: 600; color: #aab6cc; }
+.dlg-label { font-size: 0.82rem; font-weight: 600; color: #B9BDC6; }
 .range-row { display: flex; align-items: center; gap: 0.4rem; }
 .range-row input { width: 5rem; }
-.range-row .range-del { color: #ff8d8d; border-color: #50313a; }
+.range-row .range-del { color: #F0857A; border-color: #4A2A2E; }
 
 /* ---------- Configurations ---------- */
 .save-row { display: flex; gap: 0.5rem; }
 .save-row input { flex: 1; }
 .configs-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; max-height: 50vh; overflow-y: auto; }
-.configs-list li { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.5rem 0.6rem; background: #0c111d; border: 1px solid #243049; border-radius: 7px; font-size: 0.85rem; }
+.configs-list li { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.5rem 0.6rem; background: #0E1119; border: 1px solid #2C3242; border-radius: 7px; font-size: 0.85rem; }
 .configs-list .cfg-actions { display: flex; gap: 0.35rem; }
 
 /* ---------- Mode sélection ---------- */
 .person.selectable { cursor: pointer; }
-.person.selected { border-color: var(--primary); background: #14304a; }
-.person .sel-check { margin-right: 0.2rem; width: 1.05rem; height: 1.05rem; accent-color: var(--primary); flex: 0 0 auto; }
-.selection-bar { position: fixed; bottom: 4.2rem; left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 0.8rem; padding: 0.5rem 0.9rem; background: #131a2a; border: 1px solid #3a4868; border-radius: 9px; box-shadow: 0 8px 24px rgba(0,0,0,.5); z-index: 60; }
+.person.selected { background: #123430; box-shadow: inset 2px 0 0 var(--primary); }
+.selection-bar { position: fixed; bottom: 4.2rem; left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 0.8rem; padding: 0.5rem 0.9rem; background: #212633; border: 1px solid #454E63; border-radius: 9px; box-shadow: 0 8px 24px rgba(0,0,0,.5); z-index: 60; }
 .selection-bar.active { display: flex; }
-.selection-bar .danger-btn { background: var(--error); color: #fff; border: none; border-radius: 7px; padding: 0.35rem 0.7rem; cursor: pointer; }
+.selection-bar .danger-btn { background: var(--error); color: #EEF1F7; border: none; border-radius: 7px; padding: 0.35rem 0.7rem; cursor: pointer; }
 
 /* ---------- Indicateur d'état antenne ---------- */
-#antenna-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0 0.85rem; background: #0d1422; border-color: #243049; }
-#antenna-btn:hover:not(:disabled) { background: #18233a; border-color: #3a4868; }
 .dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; flex: 0 0 auto; }
-.dot.off { background: #5d6a82; }
+.dot.off { background: #626871; }
 .dot.online { background: #2ecc71; box-shadow: 0 0 6px rgba(46,204,113,.6); }
-.dot.offline { background: #e0913a; box-shadow: 0 0 6px rgba(224,145,58,.6); }
+.dot.offline { background: #E8A13A; box-shadow: 0 0 6px rgba(224,145,58,.6); }
 
 /* Pastille temps réel sur la carte beltpack (invisible si antenne déconnectée) */
 .bp-dot { position: absolute; top: -3px; right: -3px; width: 0.5rem; height: 0.5rem; border-radius: 50%; }
-.bp-dot.on { background: #2ecc71; box-shadow: 0 0 5px rgba(46,204,113,.7); border: 1.5px solid #0c111d; }
-.bp-dot.down { background: #5d6a82; border: 1.5px solid #0c111d; }
+.bp-dot.on { background: #2ecc71; box-shadow: 0 0 5px rgba(46,204,113,.7); border: 1.5px solid #0B0D12; }
+.bp-dot.down { background: #626871; border: 1.5px solid #0B0D12; }
 
 /* Champ de recherche des beltpacks disponibles */
 .panel-filter {
     width: 100%; margin: 0 0 0.5rem; padding: 0.45rem 0.7rem;
-    background: #0c111d; border: 1px solid #2a3550; border-radius: 6px;
-    color: #e6edf3; font-size: 0.88rem;
+    background: #0E1119; border: 1px solid #333A49; border-radius: 6px;
+    color: #EEF1F7; font-size: 0.88rem;
 }
-.panel-filter::placeholder { color: #6b778d; }
+.panel-filter::placeholder { color: #626871; }
 .panel-filter:focus { outline: none; border-color: var(--primary); }
 
 /* Indicateurs temps réel sur la carte (batterie + réception) */
 .card-live { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; flex: 0 0 auto; }
-.bp-batt { font-size: 0.72rem; font-weight: 700; color: #8b97ad; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.bp-batt.low { color: #e0913a; }
+.bp-batt { font-size: 0.72rem; font-weight: 700; color: #7D828C; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bp-batt.low { color: #E8A13A; }
 
 /* Cases « indicateurs » dans le dialog Infos */
-.ind-fieldset { border: 1px solid #2a3550; border-radius: 6px; padding: 0.5rem 0.7rem; display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; }
-.ind-fieldset legend { font-size: 0.78rem; color: #8b97ad; padding: 0 0.3rem; }
-.ind-check { display: flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; color: #e6edf3; }
+.ind-fieldset { border: 1px solid #333A49; border-radius: 6px; padding: 0.5rem 0.7rem; display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; }
+.ind-fieldset legend { font-size: 0.78rem; color: #7D828C; padding: 0 0.3rem; }
+.ind-check { display: flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; color: #EEF1F7; }
 .ind-check input { width: 1rem; height: 1rem; accent-color: var(--primary); }
 
 /* ---------- Panneau Antenne (pas de <form> : on pose le padding ici) ---------- */
@@ -344,10 +504,10 @@
 
 /* ---------- Assistant ---------- */
 .wiz-steps { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-.wiz-dot { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: #2a3550; transition: background .15s; }
+.wiz-dot { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: #333A49; transition: background .15s; }
 .wiz-dot.active { background: var(--primary); }
 .wiz-dot.done { background: #2ecc71; }
-.wiz-line { width: 2.4rem; height: 2px; background: #2a3550; }
+.wiz-line { width: 2.4rem; height: 2px; background: #333A49; }
 .wiz-step:not([hidden]) { display: flex; flex-direction: column; gap: 0.8rem; }
 .wiz-step h2 { margin: 0; font-size: 1.15rem; text-align: center; }
 .wiz-step .field { margin-bottom: 0; }
@@ -358,14 +518,25 @@
 #antenna-dashboard .dialog-actions { flex-wrap: wrap; }
 .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
 @media (max-width: 520px) { .dash-grid { grid-template-columns: 1fr; } }
-.dash-card { background: #0c111d; border: 1px solid #243049; border-radius: 8px; padding: 0.7rem 0.8rem; }
-.dash-card-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #8b97ad; margin-bottom: 0.45rem; }
+.dash-card { background: #0E1119; border: 1px solid #2C3242; border-radius: 8px; padding: 0.7rem 0.8rem; }
+.dash-card-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #7D828C; margin-bottom: 0.45rem; }
 #dash-state { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.9rem; }
 #dash-state .ds-line { display: flex; align-items: center; gap: 0.4rem; }
-#dash-state .ds-sub { color: #8b97ad; font-size: 0.82rem; }
+#dash-state .ds-sub { color: #7D828C; font-size: 0.82rem; }
 
 /* ---------- En-tête de panneau : compteur sur une ligne ---------- */
-.badge { white-space: nowrap; }
+/* Compteurs : chip muet (à la Jira), l'accent turquoise reste réservé à « Publier » */
+.admin-page .badge {
+    white-space: nowrap;
+    background: #1E2330;
+    border: 1px solid #39404F;
+    color: #969DAD;
+    box-shadow: none;
+    padding: 0.14rem 0.45rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+.admin-page .badge:hover { background: #1E2330; }
 
 /* Barre d'actions sous l'en-tête de chaque panneau (création + sélection) */
 .panel-actions { display: flex; gap: 0.4rem; align-self: flex-start; flex: 0 0 auto; }
@@ -374,12 +545,12 @@
     padding: 0 0.6rem;
     font-size: 0.74rem;
     font-weight: 600;
-    background: #131a2a;
-    color: #aab6cc;
+    background: #212633;
+    color: #B9BDC6;
 }
-.admin-panel .mini-btn:hover:not(:disabled) { background: #1f2942; color: #e6edf3; }
-.admin-panel .mini-btn.add { color: var(--primary-light); border-color: #2f5a78; }
-.admin-panel .mini-btn.add:hover:not(:disabled) { color: #04121b; background: var(--primary); border-color: transparent; }
+.admin-panel .mini-btn:hover:not(:disabled) { background: #1A1E2A; color: #EEF1F7; }
+.admin-panel .mini-btn.add { color: var(--primary-light); border-color: #1F5A54; }
+.admin-panel .mini-btn.add:hover:not(:disabled) { color: #0B0D12; background: var(--primary); border-color: transparent; }
 
 /* Réordonnancement des groupes par glisser-déposer du titre */
 .block-title[draggable="true"] { cursor: grab; }

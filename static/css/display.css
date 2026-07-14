@@ -1,142 +1,260 @@
 /* ComRoster — écran de diffusion (/display).
-   Extrait du template (CSP stricte : aucun style inline autorisé). */
+   Prototype DA « Swiss + Bauhaus » : grille sobre, à-plat, capitales, bleu-signal.
+   Fond sombre (compatible coulisses). Extrait du template (CSP stricte, aucun style inline). */
+
 body.display-page {
-  --display-header-height: 3.5rem; --display-footer-height: 3rem;
+  /* Jetons locaux (isolés au /display — n'affectent ni l'admin ni l'auth) */
+  --d-bg: #0B0D12;            /* fond quasi-noir, neutre froid */
+  --d-surface: #111420;      /* surface des blocs */
+  --d-line: #232838;         /* filet structurel (la grille visible) */
+  --d-line-strong: #39415A;  /* filet appuyé */
+  --d-fg: #EEF1F7;           /* texte principal */
+  --d-muted: #8A93A6;        /* labels secondaires */
+  --d-signal: #33D6C6;       /* signal turquoise clair (bleu/vert) */
+  --d-danger: #F04D3E;       /* rouge d'alerte (déconnexion) */
+  --d-ink: #0B0D12;          /* encre sur aplat de couleur */
+
+  --d-glass: linear-gradient(180deg, rgba(32,38,56,0.55), rgba(17,20,32,0.42));
+
+  --display-header-height: 3.6rem; --display-footer-height: 3rem;
   height: 100vh; overflow: hidden;
+  /* Fond quasi-noir + aurore turquoise très discrète (donne de la matière au verre) */
+  background:
+    radial-gradient(1200px 600px at 85% -12%, rgba(51,214,198,0.10), transparent 60%),
+    radial-gradient(1000px 520px at -5% 112%, rgba(51,214,198,0.06), transparent 60%),
+    var(--d-bg);
+  color: var(--d-fg);
+  font-family: var(--font-body);
 }
-/* Kiosk : masquer le curseur de souris (remplace unclutter, qui était X11). */
+/* ---------- Thème CLAIR (mode luminosité « Clair ») : bascule des jetons --d-* ---------- */
+body.display-page[data-theme="day"] {
+  --d-bg: #EDF0F5;           /* fond clair, neutre froid */
+  --d-surface: #FFFFFF;      /* surface des blocs */
+  --d-line: #D7DCE6;         /* filet structurel */
+  --d-line-strong: #B8C0CE;  /* filet appuyé */
+  --d-fg: #171B24;           /* texte principal (encre) */
+  --d-muted: #626B7C;        /* labels secondaires */
+  --d-signal: #10A093;       /* turquoise assombri (contraste sur clair) */
+  --d-danger: #D63A2B;       /* rouge d'alerte */
+  --d-ink: #10141C;          /* encre sur aplat de couleur (n° beltpack) */
+  --d-glass: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.6));
+  background:
+    radial-gradient(1200px 600px at 85% -12%, rgba(16,160,147,0.10), transparent 60%),
+    radial-gradient(1000px 520px at -5% 112%, rgba(16,160,147,0.06), transparent 60%),
+    var(--d-bg);
+}
+/* Quelques valeurs codées en dur orientées « sombre » → équivalents clairs */
+body.display-page[data-theme="day"] header {
+  background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(247,249,252,0.68));
+}
+body.display-page[data-theme="day"] .block { box-shadow: 0 1px 3px rgba(23,27,36,0.07); }
+body.display-page[data-theme="day"] .block-header .badge { background: rgba(23,27,36,0.05); color: var(--d-fg); }
+body.display-page[data-theme="day"] .person { background: rgba(23,27,36,0.03); }
+/* Logo (glyphe blanc) : on l'inverse en mode clair pour qu'il reste visible sur fond clair */
+body.display-page[data-theme="day"] .board-badge { filter: invert(1); }
+
+/* Kiosk : masquer le curseur de souris. */
 .display-page, .display-page * { cursor: none !important; }
-/* Header discret */
+
+/* ---------- Header : barre à-plat, grille visible ---------- */
 .display-page header {
-  height: 3.5rem;
-  padding: 0 1.75rem;
-  background: rgba(10, 16, 28, 0.45);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  height: var(--display-header-height);
+  padding: 0 1.5rem;
+  background: linear-gradient(180deg, rgba(17,20,32,0.72), rgba(11,13,18,0.5));
+  border: none;
+  border-bottom: 2px solid var(--d-line);
   box-shadow: none;
-  gap: 1.5rem;
+  backdrop-filter: blur(16px) saturate(120%); -webkit-backdrop-filter: blur(16px) saturate(120%);
+  gap: 1rem;
+  justify-content: flex-start;
 }
-body[data-theme="day"] .display-page header,
-.display-page[data-theme="day"] header { background: rgba(255, 255, 255, 0.5); }
 .display-page header::before { display: none; }
-.display-page .board-meta { gap: 0; min-width: 0; }
-.display-page .board-meta h1 { font-size: 1.15rem; font-weight: 700; text-shadow: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.display-page .board-meta h2 { font-size: 0.75rem; font-weight: 500; color: var(--fg-muted); }
-.display-page .header-actions { gap: 1.75rem; }
-/* overflow:hidden — l'auto-scroll se fait par transform GPU (opti Raspberry Pi),
-   pas par scrollTop (qui force layout+repaint en continu). */
+.board-badge { width: 2rem; height: 2rem; flex: 0 0 auto; }
+/* Filet vertical de séparation : le logo et le titre sont deux entités distinctes */
+.display-page .board-meta {
+  gap: 0.1rem; min-width: 0;
+  border-left: 1px solid var(--d-line-strong);
+  padding-left: 0.9rem; margin-left: 0.2rem;
+}
+.display-page .board-meta h1 {
+  font-family: var(--font-body);
+  font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.01em;
+  text-shadow: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--d-fg);
+}
+.display-page .board-meta h2 {
+  font-size: 0.62rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.22em; color: var(--d-muted);
+}
+.display-page .header-actions { gap: 1.6rem; margin-left: auto; align-items: center; }
+
+/* Stats : chiffre typographique + label capitale (Swiss) */
+.stats-container { display: flex; align-items: center; gap: 1.4rem; }
+.stat-item { display: flex; align-items: baseline; gap: 0.4rem; padding: 0; background: none; border: none; }
+.stat-value { font-family: var(--font-display); font-size: 1.15rem; font-weight: 800; color: var(--d-fg); font-variant-numeric: tabular-nums; }
+.stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--d-muted); }
+
+.board-clock {
+  font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--d-fg); min-width: 8ch; text-align: right; letter-spacing: 0.01em;
+}
+/* « En direct » : carré-signal (Bauhaus) + label capitale */
+.display-page .status-badge { background: transparent; border: none; box-shadow: none; padding: 0; gap: 0.5rem; }
+.display-page .status-badge .pulse { border-radius: 0; width: 0.55rem; height: 0.55rem; background: var(--d-signal); }
+.display-page .status-badge .status-text { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--d-muted); }
+/* Déconnexion (SSE en erreur → « Reconnexion… ») : le signal passe au rouge */
+.display-page .status-badge[data-state="error"] .pulse { background: var(--d-danger); }
+.display-page .status-badge[data-state="error"] .status-text { color: var(--d-danger); }
+
+/* ---------- Zone défilante ---------- */
 #display-scroll {
   flex: 1; overflow: hidden;
-  padding: calc(var(--display-header-height) + 2rem) 3rem calc(var(--display-footer-height) + 2rem);
+  padding: calc(var(--display-header-height) + 1.75rem) 2.5rem calc(var(--display-footer-height) + 1.75rem);
   scrollbar-width: none; -ms-overflow-style: none;
 }
 #display-scroll::-webkit-scrollbar { display: none; }
 .display-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.25rem;
   will-change: transform; backface-visibility: hidden;
 }
+
+/* ---------- Bloc groupe : cadre net, filet de tête, barre d'accent ---------- */
 .block {
-  --block-accent: var(--primary);
-  background: var(--glass-bg); backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--glass-border); border-top: 3px solid var(--block-accent);
-  border-radius: var(--radius-lg);
-  padding: 1.4rem 1.6rem 1.6rem; box-shadow: var(--shadow-md);
-  display: flex; flex-direction: column; gap: 0.9rem;
+  --block-accent: var(--d-signal);
+  position: relative;
+  background: var(--d-glass);                    /* verre dépoli (glassmorphism) */
+  backdrop-filter: blur(14px) saturate(125%);
+  -webkit-backdrop-filter: blur(14px) saturate(125%);
+  border: 2px solid var(--d-line-strong);
+  border-left: 5px solid var(--block-accent);    /* aplat de couleur Bauhaus + repère fonctionnel */
+  border-radius: 10px;                           /* coins un peu adoucis */
+  padding: 1.15rem 1.35rem 1.3rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);  /* reflet de bord (verre) */
+  display: flex; flex-direction: column; gap: 0.2rem;
 }
-.block-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-.block-header h3 { margin: 0; font-size: 1.4rem; font-weight: 700; }
-.block-items { display: flex; flex-direction: column; gap: 0.6rem; }
+.block-header {
+  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  padding-bottom: 0.7rem; margin-bottom: 0.5rem;
+  border-bottom: 2px solid var(--d-line);
+  /* Réserve la hauteur de 2 lignes de titre sur TOUS les en-têtes → les groupes
+     restent alignés entre colonnes, qu'un titre tienne sur 1 ou 2 lignes. */
+  min-height: 3.4rem;
+}
+.block-header h3 {
+  margin: 0; flex: 1; min-width: 0;
+  font-family: var(--font-body);
+  font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: var(--d-fg);
+  line-height: 1.15;
+  /* Jusqu'à 2 lignes, jamais coupé en plein mot (fini le « … » qui ne veut rien dire) ;
+     au-delà de 2 lignes seulement (très rare), « … » en dernier recours. */
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  overflow-wrap: anywhere;
+}
+/* Compteur d'affectations : étiquette encadrée, capitale, plus lisible */
+.block-header .badge {
+  font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; line-height: 1;
+  color: var(--d-fg); background: rgba(255,255,255,0.06); border: 1px solid var(--d-line-strong);
+  border-radius: 4px; padding: 0.3rem 0.55rem; white-space: nowrap; flex: 0 0 auto;
+}
+.block-items { display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* ---------- Beltpack : chaque affectation dans sa propre case ---------- */
 .person {
-  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md); padding: 0.85rem 1rem;
-  display: flex; align-items: center; gap: 1rem;
+  background: rgba(150,157,173,0.06);
+  border: 1px solid var(--d-line);
+  border-radius: 8px;
+  padding: 0.55rem 0.8rem;
+  display: flex; align-items: center; gap: 0.95rem;
 }
-body[data-theme="day"] .person { background: rgba(15,23,42,0.03); border-color: rgba(15,23,42,0.1); }
+
+/* Pastille beltpack : carré (Bauhaus), aplat d'accent, chiffre géométrique */
 .bp-badge {
   position: relative;
-  flex: 0 0 auto; min-width: 3rem; height: 3rem; padding: 0 0.6rem;
+  flex: 0 0 auto; min-width: 3rem; height: 3rem; padding: 0 0.55rem;
   display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
-  border-radius: var(--radius-md); background: var(--block-accent); color: #04121b;
-  font-weight: 800; line-height: 1; box-shadow: var(--shadow-sm);
+  border-radius: 5px; background: var(--block-accent); color: var(--d-ink);
+  box-shadow: none;
 }
-/* Pastille temps réel (invisible si antenne déconnectée) */
-.bp-badge .bp-dot { position: absolute; top: -4px; right: -4px; width: 0.75rem; height: 0.75rem; border-radius: 50%; }
-.bp-badge .bp-dot.on { background: #2ecc71; box-shadow: 0 0 7px rgba(46,204,113,.8); border: 2px solid var(--bg, #04121b); }
-.bp-badge .bp-dot.down { background: #5d6a82; border: 2px solid var(--bg, #04121b); }
-.bp-badge .bp-n { font-size: 1.4rem; font-variant-numeric: tabular-nums; }
-.bp-badge .bp-l { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.8; }
-.person-body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
-/* Indicateurs temps réel (batterie + réception) sur la carte TV */
-.card-live { margin-left: auto; display: flex; align-items: center; gap: 0.7rem; flex: 0 0 auto; padding-left: 0.6rem; }
-.bp-batt { font-size: 1rem; font-weight: 700; color: var(--fg-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.bp-batt.low { color: #e0913a; }
-.person .role { font-size: 1.3rem; font-weight: 700; color: var(--fg); }
-.person .name { font-size: 1rem; color: var(--fg-muted); }
-.empty-hint { padding: 1.5rem; text-align: center; color: var(--fg-subtle); font-style: italic; }
-.board-clock {
-  font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums;
-  color: var(--fg); min-width: 7ch; text-align: right;
-}
-/* Stats : texte discret en ligne, sans boîte */
-.stats-container { display: flex; align-items: baseline; gap: 1.25rem; }
-.stat-item { display: flex; align-items: baseline; gap: 0.3rem; padding: 0; background: none; border: none; }
-.stat-value { font-size: 1.05rem; font-weight: 700; color: var(--primary-light); font-variant-numeric: tabular-nums; }
-.stat-label { font-size: 0.8rem; text-transform: none; letter-spacing: 0; color: var(--fg-muted); }
-.display-page .status-badge { background: transparent; border: none; box-shadow: none; padding: 0; font-size: 0.85rem; }
-body.display-page footer { justify-content: space-between; align-items: center; gap: 1rem; }
-.created-by { font-weight: 400; font-size: 0.8rem; color: var(--fg-subtle); }
-.footer-updated { font-size: 0.8rem; color: var(--fg-muted); margin-left: auto; }
+.bp-badge .bp-n { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.bp-badge .bp-l { font-size: 0.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.72; margin-top: 0.1rem; }
+/* Pastille temps réel : petit carré en coin (invisible si antenne déconnectée) */
+.bp-badge .bp-dot { position: absolute; top: -3px; right: -3px; width: 0.7rem; height: 0.7rem; border-radius: 0; }
+.bp-badge .bp-dot.on { background: #2ECC71; border: 2px solid var(--d-bg); }
+.bp-badge .bp-dot.down { background: #5C6577; border: 2px solid var(--d-bg); }
 
-/* ---------- Écran de bienvenue / onboarding ---------- */
+.person-body { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.person .role {
+  font-family: var(--font-body);
+  font-size: 1.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.01em; color: var(--d-fg);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.person .name { font-size: 0.8rem; color: var(--d-muted); }
+
+/* Indicateurs temps réel (batterie) */
+.card-live { margin-left: auto; display: flex; align-items: center; gap: 0.7rem; flex: 0 0 auto; padding-left: 0.6rem; }
+.bp-batt { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--d-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bp-batt.low { color: #E0913A; }
+
+.empty-hint {
+  padding: 0.9rem 0.1rem; text-align: left; color: var(--d-muted); font-style: normal;
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.16em;
+}
+
+/* ---------- Footer : filet de tête, labels capitales ---------- */
+body.display-page footer {
+  justify-content: space-between; align-items: center; gap: 1rem;
+  background: var(--d-bg); border-top: 2px solid var(--d-line); box-shadow: none;
+}
+.created-by, .footer-updated {
+  font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--d-muted);
+}
+.footer-updated { margin-left: auto; }
+.footer-updated #updated-at-time { font-variant-numeric: tabular-nums; }
+
+/* ---------- Écran de bienvenue / onboarding (adapté DA) ---------- */
 #onboarding {
   position: fixed; inset: 0; z-index: 50;
   display: flex; align-items: center; justify-content: center; padding: 2rem;
-  background: radial-gradient(circle at 50% 30%, #16243a, var(--bg, #0a1018));
+  background: var(--d-bg);
 }
 .ob-card {
-  max-width: 1000px; width: 100%; text-align: center;
-  background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg, 18px); padding: 3rem 3.5rem; box-shadow: var(--shadow-lg, 0 20px 60px rgba(0,0,0,.5));
+  max-width: 1000px; width: 100%; text-align: left;
+  background: var(--d-glass); backdrop-filter: blur(14px) saturate(125%); -webkit-backdrop-filter: blur(14px) saturate(125%);
+  border: 2px solid var(--d-line-strong);
+  border-left: 5px solid var(--d-signal); border-radius: 12px; padding: 2.75rem 3rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
 }
-.ob-logo { font-size: 1.4rem; font-weight: 800; color: var(--primary-light); letter-spacing: 0.02em; }
-.ob-card h1 { font-family: var(--font-display); font-size: 2.6rem; margin: 0.6rem 0 0.4rem; color: var(--fg); }
-.ob-sub { font-size: 1.2rem; color: var(--fg-muted); line-height: 1.5; margin: 0 0 2rem; }
-.ob-cols { display: flex; align-items: center; gap: 3rem; text-align: left; justify-content: center; }
+.ob-logo { display: inline-flex; align-items: center; gap: 0.7rem; font-size: 1.1rem; color: var(--d-fg); }
+.ob-logo .ob-badge { width: 2rem; height: 2rem; }
+.ob-logo .wordmark { font-family: var(--font-body); font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; font-size: 1rem; }
+.ob-card h1 { font-family: var(--font-body); font-size: 2.4rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.01em; margin: 0.8rem 0 0.4rem; color: var(--d-fg); }
+.ob-sub { font-size: 1.1rem; color: var(--d-muted); line-height: 1.5; margin: 0 0 2rem; }
+.ob-cols { display: flex; align-items: center; gap: 3rem; text-align: left; justify-content: flex-start; }
 .ob-qr { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; flex: 0 0 auto; }
-.ob-qr img { width: 220px; height: 220px; background: #fff; border-radius: 14px; padding: 12px; }
-.ob-qr span { font-size: 0.95rem; color: var(--fg-muted); font-weight: 600; }
-.ob-steps { font-size: 1.3rem; line-height: 1.7; color: var(--fg); margin: 0; padding-left: 1.4rem; max-width: 480px; }
+.ob-qr img { width: 220px; height: 220px; background: #fff; border-radius: 0; padding: 12px; border: 2px solid var(--d-line); }
+.ob-qr span { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--d-muted); font-weight: 700; }
+.ob-steps { font-size: 1.15rem; line-height: 1.7; color: var(--d-fg); margin: 0; padding-left: 1.4rem; max-width: 480px; }
 .ob-steps li { margin-bottom: 0.8rem; }
-.ob-steps b { color: var(--primary-light); }
-.ob-foot { margin: 2rem 0 0; color: var(--fg-subtle); font-size: 1rem; }
-.ob-foot #ob-ip { color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.ob-steps b { color: var(--d-signal); }
+.ob-foot { margin: 2rem 0 0; color: var(--d-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.14em; }
+.ob-foot #ob-ip { color: var(--d-fg); font-variant-numeric: tabular-nums; text-transform: none; letter-spacing: 0; }
+
 @media (max-width: 768px) {
   .ob-cols { flex-direction: column; gap: 1.5rem; }
   .ob-card { padding: 2rem 1.5rem; }
-  .ob-card h1 { font-size: 2rem; }
-}
-@media (max-width: 768px) {
+  .ob-card h1 { font-size: 1.8rem; }
   #display-scroll { padding: calc(var(--display-header-height) + 1rem) 1rem calc(var(--display-footer-height) + 1rem); }
-  .display-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+  .display-grid { grid-template-columns: 1fr; gap: 1rem; }
 }
 
-/* ---------- Mode performance (afficheurs à faible GPU, ex. Raspberry Pi 3) ----------
-   Le flou (backdrop-filter) recalculé à chaque frame pendant l'auto-scroll est le
-   plus gros coût GPU du VideoCore IV. En mode perf on le supprime et on opacifie
-   les fonds : rendu quasi identique, mais fluide. Piloté par data-perf sur le body
-   (préférence publiée depuis l'admin). */
+/* ---------- Mode performance ----------
+   Le verre dépoli (backdrop-filter) est le plus gros coût GPU du VideoCore IV
+   sur Raspberry Pi. En mode perf on le supprime et on opacifie les fonds ; les
+   ombres dures (sans flou) sont conservées (coût nul). Piloté par data-perf. */
 .display-page[data-perf="on"] header,
 .display-page[data-perf="on"] .block,
 .display-page[data-perf="on"] .ob-card {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
 }
-.display-page[data-perf="on"] header { background: #0b1524; }
-.display-page[data-perf="on"] .block { background: #13223b; box-shadow: none; }
-.display-page[data-perf="on"] .ob-card { background: #0f1d30; }
-.display-page[data-perf="on"][data-theme="day"] header { background: #eaf1f9; }
-.display-page[data-perf="on"][data-theme="day"] .block { background: #ffffff; }
-.display-page[data-perf="on"][data-theme="day"] .ob-card { background: #ffffff; }
+.display-page[data-perf="on"] header { background: var(--d-bg); }
+.display-page[data-perf="on"] .block,
+.display-page[data-perf="on"] .ob-card { background: var(--d-surface); }
