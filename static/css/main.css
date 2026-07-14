@@ -21,16 +21,16 @@
    =================================================================== */
 
 :root {
-  /* Brand Colors - Vibrant & Professional */
-  --primary: #00A8E8;
-  --primary-dark: #004E89;
-  --primary-light: #20C4FF;
-  --secondary: #FF6B35;
-  --secondary-dark: #E55528;
-  --accent: #3AAFA9;
-  --success: #2DD881;
-  --warning: #FFB800;
-  --error: #FF4545;
+  /* DA ComRoster — sombre « Linear », accent unique turquoise */
+  --primary: #33D6C6;
+  --primary-dark: #1FB3A6;
+  --primary-light: #5FE3D6;
+  --secondary: #33D6C6;
+  --secondary-dark: #1FB3A6;
+  --accent: #33D6C6;
+  --success: #2ECC71;
+  --warning: #E8A13A;
+  --error: #F04D3E;
   
   /* Neutral Scale */
   --gray-50: #F8FAFC;
@@ -44,24 +44,24 @@
   --gray-800: #1E293B;
   --gray-900: #0F172A;
   
-  /* Semantic Colors - Dark Theme */
-  --bg: linear-gradient(135deg, #0A1628 0%, #16324F 100%);
-  --bg-solid: #0A1628;
-  --surface: rgba(20, 35, 55, 0.85);
-  --surface-hover: rgba(30, 50, 75, 0.95);
-  --fg: #FFFFFF;
-  --fg-muted: rgba(255, 255, 255, 0.75);
-  --fg-subtle: rgba(255, 255, 255, 0.5);
-  --border: rgba(255, 255, 255, 0.1);
-  --border-focus: rgba(0, 168, 232, 0.5);
-  
-  /* Glass Effect - Optimized */
-  --glass-bg: rgba(15, 25, 40, 0.6);
-  --glass-bg-strong: rgba(10, 20, 35, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --glass-blur: 12px;
-  --glass-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+  /* Canvas quasi-noir, à-plat (aucun dégradé) */
+  --bg: #0B0D12;
+  --bg-solid: #0B0D12;
+  --surface: #111420;
+  --surface-hover: #161A28;
+  --fg: #EEF1F7;
+  --fg-muted: #B9BDC6;
+  --fg-subtle: #7D828C;
+  --border: rgba(238, 241, 247, 0.18);
+  --border-focus: rgba(51, 214, 198, 0.6);
+
+  /* « Glass » neutralisé → surfaces à-plat, séparation par hairlines (Linear) */
+  --glass-bg: #111420;
+  --glass-bg-strong: #0E1017;
+  --glass-border: rgba(238, 241, 247, 0.09);
+  --glass-shadow: none;
+  --glass-blur: 0px;
+  --glass-highlight: none;
   
   /* Shadows - Depth System */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.08);
@@ -183,7 +183,7 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at 50% 0%, rgba(0, 168, 232, 0.04) 0%, transparent 60%);
+  background: radial-gradient(circle at 50% 0%, rgba(51, 214, 198, 0.04) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -408,10 +408,10 @@ button:disabled {
 
 button.primary, .btn-primary {
   background: var(--primary);
-  color: #04121b;
+  color: #0B0D12;
   font-weight: 700;
   border-color: transparent;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 button.primary:hover, .btn-primary:hover {
@@ -497,9 +497,9 @@ button.ghost:hover, .btn-ghost:hover {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: rgba(0, 168, 232, 0.15);
+  background: rgba(51, 214, 198, 0.15);
   color: var(--primary-light);
-  border: 1px solid rgba(0, 168, 232, 0.3);
+  border: 1px solid rgba(51, 214, 198, 0.3);
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-xs);
   transition: all var(--duration-fast) var(--ease-out);
@@ -512,7 +512,7 @@ button.ghost:hover, .btn-ghost:hover {
 }
 
 .badge:hover {
-  background: rgba(0, 168, 232, 0.2);
+  background: rgba(51, 214, 198, 0.2);
 }
 
 .badge.success {
@@ -622,7 +622,7 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(0, 168, 232, 0.1), var(--shadow-sm);
+  box-shadow: 0 0 0 3px rgba(51, 214, 198, 0.1), var(--shadow-sm);
 }
 
 input::placeholder {
