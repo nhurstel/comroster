@@ -181,3 +181,9 @@ def test_concurrent_mutations_are_not_lost(app, auth_client):
         storage.load_draft = original
     people = auth_client.get("/api/state").get_json()["people"]
     assert {p["beltpack"] for p in people} == {"101", "102"}
+
+
+def test_reboot_route_simulated_under_tests(auth_client):
+    r = auth_client.post("/api/reboot")
+    assert r.status_code == 200
+    assert r.get_json().get("simulated") is True

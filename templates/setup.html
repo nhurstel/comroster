@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Configuration · ComRoster</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/comroster-badge.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
@@ -23,7 +24,8 @@
       <a class="btn btn-primary auth-submit" href="{{ url_for('api.admin_page') }}">Accéder à l'administration</a>
     {% else %}
       <div class="auth-header">
-        <h1>ComRoster</h1>
+        <img class="auth-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="" width="44" height="44">
+        <h1 class="wordmark">ComRoster</h1>
         <p>Configuration initiale — définissez le mot de passe administrateur.</p>
       </div>
       {% for m in get_flashed_messages() %}<div class="auth-error">{{ m }}</div>{% endfor %}

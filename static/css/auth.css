@@ -13,17 +13,15 @@
 
 .auth-card {
     width: 100%;
-    max-width: 450px;
-    background: var(--glass-bg-strong);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    max-width: 420px;
+    background: var(--surface);
     border: 1px solid var(--glass-border);
-    border-radius: var(--radius-2xl);
-    box-shadow: var(--shadow-2xl);
-    padding: 3rem 2.5rem;
+    border-radius: 12px;
+    box-shadow: none;
+    padding: 2.5rem 2.25rem;
     position: relative;
     overflow: hidden;
-    animation: fadeIn 0.5s var(--ease-out);
+    animation: fadeIn 0.4s var(--ease-out);
 }
 
 .auth-card::before {
@@ -49,14 +47,23 @@
     margin: 0 auto 1.5rem;
 }
 
+.auth-badge {
+    display: block;
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 1rem;
+}
 .auth-header h1 {
-    font-size: var(--text-3xl);
-    font-weight: 800;
-    margin: 0 0 0.5rem;
-    background: linear-gradient(135deg, var(--primary), var(--primary-light));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.4rem;
+    color: var(--fg);
+}
+.auth-header h1.wordmark {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: var(--text-xl);
 }
 
 .auth-header p {
@@ -81,8 +88,8 @@
 /* Error Messages */
 .auth-error {
     padding: 1rem 1.25rem;
-    background: rgba(255, 69, 69, 0.1);
-    border: 1px solid rgba(255, 69, 69, 0.3);
+    background: rgba(240, 77, 62, 0.1);
+    border: 1px solid rgba(240, 77, 62, 0.3);
     border-radius: var(--radius-md);
     color: var(--error);
     font-size: var(--text-sm);
@@ -91,7 +98,7 @@
 }
 
 body[data-theme="day"] .auth-error {
-    background: rgba(255, 69, 69, 0.08);
+    background: rgba(240, 77, 62, 0.08);
 }
 
 /* Submit Button */
@@ -127,7 +134,7 @@ body[data-theme="day"] .auth-error {
 /* Recovery Code Display */
 .recovery-code-display {
     padding: 2rem;
-    background: rgba(0, 168, 232, 0.08);
+    background: rgba(51, 214, 198, 0.08);
     border: 2px solid var(--primary);
     border-radius: var(--radius-lg);
     text-align: center;
@@ -155,8 +162,8 @@ body[data-theme="day"] .auth-error {
 
 .recovery-warning {
     padding: 1rem 1.5rem;
-    background: rgba(255, 184, 0, 0.1);
-    border: 1px solid rgba(255, 184, 0, 0.3);
+    background: rgba(232, 161, 58, 0.1);
+    border: 1px solid rgba(232, 161, 58, 0.3);
     border-radius: var(--radius-md);
     color: var(--warning);
     font-size: var(--text-sm);
@@ -177,7 +184,7 @@ body[data-theme="day"] .auth-error {
 .password-strength {
     margin-top: 0.5rem;
     height: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(238, 241, 247, 0.1);
     border-radius: var(--radius-full);
     overflow: hidden;
 }

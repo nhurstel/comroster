@@ -27,23 +27,24 @@ def test_setup_create_publish_display(page, live_server):
     page.wait_for_selector("#blocks-container >> text=Plateau")
 
     # Créer un beltpack affecté au groupe
-    page.click("#add-user-btn")
+    page.click("#available-users .person-add")
     page.fill("#person-beltpack", "42")
     page.fill("#person-role", "Régie")
     page.select_option("#person-assign", label="Plateau")
     page.click("#person-form button[type=submit]")
     page.wait_for_selector(".person .bp:has-text('42')")
 
-    # Publier vers l'affichage
+    # Envoyer vers l'affichage
     page.click("#publish-btn")
-    page.wait_for_selector("text=Publié vers l'affichage")
+    page.wait_for_selector("text=Envoyé à l'affichage")
 
     # L'écran TV affiche bien le beltpack publié
     display = page.context.new_page()
     display.goto(live_server + "/display")
     display.wait_for_selector("#display-grid .person")
     grid = display.inner_text("#display-grid")
-    assert "42" in grid and "Régie" in grid
+    # La DA met les rôles en capitales (text-transform) → comparaison insensible à la casse.
+    assert "42" in grid and "régie" in grid.lower()
 
 
 def test_fresh_box_shows_onboarding(page, live_server):
@@ -60,7 +61,7 @@ def test_fresh_box_shows_onboarding(page, live_server):
 def test_available_filter(page, live_server):
     _enter_admin(page, live_server)
     for num, role in [("11", "Regie"), ("22", "Lumiere")]:
-        page.click("#add-user-btn")
+        page.click("#available-users .person-add")
         page.fill("#person-beltpack", num)
         page.fill("#person-role", role)
         page.click("#person-form button[type=submit]")
@@ -72,15 +73,11 @@ def test_available_filter(page, live_server):
 
 def test_indicator_toggles_persist(page, live_server):
     _enter_admin(page, live_server)
-    page.click("#edit-meta-btn")
-    page.wait_for_selector("#meta-dialog[open]")
+    # Réglages inline dans la sidebar (plus de dialog) : décocher enregistre en direct.
     page.uncheck("#ind-battery")
-    page.click("#meta-form button[type=submit]")
     page.wait_for_selector("#sync-label:has-text('enregistré')")   # brouillon sauvegardé
     page.reload()
     page.wait_for_selector("#add-block-btn")
-    page.click("#edit-meta-btn")
-    page.wait_for_selector("#meta-dialog[open]")
     assert page.is_checked("#ind-battery") is False        # préférence persistée
     assert page.is_checked("#ind-online") is True
 

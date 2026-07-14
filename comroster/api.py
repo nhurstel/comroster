@@ -66,6 +66,21 @@ def put_network():
     return jsonify({"ok": True, "config": _netconfig().load_public(), "reboot_required": True})
 
 
+@bp.post("/api/reboot")
+@login_required
+def reboot_box():
+    # En dev (debug) ou sous tests, on ne redémarre pas vraiment la machine.
+    if current_app.debug or current_app.testing:
+        return jsonify({"ok": True, "simulated": True})
+    import subprocess
+    try:
+        # Le compte comroster doit avoir sudo NOPASSWD sur `systemctl reboot` (cf setup-pi.sh).
+        subprocess.Popen(["sudo", "systemctl", "reboot"])
+    except Exception as exc:   # noqa: BLE001 — renvoyer proprement l'échec au client
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    return jsonify({"ok": True})
+
+
 @bp.post("/api/groups")
 @login_required
 @exclusive_state
@@ -222,6 +237,12 @@ def publish():
 @login_required
 def history_list():
     return jsonify(_history().list())
+
+
+@bp.post("/api/history/clear")
+@login_required
+def history_clear():
+    return jsonify({"cleared": _history().clear()})
 
 
 @bp.post("/api/history/<ts>/restore")
