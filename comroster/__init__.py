@@ -69,6 +69,11 @@ def create_app(config_overrides=None):
     from .services.netconfig import NetConfig
     app.extensions["netconfig"] = NetConfig(app.config["DATA_DIR"])
 
+    # Pousse l'état antenne via SSE (au lieu du polling client). Pas sous tests.
+    if not app.config.get("TESTING"):
+        from .services.live_poller import start_live_poller
+        start_live_poller(app)
+
     if app.config.get("TESTING"):
         app.config["WTF_CSRF_ENABLED"] = False
     csrf.init_app(app)
