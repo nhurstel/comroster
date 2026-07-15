@@ -819,6 +819,7 @@
   async function openAntenna() {
     const settings = await apiSend("GET", "/api/settings");
     currentRanges = (settings.antenna_ranges || []).map((r) => [r[0], r[1]]);
+    document.getElementById("dash-autosync").checked = !!settings.auto_sync;
     const st = await refreshAntennaBadge();
     if (st && st.ip) {
       document.getElementById("antenna-wizard").hidden = true;
@@ -918,6 +919,14 @@
     catch { toast("Lecture des beltpacks impossible", true); return; }
     document.getElementById("import-summary").innerHTML = summaryHtml(p);
     document.getElementById("import-dialog").showModal();
+  });
+
+  document.getElementById("dash-autosync").addEventListener("change", async (e) => {
+    const on = e.target.checked;
+    try {
+      await apiSend("PUT", "/api/settings", { auto_sync: on });
+      toast(on ? "Mise à jour automatique activée" : "Mise à jour automatique désactivée");
+    } catch { e.target.checked = !on; toast("Réglage impossible", true); }
   });
 
   document.getElementById("import-apply-btn").addEventListener("click", async () => {
@@ -1094,11 +1103,23 @@
     toast("Configuration sauvegardée");
   });
 
+  /* ---------- Synchro admin (auto-sync / autre poste) ---------- */
+  // Si l'auto-sync (ou un autre poste) publie une nouvelle version, on recharge le
+  // brouillon — mais SEULEMENT sans édits locaux en attente, pour ne pas écraser
+  // un travail en cours dans cet onglet.
+  function subscribeAdmin() {
+    try {
+      const es = new EventSource("/events");
+      es.addEventListener("published", () => { if (!state.unpublished) load(); });
+    } catch { /* SSE indisponible : l'admin reste sur son état courant */ }
+  }
+
   /* ---------- Init ---------- */
   render();
   updateSelectionBar();
   refreshAntennaBadge();
   pollLive();
   setInterval(pollLive, 5000);
+  subscribeAdmin();
   setStatus("Brouillon synchronisé", "idle");
 })();
