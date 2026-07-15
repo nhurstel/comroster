@@ -37,6 +37,8 @@
             <option value="2">2 colonnes</option>
             <option value="3">3 colonnes</option>
             <option value="4">4 colonnes</option>
+            <option value="5">5 colonnes</option>
+            <option value="6">6 colonnes</option>
           </select></label>
         <label class="side-check"><input type="checkbox" id="ind-online"> État Beltpack</label>
         <label class="side-check"><input type="checkbox" id="ind-battery"> Batterie Beltpack</label>
@@ -218,6 +220,15 @@
             <button type="button" id="dash-add-range">+ Plage</button>
           </div>
         </section>
+      </div>
+      <div class="dash-autosync">
+        <label class="side-check">
+          <input type="checkbox" id="dash-autosync">
+          <span>Mise à jour automatique depuis l'antenne</span>
+        </label>
+        <p class="dialog-hint">Quand un beltpack est renommé, ajouté ou retiré sur le réseau
+          intercom, le roster et l'affichage se mettent à jour tout seuls (dans le périmètre des
+          plages). Sinon, utilisez « Actualiser depuis l'antenne ».</p>
       </div>
       <div class="dialog-actions">
         <button type="button" id="dash-reconnect-btn" hidden>Reconnecter</button>

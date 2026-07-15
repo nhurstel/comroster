@@ -24,8 +24,8 @@ def auth_client(client):
     return client
 
 
-def test_settings_has_only_ranges(auth_client):
-    assert auth_client.get("/api/settings").get_json() == {"antenna_ranges": []}
+def test_settings_defaults(auth_client):
+    assert auth_client.get("/api/settings").get_json() == {"antenna_ranges": [], "auto_sync": False}
 
 
 def test_antenna_status_ok_without_config(auth_client):

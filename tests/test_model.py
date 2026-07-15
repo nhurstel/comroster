@@ -202,3 +202,9 @@ def test_build_draft_columns():
 def test_build_draft_columns_invalid_defaults_auto():
     assert model.build_draft({"groups": [], "people": [], "columns": "nope"})["columns"] == 0
     assert model.build_draft({"groups": [], "people": [], "columns": 99})["columns"] == 0
+
+
+def test_columns_supports_up_to_six():
+    assert model.sanitize_columns(5) == 5
+    assert model.sanitize_columns(6) == 6
+    assert model.sanitize_columns(7) == 0        # au-delà de 6 → automatique

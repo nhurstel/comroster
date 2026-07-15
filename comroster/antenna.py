@@ -42,10 +42,18 @@ def _valid_ranges(ranges):
     return out
 
 
+def _settings_public():
+    s = _settings()
+    return {
+        "antenna_ranges": s.get("antenna_ranges", []),
+        "auto_sync": bool(s.get("auto_sync", False)),
+    }
+
+
 @bp.get("/api/settings")
 @login_required
 def get_settings():
-    return jsonify({"antenna_ranges": _settings().get("antenna_ranges", [])})
+    return jsonify(_settings_public())
 
 
 @bp.put("/api/settings")
@@ -58,7 +66,11 @@ def put_settings():
         if ranges is None:
             return jsonify({"error": "Plages invalides"}), 400
         _settings().set("antenna_ranges", ranges)
-    return jsonify({"antenna_ranges": _settings().get("antenna_ranges", [])})
+    if "auto_sync" in data:
+        if not isinstance(data.get("auto_sync"), bool):
+            return jsonify({"error": "auto_sync doit être un booléen"}), 400
+        _settings().set("auto_sync", data["auto_sync"])
+    return jsonify(_settings_public())
 
 
 @bp.post("/api/antenna/connect")

@@ -18,10 +18,6 @@ def _storage():
     return current_app.extensions["storage"]
 
 
-def _broker():
-    return current_app.extensions["broker"]
-
-
 def _history():
     return current_app.extensions["history"]
 
@@ -227,9 +223,8 @@ def publish():
     except model.ValidationError as exc:
         # Brouillon invalide : on refuse de publier (409, cf. cahier des charges §10.3).
         return jsonify({"error": str(exc), "code": exc.code}), 409
-    _storage().save_published(state)
-    _history().archive(state)
-    _broker().publish("published", state)
+    from .services.publisher import broadcast_published
+    broadcast_published(current_app, state)
     return jsonify({"ok": True, "updated_at": state["updated_at"]})
 
 

@@ -56,7 +56,7 @@
 
     const badge = document.createElement("div");
     badge.className = "bp-badge";
-    badge.innerHTML = `<span class="bp-n">${esc(beltpackNumber(person.beltpack))}</span><span class="bp-l">BP</span>`;
+    badge.innerHTML = `<span class="bp-l">BP</span><span class="bp-n">${esc(beltpackNumber(person.beltpack))}</span>`;
     const num = beltpackNumber(person.beltpack);
     const dot = document.createElement("span");
     dot.className = "bp-dot";
@@ -115,7 +115,13 @@
       heading.textContent = group.name;
       const badge = document.createElement("span");
       badge.className = "badge";
-      badge.textContent = `${members.length} ${members.length > 1 ? "affectations" : "affectation"}`;
+      // Libellé complet par défaut ; fitDisplayText() ne garde que le nombre QUE si le
+      // libellé mange trop l'en-tête (colonnes étroites). Les deux formes sont mémorisées.
+      const fullLabel = `${members.length} ${members.length > 1 ? "affectations" : "affectation"}`;
+      badge.dataset.full = fullLabel;
+      badge.dataset.count = members.length;
+      badge.textContent = fullLabel;
+      badge.title = fullLabel;
       header.append(heading, badge);
 
       const list = document.createElement("div");
@@ -132,7 +138,53 @@
     });
 
     applyLiveIndicators();
+    fitDisplayText();
     startAutoScroll();
+  }
+
+  /* ---------- Ajustement homogène du texte (une taille commune, une seule ligne) ----------
+     On cherche la PLUS GRANDE taille de police (bornée) où le plus long titre — puis le plus
+     long nom — tient encore sur une seule ligne, et on l'applique à TOUS les blocs. Résultat :
+     texte homogène, en-têtes alignés, jamais tronqué, et qui grandit quand les cases s'agrandissent
+     (moins de groupes / colonnes plus larges → titres plus gros). */
+  function fitUniformFontSize(els, minPx, maxPx) {
+    if (!els.length) return { size: maxPx, fits: true };
+    let lo = minPx, hi = maxPx, best = minPx, bestFits = false;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      els.forEach((e) => { e.style.fontSize = mid + "px"; });
+      // « tient sur une ligne » = le texte ne déborde pas de la largeur allouée
+      const fits = els.every((e) => e.scrollWidth <= e.clientWidth);
+      if (fits) { best = mid; bestFits = true; lo = mid + 1; } else { hi = mid - 1; }
+    }
+    els.forEach((e) => { e.style.fontSize = ""; });   // la valeur finale vient de la CSS var
+    return { size: best, fits: bestFits };            // fits=false → même le plancher déborde
+  }
+
+  // Badge d'affectations : libellé complet, ou nombre seul si l'un d'eux prend plus de 40 %
+  // de son en-tête (colonne trop étroite → on rend la place au titre).
+  function setBadgeLabels(badges) {
+    badges.forEach((b) => { b.textContent = b.dataset.full; });
+    const cramped = badges.some((b) => b.offsetWidth > b.parentElement.clientWidth * 0.4);
+    if (cramped) badges.forEach((b) => { b.textContent = b.dataset.count; });
+  }
+
+  function fitDisplayText() {
+    if (!grid) return;
+    // On mesure toujours en mode « une ligne » : on retire un éventuel repli wrap précédent.
+    grid.classList.remove("wrap-titles", "wrap-roles");
+    setBadgeLabels([...grid.querySelectorAll(".block-header .badge")]);
+    const titles = [...grid.querySelectorAll(".block-header h3")];
+    const roles = [...grid.querySelectorAll(".person .role")];
+    const t = fitUniformFontSize(titles, 13, 24);
+    const r = fitUniformFontSize(roles, 12, 19);
+    grid.style.setProperty("--title-fs", t.size + "px");
+    grid.style.setProperty("--role-fs", r.size + "px");
+    grid.style.setProperty("--bpn-fs", Math.round(Math.min(Math.max(r.size * 1.3, 16), 22)) + "px");
+    // Repli anti-troncature : si même au plancher lisible un texte ne tient pas sur une ligne
+    // (nom très long en colonne étroite), on autorise le retour à la ligne — jamais coupé.
+    grid.classList.toggle("wrap-titles", !t.fits);
+    grid.classList.toggle("wrap-roles", !r.fits);
   }
 
   /* ---------- État temps réel des beltpacks (statut connecté / batterie) ---------- */
@@ -153,8 +205,11 @@
     });
   }
   function applyLive(res) {
+    const hadBattery = liveBeltpacks != null;
     liveBeltpacks = res && res.connected ? res.beltpacks : null;
     applyLiveIndicators();
+    // L'apparition/disparition de la batterie change la place dispo pour les noms → réajuste.
+    if ((liveBeltpacks != null) !== hadBattery) fitDisplayText();
   }
   // Récupération initiale (au chargement) ; les mises à jour arrivent ensuite
   // en push via le SSE `live` — plus aucune requête périodique.
@@ -293,6 +348,9 @@
 
   /* ---------- Init ---------- */
   render(state.data);
+  // Les polices web (Inter/Outfit) chargent après le 1er rendu : on réajuste dès qu'elles
+  // sont prêtes, sinon la mesure se ferait sur une police de repli (tailles faussées).
+  document.fonts?.ready?.then(() => { fitDisplayText(); startAutoScroll(); });
   setLive("idle");
   updateClock();
   setInterval(updateClock, 1000);
@@ -310,6 +368,6 @@
     if (!document.hidden) { startAutoScroll(); requestWakeLock(); }
     else stopAutoScroll();
   });
-  window.addEventListener("resize", startAutoScroll);
+  window.addEventListener("resize", () => { fitDisplayText(); startAutoScroll(); });
   window.addEventListener("beforeunload", () => { if (eventSource) eventSource.close(); });
 })();

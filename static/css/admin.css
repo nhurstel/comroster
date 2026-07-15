@@ -345,6 +345,10 @@
 .admin-dialog form { padding: 1.4rem; display: flex; flex-direction: column; gap: 0.9rem; }
 .admin-dialog h2 { margin: 0; font-size: 1.2rem; font-weight: 700; }
 .dialog-hint { margin: 0; font-size: 0.82rem; color: #7D828C; }
+/* Interrupteur d'auto-sync : case + aide groupées serré dans le dashboard antenne */
+.dash-autosync { display: flex; flex-direction: column; gap: 0.35rem; }
+.dash-autosync .side-check { padding-left: 0; font-size: 0.92rem; color: var(--text, #E6E8EC); }
+.dash-autosync .dialog-hint { padding-left: 1.55rem; }
 .dialog-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.3rem; }
 .admin-dialog .dialog-actions .danger { color: #F0857A; border-color: #4A2A2E; margin-right: auto; }
 .admin-dialog .dialog-actions .danger:hover:not(:disabled) { background: #2E1C1F; color: #F0857A; }
@@ -470,6 +474,9 @@
 .dot.off { background: #626871; }
 .dot.online { background: #2ecc71; box-shadow: 0 0 6px rgba(46,204,113,.6); }
 .dot.offline { background: #E8A13A; box-shadow: 0 0 6px rgba(224,145,58,.6); }
+/* Voyant « Intercom Net » : même carré-signal que le voyant du header
+   (« En direct » / « Brouillon synchronisé »), couleurs sémantiques conservées. */
+#antenna-dot { width: 0.5rem; height: 0.5rem; border-radius: 0; }
 
 /* Pastille temps réel sur la carte beltpack (invisible si antenne déconnectée) */
 .bp-dot { position: absolute; top: -3px; right: -3px; width: 0.5rem; height: 0.5rem; border-radius: 50%; }
