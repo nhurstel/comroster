@@ -132,28 +132,30 @@ body.display-page[data-theme="day"] .board-badge { filter: invert(1); }
   display: flex; flex-direction: column; gap: 0.2rem;
 }
 .block-header {
-  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  display: flex; justify-content: space-between; align-items: center; gap: 0.9rem;
   padding-bottom: 0.7rem; margin-bottom: 0.5rem;
   border-bottom: 2px solid var(--d-line);
-  /* Réserve la hauteur de 2 lignes de titre sur TOUS les en-têtes → les groupes
-     restent alignés entre colonnes, qu'un titre tienne sur 1 ou 2 lignes. */
-  min-height: 3.4rem;
+  /* Titres sur UNE ligne, à une taille commune calculée en JS (fitDisplayText) → tous
+     les en-têtes ont la même hauteur, donc parfaitement alignés d'une colonne à l'autre. */
 }
 .block-header h3 {
   margin: 0; flex: 1; min-width: 0;
   font-family: var(--font-body);
-  font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: var(--d-fg);
+  font-size: var(--title-fs, 1.1rem);
+  font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: var(--d-fg);
   line-height: 1.15;
-  /* Jusqu'à 2 lignes, jamais coupé en plein mot (fini le « … » qui ne veut rien dire) ;
-     au-delà de 2 lignes seulement (très rare), « … » en dernier recours. */
-  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-  overflow-wrap: anywhere;
+  /* UNE seule ligne, taille commune à tous les groupes : homogène, aligné, jamais tronqué
+     (le JS choisit la plus grande taille où le PLUS LONG titre tient encore sur une ligne). */
+  white-space: nowrap; overflow: hidden;
 }
-/* Compteur d'affectations : étiquette encadrée, capitale, plus lisible */
+/* Repli anti-troncature (noms très longs en colonnes étroites) : retour à la ligne, jamais coupé */
+.wrap-titles .block-header h3 { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+/* Compteur d'affectations : compact, taille fixe (n'entre pas dans le calcul du titre) */
 .block-header .badge {
-  font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; line-height: 1;
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; line-height: 1;
   color: var(--d-fg); background: rgba(255,255,255,0.06); border: 1px solid var(--d-line-strong);
-  border-radius: 4px; padding: 0.3rem 0.55rem; white-space: nowrap; flex: 0 0 auto;
+  border-radius: 4px; padding: 0.28rem 0.5rem; white-space: nowrap; flex: 0 0 auto;
+  min-width: 1.5em; text-align: center; font-variant-numeric: tabular-nums;
 }
 .block-items { display: flex; flex-direction: column; gap: 0.5rem; }
 
@@ -163,7 +165,7 @@ body.display-page[data-theme="day"] .board-badge { filter: invert(1); }
   border: 1px solid var(--d-line);
   border-radius: 8px;
   padding: 0.55rem 0.8rem;
-  display: flex; align-items: center; gap: 0.95rem;
+  display: flex; align-items: center; gap: 0.9rem;
 }
 
 /* Pastille beltpack : carré (Bauhaus), aplat d'accent, chiffre géométrique */
@@ -174,24 +176,27 @@ body.display-page[data-theme="day"] .board-badge { filter: invert(1); }
   border-radius: 5px; background: var(--block-accent); color: var(--d-ink);
   box-shadow: none;
 }
-.bp-badge .bp-n { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
-.bp-badge .bp-l { font-size: 0.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.72; margin-top: 0.1rem; }
+.bp-badge .bp-n { font-family: var(--font-display); font-size: var(--bpn-fs, 1.5rem); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.bp-badge .bp-l { font-size: 0.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.72; margin-bottom: 0.05rem; }
 /* Pastille temps réel : petit carré en coin (invisible si antenne déconnectée) */
 .bp-badge .bp-dot { position: absolute; top: -3px; right: -3px; width: 0.7rem; height: 0.7rem; border-radius: 0; }
 .bp-badge .bp-dot.on { background: #2ECC71; border: 2px solid var(--d-bg); }
 .bp-badge .bp-dot.down { background: #5C6577; border: 2px solid var(--d-bg); }
 
-.person-body { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.person-body { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; flex: 1; }
 .person .role {
   font-family: var(--font-body);
-  font-size: 1.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.01em; color: var(--d-fg);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: var(--role-fs, 1.2rem); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.01em; color: var(--d-fg); line-height: 1.15;
+  /* UNE seule ligne, taille commune (JS) : noms homogènes, alignés, jamais tronqués. */
+  white-space: nowrap; overflow: hidden;
 }
-.person .name { font-size: 0.8rem; color: var(--d-muted); }
+.wrap-roles .person .role { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.person .name { font-size: 0.8rem; color: var(--d-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Indicateurs temps réel (batterie) */
+/* Indicateurs temps réel (batterie) — largeur stable pour ne pas décaler le nom */
 .card-live { margin-left: auto; display: flex; align-items: center; gap: 0.7rem; flex: 0 0 auto; padding-left: 0.6rem; }
-.bp-batt { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--d-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bp-batt { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--d-muted); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 3.4em; text-align: right; }
 .bp-batt.low { color: #E0913A; }
 
 .empty-hint {

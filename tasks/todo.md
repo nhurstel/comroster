@@ -2,6 +2,32 @@
 
 **Plan détaillé (source de vérité) :** [docs/superpowers/plans/2026-06-19-comroster.md](../docs/superpowers/plans/2026-06-19-comroster.md)
 
+## Lot 2026-07-15 — Colonnes, auto-sync roster, voyant
+Demande Nathan (3 features) :
+1. **Jusqu'à 6 colonnes** sur le display + **texte homogène qui s'adapte à la taille des cases**.
+   Options 5/6 dans `#meta-columns`. Feedback Nathan : taille UNIQUE sur tous les groupes, titres
+   sur UNE ligne, alignés (pas décalés), jamais tronqués, et qui GROSSIT quand il y a plus de place.
+   → abandon des `cqi` (dimensionnaient chaque bloc indépendamment = hétérogène). Nouvel algo JS
+   `fitDisplayText()` : recherche dichotomique de la plus grande taille où le PLUS LONG titre (puis
+   le plus long rôle) tient sur une ligne, appliquée à tous via `--title-fs`/`--role-fs`/`--bpn-fs`.
+   Badge d'affectations ADAPTATIF (`setBadgeLabels`) : libellé complet « N affectations » par
+   défaut, réduit au nombre seul UNIQUEMENT s'il dépasse 40 % de son en-tête (≈ 6 colonnes).
+   Pastille beltpack : « BP » repositionné AU-DESSUS du numéro.
+   (Hauteur des groupes : gardée en étirement par défaut — cases d'une même ligne alignées,
+   choix Nathan après essai de `align-items: start`.) Repli anti-troncature : si même au plancher lisible (13/12px) un texte ne tient
+   pas sur une ligne (nom très long en colonne étroite), retour à la ligne (`wrap-titles`/`wrap-roles`)
+   — jamais coupé. Recalcul sur rendu, resize, chargement des polices et connexion antenne (batterie).
+   Vérifié au rendu (3 scénarios : 3 grp auto, 6 col courts, 6 col longs → homogène, aligné, 0 troncature).
+2. **Mise à jour auto du roster depuis l'antenne** (activable/désactivable, en plus du bouton
+   « Actualiser »). Décision Nathan : **publie direct sur l'affichage**. Réglage `auto_sync`
+   (Settings) exposé via GET/PUT /api/settings. Boucle serveur (live_poller) : si activé +
+   antenne connectée, relit le roster toutes les ~10 s ; sur changement réel dans le périmètre
+   des plages → `mirror_beltpacks` sur le brouillon (sous `state_lock`, appel réseau hors verrou)
+   puis publication (helper `broadcast_published` partagé avec /api/publish). L'admin ouvert se
+   resynchronise via SSE (`published`) quand il n'a pas d'édits locaux en attente.
+3. **Voyant « Intercom Net »** : passer du rond `.dot` au **carré-signal** du header
+   (même langage que « En direct » / « Brouillon synchronisé »), couleurs sémantiques conservées.
+
 ## Décisions techniques actées
 - Python 3.12, Flask
 - CSRF : Flask-WTF · Rate-limit login : Flask-Limiter

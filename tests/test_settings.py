@@ -37,3 +37,17 @@ def test_ranges_reject_booleans(app, client):
     client.post("/admin/setup", data={"password": "motdepasse8"})
     r = client.put("/api/settings", json={"antenna_ranges": [[True, 5]]})
     assert r.status_code == 400
+
+
+def test_auto_sync_roundtrip(app, client):
+    client.post("/admin/setup", data={"password": "motdepasse8"})
+    assert client.get("/api/settings").get_json()["auto_sync"] is False
+    r = client.put("/api/settings", json={"auto_sync": True})
+    assert r.status_code == 200 and r.get_json()["auto_sync"] is True
+    assert client.get("/api/settings").get_json()["auto_sync"] is True
+
+
+def test_auto_sync_rejects_non_bool(app, client):
+    client.post("/admin/setup", data={"password": "motdepasse8"})
+    r = client.put("/api/settings", json={"auto_sync": "oui"})
+    assert r.status_code == 400
