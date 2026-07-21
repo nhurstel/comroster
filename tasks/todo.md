@@ -100,7 +100,7 @@ Spec validée : [docs/superpowers/specs/2026-07-06-network-wifi-ethernet-design.
       (association AP, bascule radio on/off, port de service). À tester avant livraison.
 
 ## Non traité (choix assumés)
-- `venv/` (Python 3.14, 44 Mo) coexiste avec `.venv/` (3.12 utilisé partout) → à supprimer
-  à la main si plus utile, je n'ai pas voulu détruire un environnement potentiellement utilisé.
+- ~~`venv/` (Python 3.14, 44 Mo) coexiste avec `.venv/`~~ → **supprimé le 2026-07-21**
+  (aucune référence dans le dépôt ; `.venv/` en 3.12 reste le seul environnement utilisé).
 - `beltpack_roles` jamais purgé (croissance négligeable).
 - Compteurs rate-limit en mémoire (reset au restart) : acceptable appliance mono-process.
