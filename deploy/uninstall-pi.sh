@@ -49,6 +49,10 @@ echo "▶ Suppression de la configuration…"
 rm -f "$ENV_FILE"
 rm -rf "$TARGET_HOME/.comroster-kiosk"
 
+# Droits root accordés à l'admin web (reboot + application réseau) : ils ne doivent
+# JAMAIS survivre à la désinstallation, sinon on laisse un privilège root orphelin.
+rm -f /etc/sudoers.d/comroster-reboot
+
 # --- 3. Restauration du boot (annule quiet-boot.sh) + watchdog -----------
 echo "▶ Restauration du boot (config.txt / cmdline.txt) et watchdog…"
 rm -f /etc/systemd/system.conf.d/comroster-watchdog.conf
