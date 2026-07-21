@@ -151,14 +151,30 @@ pour le dépannage si le Wi-Fi est injoignable (mauvais mot de passe, AP éteint
 
 **Première configuration d'un boîtier destiné au Wi-Fi :** brancher un câble RJ45 direct
 PC↔boîtier → `http://comroster.local:8080/admin` → Réseau → Liaison « Wi-Fi », SSID,
-mot de passe, mode IP → Enregistrer → redémarrer. Le câble peut ensuite être retiré.
+mot de passe, mode IP → Enregistrer → **Appliquer maintenant**. Le câble peut ensuite être retiré.
 
 **Comment ça marche (sûr par conception) :** l'admin n'écrit que le souhait dans
 `instance/network.json` (le mot de passe Wi-Fi n'en ressort jamais par l'API). C'est le
-service système **`comroster-network.service`** qui l'applique via `nmcli` **au
-démarrage** ([apply-network.sh](apply-network.sh)) — jamais en cours de requête, donc
-**pas de risque de se verrouiller** en pleine reconfiguration. Une config invalide est
-rejetée avant tout appel `nmcli` : l'état réseau précédent est conservé.
+service système **`comroster-network.service`** qui l'applique via `nmcli`
+([apply-network.sh](apply-network.sh)) — jamais depuis le processus web lui-même. Une config
+invalide est rejetée avant tout appel `nmcli` : l'état réseau précédent est conservé.
+
+**Deux façons de l'appliquer :**
+
+| Moyen | Effet | Quand |
+|-------|-------|-------|
+| **« Appliquer maintenant »** (dialogue Réseau) | `systemctl restart comroster-network.service` → `nmcli` reconfigure **à chaud**, en quelques secondes. L'affichage/kiosk n'est pas interrompu. | Cas normal |
+| **« Redémarrer »** (barre latérale, section *Boîtier*) | Redémarrage complet du Pi (~1 min) ; la config s'applique au boot. | Filet de sécurité, ou autres réglages système |
+
+> Dans les deux cas, si l'**adresse IP change**, la session admin en cours **perd la connexion** :
+> rouvre l'admin sur la nouvelle adresse (affichée à l'écran du boîtier). C'est inhérent au
+> changement d'IP, pas au moyen choisi.
+
+Ces deux actions passent par un droit `sudo` **strictement limité** (voir
+`/etc/sudoers.d/comroster-reboot`, écrit par `setup-pi.sh`) : `systemctl reboot` et
+`systemctl start|restart comroster-network.service`, rien d'autre. Sur un boîtier installé
+avant l'ajout de ce fichier, les boutons répondent « Redémarrage refusé / Application
+impossible » — relance `setup-pi.sh` pour créer le droit.
 
 > ⚠️ **À valider sur un vrai Pi.** L'application `nmcli` n'est pas testable hors matériel.
 > Le formulaire, la validation et la persistance sont couverts par les tests ; l'étape

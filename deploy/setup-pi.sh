@@ -126,12 +126,13 @@ EOF
   systemctl enable --now comroster.service
 fi
 
-# --- 4a-bis. Droit de redémarrage (bouton « Redémarrer le boîtier » de l'admin) ---
-# Le compte applicatif peut redémarrer la machine sans mot de passe, strictement
-# limité à `systemctl reboot` (aucun autre privilège accordé).
-echo "▶ Droit sudo de redémarrage (limité à systemctl reboot)…"
+# --- 4a-bis. Droits root ciblés de l'admin web -----------------------------
+# Le compte applicatif peut, sans mot de passe et RIEN D'AUTRE :
+#   • redémarrer la machine          → bouton « Redémarrer le boîtier »
+#   • rejouer le service réseau      → bouton « Appliquer maintenant » (IP sans reboot)
+echo "▶ Droits sudo ciblés (reboot + application réseau)…"
 cat > /etc/sudoers.d/comroster-reboot <<EOF
-$TARGET_USER ALL=(root) NOPASSWD: /usr/bin/systemctl reboot, /bin/systemctl reboot, /sbin/reboot
+$TARGET_USER ALL=(root) NOPASSWD: /usr/bin/systemctl reboot, /bin/systemctl reboot, /sbin/reboot, /usr/bin/systemctl restart comroster-network.service, /bin/systemctl restart comroster-network.service, /usr/bin/systemctl start comroster-network.service, /bin/systemctl start comroster-network.service
 EOF
 chmod 440 /etc/sudoers.d/comroster-reboot
 
