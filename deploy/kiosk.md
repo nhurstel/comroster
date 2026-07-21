@@ -45,7 +45,8 @@ Le boot silencieux ([quiet-boot.sh](quiet-boot.sh)) pose aussi `disable_splash=1
 
 ## Rappel
 
-Le **serveur** (gunicorn, [comroster.service](comroster.service)) et le **kiosk** (cage)
+Le **serveur** (gunicorn, unit `comroster.service` généré par [setup-pi.sh](setup-pi.sh) —
+[comroster.service](comroster.service) n'en est qu'un modèle de référence) et le **kiosk** (cage)
 sont deux services système indépendants : en mode « 2 Pi », le serveur peut tourner sur
 un autre hôte que l'écran (voir la section « Déploiement 2 Pi » de
 [raspberry-pi.md](raspberry-pi.md)).

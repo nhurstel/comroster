@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_security_headers_present(client):
     r = client.get("/healthz")
     assert r.headers["X-Content-Type-Options"] == "nosniff"

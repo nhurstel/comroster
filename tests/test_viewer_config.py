@@ -1,5 +1,9 @@
+import http.server
+import threading
+
 import pytest
-from comroster.services.viewer import ViewerConfig
+
+from comroster.services.viewer import ViewerConfig, probe_server
 
 
 def test_default_is_empty(tmp_path):
@@ -34,11 +38,6 @@ def test_corrupt_file_falls_back_to_default(tmp_path):
     with open(vc.path, "w") as fh:
         fh.write("{ pas du json")
     assert vc.load() == {"server_ip": "", "server_port": 8080}
-
-
-import http.server
-import threading
-from comroster.services.viewer import probe_server
 
 
 def _serve_once(status):

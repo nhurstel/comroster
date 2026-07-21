@@ -1,6 +1,8 @@
 #!/bin/sh
 # Applique la configuration réseau voulue (instance/network.json) via NetworkManager.
-# Exécuté AU DÉMARRAGE par comroster-network.service (root) — jamais depuis le web.
+# Exécuté par comroster-network.service (root) : au démarrage, et à la demande quand
+# l'admin clique « Appliquer maintenant » (l'app web ne fait que `systemctl restart` de
+# ce service via un sudo strictement limité — elle n'exécute jamais nmcli elle-même).
 # ⚠️ À VALIDER SUR UN VRAI RASPBERRY PI (nmcli non testable hors matériel).
 #
 # Deux liaisons possibles (choix pérenne, design 2026-07-06) :

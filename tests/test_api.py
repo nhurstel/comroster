@@ -176,7 +176,10 @@ def test_concurrent_mutations_are_not_lost(app, auth_client):
                 c.post("/api/people", json={"role": "X", "beltpack": bp})
         t1 = threading.Thread(target=post, args=("101",))
         t2 = threading.Thread(target=post, args=("102",))
-        t1.start(); t2.start(); t1.join(); t2.join()
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
     finally:
         storage.load_draft = original
     people = auth_client.get("/api/state").get_json()["people"]

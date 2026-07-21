@@ -1,3 +1,19 @@
+# ⚠️ MODÈLE DE RÉFÉRENCE — CE FICHIER N'EST PAS CELUI QUI TOURNE SUR LE BOÎTIER.
+#
+# Il décrit une installation MANUELLE « serveur classique » : utilisateur dédié
+# `comroster`, application dans /opt/comroster, derrière Nginx (deploy/nginx.conf).
+#
+# Sur un Raspberry Pi, c'est deploy/setup-pi.sh qui GÉNÈRE le vrai unit dans
+# /etc/systemd/system/comroster.service, avec des valeurs différentes :
+#   • User      = l'utilisateur qui a lancé sudo (${SUDO_USER:-pi}), pas `comroster`
+#   • Répertoire = le dépôt cloné, pas /opt/comroster
+#   • Secrets   = EnvironmentFile=/etc/comroster.env, pas des Environment= en clair
+# Pour connaître l'utilisateur réel d'un boîtier : `systemctl show -p User --value comroster`
+#
+# ⚠️ NoNewPrivileges=true (plus bas) EMPÊCHE sudo de fonctionner : avec ce durcissement,
+# les boutons « Redémarrer le boîtier » et « Appliquer maintenant » de l'admin échouent
+# (ils passent par un sudo strictement limité). Retire-le si tu veux ces fonctions.
+
 [Unit]
 Description=ComRoster — tableau d'affectation beltpacks intercom
 # Démarrage au plus tôt : l'affichage local (127.0.0.1) n'attend pas le réseau.
