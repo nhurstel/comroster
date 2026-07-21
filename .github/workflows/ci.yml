@@ -15,7 +15,10 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: ruff (Python)
-        run: pip install ruff && ruff check comroster app.py
+        # Tout le dépôt, pas seulement le paquet : les tests et scripts étaient hors
+        # couverture, et 7 erreurs y sont passées inaperçues jusqu'au 2026-07-21.
+        # (ruff respecte .gitignore, les archives locales sont donc exclues.)
+        run: pip install ruff && ruff check .
       - name: shellcheck (scripts déploiement)
         run: sudo apt-get update -qq && sudo apt-get install -y shellcheck && shellcheck deploy/*.sh
 
