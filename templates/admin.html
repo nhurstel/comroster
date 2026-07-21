@@ -60,6 +60,10 @@
             <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.5M5 7l3 3 3-3M3 12.5h10"/></svg>Importer<input type="file" id="import-input" accept=".rost,application/json"></label>
           <button type="button" id="export-btn" class="nav-item">
             <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5V10M5 5.5l3-3 3 3M3 12.5h10"/></svg>Exporter</button>
+
+          <div class="nav-label">Boîtier</div>
+          <button type="button" id="reboot-btn" class="nav-item nav-danger" title="Redémarre le Raspberry Pi (écran et admin indisponibles ~1 min)">
+            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.8-4.1M13.5 2v3.2h-3.2"/></svg>Redémarrer</button>
         </nav>
       </div>
 
@@ -277,7 +281,7 @@
       <p id="net-error" class="auth-error" hidden></p>
       <p id="net-result" class="dialog-status" hidden></p>
       <div class="dialog-actions">
-        <button type="button" id="reboot-btn" class="reboot-btn" hidden>⟳ Redémarrer le boîtier</button>
+        <button type="button" id="net-apply-btn" class="reboot-btn" hidden>⚡ Appliquer maintenant</button>
         <button type="submit" class="primary">Enregistrer</button>
         <button type="button" data-close="network-dialog">Fermer</button>
       </div>

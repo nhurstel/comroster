@@ -1008,19 +1008,19 @@
     }
     const submitBtn = e.submitter || document.querySelector("#network-form button[type=submit]");
     const prog = document.getElementById("net-progress");
-    const rebootBtn = document.getElementById("reboot-btn");
+    const applyBtn = document.getElementById("net-apply-btn");
     const label = submitBtn ? submitBtn.textContent : "";
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Enregistrement…"; }
     if (prog) prog.hidden = false;
     try {
-      const r = await apiSend("PUT", "/api/network", cfg);
+      await apiSend("PUT", "/api/network", cfg);
       const where = link === "wifi" ? `en Wi-Fi sur <b>${esc(cfg.wifi.ssid)}</b>` : "en filaire (RJ45)";
       res.innerHTML = mode === "static"
-        ? `Enregistré. <b>Redémarrez le boîtier</b> pour appliquer — il repartira ${where} sur `
-          + `<b>${esc(cfg.address)}</b> (adresse affichée à l'écran).`
-        : `Enregistré. <b>Redémarrez le boîtier</b> pour appliquer — il repartira ${where} en adresse automatique.`;
+        ? `Enregistré. Cliquez <b>Appliquer maintenant</b> — le boîtier passera ${where} sur `
+          + `<b>${esc(cfg.address)}</b> (adresse affichée à l'écran). Reconnectez-vous ensuite sur cette adresse.`
+        : `Enregistré. Cliquez <b>Appliquer maintenant</b> — le boîtier passera ${where} en adresse automatique.`;
       res.hidden = false;
-      if (rebootBtn && r && r.reboot_required) rebootBtn.hidden = false;
+      if (applyBtn) applyBtn.hidden = false;
       toast("Configuration réseau enregistrée");
     } catch (ex) {
       err.textContent = ex.payload?.error || "Configuration invalide";
@@ -1031,16 +1031,42 @@
     }
   });
 
+  // Applique la config réseau à chaud (nmcli), sans redémarrer le boîtier.
+  document.getElementById("net-apply-btn").addEventListener("click", async (ev) => {
+    if (!confirm("Appliquer la configuration réseau maintenant ?\n\nSi l'adresse change, cette page perdra la connexion : rouvrez l'admin sur la nouvelle adresse.")) return;
+    const btn = ev.currentTarget;
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "Application…";
+    try {
+      await apiSend("POST", "/api/network/apply");
+      toast("Configuration réseau appliquée");
+    } catch (e) {
+      // Comme pour le redémarrage : une coupure est ATTENDUE si l'IP change.
+      const refus = e && e.payload && e.payload.error;
+      toast(refus || "Appliqué — reconnectez-vous sur la nouvelle adresse", Boolean(refus));
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
+  });
+
   document.getElementById("reboot-btn").addEventListener("click", async (ev) => {
     if (!confirm("Redémarrer le boîtier maintenant ? L'écran et l'administration seront indisponibles ~1 minute.")) return;
     const btn = ev.currentTarget;
+    const original = btn.innerHTML;            // le bouton de nav contient une icône SVG
     btn.disabled = true; btn.textContent = "Redémarrage…";
     try {
       await apiSend("POST", "/api/reboot");
       toast("Redémarrage du boîtier en cours…");
-    } catch {
-      toast("Redémarrage impossible", true);
-      btn.disabled = false; btn.textContent = "⟳ Redémarrer le boîtier";
+    } catch (e) {
+      // Si le boîtier redémarre VRAIMENT, la requête peut échouer (connexion coupée).
+      // Seule une réponse d'erreur explicite du serveur signifie que ça n'a pas marché.
+      const refus = e && e.payload && e.payload.error;
+      if (refus) {
+        toast(refus, true);
+        btn.disabled = false; btn.innerHTML = original;
+      } else {
+        toast("Redémarrage du boîtier en cours…");
+      }
     }
   });
 
