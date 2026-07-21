@@ -57,9 +57,62 @@ def put_network():
         _netconfig().save(data)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
-    # L'application réelle (nmcli) se fait au redémarrage par un service système.
+    # L'application réelle (nmcli) se fait par le service système comroster-network :
+    # soit à chaud via POST /api/network/apply, soit au prochain démarrage.
     # Vue publique dans la réponse : le psk ne doit jamais ressortir.
     return jsonify({"ok": True, "config": _netconfig().load_public(), "reboot_required": True})
+
+
+@bp.post("/api/network/apply")
+@login_required
+def apply_network_now():
+    """Applique la config réseau immédiatement, sans redémarrer le boîtier."""
+    if current_app.debug or current_app.testing:
+        return jsonify({"ok": True, "simulated": True})
+    ok, error = _apply_network()
+    if not ok:
+        return jsonify({"ok": False, "error": f"Application impossible : {error}"}), 500
+    return jsonify({"ok": True})
+
+
+def _run_privileged(cmd, timeout=10):
+    """Lance une commande root via sudo. Retourne (ok, message d'erreur ou None).
+
+    Deux pièges évités ici :
+      • `sudo -n` : sans TTY (service systemd), un sudo qui demande un mot de passe
+        BLOQUERAIT. En non-interactif il échoue immédiatement, on peut le signaler.
+      • on ATTEND le retour : un refus (droit sudo manquant) est donc détecté ici, au
+        lieu d'être avalé silencieusement par un Popen « fire-and-forget ».
+
+    Un dépassement de délai n'est PAS une erreur : la commande coupe volontairement le
+    tapis sous nos pieds (redémarrage, ou changement d'IP qui tue la connexion).
+    """
+    import subprocess
+    try:
+        proc = subprocess.run(["sudo", "-n", *cmd],
+                              capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return True, None          # pas de retour = c'est en train de s'appliquer
+    except OSError as exc:         # sudo/systemctl absent du PATH
+        return False, str(exc)
+    if proc.returncode != 0:
+        lines = [ln for ln in (proc.stderr or "").strip().splitlines() if ln.strip()]
+        return False, lines[-1] if lines else f"code {proc.returncode}"
+    return True, None
+
+
+def _trigger_reboot():
+    """`systemctl reboot` rend la main dès que systemd a accepté la demande."""
+    return _run_privileged(["systemctl", "reboot"])
+
+
+def _apply_network():
+    """Rejoue le service qui applique instance/network.json via nmcli (même chemin qu'au boot).
+
+    Évite le redémarrage complet : nmcli reconfigure l'interface à chaud. La session
+    admin en cours tombera si l'IP change — c'est inhérent, reboot ou pas.
+    """
+    return _run_privileged(["systemctl", "restart", "comroster-network.service"], timeout=30)
 
 
 @bp.post("/api/reboot")
@@ -68,12 +121,11 @@ def reboot_box():
     # En dev (debug) ou sous tests, on ne redémarre pas vraiment la machine.
     if current_app.debug or current_app.testing:
         return jsonify({"ok": True, "simulated": True})
-    import subprocess
-    try:
-        # Le compte comroster doit avoir sudo NOPASSWD sur `systemctl reboot` (cf setup-pi.sh).
-        subprocess.Popen(["sudo", "systemctl", "reboot"])
-    except Exception as exc:   # noqa: BLE001 — renvoyer proprement l'échec au client
-        return jsonify({"ok": False, "error": str(exc)}), 500
+    ok, error = _trigger_reboot()
+    if not ok:
+        # Cas typique : /etc/sudoers.d/comroster-reboot absent (Pi installé avant 2026-07-15)
+        # → « sudo: a password is required ». On le dit au lieu de faire semblant.
+        return jsonify({"ok": False, "error": f"Redémarrage refusé : {error}"}), 500
     return jsonify({"ok": True})
 
 
