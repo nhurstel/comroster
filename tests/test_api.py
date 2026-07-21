@@ -187,3 +187,103 @@ def test_reboot_route_simulated_under_tests(auth_client):
     r = auth_client.post("/api/reboot")
     assert r.status_code == 200
     assert r.get_json().get("simulated") is True
+
+
+# --- _trigger_reboot : l'échec ne doit JAMAIS être avalé (bug du Popen fire-and-forget) ---
+
+def _fake_run(returncode=0, stderr=""):
+    import subprocess
+
+    class Proc:
+        pass
+
+    def run(cmd, **kwargs):
+        assert cmd[:2] == ["sudo", "-n"], "sudo doit être non-interactif (sinon il bloque sans TTY)"
+        p = Proc()
+        p.returncode = returncode
+        p.stderr = stderr
+        return p
+    return run, subprocess
+
+
+def test_trigger_reboot_ok(monkeypatch):
+    from comroster import api
+    run, subprocess = _fake_run(returncode=0)
+    monkeypatch.setattr(subprocess, "run", run)
+    assert api._trigger_reboot() == (True, None)
+
+
+def test_trigger_reboot_reports_sudo_refusal(monkeypatch):
+    """Droit sudo manquant (Pi installé avant l'ajout de /etc/sudoers.d/comroster-reboot)."""
+    from comroster import api
+    run, subprocess = _fake_run(returncode=1, stderr="sudo: a password is required\n")
+    monkeypatch.setattr(subprocess, "run", run)
+    ok, error = api._trigger_reboot()
+    assert ok is False
+    assert "password is required" in error
+
+
+def test_trigger_reboot_timeout_is_not_an_error(monkeypatch):
+    """Pas de retour = la machine est en train de partir : on ne crie pas à l'erreur."""
+    import subprocess
+    from comroster import api
+
+    def run(cmd, **kwargs):
+        raise subprocess.TimeoutExpired(cmd, 10)
+    monkeypatch.setattr(subprocess, "run", run)
+    assert api._trigger_reboot() == (True, None)
+
+
+def test_trigger_reboot_missing_binary(monkeypatch):
+    import subprocess
+    from comroster import api
+
+    def run(cmd, **kwargs):
+        raise OSError("sudo introuvable")
+    monkeypatch.setattr(subprocess, "run", run)
+    ok, error = api._trigger_reboot()
+    assert ok is False and "introuvable" in error
+
+
+# --- Application réseau à chaud (sans redémarrage) ---
+
+def test_apply_network_restarts_the_network_service(monkeypatch):
+    import subprocess
+    from comroster import api
+    seen = {}
+
+    class Proc:
+        returncode = 0
+        stderr = ""
+
+    def run(cmd, **kwargs):
+        seen["cmd"] = cmd
+        return Proc()
+    monkeypatch.setattr(subprocess, "run", run)
+
+    assert api._apply_network() == (True, None)
+    # C'est bien le service d'application réseau qui est rejoué, via sudo non-interactif.
+    assert seen["cmd"] == ["sudo", "-n", "systemctl", "restart", "comroster-network.service"]
+
+
+def test_apply_network_reports_refusal(monkeypatch):
+    import subprocess
+    from comroster import api
+
+    class Proc:
+        returncode = 1
+        stderr = "sudo: a password is required\n"
+
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **kw: Proc())
+    ok, error = api._apply_network()
+    assert ok is False and "password is required" in error
+
+
+def test_apply_network_route_simulated_under_tests(auth_client):
+    r = auth_client.post("/api/network/apply")
+    assert r.status_code == 200
+    assert r.get_json().get("simulated") is True
+
+
+def test_apply_network_route_requires_login(client):
+    assert client.post("/api/network/apply").status_code in (302, 401, 403)
