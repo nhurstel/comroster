@@ -28,6 +28,29 @@ Demande Nathan (3 features) :
 3. **Voyant « Intercom Net »** : passer du rond `.dot` au **carré-signal** du header
    (même langage que « En direct » / « Brouillon synchronisé »), couleurs sémantiques conservées.
 
+## Lot 2026-07-21 — Redémarrage, réseau à chaud, passe de revue
+**Bug corrigé :** le bouton « Redémarrer » ne faisait rien, silencieusement (Popen sans
+lecture du code retour + droit sudo absent des boîtiers installés avant le 2026-07-15).
+Voir [lessons.md](lessons.md). Désormais l'échec remonte à l'écran.
+
+**Nouveau :** « Appliquer maintenant » (POST `/api/network/apply`) rejoue
+`comroster-network.service` → nmcli reconfigure **à chaud**, sans redémarrer ni couper
+l'affichage. Le redémarrage devient un filet de secours, migré dans la barre latérale
+(section « Boîtier »).
+
+**Passe de revue du projet (2026-07-21) — corrigé :**
+- [x] `uninstall-pi.sh` ne supprimait pas `/etc/sudoers.d/comroster-reboot` → privilège
+      root orphelin après désinstallation.
+- [x] `apply-network.sh` : en-tête « jamais depuis le web » devenu faux.
+- [x] `deploy/comroster.service` + `nginx.conf` : balisés **modèles de référence** (non
+      déployés ; l'unit réel est généré par `setup-pi.sh`). Piège documenté :
+      `NoNewPrivileges=true` casse sudo, donc les boutons Redémarrer / Appliquer.
+- [x] `kiosk.md` : le lien laissait croire que le modèle était l'unit réel.
+- [x] Lint : 7 erreurs ruff résiduelles (E702/F401/E402) → **0**. Note : la CI ne lint que
+      `comroster app.py`, ces erreurs étaient donc invisibles en CI.
+- [x] Vérifié sains : aucun TODO/FIXME, aucune dérive de vocabulaire dans les fichiers
+      suivis, `.gitignore` correct (archives 191 Mo bien exclues, 0 fichier parasite suivi).
+
 ## Décisions techniques actées
 - Python 3.12, Flask
 - CSRF : Flask-WTF · Rate-limit login : Flask-Limiter
