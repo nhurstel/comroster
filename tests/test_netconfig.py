@@ -43,7 +43,8 @@ def test_validate_rejects_bad_mode():
 def test_save_persists_and_validates(tmp_path):
     nc = NetConfig(str(tmp_path))
     nc.save({"mode": "static", "address": "192.168.1.50", "prefix": 24})
-    assert json.load(open(nc.path))["address"] == "192.168.1.50"
+    with open(nc.path) as fh:
+        assert json.load(fh)["address"] == "192.168.1.50"
     assert nc.load()["mode"] == "static"
 
 
