@@ -63,10 +63,13 @@ def validate(cfg):
     gw = cfg.get("gateway")
     if gw:
         try:
-            if ipaddress.ip_address(gw) not in net:
-                return False, "La passerelle n'est pas dans le sous-réseau"
+            gw_addr = ipaddress.ip_address(gw)
         except ValueError:
             return False, "Passerelle invalide"
+        # `in net` lève TypeError si les familles diffèrent (gw IPv6, adresse IPv4) :
+        # on compare d'abord la version pour renvoyer une erreur claire, pas un 500.
+        if gw_addr.version != net.version or gw_addr not in net:
+            return False, "La passerelle n'est pas dans le sous-réseau"
 
     for d in cfg.get("dns") or []:
         try:
