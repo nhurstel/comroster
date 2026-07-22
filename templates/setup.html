@@ -30,8 +30,8 @@
       </div>
       {% for m in get_flashed_messages() %}<div class="auth-error">{{ m }}</div>{% endfor %}
       <form class="auth-form" method="post">
-        <label class="field"><span>Mot de passe (8 caractères minimum)</span>
-          <input type="password" name="password" required minlength="8" autocomplete="new-password" autofocus></label>
+        <label class="field"><span>Mot de passe (4 caractères minimum)</span>
+          <input type="password" name="password" required minlength="4" autocomplete="new-password" autofocus></label>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="primary auth-submit">Créer le compte</button>
       </form>

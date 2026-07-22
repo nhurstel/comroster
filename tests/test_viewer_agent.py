@@ -66,6 +66,15 @@ def test_post_config_rejects_bad_server_ip(agent):
     assert "error" in json.loads(body)
 
 
+def test_post_config_rejects_bad_prefix(agent):
+    base, _ = agent
+    status, _ = _post(base, "/config", {
+        "server_ip": "192.168.42.10", "network_mode": "static",
+        "network_address": "192.168.42.50", "network_prefix": "abc",
+    })
+    assert status == 400
+
+
 def test_post_config_dhcp_no_address(agent):
     base, tmp = agent
     status, _ = _post(base, "/config", {"server_ip": "192.168.42.10", "network_mode": "dhcp"})

@@ -29,6 +29,12 @@ def test_duplicate_beltpack_409(auth_client):
     assert r.status_code == 409
 
 
+def test_delete_batch_rejects_non_list(auth_client):
+    # ids non-liste (string) : 400 propre, pas une itération caractère par caractère.
+    r = auth_client.post("/api/people/delete-batch", json={"ids": "abc"})
+    assert r.status_code == 400
+
+
 def test_delete_group_moves_people_to_pool(auth_client):
     g = auth_client.post("/api/groups", json={"name": "P", "color": "#fff"}).get_json()
     p = auth_client.post("/api/people", json={"name": "Jean", "role": "HF", "beltpack": "12", "group_id": g["id"]}).get_json()

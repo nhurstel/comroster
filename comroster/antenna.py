@@ -174,7 +174,10 @@ def save_config():
     name = (data.get("name") or "").strip()
     if not name:
         return jsonify({"error": "Nom requis"}), 400
-    _configs().save(name, _storage().load_draft())
+    try:
+        _configs().save(name, _storage().load_draft())
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 409
     return jsonify({"ok": True})
 
 

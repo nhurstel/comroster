@@ -36,12 +36,24 @@ class Configs:
         return sorted(items, key=lambda x: x["name"].lower())
 
     def save(self, name, state):
-        if not name or not name.strip():
+        name = (name or "").strip()
+        if not name:
             raise ValueError("Nom de configuration requis")
-        payload = {"name": name.strip(),
+        path = self._path(name)
+        # Le nom est réduit à un slug pour le nom de fichier : deux noms distincts
+        # peuvent donc viser le même fichier ("Jour 2" / "jour-2"). On refuse d'écraser
+        # silencieusement une config au nom différent ; un même nom = mise à jour normale.
+        if os.path.exists(path):
+            existing = self.storage.read_json(path)
+            if existing and existing.get("name", "").strip().lower() != name.lower():
+                raise ValueError(
+                    f"Un nom trop proche existe déjà (« {existing.get('name')} ») — "
+                    "choisissez un nom plus distinct."
+                )
+        payload = {"name": name,
                    "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                    "state": state}
-        self.storage.atomic_write(self._path(name), payload)
+        self.storage.atomic_write(path, payload)
 
     def load(self, name):
         path = self._path(name)

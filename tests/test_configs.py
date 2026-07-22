@@ -60,3 +60,12 @@ def test_slug_transliterates_accents():
     from comroster.services.configs import _slug
     assert _slug("Éclairage") == "eclairage"
     assert _slug("Régie São") == "regie-sao"
+
+
+def test_save_rejects_slug_collision(tmp_path):
+    # Deux noms distincts réduits au même slug : on refuse d'écraser silencieusement.
+    c = Configs(Storage(str(tmp_path)))
+    c.save("Jour 2", model.empty_state())
+    with pytest.raises(ValueError):
+        c.save("jour-2", model.empty_state())          # même slug, nom différent
+    assert [i["name"] for i in c.list()] == ["Jour 2"]  # l'originale reste intacte

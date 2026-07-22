@@ -1,6 +1,8 @@
 /* ComRoster — Administration (édition du brouillon, branché sur l'API REST) */
 (() => {
-  const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+  // Optionnel chaîné : si le meta disparaissait, on n'arrête pas tout le script au
+  // chargement (les requêtes échoueraient proprement côté serveur avec un CSRF vide).
+  const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || "";
   const DEFAULT_COLOR = "#3AAFA9";
   const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
@@ -436,18 +438,21 @@
       else { b.hidden = false; b.textContent = (info.charging ? "⚡" : "") + pct + "%"; b.className = "bp-batt" + (pct <= 20 ? " low" : ""); b.title = "Batterie " + pct + "%"; }
     });
   }
+  function applyLiveData(res) {
+    liveBeltpacks = res && res.connected ? res.beltpacks : null;
+    applyLiveIndicators();
+  }
   async function pollLive() {
     let res;
     try { res = await apiSend("GET", "/api/antenna/live"); } catch { return; }
-    liveBeltpacks = res.connected ? res.beltpacks : null;
-    applyLiveIndicators();
+    applyLiveData(res);
   }
 
   /* ---------- Mutations ---------- */
   function assign(personId, groupId) {
     const p = findPerson(personId);
-    if (!p || p.group_id === groupId) { if (p && p.group_id === groupId) return; }
-    if (p) { p.group_id = groupId; markDirty(); render(); }
+    if (!p || p.group_id === groupId) return;   // inconnu ou déjà dans ce groupe
+    p.group_id = groupId; markDirty(); render();
   }
   function removeFromGroup(personId) {
     const p = findPerson(personId);
@@ -1123,7 +1128,9 @@
   document.getElementById("config-save-btn").addEventListener("click", async () => {
     const name = document.getElementById("config-name").value.trim();
     if (!name) return;
-    await apiSend("POST", "/api/configs", { name });
+    try {
+      await apiSend("POST", "/api/configs", { name });
+    } catch (e) { toast(e.payload?.error || "Sauvegarde impossible", true); return; }
     document.getElementById("config-name").value = "";
     openConfigs();
     toast("Configuration sauvegardée");
@@ -1137,6 +1144,9 @@
     try {
       const es = new EventSource("/events");
       es.addEventListener("published", () => { if (!state.unpublished) load(); });
+      // État live des beltpacks poussé par le serveur (même flux `live` que l'affichage) :
+      // remplace l'ancien polling périodique. L'admin restant abonné, le poller publie.
+      es.addEventListener("live", (e) => { try { applyLiveData(JSON.parse(e.data)); } catch { /* ignore */ } });
     } catch { /* SSE indisponible : l'admin reste sur son état courant */ }
   }
 
@@ -1144,8 +1154,7 @@
   render();
   updateSelectionBar();
   refreshAntennaBadge();
-  pollLive();
-  setInterval(pollLive, 5000);
+  pollLive();                 // état initial ; les MAJ arrivent en push via le SSE `live`
   subscribeAdmin();
   setStatus("Brouillon synchronisé", "idle");
 })();
