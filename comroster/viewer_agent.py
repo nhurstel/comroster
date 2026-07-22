@@ -78,7 +78,10 @@ def make_handler(data_dir):
             net = {"link": "ethernet", "mode": form.get("network_mode", "link-local")}
             if net["mode"] == "static":
                 net["address"] = form.get("network_address", "")
-                net["prefix"] = int(form.get("network_prefix", 24))
+                try:
+                    net["prefix"] = int(form.get("network_prefix", 24))
+                except (ValueError, TypeError):
+                    return self._json(400, {"error": "Préfixe réseau invalide"})
             ok, err = validate_network(net)
             if not ok:
                 return self._json(400, {"error": err})

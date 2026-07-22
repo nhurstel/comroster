@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import socket
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -33,6 +34,10 @@ class AntennaClient:
         self._info = {}
         self._live_cache = None
         self._live_ts = 0.0
+        # L'état ci-dessus est partagé entre les requêtes HTTP (connect/disconnect) et le
+        # thread poller (live_status) : ce verrou réentrant sérialise les transitions.
+        # Les appels réseau se font HORS verrou (voir live_status) pour ne pas bloquer.
+        self._lock = threading.RLock()
         try:
             self.timeout = int(os.environ.get("COMROSTER_ANTENNA_TIMEOUT", "5"))
         except ValueError:
@@ -82,46 +87,50 @@ class AntennaClient:
             return False, {"error": str(e), "code": "unknown"}
 
     def connect(self, ip, password):
-        self._ip = (ip or "").strip()
-        self._password = password or ""
-        if not self._ip:
-            self._ip = None
-            raise AntennaError("IP requise")
-        ok, data = self._request("GET", "/rest/nodeStatus", timeout=4)
-        if not ok:
-            self._ip = None
-            self._password = None
-            raise AntennaError(data.get("error", "Connexion échouée — vérifiez IP et mot de passe"))
-        ok2, fw = self._request("GET", "/rest/firmware")
-        nodes = data.get("nodeStatus", [])
-        local = next((n for n in nodes if n.get("isLocal")), nodes[0] if nodes else {})
-        self._info = {"nodes": nodes, "local": local,
-                      "firmware": fw.get("firmware", {}) if ok2 else {}}
-        self._connected = True
-        self._persist()
-        return self._info
+        with self._lock:
+            self._ip = (ip or "").strip()
+            self._password = password or ""
+            if not self._ip:
+                self._ip = None
+                raise AntennaError("IP requise")
+            ok, data = self._request("GET", "/rest/nodeStatus", timeout=4)
+            if not ok:
+                self._ip = None
+                self._password = None
+                raise AntennaError(data.get("error", "Connexion échouée — vérifiez IP et mot de passe"))
+            ok2, fw = self._request("GET", "/rest/firmware")
+            nodes = data.get("nodeStatus", [])
+            local = next((n for n in nodes if n.get("isLocal")), nodes[0] if nodes else {})
+            self._info = {"nodes": nodes, "local": local,
+                          "firmware": fw.get("firmware", {}) if ok2 else {}}
+            self._connected = True
+            self._persist()
+            return self._info
 
     def disconnect(self):
-        self._ip = self._password = None
-        self._connected = False
-        self._info = {}
-        self._live_cache = None
-        self._live_ts = 0.0
-        if os.path.exists(self.path):
-            os.unlink(self.path)
+        with self._lock:
+            self._ip = self._password = None
+            self._connected = False
+            self._info = {}
+            self._live_cache = None
+            self._live_ts = 0.0
+            if os.path.exists(self.path):
+                os.unlink(self.path)
 
     def reconnect(self):
         """Re-teste la connexion avec les identifiants déjà en mémoire."""
-        if not self._ip:
-            return False
-        try:
-            self.connect(self._ip, self._password or "")
-            return True
-        except AntennaError:
-            return False
+        with self._lock:
+            if not self._ip:
+                return False
+            try:
+                self.connect(self._ip, self._password or "")   # verrou réentrant
+                return True
+            except AntennaError:
+                return False
 
     def status(self):
-        return {"connected": self._connected, "ip": self._ip, "info": self._info}
+        with self._lock:
+            return {"connected": self._connected, "ip": self._ip, "info": self._info}
 
     def live_status(self, ttl=3.0):
         """État temps réel par beltpack (en ligne, batterie %, barres de réception).
@@ -134,11 +143,14 @@ class AntennaClient:
         "signal"}}}. Pour un beltpack hors ligne : {"online": False}.
         """
         empty = {"connected": False, "beltpacks": {}}
-        if not self._connected:
-            return empty
-        now = time.monotonic()
-        if self._live_cache is not None and (now - self._live_ts) < ttl:
-            return self._live_cache
+        with self._lock:
+            if not self._connected:
+                return empty
+            now = time.monotonic()
+            if self._live_cache is not None and (now - self._live_ts) < ttl:
+                return self._live_cache
+        # Appels réseau HORS verrou (ils peuvent durer jusqu'au timeout) : on ne bloque
+        # ni une connexion/déconnexion admin ni un autre lecteur pendant ce temps.
         ok_ns, ns = self._request("GET", "/rest/nodeStatus")
         if not ok_ns:
             return empty
@@ -157,9 +169,12 @@ class AntennaClient:
                     "charging": bool(bat.get("usbPower")),
                 }
         beltpacks = {bp["number"]: live_by_id.get(bp["id"], {"online": False}) for bp in config}
-        self._live_cache = {"connected": True, "beltpacks": beltpacks}
-        self._live_ts = now
-        return self._live_cache
+        with self._lock:
+            if not self._connected:      # une déconnexion a pu survenir pendant le réseau
+                return empty
+            self._live_cache = {"connected": True, "beltpacks": beltpacks}
+            self._live_ts = time.monotonic()
+            return self._live_cache
 
     def _beltpack_config(self):
         """Beltpacks enregistrés depuis /rest/bp : [{id, number, name}] (config seule)."""
@@ -207,6 +222,7 @@ class AntennaClient:
                 password = self._fernet().decrypt(token.encode()).decode()
             except Exception:
                 return  # clé changée / corrompu → on ignore les creds
-        self._ip = ip
-        self._password = password
-        self._info = data.get("info", {})
+        with self._lock:
+            self._ip = ip
+            self._password = password
+            self._info = data.get("info", {})
