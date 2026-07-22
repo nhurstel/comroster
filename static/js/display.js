@@ -80,6 +80,7 @@
   }
 
   function render(data) {
+    if (!grid) return;   // pas de grille = page display incomplète, rien à rendre
     stopAutoScroll();
     bodyEl.dataset.theme = resolveTheme(data.theme);
     // Mode performance : désactive le flou GPU (voir display.css [data-perf="on"])

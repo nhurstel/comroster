@@ -51,6 +51,26 @@ l'affichage. Le redémarrage devient un filet de secours, migré dans la barre l
 - [x] Vérifié sains : aucun TODO/FIXME, aucune dérive de vocabulaire dans les fichiers
       suivis, `.gitignore` correct (archives 191 Mo bien exclues, 0 fichier parasite suivi).
 
+## Lot 2026-07-22 — Revue exhaustive du code (tout le projet lu)
+Passe de relecture complète (backend + services + front JS + templates + scripts).
+Verdict : très bon niveau, aucun bug critique. Corrigés :
+- **Mdp min front/back incohérent** : le front annonçait/imposait 8 caractères, le back en
+  accepte 4 (décision actée). Front aligné sur 4 (setup.html, login.html). Cf. leçon 2026-07-06.
+- **`merge_beltpacks` = code mort** (0 usage, remplacé par `mirror_beltpacks`) → supprimé
+  avec son test.
+- **Concurrence antenne** : l'état de `AntennaClient` (ip/password/connected/cache) était
+  partagé entre le thread poller et les requêtes HTTP sans verrou. Ajout d'un `RLock` ;
+  les appels réseau de `live_status` restent HORS verrou (+ re-check `_connected` après le
+  réseau → plus de cache repeuplé après une déconnexion).
+- **Mineurs** : collision de slug configs (écrasement silencieux → 409 explicite) ;
+  passerelle IPv6 + adresse IPv4 (TypeError→500 → 400 propre) ; `delete-batch` valide que
+  `ids` est une liste ; `viewer_agent` préfixe non entier → 400 ; garde sur le meta CSRF
+  (admin.js) ; **admin.js migré du polling `/api/antenna/live` 5 s vers le push SSE `live`**
+  (l'admin était abonné mais ignorait l'évènement) ; `assign()` simplifiée ; garde `grid` null.
+- **Non fait (choix)** : 143 couleurs hex en dur dans admin.css → refactor vers tokens à
+  fort risque de régression visuelle pour un gain nul (admin mono-thème). À traiter à part
+  avec validation par screenshots si un jour un thème clair admin est voulu.
+
 ## Décisions techniques actées
 - Python 3.12, Flask
 - CSRF : Flask-WTF · Rate-limit login : Flask-Limiter

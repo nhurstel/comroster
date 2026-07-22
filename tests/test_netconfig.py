@@ -111,3 +111,10 @@ def test_save_wifi_without_any_psk_rejected(tmp_path):
     nc = NetConfig(str(tmp_path))
     with _pytest.raises(ValueError):
         nc.save({"link": "wifi", "mode": "dhcp", "wifi": {"ssid": "REGIE"}})
+
+
+def test_validate_rejects_gateway_wrong_family():
+    # Passerelle IPv6 avec une adresse IPv4 : erreur claire, jamais de TypeError/500.
+    ok, err = validate({"link": "ethernet", "mode": "static",
+                        "address": "192.168.1.10", "prefix": 24, "gateway": "fe80::1"})
+    assert ok is False and err

@@ -221,7 +221,9 @@ def delete_person(pid):
 @exclusive_state
 def delete_people_batch():
     data = json_body()
-    ids = data.get("ids") or []
+    ids = data.get("ids")
+    if not isinstance(ids, list):
+        return jsonify({"error": "ids doit être une liste", "code": "invalid"}), 400
     state = _storage().load_draft()
     deleted = model.delete_people(state, ids)
     _storage().save_draft(state)

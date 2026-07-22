@@ -273,35 +273,6 @@ def _person_by_beltpack(state, number):
     return None
 
 
-def merge_beltpacks(state, items):
-    """Synchronise les beltpacks de l'antenne dans l'état (antenne fait foi).
-
-    Crée les numéros absents (au pool, nom vide), met à jour le rôle des
-    existants, préserve nom et groupe, ne supprime jamais.
-    """
-    created = updated = 0
-    roles = state.setdefault("beltpack_roles", {})
-    for item in items:
-        num = normalize_beltpack(item.get("number"))
-        if not num:
-            continue
-        name = (item.get("name") or "").strip()
-        person = _person_by_beltpack(state, num)
-        if person is None:
-            state["people"].append({
-                "id": new_id(), "role": name,
-                "beltpack": num, "group_id": None,
-            })
-            created += 1
-        elif name and person["role"] != name:
-            person["role"] = name
-            updated += 1
-        if name:
-            roles[num] = name
-    touch(state)
-    return {"created": created, "updated": updated}
-
-
 def diff_beltpacks(state, items, ranges=None):
     """Récap d'un import sans muter l'état (même périmètre que mirror_beltpacks)."""
     by_num = {normalize_beltpack(p["beltpack"]): p for p in state["people"]}
