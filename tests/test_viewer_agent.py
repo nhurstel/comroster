@@ -14,6 +14,7 @@ def agent(tmp_path):
     port = srv.server_address[1]
     yield f"http://127.0.0.1:{port}", tmp_path
     srv.shutdown()
+    srv.server_close()      # ferme le socket d'écoute (shutdown seul le laisse ouvert)
 
 
 def _get(base, path):
@@ -50,9 +51,11 @@ def test_post_config_writes_viewer_and_network(agent):
     })
     assert status == 200
     assert json.loads(body)["ok"] is True
-    viewer = json.load(open(tmp / "viewer.json"))
+    with open(tmp / "viewer.json") as fh:
+        viewer = json.load(fh)
     assert viewer["server_ip"] == "192.168.42.10"
-    net = json.load(open(tmp / "network.json"))
+    with open(tmp / "network.json") as fh:
+        net = json.load(fh)
     assert net["mode"] == "static" and net["address"] == "192.168.42.50"
 
 
@@ -67,7 +70,8 @@ def test_post_config_dhcp_no_address(agent):
     base, tmp = agent
     status, _ = _post(base, "/config", {"server_ip": "192.168.42.10", "network_mode": "dhcp"})
     assert status == 200
-    assert json.load(open(tmp / "network.json"))["mode"] == "dhcp"
+    with open(tmp / "network.json") as fh:
+        assert json.load(fh)["mode"] == "dhcp"
 
 
 def test_boot_page_served(agent):
