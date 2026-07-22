@@ -41,7 +41,8 @@ def test_connect_persists_encrypted(tmp_path, monkeypatch):
     info = c.connect("192.168.1.11", "motdepasse")
     assert c.connected is True and c.ip == "192.168.1.11"
     assert info["firmware"]["version"] == "3.4.1-15"
-    raw = open(os.path.join(str(tmp_path), "antenna.json")).read()
+    with open(os.path.join(str(tmp_path), "antenna.json")) as fh:
+        raw = fh.read()
     assert "motdepasse" not in raw                  # mot de passe chiffré
     assert json.loads(raw)["ip"] == "192.168.1.11"
 

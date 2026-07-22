@@ -59,6 +59,7 @@ def test_probe_reachable():
         assert probe_server(f"http://127.0.0.1:{port}/healthz") is True
     finally:
         srv.shutdown()
+        srv.server_close()      # ferme le socket d'écoute (shutdown seul le laisse ouvert)
 
 
 def test_probe_unreachable():

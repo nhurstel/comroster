@@ -31,7 +31,8 @@ def test_history_caps_snapshots(tmp_path):
     h = History(Storage(str(tmp_path)))
     # on sème plus de snapshots que la limite (vieux timestamps)
     for i in range(History.MAX_SNAPSHOTS + 15):
-        open(os.path.join(h.dir, f"2026010100{i:04d}000000Z.json"), "w").write("{}")
+        with open(os.path.join(h.dir, f"2026010100{i:04d}000000Z.json"), "w") as fh:
+            fh.write("{}")
     h.archive(model.empty_state())          # déclenche la purge ; le nouveau est récent
     items = h.list()
     assert len(items) == History.MAX_SNAPSHOTS
@@ -52,7 +53,8 @@ def test_history_prunes_snapshots_older_than_30_days(tmp_path):
     from datetime import datetime, timedelta, timezone
     h = History(Storage(str(tmp_path)))
     old_ts = (datetime.now(timezone.utc) - timedelta(days=History.RETENTION_DAYS + 5)).strftime("%Y%m%dT%H%M%S%fZ")
-    open(os.path.join(h.dir, f"{old_ts}.json"), "w").write("{}")
+    with open(os.path.join(h.dir, f"{old_ts}.json"), "w") as fh:
+        fh.write("{}")
     recent_ts = h.archive(model.empty_state())      # déclenche la purge
     stamps = [i["timestamp"] for i in h.list()]
     assert old_ts not in stamps                     # > 30 jours → supprimé automatiquement

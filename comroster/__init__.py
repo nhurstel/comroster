@@ -2,8 +2,23 @@ import os
 from datetime import timedelta
 
 from flask import Flask, jsonify, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import Config
+from .security import csrf, limiter
+from .services.storage import Storage
+from .services.secret import SecretStore
+from .services.pubsub import Broker
+from .services.history import History
+from .services.settings import Settings
+from .services.antenna import AntennaClient
+from .services.configs import Configs
+from .services.netconfig import NetConfig
+from .services.live_poller import start_live_poller
+from .auth import bp as auth_bp
+from .api import bp as api_bp
+from .display import bp as display_bp
+from .antenna import bp as antenna_bp
 
 
 def create_app(config_overrides=None):
@@ -16,7 +31,6 @@ def create_app(config_overrides=None):
     app.config.from_mapping(config.as_dict())
 
     if app.config.get("BEHIND_PROXY"):
-        from werkzeug.middleware.proxy_fix import ProxyFix
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     if not app.config.get("TESTING") and not app.config.get("DEBUG"):
@@ -44,34 +58,22 @@ def create_app(config_overrides=None):
     def healthz():
         return jsonify({"status": "ok"})
 
-    # Services partagés
-    from .services.storage import Storage
-    from .services.secret import SecretStore
-    from .security import csrf, limiter
-
+    # Services partagés. Injection de dépendances : chaque service reçoit ce dont il a
+    # besoin en argument (DATA_DIR, storage…) et n'importe jamais l'app en retour — d'où
+    # l'absence de cycle, et donc d'imports internes différés. L'ordre ci-dessous est
+    # celui des dépendances : storage d'abord, puis ceux qui le consomment.
     app.extensions["storage"] = Storage(app.config["DATA_DIR"])
     app.extensions["secret"] = SecretStore(app.config["DATA_DIR"])
-
-    from .services.pubsub import Broker
-    from .services.history import History
     app.extensions["broker"] = Broker()
     app.extensions["history"] = History(app.extensions["storage"])
-
-    from .services.settings import Settings
-    from .services.antenna import AntennaClient
     app.extensions["settings"] = Settings(app.extensions["storage"])
     app.extensions["antenna"] = AntennaClient(app.config["DATA_DIR"], app.config.get("SECRET_KEY", ""))
     app.extensions["antenna"].load_persisted()  # recharge les identifiants s'ils existent
-
-    from .services.configs import Configs
     app.extensions["configs"] = Configs(app.extensions["storage"])
-
-    from .services.netconfig import NetConfig
     app.extensions["netconfig"] = NetConfig(app.config["DATA_DIR"])
 
     # Pousse l'état antenne via SSE (au lieu du polling client). Pas sous tests.
     if not app.config.get("TESTING"):
-        from .services.live_poller import start_live_poller
         start_live_poller(app)
 
     if app.config.get("TESTING"):
@@ -79,17 +81,10 @@ def create_app(config_overrides=None):
     csrf.init_app(app)
     limiter.init_app(app)
 
-    from .auth import bp as auth_bp
     app.register_blueprint(auth_bp)
-
-    from .api import bp as api_bp
     app.register_blueprint(api_bp)
-
-    from .display import bp as display_bp
     app.register_blueprint(display_bp)
     csrf.exempt(display_bp)
-
-    from .antenna import bp as antenna_bp
     app.register_blueprint(antenna_bp)
 
     _register_security(app)

@@ -8,7 +8,10 @@ from flask_limiter.util import get_remote_address
 from werkzeug.exceptions import BadRequest
 
 csrf = CSRFProtect()
-limiter = Limiter(key_func=get_remote_address, default_limits=[])
+# Rate-limit en mémoire : choix assumé pour une appliance mono-worker (pas de Redis à
+# installer/maintenir sur le Pi — voir tasks/todo.md). storage_uri explicite pour
+# documenter l'intention et taire l'avertissement « in-memory storage » de flask-limiter.
+limiter = Limiter(key_func=get_remote_address, default_limits=[], storage_uri="memory://")
 
 # Sérialise les cycles load → mutate → save sur l'état (1 worker, N threads gthread) :
 # sans lui, deux requêtes simultanées peuvent s'écraser mutuellement (last-write-wins).
