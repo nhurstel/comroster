@@ -1,3 +1,6 @@
+import html
+
+
 def boot_html(display_url):
     # Page affichée par le kiosk au démarrage. Interroge l'agent (same-origin),
     # laisse 5 s pour aller à la config, sinon navigue vers le display distant.
@@ -36,10 +39,12 @@ tick();
 
 
 def config_html(viewer_cfg, net_cfg):
-    ip = viewer_cfg.get("server_ip", "")
+    # Échappement défensif : ces valeurs sont déjà validées (IP littérales) à l'écriture,
+    # mais on ne réinjecte jamais une donnée dans du HTML par f-string sans l'échapper.
+    ip = html.escape(str(viewer_cfg.get("server_ip", "")), quote=True)
     mode = net_cfg.get("mode", "link-local")
-    addr = net_cfg.get("address", "")
-    prefix = net_cfg.get("prefix", 24)
+    addr = html.escape(str(net_cfg.get("address", "")), quote=True)
+    prefix = html.escape(str(net_cfg.get("prefix", 24)), quote=True)
 
     def sel(m):
         return " selected" if mode == m else ""

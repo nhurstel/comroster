@@ -120,7 +120,7 @@
     } catch (err) {
       setStatus("Échec de l'enregistrement", "error");
       if (err.message === "beltpack_conflict") {
-        alert("Deux beltpacks ont le même numéro. Corrigez avant d'enregistrer.");
+        toast("Deux beltpacks ont le même numéro. Corrigez avant d'enregistrer.", true);
       }
     }
   }
@@ -489,12 +489,25 @@
     state.data.groups.push({ id: uid(), name, color: "", order: state.data.groups.length });
     markDirty(); render();
   }
+  // Dialog de groupe partagé création/renommage (plus de prompt() natif).
+  let renamingBlockId = null;
+  function openCreateBlock() {
+    renamingBlockId = null;
+    el.blockForm.reset();
+    document.getElementById("block-dialog-title").textContent = "Créer un nouveau groupe";
+    document.getElementById("block-submit").textContent = "Ajouter le groupe";
+    el.blockDialog.showModal();
+    requestAnimationFrame(() => el.blockName.focus());
+  }
   function renameBlock(id) {
     const b = findBlock(id);
-    const next = prompt("Nouveau nom du groupe", b.name);
-    if (!next) return;
-    b.name = next.trim() || b.name;
-    markDirty(); render();
+    if (!b) return;
+    renamingBlockId = id;
+    document.getElementById("block-dialog-title").textContent = "Renommer le groupe";
+    document.getElementById("block-submit").textContent = "Renommer";
+    el.blockName.value = b.name;
+    el.blockDialog.showModal();
+    requestAnimationFrame(() => { el.blockName.focus(); el.blockName.select(); });
   }
   function deleteBlock(id) {
     const b = findBlock(id);
@@ -551,7 +564,7 @@
     const beltpack = normBp(el.personBeltpack.value);
     if (!beltpack) { el.personBeltpack.focus(); return; }
     if (beltpackTaken(beltpack, state.editingPersonId)) {
-      alert(`Le beltpack n°${beltpack} est déjà utilisé.`);
+      toast(`Le beltpack n°${beltpack} est déjà utilisé.`, true);
       el.personBeltpack.focus();
       return;
     }
@@ -630,8 +643,8 @@
       setStatus("Envoyé à l'affichage ✓", "updated");
       setTimeout(() => setStatus("Brouillon synchronisé", "idle"), 2500);
     } catch (err) {
-      if (err.message === "beltpack_conflict") alert("Beltpack en double : impossible de publier.");
-      else alert("Échec de la publication.");
+      if (err.message === "beltpack_conflict") toast("Beltpack en double : impossible de publier.", true);
+      else toast("Échec de la publication.", true);
       setStatus("Échec de la publication", "error");
     } finally {
       state.busy = false;
@@ -664,7 +677,7 @@
           groups: json.groups || [], people: json.people || [], beltpack_roles: json.beltpack_roles || {},
         };
         markDirty(); render();
-      } catch { alert("Fichier invalide."); }
+      } catch { toast("Fichier invalide.", true); }
     };
     reader.readAsText(file);
     e.target.value = "";
@@ -673,7 +686,7 @@
   /* ---------- Historique des publications ---------- */
   async function refreshHistory() {
     let items = [];
-    try { items = await apiSend("GET", "/api/history"); } catch { alert("Historique indisponible."); return; }
+    try { items = await apiSend("GET", "/api/history"); } catch { toast("Historique indisponible.", true); return; }
     const list = document.getElementById("history-list");
     list.innerHTML = items.length
       ? items.map((i) => `<li><span>${esc(i.datetime)}</span><button type="button" data-restore="${i.timestamp}">Restaurer</button></li>`).join("")
@@ -686,7 +699,7 @@
         document.getElementById("history-dialog").close();
         setStatus("Snapshot restauré dans le brouillon", "updated");
         setTimeout(() => setStatus("Brouillon synchronisé", "idle"), 2500);
-      } catch { alert("Restauration impossible."); }
+      } catch { toast("Restauration impossible.", true); }
     }));
     const clearBtn = document.getElementById("history-clear");
     if (clearBtn) clearBtn.disabled = !items.length;
@@ -698,7 +711,7 @@
   async function clearHistory() {
     if (!confirm("Supprimer tout l'historique des publications ? Cette action est irréversible.")) return;
     try { await apiSend("POST", "/api/history/clear"); await refreshHistory(); toast("Historique supprimé"); }
-    catch { alert("Suppression impossible."); }
+    catch { toast("Suppression impossible.", true); }
   }
 
   /* ---------- Menu contextuel ---------- */
@@ -733,15 +746,19 @@
     e.preventDefault();
     document.getElementById("logout-form").submit();
   });
-  document.getElementById("add-block-btn").addEventListener("click", () => {
-    el.blockForm.reset(); el.blockDialog.showModal();
-    requestAnimationFrame(() => el.blockName.focus());
-  });
+  document.getElementById("add-block-btn").addEventListener("click", openCreateBlock);
   el.blockForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const v = el.blockName.value.trim();
     if (!v) return;
-    el.blockDialog.close(); createBlock(v);
+    el.blockDialog.close();
+    if (renamingBlockId) {
+      const b = findBlock(renamingBlockId);
+      if (b) { b.name = v; markDirty(); render(); }
+      renamingBlockId = null;
+    } else {
+      createBlock(v);
+    }
   });
   el.personForm.addEventListener("submit", submitPerson);
   bindSettings();
