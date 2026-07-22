@@ -54,6 +54,7 @@ def antenna_server(tmp_path):
         yield f"http://127.0.0.1:{port}"
     finally:
         srv.shutdown()
+        srv.server_close()
         t.join(timeout=5)
 
 

@@ -96,8 +96,8 @@ Spec validée : [docs/superpowers/specs/2026-07-06-network-wifi-ethernet-design.
 - [x] apply-network.sh : branche wifi (connexion `comroster-wifi`, radio off en filaire,
       RJ45 port de service link-local en Wi-Fi), revalidation root SSID/PSK/IP
 - [x] Doc raspberry-pi.md : section Filaire/Wi-Fi + procédure port de service
-- [ ] **⚠️ Validation sur vrai Pi** : la branche nmcli wifi n'a jamais tourné sur matériel
-      (association AP, bascule radio on/off, port de service). À tester avant livraison.
+- [x] **Validé sur vrai Pi (2026-07-22)** : branche nmcli wifi OK — association AP,
+      bascule radio Wi-Fi on/off, port de service RJ45 (câble direct), IP statique et DHCP.
 
 ## Non traité (choix assumés)
 - ~~`venv/` (Python 3.14, 44 Mo) coexiste avec `.venv/`~~ → **supprimé le 2026-07-21**

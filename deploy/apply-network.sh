@@ -3,7 +3,8 @@
 # Exécuté par comroster-network.service (root) : au démarrage, et à la demande quand
 # l'admin clique « Appliquer maintenant » (l'app web ne fait que `systemctl restart` de
 # ce service via un sudo strictement limité — elle n'exécute jamais nmcli elle-même).
-# ⚠️ À VALIDER SUR UN VRAI RASPBERRY PI (nmcli non testable hors matériel).
+# Validé sur vrai Raspberry Pi le 2026-07-22 : association AP, bascule radio on/off,
+# port de service RJ45 (câble direct), IP statique et DHCP en Wi-Fi.
 #
 # Deux liaisons possibles (choix pérenne, design 2026-07-06) :
 #   ethernet : le RJ45 porte l'IP d'exploitation ; radio Wi-Fi COUPÉE (propreté RF).
