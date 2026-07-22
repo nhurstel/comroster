@@ -41,12 +41,6 @@
     z-index: 1;
 }
 
-.auth-logo {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto 1.5rem;
-}
-
 .auth-badge {
     display: block;
     width: 44px;
@@ -178,55 +172,6 @@ body[data-theme="day"] .auth-error {
     content: "⚠️";
     font-size: 1.25rem;
     flex-shrink: 0;
-}
-
-/* Password Strength Indicator */
-.password-strength {
-    margin-top: 0.5rem;
-    height: 4px;
-    background: rgba(238, 241, 247, 0.1);
-    border-radius: var(--radius-full);
-    overflow: hidden;
-}
-
-.password-strength-bar {
-    height: 100%;
-    width: 0%;
-    background: var(--error);
-    transition: width 0.3s var(--ease-out), background-color 0.3s;
-    border-radius: var(--radius-full);
-}
-
-.password-strength-bar[data-strength="weak"] {
-    width: 33%;
-    background: var(--error);
-}
-
-.password-strength-bar[data-strength="medium"] {
-    width: 66%;
-    background: var(--warning);
-}
-
-.password-strength-bar[data-strength="strong"] {
-    width: 100%;
-    background: var(--success);
-}
-
-.password-hint {
-    font-size: var(--text-xs);
-    color: var(--fg-subtle);
-    margin-top: 0.5rem;
-}
-
-/* Buttons in auth pages */
-.btn-group {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 1rem;
-}
-
-.btn-group button {
-    flex: 1;
 }
 
 /* Responsive */

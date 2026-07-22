@@ -10,9 +10,9 @@
 #   • Secrets   = EnvironmentFile=/etc/comroster.env, pas des Environment= en clair
 # Pour connaître l'utilisateur réel d'un boîtier : `systemctl show -p User --value comroster`
 #
-# ⚠️ NoNewPrivileges=true (plus bas) EMPÊCHE sudo de fonctionner : avec ce durcissement,
-# les boutons « Redémarrer le boîtier » et « Appliquer maintenant » de l'admin échouent
-# (ils passent par un sudo strictement limité). Retire-le si tu veux ces fonctions.
+# NB : volontairement PAS de NoNewPrivileges ici — il EMPÊCHE sudo de fonctionner, donc
+# les boutons « Redémarrer le boîtier » et « Appliquer maintenant » (sudo strictement
+# limité) échoueraient. Ne le réactive que si tu renonces à ces fonctions.
 
 [Unit]
 Description=ComRoster — tableau d'affectation beltpacks intercom
@@ -35,8 +35,7 @@ Environment=COMROSTER_BEHIND_PROXY=true
 ExecStart=/opt/comroster/.venv/bin/gunicorn -c gunicorn.conf.py app:app
 Restart=on-failure
 RestartSec=3
-# Durcissement systemd
-NoNewPrivileges=true
+# Durcissement systemd. PAS de NoNewPrivileges (voir en-tête : casserait sudo).
 PrivateTmp=true
 ProtectSystem=full
 ReadWritePaths=/opt/comroster/instance
