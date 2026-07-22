@@ -71,6 +71,22 @@ Verdict : très bon niveau, aucun bug critique. Corrigés :
   fort risque de régression visuelle pour un gain nul (admin mono-thème). À traiter à part
   avec validation par screenshots si un jour un thème clair admin est voulu.
 
+## Lot 2026-07-22 (suite) — Approfondissement revue (CSS + scripts ligne à ligne)
+- **admin.css → design tokens** : couleurs sémantiques mappées aux tokens globaux
+  (fg/fg-muted/fg-subtle/bg/success/warning) + 13 tokens de surface `--a-*` pour les
+  gris récurrents. Pur renommage (valeurs préservées), **validé au screenshot**.
+- **UI cohérente** : les 8 `alert()` → `toast()` ; le `prompt()` de renommage de groupe →
+  dialog custom (réutilise le dialog de groupe). Les `confirm()` de suppression sont
+  **conservés** (gardes de sécurité natives, robustes — pas de risque à convertir).
+- **viewer_pages.py** : échappement HTML défensif (`html.escape`) des valeurs réinjectées.
+- **BUG CORRIGÉ (important)** : `setup-pi.sh` générait l'unit `comroster.service` avec
+  `NoNewPrivileges=true` → **cassait les boutons Redémarrer / Appliquer** (sudo bloqué),
+  malgré le fix précédent. Retiré. Modèle `deploy/comroster.service` aligné. Cf. lessons.
+- **CSS mort supprimé** : `auth.css` (`.auth-logo`, `.password-strength*`, `.btn-group`) ;
+  `main.css` (`.btn-secondary` + tokens `--secondary`/`--accent`, `.badge` défini 2×).
+- **Non touché (assumé)** : `will-change` global de main.css (perf Pi discutable mais non
+  mesurable ici) ; quelques couleurs d'état en dur dans display.css (DA distincte).
+
 ## Décisions techniques actées
 - Python 3.12, Flask
 - CSRF : Flask-WTF · Rate-limit login : Flask-Limiter
