@@ -116,7 +116,9 @@ EnvironmentFile=$ENV_FILE
 ExecStart=$VENV/bin/gunicorn -c gunicorn.conf.py app:app
 Restart=on-failure
 RestartSec=3
-NoNewPrivileges=true
+# PAS de NoNewPrivileges : l'admin web lance « sudo -n systemctl reboot » (et le
+# restart du service réseau) pour les boutons Redémarrer / Appliquer maintenant.
+# NoNewPrivileges bloquerait l'élévation via sudo, ces boutons échoueraient.
 PrivateTmp=true
 
 [Install]
