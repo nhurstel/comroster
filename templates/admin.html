@@ -51,10 +51,6 @@
         <label class="side-check"><input type="checkbox" id="meta-perf"> Mode performance</label>
 
         <nav class="side-nav">
-          <div class="nav-label">Écran</div>
-          <button type="button" id="preview-btn" class="nav-item" title="Voir le brouillon tel qu'il s'affichera">
-            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="8.5" rx="1"/><path d="M6.5 13.5h3"/></svg>Aperçu</button>
-
           <div class="nav-label">Matériel</div>
           <button type="button" id="antenna-btn" class="nav-item" title="Connexion au réseau intercom">
             <span class="dot off" id="antenna-dot"></span>Intercom Net</button>
@@ -78,6 +74,16 @@
       </div>
 
       <div class="side-foot">
+        {# Témoin permanent : le brouillon tel qu'il s'affichera. Clic = grand aperçu. #}
+        <div class="preview-tile">
+          <div class="nav-label preview-tile-label">Aperçu du brouillon</div>
+          <div class="preview-tile-frame">
+            <iframe id="preview-mini" name="preview-mini" title="Aperçu réduit de l'affichage"
+                    src="about:blank" tabindex="-1"></iframe>
+            <button type="button" id="preview-btn" class="preview-tile-hit"
+                    aria-label="Agrandir l'aperçu du brouillon" title="Agrandir"></button>
+          </div>
+        </div>
         <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
         <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -170,7 +176,7 @@
       <p class="dialog-hint">Rendu du <b>brouillon</b>, à l'échelle. Ce n'est pas ce qui s'affiche
         en régie tant que vous n'avez pas cliqué « Envoyer à l'affichage ».</p>
       <div class="preview-frame">
-        <iframe id="preview-iframe" title="Aperçu de l'affichage" src="about:blank"></iframe>
+        <iframe id="preview-iframe" name="preview-full" title="Aperçu de l'affichage" src="about:blank"></iframe>
       </div>
       <div class="dialog-actions">
         <button type="button" id="preview-refresh">Actualiser</button>

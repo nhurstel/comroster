@@ -116,9 +116,14 @@ feuilles sont toutes chargées en permanence, puisque l'apparence peut changer e
 > rendu d'après la luminance relative sRGB, mais une teinte très saturée reste médiocre quel que
 > soit le choix : si vous adoptez cette apparence, tenez-vous-en à des couleurs franches.
 
-**Aperçu** — l'item « Aperçu » de la barre latérale affiche le **brouillon** tel qu'il s'affichera,
-dans une iframe sur `/admin/preview`. C'est la vraie page display, à l'échelle : aucun rendu
-parallèle, donc aucune dérive possible. L'aperçu n'ouvre **jamais** de flux SSE (voir ci-dessous).
+**Aperçu** — un **témoin permanent** en bas de la barre latérale montre le **brouillon** tel qu'il
+s'affichera, et se rafraîchit à chaque enregistrement. À cette taille le texte est illisible par
+construction : on y lit la structure (colonnes, couleurs de groupes, densité), pas le contenu.
+Cliquer dessus ouvre le grand aperçu.
+
+Les deux sont des iframes sur `/admin/preview`, c'est-à-dire la vraie page display à l'échelle —
+aucun rendu parallèle, donc aucune dérive possible. Ni l'une ni l'autre n'ouvre de flux SSE
+(voir ci-dessous).
 
 ## Parcours & routes
 

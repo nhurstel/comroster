@@ -977,15 +977,21 @@
      La page est rendue à 1280x720 puis mise à l'échelle du cadre (cf. .preview-frame). */
   const previewDialog = document.getElementById("preview-dialog");
   const previewFrame = document.getElementById("preview-iframe");
+  const previewMini = document.getElementById("preview-mini");   // témoin permanent
 
-  function fitPreview() {
-    const box = previewFrame?.parentElement;
+  function fitPreview(frame) {
+    const box = frame?.parentElement;
     if (!box || !box.clientWidth) return;
-    previewFrame.style.transform = `scale(${box.clientWidth / 1280})`;
+    frame.style.transform = `scale(${box.clientWidth / 1280})`;
   }
+  function fitPreviews() { fitPreview(previewMini); fitPreview(previewFrame); }
+
+  // Le témoin se recharge à chaque enregistrement ; le grand aperçu seulement s'il est
+  // ouvert. Un seul horodatage pour les deux : ils montrent forcément le même brouillon.
   function reloadPreview() {
-    if (!previewDialog?.open) return;
-    previewFrame.src = `/admin/preview?t=${Date.now()}`;
+    const src = `/admin/preview?t=${Date.now()}`;
+    if (previewMini) previewMini.src = src;
+    if (previewDialog?.open) previewFrame.src = src;
   }
 
   document.getElementById("preview-btn").addEventListener("click", async () => {
@@ -993,11 +999,13 @@
     // sinon on montrerait un état périmé d'une demi-seconde.
     if (savePending) await saveDraft();
     previewDialog.showModal();
-    fitPreview();
+    fitPreviews();
     reloadPreview();
   });
   document.getElementById("preview-refresh").addEventListener("click", reloadPreview);
-  window.addEventListener("resize", fitPreview);
+  window.addEventListener("resize", fitPreviews);
+  fitPreviews();
+  reloadPreview();                 // premier chargement du témoin
 
   /* ---------- Réseau du boîtier ---------- */
   const networkDialog = document.getElementById("network-dialog");

@@ -66,6 +66,17 @@ _NUMBER_ROLE_OFFSET = """() => {
 }"""
 
 
+def _wait_frame(page, name, timeout_ms=6000):
+    """Attend l'iframe portant ce `name`. Deux aperçus coexistent (le témoin de la barre
+    latérale et le grand), donc on ne peut plus les distinguer par leur URL."""
+    for _ in range(timeout_ms // 100):
+        frame = next((f for f in page.frames if f.name == name), None)
+        if frame and "/admin/preview" in frame.url:
+            return frame
+        page.wait_for_timeout(100)
+    raise AssertionError(f"iframe « {name} » absente ou non chargée")
+
+
 def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie", skin=None):
     """Crée un groupe + un beltpack affecté, puis publie.
 
@@ -199,15 +210,14 @@ def test_preview_shows_draft_and_opens_no_sse(page, live_server):
     page.click("#block-form button[type=submit]")
     page.wait_for_selector("#sync-label:has-text('enregistré')")      # brouillon écrit, jamais publié
 
+    # Le témoin permanent de la barre latérale est chargé sans qu'on ait rien ouvert.
+    mini = _wait_frame(page, "preview-mini")
+    mini.wait_for_selector("#display-grid .block")
+    assert mini.evaluate("document.body.dataset.preview") == "on"
+
     page.click("#preview-btn")
     page.wait_for_selector("#preview-dialog[open]")
-    frame = None
-    for _ in range(60):
-        frame = next((f for f in page.frames if "/admin/preview" in f.url), None)
-        if frame:
-            break
-        page.wait_for_timeout(100)
-    assert frame is not None, "l'iframe d'aperçu ne s'est pas chargée"
+    frame = _wait_frame(page, "preview-full")
     frame.wait_for_selector("#display-grid .block")
 
     assert frame.evaluate("document.body.dataset.preview") == "on"
