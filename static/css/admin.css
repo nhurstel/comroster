@@ -99,18 +99,52 @@
 
 .side-foot { margin-top: auto; padding-top: 0.7rem; }
 
-/* Témoin d'aperçu, épinglé en bas de la barre : la vraie page display à l'échelle ~0.17.
-   Le texte y est illisible par construction — on y lit la STRUCTURE (colonnes, couleurs
-   de groupes, densité), pas le contenu. Clic → grand aperçu. */
-.preview-tile { margin-bottom: 0.6rem; }
-.preview-tile-label { margin-bottom: 0.3rem; }
+/* Témoin d'aperçu : la vraie page display en réduction. Le texte y est illisible par
+   construction — on y lit la STRUCTURE (colonnes, couleurs de groupes, densité), pas le
+   contenu. Clic → grand aperçu.
+
+   En SURIMPRESSION, coin bas-droit, et non plus épinglé dans la barre latérale : à 244 px
+   de large une vignette 16/9 coûtait ~165 px de hauteur, soit un quart du menu, qu'il
+   fallait ensuite scroller pour atteindre les réglages. Ici il ne coûte rien à la mise en
+   page, et se replie en un simple bandeau quand il gêne. */
+.preview-dock {
+    position: fixed; right: 0.9rem; bottom: 2.9rem; z-index: 40;
+    width: 216px;
+    background: var(--a-inset);
+    border: 1px solid var(--a-border); border-radius: 8px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+    overflow: hidden;
+}
+.admin-page button.dock-toggle,
+.admin-page button.dock-toggle:hover {
+    display: flex; align-items: center; gap: 0.4rem;
+    width: 100%; height: 1.8rem; margin: 0; padding: 0 0.55rem;
+    justify-content: flex-start; text-align: left;
+    background: transparent; border: none; border-radius: 0; box-shadow: none;
+    font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.13em;
+    color: var(--a-muted); font-weight: 600; cursor: pointer;
+}
+.admin-page button.dock-toggle:hover { color: var(--fg); }
+.dock-chevron {
+    width: 0.8rem; height: 0.8rem; flex: 0 0 auto;
+    fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    transition: transform 0.15s;
+}
+/* Replié : le bandeau seul subsiste, le chevron pointe vers le haut (« déplier ») */
+.preview-dock[data-open="0"] .preview-tile-frame { display: none; }
+.preview-dock[data-open="0"] .dock-chevron { transform: rotate(-90deg); }
+
 .preview-tile-frame {
     position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
-    background: #000; border: 1px solid var(--a-border);
+    background: #000; border-top: 1px solid var(--a-border);
 }
+/* Résolution de rendu de l'écran de régie : le nombre de colonnes en mode automatique
+   dépend de la LARGEUR EN PIXELS (`repeat(auto-fit, minmax(340px, 1fr))`), donc un aperçu
+   n'est fidèle qu'à une seule résolution. On rend à 1920x1080, la cible réelle du kiosk
+   Pi ; c'est le JS qui calcule l'échelle d'après cette largeur, sans la redéclarer. */
 .preview-tile-frame iframe {
     position: absolute; top: 0; left: 0;
-    width: 1280px; height: 720px; border: 0;
+    width: 1920px; height: 1080px; border: 0;
     transform-origin: top left;
     pointer-events: none;           /* le clic revient au bouton qui la recouvre */
 }
@@ -414,9 +448,11 @@
     position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
     background: #000; border: 1px solid var(--a-border-2);
 }
+/* Même résolution de rendu que le témoin (cf. .preview-tile-frame iframe) : les deux
+   doivent montrer exactement la même mise en page, colonnes comprises. */
 .preview-frame iframe {
     position: absolute; top: 0; left: 0;
-    width: 1280px; height: 720px; border: 0;
+    width: 1920px; height: 1080px; border: 0;
     transform-origin: top left;
 }
 .admin-dialog .dialog-actions .danger { color: var(--a-danger-fg); border-color: var(--a-danger-line); margin-right: auto; }

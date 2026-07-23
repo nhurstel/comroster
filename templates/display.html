@@ -11,7 +11,7 @@
   {# Apparences alternatives : toujours chargées, le skin change en direct par SSE. #}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/skins.css') }}">
 </head>
-<body class="display-page" data-theme="{{ initial_data.theme or 'night' }}" data-skin="{{ initial_data.skin or 'basique' }}" data-perf="{{ 'on' if initial_data.perf else 'off' }}"{% if preview %} data-preview="on"{% endif %}>
+<body class="display-page" data-theme="{{ initial_data.theme or 'night' }}" data-skin="{{ initial_data.skin or 'basique' }}" data-perf="{{ 'on' if initial_data.perf else 'off' }}"{% if preview %} data-preview="on"{% if preview_scroll %} data-preview-scroll="on"{% endif %}{% endif %}>
   <header>
     <img class="board-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="ComRoster" width="30" height="30">
     <div class="board-meta">

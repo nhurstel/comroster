@@ -116,21 +116,27 @@ feuilles sont toutes chargées en permanence, puisque l'apparence peut changer e
 > rendu d'après la luminance relative sRGB, mais une teinte très saturée reste médiocre quel que
 > soit le choix : si vous adoptez cette apparence, tenez-vous-en à des couleurs franches.
 
-**Aperçu** — un **témoin permanent** en bas de la barre latérale montre le **brouillon** tel qu'il
-s'affichera, et se rafraîchit à chaque enregistrement. À cette taille le texte est illisible par
-construction : on y lit la structure (colonnes, couleurs de groupes, densité), pas le contenu.
-Cliquer dessus ouvre le grand aperçu.
+**Aperçu** — un **témoin permanent** en surimpression, coin bas-droit, montre l'état **publié** et
+se rafraîchit à chaque publication. À cette taille le texte est illisible par construction : on y
+lit la structure (colonnes, couleurs de groupes, densité), pas le contenu. Cliquer dessus ouvre le
+grand aperçu ; un clic à côté le referme. Le bandeau replie le témoin, et ce choix est mémorisé.
 
 Les deux sont des iframes sur `/admin/preview`, c'est-à-dire la vraie page display à l'échelle —
 aucun rendu parallèle, donc aucune dérive possible. Ni l'une ni l'autre n'ouvre de flux SSE
 (voir ci-dessous).
 
+> **L'aperçu est rendu en 1920×1080**, la résolution du kiosk Pi. En colonnes « Automatique », leur
+> nombre dépend de la largeur en pixels (`minmax(340px, 1fr)`) : un aperçu ne peut donc être fidèle
+> qu'à **une** résolution. Si votre écran de régie n'est pas en 1080p, fixez le nombre de colonnes
+> — le rendu devient alors indépendant de la largeur, et l'aperçu exact partout.
+
 ## Parcours & routes
 
 - `/admin/setup`, `/admin/login`, `/admin/recover` — comptes (public).
 - `/admin` + `/api/*` — administration (session requise, CSRF sur les requêtes mutatives).
-- `/admin/preview` — aperçu du **brouillon**, session requise. Rend `display.html` avec
+- `/admin/preview` — aperçu de l'état **publié**, session requise. Rend `display.html` avec
   `data-preview="on"` : le JS y coupe le SSE, les sondages, l'anti-veille et le défilement.
+  `?scroll=1` rétablit le défilement (grand aperçu seulement — le témoin permanent reste immobile).
   Chaque flux `/events` occupe un thread et un créneau de `COMROSTER_SSE_MAX` (12 par défaut) —
   un aperçu laissé ouvert affamerait les vrais afficheurs.
 - `/display` + `/events` — affichage TV public, **lecture seule** (état publié uniquement).

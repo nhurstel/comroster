@@ -33,6 +33,10 @@
   // Mode aperçu (iframe de l'admin) : on rend la page telle quelle, mais sans rien qui
   // consomme le serveur ou tourne en continu — SSE, sondages, anti-veille, défilement.
   const PREVIEW = bodyEl.dataset.preview === "on";
+  // …sauf le défilement, réactivable à la demande : sans lui le grand aperçu ment sur le
+  // point qui compte le plus (« est-ce que tout tient à l'écran ? »). Réservé à l'aperçu
+  // ouvert ponctuellement — le témoin permanent, lui, doit rester immobile et gratuit.
+  const PREVIEW_SCROLL = bodyEl.dataset.previewScroll === "on";
 
   const esc = (s) => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
   const resolveTheme = (v) => (v === "day" ? "day" : "night");
@@ -319,7 +323,7 @@
   function startAutoScroll() {
     stopAutoScroll();
     setOffset(0);
-    if (PREVIEW || !scrollContainer || document.hidden || REDUCED_MOTION) return;
+    if ((PREVIEW && !PREVIEW_SCROLL) || !scrollContainer || document.hidden || REDUCED_MOTION) return;
     if (maxOffset() <= 0) return;
     scroll.direction = 1;
     scroll.active = true;

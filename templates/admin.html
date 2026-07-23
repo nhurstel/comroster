@@ -74,16 +74,6 @@
       </div>
 
       <div class="side-foot">
-        {# Témoin permanent de l'écran de régie (état publié). Clic n'importe où = agrandir. #}
-        <div class="preview-tile">
-          <div class="nav-label preview-tile-label">Affichage en cours</div>
-          <div class="preview-tile-frame">
-            <iframe id="preview-mini" name="preview-mini" title="Report réduit de l'écran de régie"
-                    src="about:blank" tabindex="-1"></iframe>
-            <button type="button" id="preview-btn" class="preview-tile-hit"
-                    aria-label="Agrandir le report de l'écran de régie"></button>
-          </div>
-        </div>
         <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
         <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -137,6 +127,23 @@
       </footer>
     </main>
   </div>
+
+  {# Témoin permanent de l'écran de régie (état publié), en surimpression plutôt que dans
+     la barre latérale : il y mangeait un quart du menu. Repliable, l'état est mémorisé.
+     Clic n'importe où sur la vignette = grand aperçu. #}
+  <aside class="preview-dock" id="preview-dock" data-open="1">
+    <button type="button" class="dock-toggle" id="preview-dock-toggle" aria-expanded="true"
+            aria-controls="preview-dock-body">
+      <svg class="dock-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+      Affichage en cours
+    </button>
+    <div class="preview-tile-frame" id="preview-dock-body">
+      <iframe id="preview-mini" name="preview-mini" title="Report réduit de l'écran de régie"
+              src="about:blank" tabindex="-1"></iframe>
+      <button type="button" id="preview-btn" class="preview-tile-hit"
+              aria-label="Agrandir le report de l'écran de régie"></button>
+    </div>
+  </aside>
 
   <dialog id="block-dialog" class="admin-dialog">
     <form id="block-form" method="dialog">

@@ -236,6 +236,24 @@ def test_preview_tracks_published_and_opens_no_sse(page, live_server):
     frame.wait_for_selector("#display-grid .block")
     assert frame.evaluate("document.querySelectorAll('#display-grid .block').length") == 1
     assert frame.evaluate("window.__es") == 0, "le grand aperçu a ouvert un flux SSE"
+    # Le grand aperçu rend le défilement (le témoin permanent, lui, reste immobile) :
+    # sans lui il mentirait sur la seule question qui compte, « est-ce que tout tient ? ».
+    assert frame.evaluate("document.body.dataset.previewScroll") == "on"
+    assert mini.evaluate("document.body.dataset.previewScroll") is None
+
+    # Un clic dans le vide ferme le grand aperçu. On vise un point hors du rectangle du
+    # dialog (coin haut-gauche de la fenêtre), pas un `<button>` : c'est la géométrie du
+    # backdrop qu'on teste, et elle ne se déduit d'aucun sélecteur.
+    page.mouse.click(4, 4)
+    # `state="attached"` : un dialog fermé n'est jamais « visible » (leçon 2026-07-23).
+    page.wait_for_selector("#preview-dialog:not([open])", state="attached")
+
+    # Le témoin se replie, et son repli survit au rechargement de l'admin.
+    page.click("#preview-dock-toggle")
+    assert page.get_attribute("#preview-dock", "data-open") == "0"
+    page.reload()
+    page.wait_for_selector("#preview-dock[data-open='0']")
+    assert not page.is_visible(".preview-tile-frame")
 
 
 def test_fresh_box_shows_onboarding(page, live_server):

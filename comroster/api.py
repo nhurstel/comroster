@@ -1,6 +1,6 @@
 import re
 
-from flask import Blueprint, jsonify, current_app, render_template
+from flask import Blueprint, jsonify, current_app, render_template, request
 
 from .security import login_required, exclusive_state, json_body
 from .services import model
@@ -49,9 +49,14 @@ def admin_preview():
     au premier chef l'abonnement SSE : chaque flux /events occupe un thread gthread en
     permanence et un créneau de SSE_MAX_CLIENTS. Ce témoin étant monté en permanence
     dans l'admin, il en ouvrirait un par onglet ouvert (cf. leçon 2026-07-06).
+
+    `?scroll=1` rend le défilement automatique, qui est la seule façon de voir si le
+    contenu déborde de l'écran. Réservé au grand aperçu, ouvert à la demande : le témoin
+    permanent le laisse coupé (une animation en continu dans un onglet toujours ouvert).
     """
     published = _storage().load_published() or model.empty_state()
-    return render_template("display.html", initial_data=published, preview=True)
+    return render_template("display.html", initial_data=published, preview=True,
+                           preview_scroll=request.args.get("scroll") == "1")
 
 
 @bp.get("/api/state")

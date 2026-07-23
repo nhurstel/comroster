@@ -974,36 +974,65 @@
   /* ---------- Report de l'écran de régie ----------
      Une iframe sur /admin/preview : c'est la VRAIE page display servant l'état PUBLIÉ,
      avec son vrai CSS et son vrai JS. Aucun moteur de rendu parallèle à maintenir, donc
-     aucune dérive possible. Rendue à 1280x720 puis mise à l'échelle du cadre.
+     aucune dérive possible. Rendue à 1920x1080 (résolution du kiosk) puis mise à l'échelle.
      Elle ne suit PAS le brouillon : elle se rafraîchit aux publications (locale ou
      distante), pas aux enregistrements. */
   const previewDialog = document.getElementById("preview-dialog");
   const previewFrame = document.getElementById("preview-iframe");
   const previewMini = document.getElementById("preview-mini");   // témoin permanent
+  const previewDock = document.getElementById("preview-dock");
+  const dockToggle = document.getElementById("preview-dock-toggle");
 
+  // L'échelle se déduit de la largeur de rendu déclarée en CSS (`offsetWidth`, insensible
+  // au transform) : la résolution de l'écran de régie n'est écrite qu'à un seul endroit.
   function fitPreview(frame) {
     const box = frame?.parentElement;
-    if (!box || !box.clientWidth) return;
-    frame.style.transform = `scale(${box.clientWidth / 1280})`;
+    if (!box || !box.clientWidth || !frame.offsetWidth) return;
+    frame.style.transform = `scale(${box.clientWidth / frame.offsetWidth})`;
   }
   function fitPreviews() { fitPreview(previewMini); fitPreview(previewFrame); }
 
   // Un seul horodatage pour les deux : ils montrent forcément le même état publié.
+  // `scroll=1` n'est demandé que pour le grand aperçu (cf. commentaire de /admin/preview).
   function reloadPreview() {
-    const src = `/admin/preview?t=${Date.now()}`;
-    if (previewMini) previewMini.src = src;
-    if (previewDialog?.open) previewFrame.src = src;
+    const t = Date.now();
+    if (previewMini && previewDock.dataset.open === "1") previewMini.src = `/admin/preview?t=${t}`;
+    if (previewDialog?.open) previewFrame.src = `/admin/preview?scroll=1&t=${t}`;
   }
+
+  // Repli mémorisé : sans persistance il se rouvrirait à chaque publication (l'admin
+  // recharge la page rarement, mais assez pour que ce soit agaçant).
+  const DOCK_KEY = "comroster.preview-dock";
+  function setDock(open) {
+    previewDock.dataset.open = open ? "1" : "0";
+    dockToggle.setAttribute("aria-expanded", String(open));
+    try { localStorage.setItem(DOCK_KEY, open ? "1" : "0"); } catch { /* mode privé */ }
+    // Replié, l'iframe est retirée du DOM de rendu : on la recharge (et remesure) au
+    // dépliage, sinon elle afficherait l'état publié d'il y a peut-être une heure.
+    if (open) { fitPreview(previewMini); reloadPreview(); }
+  }
+  dockToggle.addEventListener("click", () => setDock(previewDock.dataset.open !== "1"));
+  let dockOpen = true;
+  try { dockOpen = localStorage.getItem(DOCK_KEY) !== "0"; } catch { /* mode privé */ }
 
   document.getElementById("preview-btn").addEventListener("click", () => {
     previewDialog.showModal();
     fitPreviews();
     reloadPreview();
   });
+  // Clic hors du panneau = fermeture. On teste les COORDONNÉES contre le rectangle du
+  // dialog, pas `e.target === previewDialog` : le padding du dialog appartient au dialog
+  // lui-même, un clic dedans le fermerait alors qu'il est visuellement à l'intérieur.
+  previewDialog.addEventListener("click", (e) => {
+    const r = previewDialog.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
+      previewDialog.close();
+    }
+  });
   document.getElementById("preview-refresh").addEventListener("click", reloadPreview);
   window.addEventListener("resize", fitPreviews);
-  fitPreviews();
-  reloadPreview();                 // premier chargement du témoin
+  setDock(dockOpen);               // pose l'état + premier chargement du témoin
+  fitPreview(previewFrame);
 
   /* ---------- Réseau du boîtier ---------- */
   const networkDialog = document.getElementById("network-dialog");
