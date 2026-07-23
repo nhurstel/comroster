@@ -21,6 +21,23 @@
     --a-danger-line: #4A2A2E;  /* bordure danger */
     --a-danger-bg: #2E1C1F;    /* fond danger au survol */
 
+    /* Jetons de mesure du lot « refonte admin » (valeurs retenues au banc de
+       réglage). Un seul endroit à toucher pour réaccorder toute l'interface. */
+    --ui: 12.5px;              /* tout ce qui se clique */
+    --ui-sm: 11.5px;           /* libellés secondaires, mentions */
+    --track: 0.02em;           /* interlettrage des libellés */
+    --mono: 15px;              /* chiffres (n° de beltpack) */
+    --role: 15px;              /* rôles et titres de groupe */
+    --role-w: 600;
+    --row: 31px;               /* hauteur de ligne — densité */
+    --pad: 12px;
+    --gap: 7px;
+    --rad: 7px;
+    --card-min: 300px;
+    --side-w: 204px;
+    --pool-w: 242px;
+    --top-h: 53px;
+
     height: 100vh;
     overflow: hidden;
     background: #141821;
@@ -31,8 +48,8 @@
 .admin-page button,
 .admin-page .import-label {
     display: inline-flex; align-items: center; line-height: 1;
-    height: 2rem; padding: 0 0.7rem;
-    font-size: 0.82rem; font-weight: 600; border-radius: 7px; box-shadow: none;
+    height: var(--row); padding: 0 0.7rem;
+    font-size: var(--ui); font-weight: 600; border-radius: var(--rad); box-shadow: none;
     background: var(--a-surface); border: 1px solid var(--a-border); color: var(--fg);
     cursor: pointer; transition: background 0.12s, border-color 0.12s;
     text-decoration: none; white-space: nowrap;
@@ -62,31 +79,31 @@
 
 /* Réglages inline (nom, sous-titre, luminosité, colonnes) */
 .side-field { display: flex; flex-direction: column; gap: 0.22rem; padding: 0.1rem 0.5rem 0.3rem; }
-.side-field > span { font-size: 0.7rem; color: var(--fg-subtle); font-weight: 500; }
+.side-field > span { font-size: var(--ui-sm); color: var(--fg-subtle); font-weight: 500; }
 .side-field input, .side-field select {
-    width: 100%; height: 1.9rem; padding: 0 0.5rem;
-    background: var(--a-inset); border: 1px solid var(--a-border); border-radius: 6px;
-    color: var(--fg); font-size: 0.82rem; font-family: inherit; cursor: pointer;
+    width: 100%; height: var(--row); padding: 0 0.5rem;
+    background: var(--a-inset); border: 1px solid var(--a-border); border-radius: var(--rad);
+    color: var(--fg); font-size: var(--ui); font-family: inherit; cursor: pointer;
 }
 .side-field input { cursor: text; }
 .side-field input:focus, .side-field select:focus { outline: none; border-color: var(--primary); }
 .side-check {
     display: flex; align-items: center; gap: 0.55rem;
-    padding: 0.32rem 0.5rem; font-size: 0.82rem; color: var(--fg-muted); cursor: pointer;
+    padding: 0.32rem 0.5rem; font-size: var(--ui); color: var(--fg-muted); cursor: pointer;
 }
 .side-check input { width: 1rem; height: 1rem; accent-color: var(--primary); flex: 0 0 auto; margin: 0; }
 .side-brand { display: flex; align-items: center; gap: 0.5rem; padding: 0.15rem 0.4rem 0.85rem; }
 .admin-badge { width: 1.2rem; height: 1.2rem; flex: 0 0 auto; }
-.side-name { font-size: 0.82rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--fg); }
+.side-name { font-size: var(--ui); font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--fg); }
 
 .side-nav { display: flex; flex-direction: column; gap: 0.08rem; }
-.nav-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.13em; color: var(--a-muted); font-weight: 600; padding: 0.75rem 0.5rem 0.28rem; }
+.nav-label { font-size: var(--ui-sm); text-transform: uppercase; letter-spacing: 0.1em; color: var(--a-muted); font-weight: 600; padding: 0.75rem 0.5rem 0.28rem; }
 .admin-sidebar .nav-item {
     display: flex; align-items: center; gap: 0.55rem;
-    width: 100%; height: 2rem; padding: 0 0.5rem;
+    width: 100%; height: var(--row); padding: 0 0.5rem;
     justify-content: flex-start; text-align: left;
-    background: transparent; border: none; border-radius: 6px;
-    color: var(--fg-muted); font-size: 0.83rem; font-weight: 500;
+    background: transparent; border: none; border-radius: var(--rad);
+    color: var(--fg-muted); font-size: var(--ui); font-weight: 500;
     cursor: pointer; white-space: nowrap; transition: background 0.12s, color 0.12s;
 }
 .admin-sidebar .nav-item:hover:not(:disabled) { background: var(--a-surface); color: var(--fg); }
@@ -121,7 +138,7 @@
     width: 100%; height: 1.8rem; margin: 0; padding: 0 0.55rem;
     justify-content: flex-start; text-align: left;
     background: transparent; border: none; border-radius: 0; box-shadow: none;
-    font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.13em;
+    font-size: var(--ui-sm); letter-spacing: var(--track);
     color: var(--a-muted); font-weight: 600; cursor: pointer;
 }
 .admin-page button.dock-toggle:hover { color: var(--fg); }
@@ -169,9 +186,9 @@
 }
 .admin-sidebar .logout-link {
     display: flex; align-items: center; gap: 0.55rem;
-    width: 100%; height: 2rem; padding: 0 0.5rem;
-    background: transparent; border: none; border-radius: 6px;
-    color: var(--a-danger-fg); font-size: 0.83rem; font-weight: 500; text-decoration: none; cursor: pointer;
+    width: 100%; height: var(--row); padding: 0 0.5rem;
+    background: transparent; border: none; border-radius: var(--rad);
+    color: var(--a-danger-fg); font-size: var(--ui); font-weight: 500; text-decoration: none; cursor: pointer;
 }
 .admin-sidebar .logout-link:hover { background: var(--a-danger-bg); }
 
@@ -199,14 +216,14 @@
 .admin-head {
     position: static;
     display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-    flex: 0 0 auto; height: 3.4rem; padding: 0 1.1rem;
+    flex: 0 0 auto; height: var(--top-h); padding: 0 1.1rem;
     background: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
     border: none; border-bottom: 1px solid var(--border);
 }
 .admin-head::before { display: none; }
 .admin-head .board-meta { display: flex; flex-direction: column; gap: 0; min-width: 0; }
 .admin-head .board-meta h1 { font-size: 1rem; font-weight: 700; text-shadow: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.admin-head .board-meta h2 { font-size: 0.76rem; font-weight: 500; color: var(--fg-subtle); }
+.admin-head .board-meta h2 { font-size: var(--ui-sm); font-weight: 500; color: var(--fg-subtle); }
 .head-actions { display: flex; align-items: center; gap: 0.7rem; flex: 0 0 auto; }
 
 .admin-main .admin-layout { padding: 0; }
@@ -218,7 +235,7 @@
     padding: 0 1.1rem;
     background: transparent; box-shadow: none;
     border: none; border-top: 1px solid var(--border);
-    font-size: 0.74rem; color: var(--fg-subtle);
+    font-size: var(--ui-sm); color: var(--fg-subtle);
 }
 .admin-credit { margin-left: auto; color: var(--a-muted); }
 
@@ -228,7 +245,7 @@
     transform: translateX(-50%) translateY(0.8rem);
     background: var(--a-surface); border: 1px solid var(--a-border-2); color: var(--fg);
     padding: 0.65rem 1.05rem; border-radius: 8px;
-    font-size: 0.86rem; font-weight: 500;
+    font-size: calc(var(--ui) + 1px); font-weight: 500;
     box-shadow: 0 14px 36px rgba(0,0,0,0.55);
     z-index: 2000; opacity: 0; pointer-events: none;
     transition: opacity 0.2s var(--ease-out, ease), transform 0.2s var(--ease-out, ease);
@@ -241,7 +258,7 @@
 .admin-page .status-badge {
     background: transparent; border: none; box-shadow: none; padding: 0;
     display: inline-flex; align-items: center; gap: 0.5rem;
-    font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: var(--fg-subtle);
+    font-size: var(--ui-sm); font-weight: 600; letter-spacing: var(--track); color: var(--fg-subtle);
 }
 .admin-page .status-badge .pulse { width: 0.5rem; height: 0.5rem; border-radius: 0; background: var(--a-muted); flex: 0 0 auto; }
 .admin-page .status-badge[data-state="idle"] .pulse { background: var(--primary); }
@@ -302,7 +319,7 @@
 #available-users::-webkit-scrollbar-thumb,
 #blocks-container::-webkit-scrollbar-thumb { background: var(--a-border); border-radius: 8px; }
 
-.empty-hint { padding: 1rem; text-align: center; color: var(--fg-subtle); font-size: 0.82rem; }
+.empty-hint { padding: 1rem; text-align: center; color: var(--fg-subtle); font-size: var(--ui); }
 
 /* ---------- Groupes (empilés sur une seule colonne) ---------- */
 .admin-block {
@@ -327,7 +344,7 @@
     border-bottom: 1px solid var(--border);
 }
 .admin-block .block-title { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0; }
-.admin-block .block-title h3 { margin: 0; font-size: 0.86rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+.admin-block .block-title h3 { margin: 0; font-size: calc(var(--role) - 1px); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
 .admin-block .block-items { padding: 0 0.6rem; }
 
 /* Case couleur cliquable : clic dessus → sélecteur de couleur du groupe */
@@ -343,8 +360,8 @@
 
 /* Actions de groupe : TOUJOURS visibles, lisibles et confortables (admin = clarté avant tout) */
 .block-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; }
-.chip-btn { font-size: 0.8rem; font-weight: 600; border-radius: 6px; }
-.block-actions .chip-btn { height: 1.85rem; padding: 0 0.75rem; background: var(--a-surface); border: 1px solid var(--a-border-2); color: #C9CFDA; }
+.chip-btn { font-size: var(--ui); font-weight: 600; border-radius: var(--rad); }
+.block-actions .chip-btn { height: calc(var(--row) - 2px); padding: 0 0.75rem; background: var(--a-surface); border: 1px solid var(--a-border-2); color: #C9CFDA; }
 .block-actions .chip-btn:hover:not(:disabled) { background: var(--a-surface-3); border-color: var(--a-border-3); color: var(--fg); }
 .block-actions .chip-btn.danger { color: var(--a-danger-fg); border-color: var(--a-danger-line); }
 .block-actions .chip-btn.danger:hover:not(:disabled) { background: var(--a-danger-bg); border-color: var(--a-danger-line); color: var(--a-danger-fg); }
@@ -357,6 +374,7 @@
     border: none;
     border-bottom: 1px solid var(--border);
     border-radius: 0;
+    min-height: var(--row);
     padding: 0.32rem 0.4rem;
     display: flex;
     align-items: center;
@@ -381,17 +399,17 @@
     color: var(--fg-muted);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    font-size: 0.8rem;
+    font-size: var(--mono);
 }
 /* Rôle + nom sur une seule ligne → rangée fine */
 .person .who { display: flex; flex-direction: row; align-items: baseline; min-width: 0; gap: 0.45rem; line-height: 1.2; }
-.person .role { font-size: 0.84rem; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.person .name { font-size: 0.78rem; color: var(--a-muted-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+.person .role { font-size: var(--role); font-weight: var(--role-w); color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.person .name { font-size: var(--ui-sm); color: var(--a-muted-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
 
 /* Case « + » d'ajout : exactement le même gabarit qu'une ligne beltpack (puce + libellé) */
 .admin-page .person-add {
     background: transparent; border: none; border-bottom: 1px solid var(--border); border-radius: 0;
-    padding: 0.32rem 0.4rem;
+    min-height: var(--row); padding: 0.32rem 0.4rem;
     display: flex; align-items: center; justify-content: flex-start; text-align: left;
     gap: 0.6rem; width: 100%; height: auto;
     color: var(--fg-subtle); font-weight: 600; cursor: pointer; transition: color 0.12s;
@@ -404,7 +422,7 @@
     transition: color 0.12s, border-color 0.12s;
 }
 .admin-page .person-add:hover .pa-chip { color: var(--primary); border-color: var(--primary); }
-.person-add .pa-label { font-size: 0.84rem; }
+.person-add .pa-label { font-size: var(--role); }
 
 /* Édition sur place du numéro / nom (double-clic) */
 .inline-edit {
@@ -433,7 +451,7 @@
 .admin-dialog::backdrop { background: rgba(4,6,10,0.62); }
 .admin-dialog form { padding: 1.4rem; display: flex; flex-direction: column; gap: 0.9rem; }
 .admin-dialog h2 { margin: 0; font-size: 1.2rem; font-weight: 700; }
-.dialog-hint { margin: 0; font-size: 0.82rem; color: var(--fg-subtle); }
+.dialog-hint { margin: 0; font-size: var(--ui); color: var(--fg-subtle); }
 /* Interrupteur d'auto-sync : case + aide groupées serré dans le dashboard antenne */
 .dash-autosync { display: flex; flex-direction: column; gap: 0.35rem; }
 .dash-autosync .side-check { padding-left: 0; font-size: 0.92rem; color: var(--text, #E6E8EC); }
@@ -592,14 +610,14 @@
 .panel-filter {
     width: 100%; margin: 0 0 0.5rem; padding: 0.45rem 0.7rem;
     background: var(--a-inset); border: 1px solid var(--a-border); border-radius: 6px;
-    color: var(--fg); font-size: 0.88rem;
+    color: var(--fg); font-size: calc(var(--ui) + 1px);
 }
 .panel-filter::placeholder { color: var(--a-muted); }
 .panel-filter:focus { outline: none; border-color: var(--primary); }
 
 /* Indicateurs temps réel sur la carte (batterie + réception) */
 .card-live { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; flex: 0 0 auto; }
-.bp-batt { font-size: 0.72rem; font-weight: 700; color: var(--fg-subtle); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bp-batt { font-size: var(--ui-sm); font-weight: 700; color: var(--fg-subtle); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bp-batt.low { color: var(--warning); }
 
 /* Cases « indicateurs » dans le dialog Infos */

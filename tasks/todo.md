@@ -253,3 +253,74 @@ Spec validée : [docs/superpowers/specs/2026-07-06-network-wifi-ethernet-design.
   (aucune référence dans le dépôt ; `.venv/` en 3.12 reste le seul environnement utilisé).
 - `beltpack_roles` jamais purgé (croissance négligeable).
 - Compteurs rate-limit en mémoire (reset au restart) : acceptable appliance mono-process.
+
+---
+
+# LOT « REFONTE ADMIN » — plan (2026-07-23)
+
+Base : maquette 7 du scratchpad, valeurs retenues par Nathan (reportées en A1).
+Principe : chaque phase est livrable seule, tests verts, sans casser la précédente.
+
+## A. Jetons et typographie — CSS seul, risque nul
+
+- [ ] A1. Poser les jetons retenus en tête de `.admin-page` :
+      `--ui:12.5px` `--track:.02em` `--mono:15px` `--role:15px` `--role-w:600`
+      `--row:31px` `--pad:12px` `--gap:7px` `--rad:7px` `--card-min:300px`
+      `--side-w:204px` `--pool-w:242px` `--top-h:53px`
+      Police = **Base** (Outfit + Inter) → rien à auto-héberger, les .woff2 sont déjà là.
+- [ ] A2. Règle typographique : capitales réservées aux TITRES (nom de groupe,
+      en-têtes de section). Tout ce qui se clique passe en bas-de-casse 12,5 px,
+      interlettrage .02em. C'est le défaut signalé par Nathan (illisibilité des
+      boutons en 10 px capitales très espacées).
+- [ ] A3. Purger les tailles en dur (`0.82rem`, `0.66rem`…) au profit des jetons.
+
+## B. Blocs-groupes en aplat plein — CSS + un peu de JS
+
+- [ ] B1. Extraire `inkFor()` de `display.js` vers `static/js/ink.js`, chargé par
+      display.html ET admin.html. NE PAS dupliquer : c'est la même règle de
+      luminance (seuil .179) des deux côtés, une divergence serait invisible.
+- [ ] B2. `renderBlocks()` pose `--gel` (couleur du groupe) et `data-ink` sur le
+      bloc ; le CSS en déduit l'encre. Séparateurs = filets, trait d'union `·`
+      entre n° et rôle (miroir de `skins.css`, cf. `--tie`).
+- [ ] B3. Voyants d'état : point, masqué au survol au profit des actions.
+
+## C. Mise en page — template + CSS
+
+- [ ] C1. « Beltpacks disponibles » quitte `.admin-layout` et devient une colonne
+      de droite (`--pool-w:242px`). Le plan de travail devient une grille
+      `repeat(auto-fill, minmax(300px, 1fr))`, gap 7.
+- [ ] C2. En-tête à 53 px : fil d'Ariane + onglets nommés + horloge + état + action.
+- [ ] C3. Barre latérale → INVENTAIRE : groupes avec effectif, puis vues
+      (« Hors ligne », « Batterie < 30 % »), puis Données. Les réglages d'écran
+      partent dans l'onglet « Écran ». ⚠️ Garder les MÊMES ids d'inputs
+      (`#skin-select`, `#theme-select`, `#meta-columns`…) : `bindSettings` et
+      `syncSettingsInputs` continuent de fonctionner sans y toucher.
+
+## D. Barre d'état — remplace le témoin d'aperçu
+
+- [ ] D1. Réutiliser `.admin-foot` (déjà présent, 2,3 rem). Contenu : flux SSE +
+      nombre de clients, heure de la dernière publication, apparence + résolution,
+      « aperçu écran ↗ » (rouvre le grand aperçu), export.
+- [ ] D2. Écart brouillon ↔ publié (« +1 groupe, +2 beltpacks non envoyés »).
+      Nouveau calcul côté client entre `state.data` et l'état publié. À faire
+      APRÈS D1 : D1 seul remplace déjà la vignette.
+- [ ] D3. Retirer `.preview-dock` et son CSS. Mettre à jour le test e2e
+      `test_preview_tracks_published_and_opens_no_sse` : la vignette disparaît,
+      le grand aperçu et l'absence de SSE restent testés.
+
+## E. À trancher
+
+- [ ] E1. **Bouton d'action en « texte ».** Nathan l'a retenu. Réserve : publier
+      est l'action la plus conséquente de l'app (c'est elle qui change l'écran de
+      la régie) et, sans fond ni contour, elle n'a plus d'affordance — un
+      utilisateur qui ne la trouve pas ne diffuse rien. Proposition : « contour »
+      (même sobriété, affordance conservée). Décision de Nathan, à confirmer.
+- [ ] E2. Bornage du sélecteur de couleur de groupe : en aplat plein, une teinte
+      trop saturée devient illisible quelle que soit l'encre. Déjà signalé pour
+      l'apparence Grille, devient nécessaire ici aussi.
+
+## Vérifications exigées à chaque phase
+
+- 256 unitaires + 13 e2e verts, ruff propre.
+- Capture de l'admin + console navigateur vide (leçon 2026-07-07).
+- Contraste mesuré, pas jugé à l'œil, sur les 6 couleurs de groupe (leçon 2026-07-23).
