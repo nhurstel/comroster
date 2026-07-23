@@ -47,10 +47,22 @@ def test_setup_create_publish_display(page, live_server):
     assert "42" in grid and "régie" in grid.lower()
 
 
+# Écart des LIGNES DE BASE entre le numéro et le rôle. On ne compare pas les centres de
+# boîtes : le chiffre est en line-height 1 et le rôle en 1.15, donc des rectangles centrés
+# laissent les glyphes décalés. La sonde est un inline-block de hauteur nulle, dont la
+# ligne de base est son bord inférieur — son rect.top donne donc celle du texte qui l'héberge.
 _NUMBER_ROLE_OFFSET = """() => {
+    const baseline = (el) => {
+        const probe = document.createElement('span');
+        probe.style.display = 'inline-block';
+        probe.style.width = '0'; probe.style.height = '0';
+        el.appendChild(probe);
+        const y = probe.getBoundingClientRect().top;
+        probe.remove();
+        return y;
+    };
     const p = document.querySelector('#display-grid .person');
-    const mid = (el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2; };
-    return mid(p.querySelector('.bp-n')) - mid(p.querySelector('.role'));
+    return baseline(p.querySelector('.bp-n')) - baseline(p.querySelector('.role'));
 }"""
 
 
@@ -136,8 +148,8 @@ def test_service_skin_from_admin_reaches_display(page, live_server):
     assert applied["radius"] == "0px"                      # angles vifs, plus de carte
     assert applied["headBg"] == "rgb(58, 175, 169)"        # bandeau = couleur du groupe (#3AAFA9)
     assert applied["veil"] == "none"                       # voile d'ambiance de main.css neutralisé
-    # Le voyant temps réel doit rester hors du flux : dans le flux il décalait le numéro
-    # de ~5,6 px vers le haut, la pastille étant centrée dans la ligne.
+    # Numéro et rôle doivent partager la même ligne de base (le voyant temps réel, s'il
+    # revenait dans le flux, décalerait le chiffre de ~5,6 px vers le haut).
     offset = display.evaluate(_NUMBER_ROLE_OFFSET)
     assert abs(offset) <= 1, f"numéro désaligné du rôle de {offset:.1f} px"
 

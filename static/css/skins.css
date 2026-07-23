@@ -40,9 +40,14 @@ body.display-page:not([data-skin="base"]) .status-badge .pulse {
 }
 @keyframes skin-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
+/* Numéro et rôle s'alignent sur leur LIGNE DE BASE, pas sur le centre de leur boîte :
+   le chiffre est en line-height 1, le rôle en 1.15, donc centrer les rectangles laisse
+   les glyphes décalés. C'est de la typographie posée côte à côte, pas deux blocs. */
+body.display-page:not([data-skin="base"]) .person { align-items: baseline; }
+
 /* La pastille du numéro (aplat de couleur + libellé « BP ») appartient à `base`. Les
-   alternatives sortent le chiffre nu dans une gouttière, aligné sur les unités, et
-   remettent le voyant temps réel dans le flux — il n'y a plus de pastille où l'accrocher. */
+   alternatives sortent le chiffre nu dans une gouttière, alignée sur les unités, et
+   sortent le voyant temps réel du flux — il n'y a plus de pastille où l'accrocher. */
 body.display-page:not([data-skin="base"]) .bp-badge {
   background: transparent; box-shadow: none; border-radius: 0;
   height: auto;
@@ -264,9 +269,12 @@ body.display-page[data-skin="aplats"] {
   --display-header-height: 4.2rem;
   --display-footer-height: 2.4rem;
 
-  --fit-title-min: 15; --fit-title-max: 30;
-  --fit-role-min: 13;  --fit-role-max: 22;
-  --fit-bpn-ratio: 1.15; --fit-bpn-min: 17; --fit-bpn-max: 26;
+  /* Le titre ne porte PAS l'échelle : c'est la surface colorée qui identifie le groupe.
+     Titre et rôles restent donc proches en corps, la hiérarchie venant des capitales et
+     de la graisse (800 vs 700). Un titre écrasant les rôles déséquilibrait le bloc. */
+  --fit-title-min: 13; --fit-title-max: 23;
+  --fit-role-min: 14;  --fit-role-max: 25;
+  --fit-bpn-ratio: 1.05; --fit-bpn-min: 17; --fit-bpn-max: 26;
 
   background: var(--a-bg);
   color: var(--a-fg);
