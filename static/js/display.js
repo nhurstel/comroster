@@ -38,8 +38,8 @@
   const resolveTheme = (v) => (v === "day" ? "day" : "night");
   // Apparence (direction artistique). Miroir de model.SKINS : une valeur inconnue
   // retomberait sur une feuille de style inexistante, donc un écran nu.
-  const SKINS = ["base", "service", "aplats"];
-  const resolveSkin = (v) => (SKINS.includes(v) ? v : "base");
+  const SKINS = ["basique", "lineaire", "grille"];
+  const resolveSkin = (v) => (SKINS.includes(v) ? v : "basique");
 
   /* ---------- Encre lisible sur un aplat de couleur ----------
      Une apparence peut remplir le bloc avec la couleur du groupe, qui est saisie par

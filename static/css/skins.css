@@ -1,6 +1,6 @@
 /* ComRoster — apparences alternatives de /display (attribut `data-skin` sur <body>).
 
-   L'apparence `base` vit dans display.css ; ce fichier ne contient QUE les surcharges
+   L'apparence `basique` vit dans display.css ; ce fichier ne contient QUE les surcharges
    des autres apparences. Il est chargé APRÈS display.css : à spécificité égale, les
    règles d'ici l'emportent.
 
@@ -19,21 +19,21 @@
 
 /* ==========================================================================
    COMMUN — ce que TOUTE alternative neutralise
-   Il ne s'agit pas de goût : ce sont des éléments décoratifs de `base` (main.css
+   Il ne s'agit pas de goût : ce sont des éléments décoratifs de `basique` (main.css
    et display.css) qui traverseraient les autres apparences.
    ========================================================================== */
 
 /* Voile d'ambiance radial turquoise posé sur tout le body par main.css. Invisible sur
    fond sombre, flagrant sur un fond clair — et contraire à un fond qui se veut plat. */
-body.display-page:not([data-skin="base"])::before { content: none; }
+body.display-page:not([data-skin="basique"])::before { content: none; }
 
 /* « En direct » : main.css en fait une pilule de verre avec un halo animé. Les
    alternatives gardent le clignotement (il prouve que la page est vivante) mais pas
    la lueur, qui n'est que de la décoration. */
-body.display-page:not([data-skin="base"]) .status-badge {
+body.display-page:not([data-skin="basique"]) .status-badge {
   background: transparent; border: none; border-radius: 0; box-shadow: none;
 }
-body.display-page:not([data-skin="base"]) .status-badge .pulse {
+body.display-page:not([data-skin="basique"]) .status-badge .pulse {
   width: 0.5rem; height: 0.5rem; border-radius: 0;
   box-shadow: none;
   animation: skin-blink 2s ease-in-out infinite;
@@ -43,7 +43,7 @@ body.display-page:not([data-skin="base"]) .status-badge .pulse {
 /* Numéro et rôle s'alignent sur leur LIGNE DE BASE, pas sur le centre de leur boîte :
    le chiffre est en line-height 1, le rôle en 1.15, donc centrer les rectangles laisse
    les glyphes décalés. C'est de la typographie posée côte à côte, pas deux blocs. */
-body.display-page:not([data-skin="base"]) .person {
+body.display-page:not([data-skin="basique"]) .person {
   align-items: baseline;
   gap: 0;                     /* l'espacement vient des marges du trait d'union, symétriques */
 }
@@ -51,32 +51,32 @@ body.display-page:not([data-skin="base"]) .person {
 /* Trait d'union entre le numéro et le rôle : sans lui, les deux se lisent comme deux
    colonnes indépendantes. Il les soude en une seule ligne. Volontairement discret —
    c'est une liaison, pas un signe à lire. `\2013` = tiret demi-cadratin. */
-body.display-page:not([data-skin="base"]) {
+body.display-page:not([data-skin="basique"]) {
   --tie: "\2013";
   --tie-opacity: 0.42;
   --tie-gap: 0.42em;
 }
-body.display-page:not([data-skin="base"]) .person .role::before {
+body.display-page:not([data-skin="basique"]) .person .role::before {
   content: var(--tie);
   margin: 0 var(--tie-gap);
   opacity: var(--tie-opacity);
   font-weight: 400;
 }
 
-/* La pastille du numéro (aplat de couleur + libellé « BP ») appartient à `base`. Les
+/* La pastille du numéro (aplat de couleur + libellé « BP ») appartient à `basique`. Les
    alternatives sortent le chiffre nu dans une gouttière, alignée sur les unités, et
    sortent le voyant temps réel du flux — il n'y a plus de pastille où l'accrocher. */
-body.display-page:not([data-skin="base"]) .bp-badge {
+body.display-page:not([data-skin="basique"]) .bp-badge {
   background: transparent; box-shadow: none; border-radius: 0;
   height: auto;
   padding: 0 0 0 0.85rem;         /* gouttière réservée au voyant, à gauche */
   align-items: flex-end;
 }
-body.display-page:not([data-skin="base"]) .bp-badge .bp-l { display: none; }
+body.display-page:not([data-skin="basique"]) .bp-badge .bp-l { display: none; }
 /* Le voyant reste HORS DU FLUX. Dans le flux il occupait ~11 px sous le chiffre : la
    pastille étant centrée dans la ligne, le numéro remontait de la moitié et ne s'alignait
    plus avec le rôle. Il devient une colonne d'état à gauche, centrée sur le chiffre. */
-body.display-page:not([data-skin="base"]) .bp-badge .bp-dot {
+body.display-page:not([data-skin="basique"]) .bp-badge .bp-dot {
   position: absolute;
   left: 0; top: 50%;
   transform: translateY(-50%);
@@ -85,25 +85,25 @@ body.display-page:not([data-skin="base"]) .bp-badge .bp-dot {
   border: none;
 }
 /* Les compteurs quittent l'en-tête : chaque groupe porte déjà le sien. */
-body.display-page:not([data-skin="base"]) .stats-container { display: none; }
+body.display-page:not([data-skin="basique"]) .stats-container { display: none; }
 
 /* ==========================================================================
-   « service » — tableau de service
+   « lineaire » — tableau de service
    Réf. Swiss / feuille de service. Fond plat, zéro verre, zéro rayon, zéro ombre.
    Les groupes ne sont plus des cartes posées sur un fond : ce sont les cases d'un
    tableau réglé. La couleur du groupe ne subsiste que sur le bandeau de tête, où
    elle porte encore une information.
    ========================================================================== */
 
-body.display-page[data-skin="service"] {
-  --s-bg: #08090A;        /* fond, parfaitement plat */
-  --s-panel: #0C0E11;     /* fond des cases */
-  --s-line: #2B2E33;      /* filet structurel du tableau */
-  --s-hair: #1C1E22;      /* filet entre deux affectations */
-  --s-fg: #F2F2F2;
-  --s-muted: #85898F;
-  --s-faint: #55585E;
-  --s-warn: #E8A33D;      /* batterie faible — seule couleur non structurelle */
+body.display-page[data-skin="lineaire"] {
+  --l-bg: #08090A;        /* fond, parfaitement plat */
+  --l-panel: #0C0E11;     /* fond des cases */
+  --l-line: #2B2E33;      /* filet structurel du tableau */
+  --l-hair: #1C1E22;      /* filet entre deux affectations */
+  --l-fg: #F2F2F2;
+  --l-muted: #85898F;
+  --l-faint: #55585E;
+  --l-warn: #E8A33D;      /* batterie faible — seule couleur non structurelle */
 
   --display-header-height: 4rem;
   --display-footer-height: 2.75rem;
@@ -114,89 +114,89 @@ body.display-page[data-skin="service"] {
   --fit-role-min: 14;  --fit-role-max: 26;
   --fit-bpn-ratio: 1.1; --fit-bpn-min: 18; --fit-bpn-max: 26;
 
-  background: var(--s-bg);
-  color: var(--s-fg);
+  background: var(--l-bg);
+  color: var(--l-fg);
 }
 
-body.display-page[data-skin="service"][data-theme="day"] {
-  --s-bg: #FFFFFF;
-  --s-panel: #FFFFFF;
-  --s-line: #C9CDD4;
-  --s-hair: #E4E7EB;
-  --s-fg: #14171C;
-  --s-muted: #5C636D;
-  --s-faint: #8B929B;
-  --s-warn: #A8641E;
-  background: var(--s-bg);
+body.display-page[data-skin="lineaire"][data-theme="day"] {
+  --l-bg: #FFFFFF;
+  --l-panel: #FFFFFF;
+  --l-line: #C9CDD4;
+  --l-hair: #E4E7EB;
+  --l-fg: #14171C;
+  --l-muted: #5C636D;
+  --l-faint: #8B929B;
+  --l-warn: #A8641E;
+  background: var(--l-bg);
 }
 
 /* ---------- En-tête : une barre réglée, pas un bandeau de verre ---------- */
-body.display-page[data-skin="service"] header {
+body.display-page[data-skin="lineaire"] header {
   padding: 0;
   gap: 0;
-  background: var(--s-bg);
+  background: var(--l-bg);
   border: none;
-  border-bottom: 1px solid var(--s-line);
+  border-bottom: 1px solid var(--l-line);
   box-shadow: none;
   backdrop-filter: none; -webkit-backdrop-filter: none;
 }
-body.display-page[data-skin="service"] .board-badge {
+body.display-page[data-skin="lineaire"] .board-badge {
   width: 1.5rem; height: 1.5rem; margin: 0 1.1rem;
 }
 /* Filets verticaux pleine hauteur : chaque zone de l'en-tête est une entité distincte */
-body.display-page[data-skin="service"] .board-meta {
+body.display-page[data-skin="lineaire"] .board-meta {
   align-self: stretch; justify-content: center;
-  border-left: 1px solid var(--s-line);
+  border-left: 1px solid var(--l-line);
   padding: 0 1.1rem; margin: 0;
 }
-body.display-page[data-skin="service"] .board-meta h1 {
+body.display-page[data-skin="lineaire"] .board-meta h1 {
   font-family: var(--font-body);
   font-size: 1.3rem; font-weight: 700;
   text-transform: none; letter-spacing: -0.015em;
-  color: var(--s-fg);
+  color: var(--l-fg);
 }
-body.display-page[data-skin="service"] .board-meta h2 {
+body.display-page[data-skin="lineaire"] .board-meta h2 {
   font-size: 0.8rem; font-weight: 400;
   text-transform: none; letter-spacing: 0;
-  color: var(--s-muted);
+  color: var(--l-muted);
 }
-body.display-page[data-skin="service"] .header-actions {
+body.display-page[data-skin="lineaire"] .header-actions {
   margin-left: auto; gap: 0;
   align-self: stretch; align-items: stretch;
 }
 /* « En direct » avant l'heure : en régie c'est l'heure qu'on cherche, elle finit la barre. */
-body.display-page[data-skin="service"] .status-badge {
+body.display-page[data-skin="lineaire"] .status-badge {
   order: 1;
   display: flex; align-items: center; gap: 0.55rem;
   padding: 0 1.1rem;
-  border-left: 1px solid var(--s-line);
+  border-left: 1px solid var(--l-line);
 }
-body.display-page[data-skin="service"] .status-badge .status-text {
-  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--s-muted);
+body.display-page[data-skin="lineaire"] .status-badge .status-text {
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--l-muted);
 }
-body.display-page[data-skin="service"] .board-clock {
+body.display-page[data-skin="lineaire"] .board-clock {
   order: 2;
   display: flex; align-items: center;
   padding: 0 1.25rem; min-width: 0;
-  border-left: 1px solid var(--s-line);
+  border-left: 1px solid var(--l-line);
   font-family: var(--font-body);
   font-size: 1.55rem; font-weight: 500; letter-spacing: -0.02em;
-  color: var(--s-fg);
+  color: var(--l-fg);
 }
 
 /* ---------- Le tableau ----------
    `gap: 0` + un filet droit/bas sur chaque case, fermé en haut/à gauche par la grille :
    table entièrement réglée, sans double trait ni cellule vide colorée. */
-body.display-page[data-skin="service"] .display-grid {
+body.display-page[data-skin="lineaire"] .display-grid {
   gap: 0;
-  border-top: 1px solid var(--s-line);
-  border-left: 1px solid var(--s-line);
+  border-top: 1px solid var(--l-line);
+  border-left: 1px solid var(--l-line);
 }
-body.display-page[data-skin="service"] .block {
-  background: var(--s-panel);
+body.display-page[data-skin="lineaire"] .block {
+  background: var(--l-panel);
   border: none;
-  border-right: 1px solid var(--s-line);
-  border-bottom: 1px solid var(--s-line);
+  border-right: 1px solid var(--l-line);
+  border-bottom: 1px solid var(--l-line);
   border-radius: 0;
   box-shadow: none;
   backdrop-filter: none; -webkit-backdrop-filter: none;
@@ -205,7 +205,7 @@ body.display-page[data-skin="service"] .block {
 }
 
 /* Bandeau de groupe : le SEUL aplat de couleur, et le seul niveau de capitales. */
-body.display-page[data-skin="service"] .block-header {
+body.display-page[data-skin="lineaire"] .block-header {
   background: var(--block-accent);
   color: #0B0D12;                       /* repli si data-ink absent (couleur non littérale) */
   border-bottom: none;
@@ -213,61 +213,61 @@ body.display-page[data-skin="service"] .block-header {
   margin-bottom: 0;
   gap: 0.7rem;
 }
-body.display-page[data-skin="service"] .block[data-ink="light"] .block-header { color: #FFFFFF; }
-body.display-page[data-skin="service"] .block-header h3 {
+body.display-page[data-skin="lineaire"] .block[data-ink="light"] .block-header { color: #FFFFFF; }
+body.display-page[data-skin="lineaire"] .block-header h3 {
   font-family: var(--font-body);
   font-weight: 700; text-transform: uppercase; letter-spacing: 0.13em;
   color: inherit;
 }
-body.display-page[data-skin="service"] .block-header .badge {
+body.display-page[data-skin="lineaire"] .block-header .badge {
   background: transparent; border: none; border-radius: 0; padding: 0;
   color: inherit; opacity: 0.6;
   font-size: 0.68rem; letter-spacing: 0.1em;
 }
 
 /* ---------- Affectations : des lignes, pas des cases ---------- */
-body.display-page[data-skin="service"] .block-items { gap: 0; }
-body.display-page[data-skin="service"] .person {
+body.display-page[data-skin="lineaire"] .block-items { gap: 0; }
+body.display-page[data-skin="lineaire"] .person {
   background: transparent;
-  border: none; border-bottom: 1px solid var(--s-hair);
+  border: none; border-bottom: 1px solid var(--l-hair);
   border-radius: 0;
   padding: 0.5rem 0.85rem;
 }
-body.display-page[data-skin="service"] .person:last-child { border-bottom: none; }
-body.display-page[data-skin="service"] .bp-badge {
+body.display-page[data-skin="lineaire"] .person:last-child { border-bottom: none; }
+body.display-page[data-skin="lineaire"] .bp-badge {
   min-width: 3.6rem;              /* gouttière du voyant comprise (box-sizing: border-box) */
-  color: var(--s-fg);
+  color: var(--l-fg);
 }
-body.display-page[data-skin="service"] .bp-badge .bp-n { font-weight: 700; letter-spacing: -0.02em; }
-body.display-page[data-skin="service"] .person .role {
+body.display-page[data-skin="lineaire"] .bp-badge .bp-n { font-weight: 700; letter-spacing: -0.02em; }
+body.display-page[data-skin="lineaire"] .person .role {
   font-family: var(--font-body);
   font-weight: 600; text-transform: none; letter-spacing: -0.01em;
-  color: var(--s-fg);
+  color: var(--l-fg);
 }
-body.display-page[data-skin="service"] .bp-batt {
+body.display-page[data-skin="lineaire"] .bp-batt {
   font-family: var(--font-body);
-  font-size: 0.85rem; font-weight: 600; color: var(--s-muted);
+  font-size: 0.85rem; font-weight: 600; color: var(--l-muted);
 }
-body.display-page[data-skin="service"] .bp-batt.low { color: var(--s-warn); }
-body.display-page[data-skin="service"] .empty-hint {
+body.display-page[data-skin="lineaire"] .bp-batt.low { color: var(--l-warn); }
+body.display-page[data-skin="lineaire"] .empty-hint {
   padding: 0.65rem 0.85rem;
   font-size: 0.78rem; text-transform: none; letter-spacing: 0;
-  color: var(--s-faint);
+  color: var(--l-faint);
 }
 
 /* ---------- Pied ---------- */
-body.display-page[data-skin="service"] footer {
-  background: var(--s-bg);
-  border-top: 1px solid var(--s-line);
+body.display-page[data-skin="lineaire"] footer {
+  background: var(--l-bg);
+  border-top: 1px solid var(--l-line);
   box-shadow: none;
 }
-body.display-page[data-skin="service"] .created-by,
-body.display-page[data-skin="service"] .footer-updated {
-  font-size: 0.6rem; letter-spacing: 0.16em; color: var(--s-faint);
+body.display-page[data-skin="lineaire"] .created-by,
+body.display-page[data-skin="lineaire"] .footer-updated {
+  font-size: 0.6rem; letter-spacing: 0.16em; color: var(--l-faint);
 }
 
 /* ==========================================================================
-   « aplats » — mosaïque pleine
+   « grille » — mosaïque pleine
    Réf. signalétique Bauhaus / De Stijl. Le groupe cesse d'être une carte posée
    sur un fond : il DEVIENT une surface. L'écran est une mosaïque bord à bord,
    les gouttières font seules le travail de séparation. La couleur du groupe passe
@@ -277,11 +277,11 @@ body.display-page[data-skin="service"] .footer-updated {
    elle dépend donc de `data-ink`, calculé au rendu par luminance (display.js).
    ========================================================================== */
 
-body.display-page[data-skin="aplats"] {
-  --a-bg: #000000;        /* fond ET gouttières */
-  --a-fg: #F2F2F2;
-  --a-muted: #8A8A8A;
-  --a-gutter: 6px;
+body.display-page[data-skin="grille"] {
+  --g-bg: #000000;        /* fond ET gouttières */
+  --g-fg: #F2F2F2;
+  --g-muted: #8A8A8A;
+  --g-gutter: 6px;
 
   --display-header-height: 4.2rem;
   --display-footer-height: 2.4rem;
@@ -293,77 +293,77 @@ body.display-page[data-skin="aplats"] {
   --fit-role-min: 14;  --fit-role-max: 25;
   --fit-bpn-ratio: 1.05; --fit-bpn-min: 17; --fit-bpn-max: 26;
 
-  background: var(--a-bg);
-  color: var(--a-fg);
+  background: var(--g-bg);
+  color: var(--g-fg);
 }
 
-body.display-page[data-skin="aplats"][data-theme="day"] {
-  --a-bg: #FFFFFF;
-  --a-fg: #14171C;
-  --a-muted: #6B7078;
-  background: var(--a-bg);
+body.display-page[data-skin="grille"][data-theme="day"] {
+  --g-bg: #FFFFFF;
+  --g-fg: #14171C;
+  --g-muted: #6B7078;
+  background: var(--g-bg);
 }
 
 /* ---------- En-tête : une simple ligne de texte, aucun cadre ---------- */
-body.display-page[data-skin="aplats"] header {
+body.display-page[data-skin="grille"] header {
   padding: 0 1.15rem;
   gap: 1rem;
-  background: var(--a-bg);
+  background: var(--g-bg);
   border: none;
   box-shadow: none;
   backdrop-filter: none; -webkit-backdrop-filter: none;
 }
-body.display-page[data-skin="aplats"] .board-badge {
+body.display-page[data-skin="grille"] .board-badge {
   width: 1.6rem; height: 1.6rem;
 }
-body.display-page[data-skin="aplats"] .board-meta {
+body.display-page[data-skin="grille"] .board-meta {
   border-left: none; padding-left: 0; margin-left: 0;
 }
-body.display-page[data-skin="aplats"] .board-meta h1 {
+body.display-page[data-skin="grille"] .board-meta h1 {
   font-family: var(--font-body);
   font-size: 1.45rem; font-weight: 700;
   text-transform: none; letter-spacing: -0.02em;
-  color: var(--a-fg);
+  color: var(--g-fg);
 }
-body.display-page[data-skin="aplats"] .board-meta h2 {
+body.display-page[data-skin="grille"] .board-meta h2 {
   font-size: 0.78rem; font-weight: 400;
   text-transform: none; letter-spacing: 0;
-  color: var(--a-muted);
+  color: var(--g-muted);
 }
-body.display-page[data-skin="aplats"] .header-actions {
+body.display-page[data-skin="grille"] .header-actions {
   margin-left: auto; gap: 1.5rem; align-items: center;
 }
-body.display-page[data-skin="aplats"] .status-badge .status-text {
-  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--a-muted);
+body.display-page[data-skin="grille"] .status-badge .status-text {
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--g-muted);
 }
-body.display-page[data-skin="aplats"] .board-clock {
+body.display-page[data-skin="grille"] .board-clock {
   font-family: var(--font-body);
   font-size: 2rem; font-weight: 500; letter-spacing: -0.03em;
-  color: var(--a-fg);
+  color: var(--g-fg);
 }
 
 /* ---------- La mosaïque ----------
    Gouttières régulières jusqu'aux bords de l'écran. `min-height: 100%` + des rangées
    en `1fr` : quand tout tient, la composition remplit l'écran ; au-delà, elle grandit
    et l'auto-scroll reprend la main normalement. */
-body.display-page[data-skin="aplats"] #display-scroll {
-  padding: calc(var(--display-header-height) + var(--a-gutter))
-           var(--a-gutter)
-           calc(var(--display-footer-height) + var(--a-gutter));
+body.display-page[data-skin="grille"] #display-scroll {
+  padding: calc(var(--display-header-height) + var(--g-gutter))
+           var(--g-gutter)
+           calc(var(--display-footer-height) + var(--g-gutter));
 }
-body.display-page[data-skin="aplats"] .display-grid {
-  gap: var(--a-gutter);
+body.display-page[data-skin="grille"] .display-grid {
+  gap: var(--g-gutter);
   min-height: 100%;
   grid-auto-rows: minmax(min-content, 1fr);
 }
 
 /* Le bloc EST la couleur du groupe. L'encre vient de `data-ink` (luminance calculée) ;
    le jeu « sombre » sert aussi de repli si l'attribut est absent. */
-body.display-page[data-skin="aplats"] .block {
-  --a-ink: #0B0D12;
-  --a-hair: rgba(0, 0, 0, 0.22);
+body.display-page[data-skin="grille"] .block {
+  --g-ink: #0B0D12;
+  --g-hair: rgba(0, 0, 0, 0.22);
   background: var(--block-accent);
-  color: var(--a-ink);
+  color: var(--g-ink);
   border: none;
   border-radius: 0;
   box-shadow: none;
@@ -372,78 +372,78 @@ body.display-page[data-skin="aplats"] .block {
   gap: 0;
   overflow: hidden;
 }
-body.display-page[data-skin="aplats"] .block[data-ink="light"] {
-  --a-ink: #FFFFFF;
-  --a-hair: rgba(255, 255, 255, 0.26);
+body.display-page[data-skin="grille"] .block[data-ink="light"] {
+  --g-ink: #FFFFFF;
+  --g-hair: rgba(255, 255, 255, 0.26);
 }
 
-body.display-page[data-skin="aplats"] .block-header {
+body.display-page[data-skin="grille"] .block-header {
   background: transparent;
   border-bottom: none;
   padding: 0;
   margin-bottom: 0.5rem;
   gap: 0.8rem;
 }
-body.display-page[data-skin="aplats"] .block-header h3 {
+body.display-page[data-skin="grille"] .block-header h3 {
   font-family: var(--font-body);
   font-weight: 800; text-transform: uppercase; letter-spacing: -0.005em;
   line-height: 1; color: inherit;
 }
-body.display-page[data-skin="aplats"] .block-header .badge {
+body.display-page[data-skin="grille"] .block-header .badge {
   background: transparent; border: none; border-radius: 0; padding: 0;
   color: inherit; opacity: 0.55;
   font-size: 0.7rem; letter-spacing: 0.08em;
 }
 
 /* ---------- Affectations : des lignes séparées par un filet d'encre ---------- */
-body.display-page[data-skin="aplats"] .block-items { gap: 0; }
-body.display-page[data-skin="aplats"] .person {
+body.display-page[data-skin="grille"] .block-items { gap: 0; }
+body.display-page[data-skin="grille"] .person {
   background: transparent;
-  border: none; border-top: 1px solid var(--a-hair);
+  border: none; border-top: 1px solid var(--g-hair);
   border-radius: 0;
   padding: 0.4rem 0;
 }
-body.display-page[data-skin="aplats"] .bp-badge {
+body.display-page[data-skin="grille"] .bp-badge {
   min-width: 3.2rem;              /* gouttière du voyant comprise (box-sizing: border-box) */
   color: inherit;
 }
-body.display-page[data-skin="aplats"] .bp-badge .bp-n { font-weight: 800; letter-spacing: -0.02em; }
+body.display-page[data-skin="grille"] .bp-badge .bp-n { font-weight: 800; letter-spacing: -0.02em; }
 /* Voyant temps réel : sur un aplat coloré, une pastille verte jurerait avec la teinte du
    groupe. L'état passe donc par l'encre — pleine en ligne, effacée hors ligne. */
-body.display-page[data-skin="aplats"] .bp-badge .bp-dot.on { background: var(--a-ink); opacity: 1; }
-body.display-page[data-skin="aplats"] .bp-badge .bp-dot.down { background: var(--a-ink); opacity: 0.3; }
-body.display-page[data-skin="aplats"] .person .role {
+body.display-page[data-skin="grille"] .bp-badge .bp-dot.on { background: var(--g-ink); opacity: 1; }
+body.display-page[data-skin="grille"] .bp-badge .bp-dot.down { background: var(--g-ink); opacity: 0.3; }
+body.display-page[data-skin="grille"] .person .role {
   font-family: var(--font-body);
   font-weight: 700; text-transform: none; letter-spacing: -0.01em;
   color: inherit;
 }
-body.display-page[data-skin="aplats"] .bp-batt {
+body.display-page[data-skin="grille"] .bp-batt {
   font-family: var(--font-body);
   font-size: 0.8rem; font-weight: 700;
   color: inherit; opacity: 0.72;
 }
 /* Batterie faible : un ambre serait invisible sur un groupe ambre. On inverse l'encre —
    lisible sur n'importe quelle teinte, sans introduire de couleur supplémentaire. */
-body.display-page[data-skin="aplats"] .bp-batt.low {
-  background: var(--a-ink);
+body.display-page[data-skin="grille"] .bp-batt.low {
+  background: var(--g-ink);
   color: var(--block-accent);
   opacity: 1;
   padding: 0.08rem 0.3rem;
 }
-body.display-page[data-skin="aplats"] .empty-hint {
+body.display-page[data-skin="grille"] .empty-hint {
   padding: 0.5rem 0;
   font-size: 0.78rem; text-transform: none; letter-spacing: 0;
   color: inherit; opacity: 0.5;
 }
 
 /* ---------- Pied ---------- */
-body.display-page[data-skin="aplats"] footer {
-  background: var(--a-bg);
+body.display-page[data-skin="grille"] footer {
+  background: var(--g-bg);
   border-top: none;
   box-shadow: none;
   padding: 0 1.15rem;
 }
-body.display-page[data-skin="aplats"] .created-by,
-body.display-page[data-skin="aplats"] .footer-updated {
-  font-size: 0.58rem; letter-spacing: 0.16em; color: var(--a-muted);
+body.display-page[data-skin="grille"] .created-by,
+body.display-page[data-skin="grille"] .footer-updated {
+  font-size: 0.58rem; letter-spacing: 0.16em; color: var(--g-muted);
 }

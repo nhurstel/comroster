@@ -113,7 +113,7 @@ def test_base_skin_keeps_historic_fit_bounds(page, live_server):
     bornes de fitDisplayText en variables CSS : `base` doit rester identique."""
     display, errors = _publish_one_group(page, live_server)
     assert errors == [], f"erreurs console sur /display : {errors}"
-    assert display.get_attribute("body", "data-skin") == "base"
+    assert display.get_attribute("body", "data-skin") == "basique"
     sizes = display.evaluate(
         """() => {
             const g = document.getElementById('display-grid').style;
@@ -133,18 +133,18 @@ def test_base_skin_keeps_historic_fit_bounds(page, live_server):
 
 
 def test_block_carries_computed_ink(page, live_server):
-    """L'encre lisible sur aplat est calculée au rendu (requise par l'apparence `aplats`)."""
+    """L'encre lisible sur aplat est calculée au rendu (requise par l'apparence `grille`)."""
     display, errors = _publish_one_group(page, live_server)
     assert errors == [], f"erreurs console sur /display : {errors}"
     # Couleur de groupe par défaut #3AAFA9 → luminance ≈ 0.34 > 0.179 → encre sombre.
     assert display.get_attribute("#display-grid .block", "data-ink") == "dark"
 
 
-def test_service_skin_from_admin_reaches_display(page, live_server):
+def test_lineaire_skin_from_admin_reaches_display(page, live_server):
     """Parcours complet : sélection dans l'admin → publication → DA appliquée à l'écran."""
-    display, errors = _publish_one_group(page, live_server, skin="service")
+    display, errors = _publish_one_group(page, live_server, skin="lineaire")
     assert errors == [], f"erreurs console sur /display : {errors}"
-    assert display.get_attribute("body", "data-skin") == "service"
+    assert display.get_attribute("body", "data-skin") == "lineaire"
     applied = display.evaluate(
         """() => {
             const block = document.querySelector('#display-grid .block');
@@ -165,12 +165,12 @@ def test_service_skin_from_admin_reaches_display(page, live_server):
     assert abs(offset) <= 1, f"numéro désaligné du rôle de {offset:.1f} px"
 
 
-def test_aplats_skin_fills_block_with_group_colour(page, live_server):
-    """`aplats` pose du texte SUR la couleur du groupe : le bloc devient la surface,
+def test_grille_skin_fills_block_with_group_colour(page, live_server):
+    """`grille` pose du texte SUR la couleur du groupe : le bloc devient la surface,
     et l'encre est choisie au rendu selon la luminance (voir inkFor, display.js)."""
-    display, errors = _publish_one_group(page, live_server, skin="aplats")
+    display, errors = _publish_one_group(page, live_server, skin="grille")
     assert errors == [], f"erreurs console sur /display : {errors}"
-    assert display.get_attribute("body", "data-skin") == "aplats"
+    assert display.get_attribute("body", "data-skin") == "grille"
     applied = display.evaluate(
         """() => {
             const block = document.querySelector('#display-grid .block');
@@ -205,7 +205,7 @@ def test_preview_tracks_published_and_opens_no_sse(page, live_server):
         """
     )
     _enter_admin(page, live_server)
-    page.select_option("#skin-select", "aplats")
+    page.select_option("#skin-select", "grille")
     page.click("#add-block-btn")
     page.fill("#block-name", "Régie")
     page.click("#block-form button[type=submit]")
@@ -216,14 +216,14 @@ def test_preview_tracks_published_and_opens_no_sse(page, live_server):
     mini.wait_for_selector("#display-grid", state="attached")
     assert mini.evaluate("document.body.dataset.preview") == "on"
     assert mini.evaluate("document.querySelectorAll('#display-grid .block').length") == 0
-    assert mini.evaluate("document.body.dataset.skin") == "base"      # ni l'apparence du brouillon
+    assert mini.evaluate("document.body.dataset.skin") == "basique"      # ni l'apparence du brouillon
 
     # Après publication, il rattrape l'écran de régie.
     page.click("#publish-btn")
     page.wait_for_selector("text=Envoyé à l'affichage")
     mini = _wait_frame(page, "preview-mini")
     mini.wait_for_selector("#display-grid .block")
-    assert mini.evaluate("document.body.dataset.skin") == "aplats"
+    assert mini.evaluate("document.body.dataset.skin") == "grille"
     assert mini.evaluate("window.__es") == 0, "le témoin a ouvert un flux SSE"
 
     # Cliquer N'IMPORTE OÙ sur la vignette agrandit. On vise volontairement un coin :

@@ -4,7 +4,7 @@
   // chargement (les requêtes échoueraient proprement côté serveur avec un CSRF vide).
   const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || "";
   const DEFAULT_COLOR = "#3AAFA9";
-  const SKINS = ["base", "service", "aplats"];   // miroir de model.SKINS
+  const SKINS = ["basique", "lineaire", "grille"];   // miroir de model.SKINS
   const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
   // Données initiales injectées via un bloc <script type="application/json">
@@ -13,7 +13,7 @@
   try { INITIAL = JSON.parse(document.getElementById("initial-data")?.textContent || "null"); } catch { /* bloc absent ou invalide */ }
 
   const state = {
-    data: INITIAL || { title: "", subtitle: "", theme: "night", skin: "base", groups: [], people: [], beltpack_roles: {} },
+    data: INITIAL || { title: "", subtitle: "", theme: "night", skin: "basique", groups: [], people: [], beltpack_roles: {} },
     drag: null,
     dragGroup: null,        // id du groupe en cours de réordonnancement
     context: null,
@@ -591,7 +591,7 @@
     setVal("meta-subtitle", d.subtitle || "");
     setVal("meta-columns", String(d.columns || 0));
     setVal("theme-select", d.theme === "day" ? "day" : "night");
-    setVal("skin-select", SKINS.includes(d.skin) ? d.skin : "base");
+    setVal("skin-select", SKINS.includes(d.skin) ? d.skin : "basique");
     const ind = d.indicators || DEFAULT_IND;
     setChk("ind-online", ind.online !== false);
     setChk("ind-battery", ind.battery !== false);
@@ -619,7 +619,7 @@
       state.data.theme = e.target.value === "day" ? "day" : "night"; markDirty();
     });
     document.getElementById("skin-select").addEventListener("change", (e) => {
-      state.data.skin = SKINS.includes(e.target.value) ? e.target.value : "base"; markDirty();
+      state.data.skin = SKINS.includes(e.target.value) ? e.target.value : "basique"; markDirty();
     });
     const onInd = () => {
       state.data.indicators = {
@@ -678,7 +678,7 @@
         if (!json || typeof json !== "object") throw new Error("invalide");
         state.data = {
           title: json.title || "", subtitle: json.subtitle || "", theme: json.theme || "night",
-          skin: SKINS.includes(json.skin) ? json.skin : "base",
+          skin: SKINS.includes(json.skin) ? json.skin : "basique",
           indicators: json.indicators || DEFAULT_IND, columns: json.columns || 0,
           perf: json.perf === true,
           groups: json.groups || [], people: json.people || [], beltpack_roles: json.beltpack_roles || {},

@@ -40,7 +40,7 @@ def sanitize_perf(value):
     return bool(value)
 
 
-SKINS = ("base", "service", "aplats")
+SKINS = ("basique", "lineaire", "grille")
 
 
 def sanitize_skin(value):
@@ -50,7 +50,7 @@ def sanitize_skin(value):
     chaque apparence décline ses deux modes. Allowlist stricte — une valeur
     inconnue retomberait sur une feuille de style inexistante, donc un écran nu.
     """
-    return value if value in SKINS else "base"
+    return value if value in SKINS else "basique"
 
 
 def sanitize_columns(value):
@@ -69,7 +69,7 @@ def empty_state():
         "title": DEFAULT_TITLE,
         "subtitle": "",
         "theme": "night",
-        "skin": "base",
+        "skin": "basique",
         "indicators": {"online": True, "battery": True},
         "perf": False,
         "columns": 0,

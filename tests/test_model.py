@@ -132,8 +132,8 @@ def test_sanitize_theme():
     assert model.sanitize_theme("nimporte") == "night"
 
 
-def test_empty_state_skin_default_base():
-    assert model.empty_state()["skin"] == "base"
+def test_empty_state_skin_default_basique():
+    assert model.empty_state()["skin"] == "basique"
 
 
 def test_sanitize_skin_accepts_allowlist():
@@ -143,20 +143,20 @@ def test_sanitize_skin_accepts_allowlist():
 
 def test_sanitize_skin_rejects_everything_else():
     # Une apparence inconnue ne doit jamais laisser le display sans feuille de style.
-    assert model.sanitize_skin("glassmorphism") == "base"
-    assert model.sanitize_skin(None) == "base"
-    assert model.sanitize_skin(42) == "base"
-    assert model.sanitize_skin("") == "base"
+    assert model.sanitize_skin("glassmorphism") == "basique"
+    assert model.sanitize_skin(None) == "basique"
+    assert model.sanitize_skin(42) == "basique"
+    assert model.sanitize_skin("") == "basique"
 
 
 def test_build_draft_skin_roundtrip():
-    s = model.build_draft({"groups": [], "people": [], "skin": "aplats"})
-    assert s["skin"] == "aplats"
+    s = model.build_draft({"groups": [], "people": [], "skin": "grille"})
+    assert s["skin"] == "grille"
 
 
 def test_build_draft_skin_unknown_falls_back():
     s = model.build_draft({"groups": [], "people": [], "skin": "nimporte"})
-    assert s["skin"] == "base"
+    assert s["skin"] == "basique"
 
 
 def test_build_draft_basic():

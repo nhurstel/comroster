@@ -104,15 +104,15 @@ sans recharger l'écran de régie.
 
 | Valeur | Nom | Parti pris |
 |--------|-----|-----------|
-| `base` | Actuelle | **Défaut.** Cartes en verre dépoli, accent turquoise, capitales. |
-| `service` | Tableau de service | Tableau réglé, à-plat. La couleur du groupe se limite au bandeau de tête. Rôles nettement plus gros (pas de cadre à financer). |
-| `aplats` | Aplats | Mosaïque pleine : le groupe **est** une surface colorée. Le plus lisible de loin. |
+| `basique` | Basique | **Défaut.** Cartes en verre dépoli, accent turquoise, capitales. |
+| `lineaire` | Linéaire | Tableau réglé, à-plat. La couleur du groupe se limite au bandeau de tête. Rôles nettement plus gros (pas de cadre à financer). |
+| `grille` | Grille | Mosaïque pleine : le groupe **est** une surface colorée. Le plus lisible de loin. |
 
-Techniquement : un attribut `data-skin` sur `<body>` ; `base` vit dans
+Techniquement : un attribut `data-skin` sur `<body>` ; `basique` vit dans
 [display.css](static/css/display.css), les autres dans [skins.css](static/css/skins.css). Les
 feuilles sont toutes chargées en permanence, puisque l'apparence peut changer en direct par SSE.
 
-> **`aplats` pose du texte sur la couleur du groupe.** L'encre (noire ou blanche) est choisie au
+> **`grille` pose du texte sur la couleur du groupe.** L'encre (noire ou blanche) est choisie au
 > rendu d'après la luminance relative sRGB, mais une teinte très saturée reste médiocre quel que
 > soit le choix : si vous adoptez cette apparence, tenez-vous-en à des couleurs franches.
 
