@@ -261,18 +261,18 @@ Spec validée : [docs/superpowers/specs/2026-07-06-network-wifi-ethernet-design.
 Base : maquette 7 du scratchpad, valeurs retenues par Nathan (reportées en A1).
 Principe : chaque phase est livrable seule, tests verts, sans casser la précédente.
 
-## A. Jetons et typographie — CSS seul, risque nul
+## A. Jetons et typographie — CSS seul, risque nul  ✅ FAIT (d18be95)
 
-- [ ] A1. Poser les jetons retenus en tête de `.admin-page` :
+- [x] A1. Poser les jetons retenus en tête de `.admin-page` :
       `--ui:12.5px` `--track:.02em` `--mono:15px` `--role:15px` `--role-w:600`
       `--row:31px` `--pad:12px` `--gap:7px` `--rad:7px` `--card-min:300px`
       `--side-w:204px` `--pool-w:242px` `--top-h:53px`
       Police = **Base** (Outfit + Inter) → rien à auto-héberger, les .woff2 sont déjà là.
-- [ ] A2. Règle typographique : capitales réservées aux TITRES (nom de groupe,
+- [x] A2. Règle typographique : capitales réservées aux TITRES (nom de groupe,
       en-têtes de section). Tout ce qui se clique passe en bas-de-casse 12,5 px,
       interlettrage .02em. C'est le défaut signalé par Nathan (illisibilité des
       boutons en 10 px capitales très espacées).
-- [ ] A3. Purger les tailles en dur (`0.82rem`, `0.66rem`…) au profit des jetons.
+- [x] A3. Purger les tailles en dur (`0.82rem`, `0.66rem`…) au profit des jetons.
 
 ## B. Blocs-groupes en aplat plein — CSS + un peu de JS
 
@@ -308,13 +308,19 @@ Principe : chaque phase est livrable seule, tests verts, sans casser la précéd
       `test_preview_tracks_published_and_opens_no_sse` : la vignette disparaît,
       le grand aperçu et l'absence de SSE restent testés.
 
+## Décisions de Nathan (2026-07-23)
+
+- **Bouton d'action : « texte » confirmé.** Réserve exprimée (publier est
+  l'action la plus conséquente, sans fond ni contour elle perd son affordance),
+  réponse : non. Appliqué tel quel, on n'y revient pas.
+- **L'aperçu reste ouvert par défaut.** D3 est donc REVU : on ne supprime pas le
+  témoin, il cohabite avec la barre d'état et s'affiche déplié au chargement.
+- **Voyant de beltpack connecté en vert.** `.bp-dot.on` l'est déjà (--success) ;
+  le point est de ne PAS le passer en `currentColor` dans les blocs en aplat,
+  comme le faisait la maquette. Le vert doit survivre au fond coloré.
+
 ## E. À trancher
 
-- [ ] E1. **Bouton d'action en « texte ».** Nathan l'a retenu. Réserve : publier
-      est l'action la plus conséquente de l'app (c'est elle qui change l'écran de
-      la régie) et, sans fond ni contour, elle n'a plus d'affordance — un
-      utilisateur qui ne la trouve pas ne diffuse rien. Proposition : « contour »
-      (même sobriété, affordance conservée). Décision de Nathan, à confirmer.
 - [ ] E2. Bornage du sélecteur de couleur de groupe : en aplat plein, une teinte
       trop saturée devient illisible quelle que soit l'encre. Déjà signalé pour
       l'apparence Grille, devient nécessaire ici aussi.
