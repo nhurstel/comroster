@@ -188,9 +188,10 @@ def test_aplats_skin_fills_block_with_group_colour(page, live_server):
     assert abs(offset) <= 1, f"numéro désaligné du rôle de {offset:.1f} px"
 
 
-def test_preview_shows_draft_and_opens_no_sse(page, live_server):
-    """L'aperçu doit montrer le brouillon NON publié, et surtout n'ouvrir AUCUN flux SSE :
-    chaque /events occupe un thread et un créneau de SSE_MAX_CLIENTS (leçon 2026-07-06)."""
+def test_preview_tracks_published_and_opens_no_sse(page, live_server):
+    """Le témoin reporte l'écran de régie : il suit le PUBLIÉ, pas le brouillon en cours.
+    Et il n'ouvre AUCUN flux SSE — monté en permanence dans l'admin, il en consommerait
+    un par onglet ouvert (SSE_MAX_CLIENTS + un thread par flux, leçon 2026-07-06)."""
     # Compteur de constructions d'EventSource, posé par frame avant tout chargement.
     page.context.add_init_script(
         """
@@ -210,27 +211,28 @@ def test_preview_shows_draft_and_opens_no_sse(page, live_server):
     page.click("#block-form button[type=submit]")
     page.wait_for_selector("#sync-label:has-text('enregistré')")      # brouillon écrit, jamais publié
 
-    # Le témoin permanent de la barre latérale est chargé sans qu'on ait rien ouvert.
+    # Le témoin est chargé sans qu'on ait rien ouvert, et reste VIDE : rien n'est publié.
+    mini = _wait_frame(page, "preview-mini")
+    mini.wait_for_selector("#display-grid", state="attached")
+    assert mini.evaluate("document.body.dataset.preview") == "on"
+    assert mini.evaluate("document.querySelectorAll('#display-grid .block').length") == 0
+    assert mini.evaluate("document.body.dataset.skin") == "base"      # ni l'apparence du brouillon
+
+    # Après publication, il rattrape l'écran de régie.
+    page.click("#publish-btn")
+    page.wait_for_selector("text=Envoyé à l'affichage")
     mini = _wait_frame(page, "preview-mini")
     mini.wait_for_selector("#display-grid .block")
-    assert mini.evaluate("document.body.dataset.preview") == "on"
+    assert mini.evaluate("document.body.dataset.skin") == "aplats"
+    assert mini.evaluate("window.__es") == 0, "le témoin a ouvert un flux SSE"
 
+    # Cliquer n'importe où sur la vignette agrandit.
     page.click("#preview-btn")
     page.wait_for_selector("#preview-dialog[open]")
     frame = _wait_frame(page, "preview-full")
     frame.wait_for_selector("#display-grid .block")
-
-    assert frame.evaluate("document.body.dataset.preview") == "on"
-    assert frame.evaluate("document.body.dataset.skin") == "aplats"    # l'apparence du brouillon
     assert frame.evaluate("document.querySelectorAll('#display-grid .block').length") == 1
-    assert frame.evaluate("window.__es") == 0, "l'aperçu a ouvert un flux SSE"
-
-    # L'écran de régie, lui, n'a rien reçu : le brouillon n'a jamais été publié.
-    display = page.context.new_page()
-    display.goto(live_server + "/display")
-    # `attached` et non `visible` : une grille sans groupe a une hauteur nulle.
-    display.wait_for_selector("#display-grid", state="attached")
-    assert display.evaluate("document.querySelectorAll('#display-grid .block').length") == 0
+    assert frame.evaluate("window.__es") == 0, "le grand aperçu a ouvert un flux SSE"
 
 
 def test_fresh_box_shows_onboarding(page, live_server):

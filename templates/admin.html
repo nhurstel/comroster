@@ -74,14 +74,14 @@
       </div>
 
       <div class="side-foot">
-        {# Témoin permanent : le brouillon tel qu'il s'affichera. Clic = grand aperçu. #}
+        {# Témoin permanent de l'écran de régie (état publié). Clic n'importe où = agrandir. #}
         <div class="preview-tile">
-          <div class="nav-label preview-tile-label">Aperçu du brouillon</div>
+          <div class="nav-label preview-tile-label">Affichage en cours</div>
           <div class="preview-tile-frame">
-            <iframe id="preview-mini" name="preview-mini" title="Aperçu réduit de l'affichage"
+            <iframe id="preview-mini" name="preview-mini" title="Report réduit de l'écran de régie"
                     src="about:blank" tabindex="-1"></iframe>
             <button type="button" id="preview-btn" class="preview-tile-hit"
-                    aria-label="Agrandir l'aperçu du brouillon" title="Agrandir"></button>
+                    aria-label="Agrandir le report de l'écran de régie"></button>
           </div>
         </div>
         <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
@@ -172,9 +172,9 @@
 
   <dialog id="preview-dialog" class="admin-dialog preview-dialog">
     <form method="dialog">
-      <h2>Aperçu de l'écran</h2>
-      <p class="dialog-hint">Rendu du <b>brouillon</b>, à l'échelle. Ce n'est pas ce qui s'affiche
-        en régie tant que vous n'avez pas cliqué « Envoyer à l'affichage ».</p>
+      <h2>Écran de régie</h2>
+      <p class="dialog-hint">Ce qui est <b>actuellement affiché</b>, à l'échelle. Vos modifications
+        en cours n'y apparaîtront qu'après « Envoyer à l'affichage ».</p>
       <div class="preview-frame">
         <iframe id="preview-iframe" name="preview-full" title="Aperçu de l'affichage" src="about:blank"></iframe>
       </div>

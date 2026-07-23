@@ -118,7 +118,6 @@
       if (el.lastUpdated) el.lastUpdated.textContent =
         "Dernier enregistrement : " + new Date(saved.updated_at).toLocaleString("fr-FR");
       render();
-      reloadPreview();          // sans effet si l'aperçu est fermé
     } catch (err) {
       setStatus("Échec de l'enregistrement", "error");
       if (err.message === "beltpack_conflict") {
@@ -646,6 +645,7 @@
       if (savePending || saveTimer) await saveDraft();
       await apiSend("POST", "/api/publish");
       setUnpublished(false);
+      reloadPreview();                 // le témoin suit l'écran de régie, il vient de changer
       setStatus("Envoyé à l'affichage ✓", "updated");
       setTimeout(() => setStatus("Brouillon synchronisé", "idle"), 2500);
     } catch (err) {
@@ -971,10 +971,12 @@
     } catch { toast("Import impossible", true); }
   });
 
-  /* ---------- Aperçu de l'écran ----------
-     Une iframe sur /admin/preview : c'est la VRAIE page display, avec son vrai CSS et son
-     vrai JS. Aucun moteur de rendu parallèle à maintenir, donc aucune dérive possible.
-     La page est rendue à 1280x720 puis mise à l'échelle du cadre (cf. .preview-frame). */
+  /* ---------- Report de l'écran de régie ----------
+     Une iframe sur /admin/preview : c'est la VRAIE page display servant l'état PUBLIÉ,
+     avec son vrai CSS et son vrai JS. Aucun moteur de rendu parallèle à maintenir, donc
+     aucune dérive possible. Rendue à 1280x720 puis mise à l'échelle du cadre.
+     Elle ne suit PAS le brouillon : elle se rafraîchit aux publications (locale ou
+     distante), pas aux enregistrements. */
   const previewDialog = document.getElementById("preview-dialog");
   const previewFrame = document.getElementById("preview-iframe");
   const previewMini = document.getElementById("preview-mini");   // témoin permanent
@@ -986,18 +988,14 @@
   }
   function fitPreviews() { fitPreview(previewMini); fitPreview(previewFrame); }
 
-  // Le témoin se recharge à chaque enregistrement ; le grand aperçu seulement s'il est
-  // ouvert. Un seul horodatage pour les deux : ils montrent forcément le même brouillon.
+  // Un seul horodatage pour les deux : ils montrent forcément le même état publié.
   function reloadPreview() {
     const src = `/admin/preview?t=${Date.now()}`;
     if (previewMini) previewMini.src = src;
     if (previewDialog?.open) previewFrame.src = src;
   }
 
-  document.getElementById("preview-btn").addEventListener("click", async () => {
-    // L'aperçu lit le brouillon CÔTÉ SERVEUR : on vide d'abord les édits en attente,
-    // sinon on montrerait un état périmé d'une demi-seconde.
-    if (savePending) await saveDraft();
+  document.getElementById("preview-btn").addEventListener("click", () => {
     previewDialog.showModal();
     fitPreviews();
     reloadPreview();
@@ -1203,7 +1201,10 @@
   function subscribeAdmin() {
     try {
       const es = new EventSource("/events");
-      es.addEventListener("published", () => { if (!state.unpublished) load(); });
+      es.addEventListener("published", () => {
+        reloadPreview();          // publication venue d'ailleurs (autre poste, auto-sync)
+        if (!state.unpublished) load();
+      });
       // État live des beltpacks poussé par le serveur (même flux `live` que l'affichage) :
       // remplace l'ancien polling périodique. L'admin restant abonné, le poller publie.
       es.addEventListener("live", (e) => { try { applyLiveData(JSON.parse(e.data)); } catch { /* ignore */ } });

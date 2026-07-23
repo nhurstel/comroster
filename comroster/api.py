@@ -39,14 +39,19 @@ def admin_page():
 @bp.get("/admin/preview")
 @login_required
 def admin_preview():
-    """Aperçu du BROUILLON, rendu par la vraie page display (zéro duplication).
+    """Report de l'écran de régie : rend l'état PUBLIÉ, comme /display.
+
+    C'est un témoin de ce qui est réellement affiché en salle, pas un aperçu du
+    brouillon — l'admin travaille sur le brouillon, il a donc surtout besoin de voir
+    ce que le public voit pendant qu'il le prépare.
 
     `preview=True` coupe côté client tout ce qui coûte au serveur ou tourne en continu,
     au premier chef l'abonnement SSE : chaque flux /events occupe un thread gthread en
-    permanence et un créneau de SSE_MAX_CLIENTS. Un aperçu laissé ouvert affamerait les
-    vrais afficheurs (cf. leçon 2026-07-06).
+    permanence et un créneau de SSE_MAX_CLIENTS. Ce témoin étant monté en permanence
+    dans l'admin, il en ouvrirait un par onglet ouvert (cf. leçon 2026-07-06).
     """
-    return render_template("display.html", initial_data=_storage().load_draft(), preview=True)
+    published = _storage().load_published() or model.empty_state()
+    return render_template("display.html", initial_data=published, preview=True)
 
 
 @bp.get("/api/state")

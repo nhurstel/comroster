@@ -119,16 +119,18 @@ def test_preview_requires_auth(client):
     assert r.status_code in (302, 401)
 
 
-def test_preview_renders_draft_not_published(auth_client):
+def test_preview_renders_published_not_draft(auth_client):
+    """Le témoin de l'admin reporte l'écran de régie : il suit le PUBLIÉ, pas le brouillon."""
     auth_client.put("/api/draft", json={"title": "Publié", "skin": "service", "groups": [], "people": []})
     assert auth_client.post("/api/publish").status_code == 200
-    # Le brouillon diverge ensuite : l'aperçu doit montrer CE qui n'est pas encore publié.
+    # Le brouillon diverge ensuite : le témoin ne doit PAS le suivre.
     auth_client.put("/api/draft", json={"title": "Brouillon", "skin": "aplats", "groups": [], "people": []})
 
     preview = auth_client.get("/admin/preview").data
     assert b'data-preview="on"' in preview
-    assert b'data-skin="aplats"' in preview
-    # …tandis que l'écran de régie reste sur l'état publié.
+    assert b'data-skin="service"' in preview      # l'état publié
+    assert b'data-skin="aplats"' not in preview   # surtout pas le brouillon en cours
+    # Il montre donc exactement la même chose que l'écran de régie.
     assert b'data-skin="service"' in auth_client.get("/display").data
 
 
