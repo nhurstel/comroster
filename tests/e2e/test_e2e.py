@@ -226,8 +226,11 @@ def test_preview_tracks_published_and_opens_no_sse(page, live_server):
     assert mini.evaluate("document.body.dataset.skin") == "aplats"
     assert mini.evaluate("window.__es") == 0, "le témoin a ouvert un flux SSE"
 
-    # Cliquer n'importe où sur la vignette agrandit.
-    page.click("#preview-btn")
+    # Cliquer N'IMPORTE OÙ sur la vignette agrandit. On vise volontairement un coin :
+    # cliquer `#preview-btn` passerait par son centre et ne dirait rien de sa couverture
+    # réelle — c'est ce qui a laissé passer un bouton réduit à une pilule de 2rem en haut.
+    box = page.locator(".preview-tile-frame").bounding_box()
+    page.mouse.click(box["x"] + box["width"] - 6, box["y"] + box["height"] - 6)
     page.wait_for_selector("#preview-dialog[open]")
     frame = _wait_frame(page, "preview-full")
     frame.wait_for_selector("#display-grid .block")

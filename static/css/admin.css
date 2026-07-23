@@ -116,13 +116,23 @@
 }
 /* Toute la vignette est cliquable, sans rien qui ressemble à un bouton : le <button>
    recouvre le cadre et reste totalement transparent. Il existe pour l'accessibilité
-   (focus clavier, libellé), pas comme affordance visuelle — le curseur suffit. */
-.preview-tile-hit {
+   (focus clavier, libellé), pas comme affordance visuelle — le curseur suffit.
+
+   ⚠️ Sélecteur `button.` obligatoire : `.admin-page button` (plus haut dans ce fichier)
+   impose height/background/border/radius avec une spécificité supérieure à une classe
+   seule. Sans cela le bouton redevient une pilule de 2rem qui masque le haut de la
+   vignette et reste la seule zone cliquable. Idem pour :hover. */
+.admin-page button.preview-tile-hit,
+.admin-page button.preview-tile-hit:hover {
     position: absolute; inset: 0;
-    background: transparent; border: none; padding: 0;
+    display: block; width: auto; height: auto;
+    margin: 0; padding: 0;
+    background: transparent; border: none; border-radius: 0; box-shadow: none;
     cursor: pointer;
 }
-.preview-tile-hit:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.admin-page button.preview-tile-hit:focus-visible {
+    outline: 2px solid var(--primary); outline-offset: -2px;
+}
 .admin-sidebar .logout-link {
     display: flex; align-items: center; gap: 0.55rem;
     width: 100%; height: 2rem; padding: 0 0.5rem;
