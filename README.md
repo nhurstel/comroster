@@ -14,8 +14,8 @@ mémorise la correspondance n° → rôle et la propose à la saisie.
 
 Python 3.12 · Flask · Flask-WTF (CSRF) · Flask-Limiter (anti-bruteforce) · Werkzeug
 (hashing) · SSE (`EventSource`) · drag-and-drop HTML5 natif (zéro dépendance JS) ·
-design system glassmorphism (thèmes jour/nuit) · pytest. Persistance par fichiers JSON
-plats avec écriture atomique. Aucun SGBD.
+trois apparences d'écran commutables × deux modes de luminosité · pytest. Persistance
+par fichiers JSON plats avec écriture atomique. Aucun SGBD.
 
 ## Installation
 
@@ -90,16 +90,44 @@ Flags utiles en appliance : `COMROSTER_BIND` (défaut `127.0.0.1:8080`) et
 
 ## Premier démarrage
 
-1. Ouvrir `/admin/setup` → définir le mot de passe admin (8 caractères min.).
+1. Ouvrir `/admin/setup` → définir le mot de passe admin (4 caractères min.).
 2. **Noter le code de récupération** affiché une seule fois (sert à réinitialiser le mot de passe).
-3. `/admin` : créer les groupes (canaux), ajouter les personnes (nom + n° beltpack + rôle),
-   glisser-déposer dans les groupes, puis **Publier**.
+3. `/admin` : créer les groupes (canaux), ajouter les beltpacks (n° + rôle),
+   glisser-déposer dans les groupes, puis **Envoyer à l'affichage**.
 4. Ouvrir `/display` sur l'écran de régie — mise à jour en direct à chaque publication.
+
+## Apparences de l'écran
+
+`/display` se décline en trois **apparences** (réglage « Apparence » dans l'admin), chacune
+disponible en mode sombre et clair. Le choix est stocké dans l'état publié : il change à chaud,
+sans recharger l'écran de régie.
+
+| Valeur | Nom | Parti pris |
+|--------|-----|-----------|
+| `base` | Actuelle | **Défaut.** Cartes en verre dépoli, accent turquoise, capitales. |
+| `service` | Tableau de service | Tableau réglé, à-plat. La couleur du groupe se limite au bandeau de tête. Rôles nettement plus gros (pas de cadre à financer). |
+| `aplats` | Aplats | Mosaïque pleine : le groupe **est** une surface colorée. Le plus lisible de loin. |
+
+Techniquement : un attribut `data-skin` sur `<body>` ; `base` vit dans
+[display.css](static/css/display.css), les autres dans [skins.css](static/css/skins.css). Les
+feuilles sont toutes chargées en permanence, puisque l'apparence peut changer en direct par SSE.
+
+> **`aplats` pose du texte sur la couleur du groupe.** L'encre (noire ou blanche) est choisie au
+> rendu d'après la luminance relative sRGB, mais une teinte très saturée reste médiocre quel que
+> soit le choix : si vous adoptez cette apparence, tenez-vous-en à des couleurs franches.
+
+**Aperçu** — l'item « Aperçu » de la barre latérale affiche le **brouillon** tel qu'il s'affichera,
+dans une iframe sur `/admin/preview`. C'est la vraie page display, à l'échelle : aucun rendu
+parallèle, donc aucune dérive possible. L'aperçu n'ouvre **jamais** de flux SSE (voir ci-dessous).
 
 ## Parcours & routes
 
 - `/admin/setup`, `/admin/login`, `/admin/recover` — comptes (public).
 - `/admin` + `/api/*` — administration (session requise, CSRF sur les requêtes mutatives).
+- `/admin/preview` — aperçu du **brouillon**, session requise. Rend `display.html` avec
+  `data-preview="on"` : le JS y coupe le SSE, les sondages, l'anti-veille et le défilement.
+  Chaque flux `/events` occupe un thread et un créneau de `COMROSTER_SSE_MAX` (12 par défaut) —
+  un aperçu laissé ouvert affamerait les vrais afficheurs.
 - `/display` + `/events` — affichage TV public, **lecture seule** (état publié uniquement).
 
 ## Réinitialisation totale (A6)

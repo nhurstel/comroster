@@ -114,6 +114,37 @@ def test_put_draft_replaces_and_persists(auth_client):
     assert state["beltpack_roles"]["5"] == "Régie"
 
 
+def test_preview_requires_auth(client):
+    r = client.get("/admin/preview")
+    assert r.status_code in (302, 401)
+
+
+def test_preview_renders_draft_not_published(auth_client):
+    auth_client.put("/api/draft", json={"title": "Publié", "skin": "service", "groups": [], "people": []})
+    assert auth_client.post("/api/publish").status_code == 200
+    # Le brouillon diverge ensuite : l'aperçu doit montrer CE qui n'est pas encore publié.
+    auth_client.put("/api/draft", json={"title": "Brouillon", "skin": "aplats", "groups": [], "people": []})
+
+    preview = auth_client.get("/admin/preview").data
+    assert b'data-preview="on"' in preview
+    assert b'data-skin="aplats"' in preview
+    # …tandis que l'écran de régie reste sur l'état publié.
+    assert b'data-skin="service"' in auth_client.get("/display").data
+
+
+def test_put_draft_keeps_skin(auth_client):
+    payload = {"title": "x", "skin": "service", "groups": [], "people": []}
+    assert auth_client.put("/api/draft", json=payload).status_code == 200
+    assert auth_client.get("/api/state").get_json()["skin"] == "service"
+
+
+def test_published_display_carries_skin(auth_client):
+    auth_client.put("/api/draft", json={"title": "x", "skin": "aplats", "groups": [], "people": []})
+    assert auth_client.post("/api/publish").status_code == 200
+    # L'apparence doit atteindre l'écran : c'est l'attribut lu par display.js/display.css.
+    assert b'data-skin="aplats"' in auth_client.get("/display").data
+
+
 def test_put_draft_duplicate_beltpack_409(auth_client):
     payload = {"title": "x", "groups": [], "people": [
         {"id": "a", "name": "A", "role": "", "beltpack": "5", "group_id": None},

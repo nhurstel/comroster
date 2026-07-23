@@ -40,6 +40,19 @@ def sanitize_perf(value):
     return bool(value)
 
 
+SKINS = ("base", "service", "aplats")
+
+
+def sanitize_skin(value):
+    """Apparence de l'écran de diffusion (direction artistique).
+
+    Orthogonale à `theme`, qui reste le commutateur de luminosité (jour/nuit) :
+    chaque apparence décline ses deux modes. Allowlist stricte — une valeur
+    inconnue retomberait sur une feuille de style inexistante, donc un écran nu.
+    """
+    return value if value in SKINS else "base"
+
+
 def sanitize_columns(value):
     """Nombre de colonnes de groupes sur l'écran (0 = automatique selon la largeur)."""
     try:
@@ -56,6 +69,7 @@ def empty_state():
         "title": DEFAULT_TITLE,
         "subtitle": "",
         "theme": "night",
+        "skin": "base",
         "indicators": {"online": True, "battery": True},
         "perf": False,
         "columns": 0,
@@ -79,6 +93,7 @@ def build_draft(payload):
     state["title"] = (payload.get("title") or "").strip() or DEFAULT_TITLE
     state["subtitle"] = (payload.get("subtitle") or "").strip()
     state["theme"] = sanitize_theme(payload.get("theme"))
+    state["skin"] = sanitize_skin(payload.get("skin"))
     state["indicators"] = sanitize_indicators(payload.get("indicators"))
     state["perf"] = sanitize_perf(payload.get("perf"))
     state["columns"] = sanitize_columns(payload.get("columns"))

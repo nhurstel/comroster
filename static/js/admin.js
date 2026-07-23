@@ -4,6 +4,7 @@
   // chargement (les requêtes échoueraient proprement côté serveur avec un CSRF vide).
   const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || "";
   const DEFAULT_COLOR = "#3AAFA9";
+  const SKINS = ["base", "service", "aplats"];   // miroir de model.SKINS
   const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
   // Données initiales injectées via un bloc <script type="application/json">
@@ -12,7 +13,7 @@
   try { INITIAL = JSON.parse(document.getElementById("initial-data")?.textContent || "null"); } catch { /* bloc absent ou invalide */ }
 
   const state = {
-    data: INITIAL || { title: "", subtitle: "", theme: "night", groups: [], people: [], beltpack_roles: {} },
+    data: INITIAL || { title: "", subtitle: "", theme: "night", skin: "base", groups: [], people: [], beltpack_roles: {} },
     drag: null,
     dragGroup: null,        // id du groupe en cours de réordonnancement
     context: null,
@@ -117,6 +118,7 @@
       if (el.lastUpdated) el.lastUpdated.textContent =
         "Dernier enregistrement : " + new Date(saved.updated_at).toLocaleString("fr-FR");
       render();
+      reloadPreview();          // sans effet si l'aperçu est fermé
     } catch (err) {
       setStatus("Échec de l'enregistrement", "error");
       if (err.message === "beltpack_conflict") {
@@ -590,6 +592,7 @@
     setVal("meta-subtitle", d.subtitle || "");
     setVal("meta-columns", String(d.columns || 0));
     setVal("theme-select", d.theme === "day" ? "day" : "night");
+    setVal("skin-select", SKINS.includes(d.skin) ? d.skin : "base");
     const ind = d.indicators || DEFAULT_IND;
     setChk("ind-online", ind.online !== false);
     setChk("ind-battery", ind.battery !== false);
@@ -615,6 +618,9 @@
     });
     document.getElementById("theme-select").addEventListener("change", (e) => {
       state.data.theme = e.target.value === "day" ? "day" : "night"; markDirty();
+    });
+    document.getElementById("skin-select").addEventListener("change", (e) => {
+      state.data.skin = SKINS.includes(e.target.value) ? e.target.value : "base"; markDirty();
     });
     const onInd = () => {
       state.data.indicators = {
@@ -672,6 +678,7 @@
         if (!json || typeof json !== "object") throw new Error("invalide");
         state.data = {
           title: json.title || "", subtitle: json.subtitle || "", theme: json.theme || "night",
+          skin: SKINS.includes(json.skin) ? json.skin : "base",
           indicators: json.indicators || DEFAULT_IND, columns: json.columns || 0,
           perf: json.perf === true,
           groups: json.groups || [], people: json.people || [], beltpack_roles: json.beltpack_roles || {},
@@ -963,6 +970,34 @@
       toast("Beltpacks importés");
     } catch { toast("Import impossible", true); }
   });
+
+  /* ---------- Aperçu de l'écran ----------
+     Une iframe sur /admin/preview : c'est la VRAIE page display, avec son vrai CSS et son
+     vrai JS. Aucun moteur de rendu parallèle à maintenir, donc aucune dérive possible.
+     La page est rendue à 1280x720 puis mise à l'échelle du cadre (cf. .preview-frame). */
+  const previewDialog = document.getElementById("preview-dialog");
+  const previewFrame = document.getElementById("preview-iframe");
+
+  function fitPreview() {
+    const box = previewFrame?.parentElement;
+    if (!box || !box.clientWidth) return;
+    previewFrame.style.transform = `scale(${box.clientWidth / 1280})`;
+  }
+  function reloadPreview() {
+    if (!previewDialog?.open) return;
+    previewFrame.src = `/admin/preview?t=${Date.now()}`;
+  }
+
+  document.getElementById("preview-btn").addEventListener("click", async () => {
+    // L'aperçu lit le brouillon CÔTÉ SERVEUR : on vide d'abord les édits en attente,
+    // sinon on montrerait un état périmé d'une demi-seconde.
+    if (savePending) await saveDraft();
+    previewDialog.showModal();
+    fitPreview();
+    reloadPreview();
+  });
+  document.getElementById("preview-refresh").addEventListener("click", reloadPreview);
+  window.addEventListener("resize", fitPreview);
 
   /* ---------- Réseau du boîtier ---------- */
   const networkDialog = document.getElementById("network-dialog");

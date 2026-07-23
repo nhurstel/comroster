@@ -30,8 +30,34 @@
   let eventSource = null;
   let reconnectTimer = null;
 
+  // Mode aperçu (iframe de l'admin) : on rend la page telle quelle, mais sans rien qui
+  // consomme le serveur ou tourne en continu — SSE, sondages, anti-veille, défilement.
+  const PREVIEW = bodyEl.dataset.preview === "on";
+
   const esc = (s) => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
   const resolveTheme = (v) => (v === "day" ? "day" : "night");
+  // Apparence (direction artistique). Miroir de model.SKINS : une valeur inconnue
+  // retomberait sur une feuille de style inexistante, donc un écran nu.
+  const SKINS = ["base", "service", "aplats"];
+  const resolveSkin = (v) => (SKINS.includes(v) ? v : "base");
+
+  /* ---------- Encre lisible sur un aplat de couleur ----------
+     Une apparence peut remplir le bloc avec la couleur du groupe, qui est saisie par
+     l'utilisateur : il faut alors choisir une encre claire ou sombre. On calcule la
+     luminance relative sRGB (WCAG) et on expose le verdict en `data-ink` — les teintes
+     exactes restent dans la CSS, où chaque apparence définit sa paire.
+     Seuil 0.179 : point où le contraste avec le noir et avec le blanc s'égalisent. */
+  const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+  function inkFor(color) {
+    const m = HEX_COLOR.exec(String(color || "").trim());
+    if (!m) return null;              // pas un littéral hex → l'apparence se débrouille seule
+    const hex = m[1].length === 3 ? m[1].replace(/./g, (c) => c + c) : m[1];
+    const lin = [0, 2, 4]
+      .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map((c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
+    const luminance = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+    return luminance > 0.179 ? "dark" : "light";
+  }
 
   function setLive(mode) {
     if (!liveIndicator || !liveLabel) return;
@@ -83,6 +109,8 @@
     if (!grid) return;   // pas de grille = page display incomplète, rien à rendre
     stopAutoScroll();
     bodyEl.dataset.theme = resolveTheme(data.theme);
+    // Apparence : change en direct à la publication (SSE), sans rechargement de page.
+    bodyEl.dataset.skin = resolveSkin(data.skin);
     // Mode performance : désactive le flou GPU (voir display.css [data-perf="on"])
     bodyEl.dataset.perf = data.perf ? "on" : "off";
     // Nombre de colonnes de groupes (0 = automatique selon la largeur d'écran)
@@ -109,6 +137,9 @@
       const blockEl = document.createElement("section");
       blockEl.className = "block";
       blockEl.style.setProperty("--block-accent", group.color || "var(--primary)");
+      // Apparences où le bloc est REMPLI par la couleur du groupe (cf. inkFor).
+      const ink = inkFor(group.color);
+      if (ink) blockEl.dataset.ink = ink;
 
       const header = document.createElement("div");
       header.className = "block-header";
@@ -170,6 +201,25 @@
     if (cramped) badges.forEach((b) => { b.textContent = b.dataset.count; });
   }
 
+  /* Bornes de l'ajustement, redéfinissables par apparence via des variables CSS : une DA
+     à très gros corps n'a pas les mêmes planchers/plafonds que l'actuelle. Sans déclaration
+     CSS, on retombe sur ces valeurs — celles négociées au lot 2026-07-15, donc `base` est
+     rigoureusement inchangée. */
+  const FIT_DEFAULTS = {
+    "--fit-title-min": 13, "--fit-title-max": 24,
+    "--fit-role-min": 12, "--fit-role-max": 19,
+    "--fit-bpn-ratio": 1.3, "--fit-bpn-min": 16, "--fit-bpn-max": 22,
+  };
+  function fitBounds() {
+    const styles = getComputedStyle(grid);
+    const out = {};
+    for (const name of Object.keys(FIT_DEFAULTS)) {
+      const declared = parseFloat(styles.getPropertyValue(name));
+      out[name] = Number.isFinite(declared) ? declared : FIT_DEFAULTS[name];
+    }
+    return out;
+  }
+
   function fitDisplayText() {
     if (!grid) return;
     // On mesure toujours en mode « une ligne » : on retire un éventuel repli wrap précédent.
@@ -177,11 +227,13 @@
     setBadgeLabels([...grid.querySelectorAll(".block-header .badge")]);
     const titles = [...grid.querySelectorAll(".block-header h3")];
     const roles = [...grid.querySelectorAll(".person .role")];
-    const t = fitUniformFontSize(titles, 13, 24);
-    const r = fitUniformFontSize(roles, 12, 19);
+    const b = fitBounds();
+    const t = fitUniformFontSize(titles, b["--fit-title-min"], b["--fit-title-max"]);
+    const r = fitUniformFontSize(roles, b["--fit-role-min"], b["--fit-role-max"]);
     grid.style.setProperty("--title-fs", t.size + "px");
     grid.style.setProperty("--role-fs", r.size + "px");
-    grid.style.setProperty("--bpn-fs", Math.round(Math.min(Math.max(r.size * 1.3, 16), 22)) + "px");
+    const bpn = Math.min(Math.max(r.size * b["--fit-bpn-ratio"], b["--fit-bpn-min"]), b["--fit-bpn-max"]);
+    grid.style.setProperty("--bpn-fs", Math.round(bpn) + "px");
     // Repli anti-troncature : si même au plancher lisible un texte ne tient pas sur une ligne
     // (nom très long en colonne étroite), on autorise le retour à la ligne — jamais coupé.
     grid.classList.toggle("wrap-titles", !t.fits);
@@ -267,7 +319,7 @@
   function startAutoScroll() {
     stopAutoScroll();
     setOffset(0);
-    if (!scrollContainer || document.hidden || REDUCED_MOTION) return;
+    if (PREVIEW || !scrollContainer || document.hidden || REDUCED_MOTION) return;
     if (maxOffset() <= 0) return;
     scroll.direction = 1;
     scroll.active = true;
@@ -355,19 +407,22 @@
   setLive("idle");
   updateClock();
   setInterval(updateClock, 1000);
-  subscribe();
-  pollLive();                 // état initial ; les MAJ arrivent en push via le SSE `live`
-  loadOnboarding();
-  onboardingTimer = setInterval(loadOnboarding, 8000);
-  requestWakeLock();
+  if (!PREVIEW) {
+    subscribe();
+    pollLive();               // état initial ; les MAJ arrivent en push via le SSE `live`
+    loadOnboarding();
+    onboardingTimer = setInterval(loadOnboarding, 8000);
+    requestWakeLock();
+  }
 
   if (scrollContainer) {
     scrollContainer.addEventListener("wheel", (e) => e.cancelable && e.preventDefault(), { passive: false });
     scrollContainer.addEventListener("touchmove", (e) => e.cancelable && e.preventDefault(), { passive: false });
   }
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) { startAutoScroll(); requestWakeLock(); }
-    else stopAutoScroll();
+    if (document.hidden) { stopAutoScroll(); return; }
+    startAutoScroll();
+    if (!PREVIEW) requestWakeLock();
   });
   window.addEventListener("resize", () => { fitDisplayText(); startAutoScroll(); });
   window.addEventListener("beforeunload", () => { if (eventSource) eventSource.close(); });

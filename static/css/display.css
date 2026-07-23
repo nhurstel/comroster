@@ -16,6 +16,14 @@ body.display-page {
 
   --d-glass: linear-gradient(180deg, rgba(32,38,56,0.55), rgba(17,20,32,0.42));
 
+  /* Bornes de l'ajustement typographique automatique (lues par fitDisplayText, display.js).
+     Une apparence qui veut de très gros corps les redéfinit sous son propre sélecteur
+     `body.display-page[data-skin="…"]` ; ces valeurs-ci sont celles de l'apparence `base`. */
+  --fit-title-min: 13; --fit-title-max: 24;   /* titres de groupe */
+  --fit-role-min: 12;  --fit-role-max: 19;    /* rôles */
+  --fit-bpn-ratio: 1.3;                        /* n° beltpack = rôle × ratio, borné ci-dessous */
+  --fit-bpn-min: 16;   --fit-bpn-max: 22;
+
   --display-header-height: 3.6rem; --display-footer-height: 3rem;
   height: 100vh; overflow: hidden;
   /* Fond quasi-noir + aurore turquoise très discrète (donne de la matière au verre) */

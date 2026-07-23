@@ -47,6 +47,157 @@ def test_setup_create_publish_display(page, live_server):
     assert "42" in grid and "régie" in grid.lower()
 
 
+def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie", skin=None):
+    """Crée un groupe + un beltpack affecté, puis publie.
+
+    Retourne `(page_display, erreurs_console)`. La collecte console est branchée AVANT
+    le chargement : une violation CSP ou une exception JS y apparaît, là où un test de
+    contenu DOM ne verrait rien (cf. leçon 2026-07-07).
+    """
+    _enter_admin(page, base)
+    if skin:
+        page.select_option("#skin-select", skin)
+        page.wait_for_selector("#sync-label:has-text('enregistré')")   # brouillon écrit
+    page.click("#add-block-btn")
+    page.fill("#block-name", name)
+    page.click("#block-form button[type=submit]")
+    page.wait_for_selector(f"#blocks-container >> text={name}")
+    page.click("#available-users .person-add")
+    page.fill("#person-beltpack", beltpack)
+    page.fill("#person-role", role)
+    page.select_option("#person-assign", label=name)
+    page.click("#person-form button[type=submit]")
+    page.click("#publish-btn")
+    page.wait_for_selector("text=Envoyé à l'affichage")
+    display = page.context.new_page()
+    errors = []
+    display.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
+    display.on("pageerror", lambda exc: errors.append(str(exc)))
+    display.goto(base + "/display")
+    display.wait_for_selector("#display-grid .person")
+    return display, errors
+
+
+def test_base_skin_keeps_historic_fit_bounds(page, live_server):
+    """Non-régression du contrat d'ajustement (lot 2026-07-15) après le passage des
+    bornes de fitDisplayText en variables CSS : `base` doit rester identique."""
+    display, errors = _publish_one_group(page, live_server)
+    assert errors == [], f"erreurs console sur /display : {errors}"
+    assert display.get_attribute("body", "data-skin") == "base"
+    sizes = display.evaluate(
+        """() => {
+            const g = document.getElementById('display-grid').style;
+            return ['--title-fs', '--role-fs', '--bpn-fs'].map(n => parseFloat(g.getPropertyValue(n)));
+        }"""
+    )
+    title_fs, role_fs, bpn_fs = sizes
+    assert 13 <= title_fs <= 24, f"titre hors bornes historiques : {title_fs}"
+    assert 12 <= role_fs <= 19, f"rôle hors bornes historiques : {role_fs}"
+    assert 16 <= bpn_fs <= 22, f"n° beltpack hors bornes historiques : {bpn_fs}"
+    # Le cœur du contrat : titres et rôles tiennent sur UNE ligne, sans troncature.
+    overflow = display.evaluate(
+        """() => [...document.querySelectorAll('.block-header h3, .person .role')]
+                 .filter(e => e.scrollWidth > e.clientWidth + 1).length"""
+    )
+    assert overflow == 0
+
+
+def test_block_carries_computed_ink(page, live_server):
+    """L'encre lisible sur aplat est calculée au rendu (requise par l'apparence `aplats`)."""
+    display, errors = _publish_one_group(page, live_server)
+    assert errors == [], f"erreurs console sur /display : {errors}"
+    # Couleur de groupe par défaut #3AAFA9 → luminance ≈ 0.34 > 0.179 → encre sombre.
+    assert display.get_attribute("#display-grid .block", "data-ink") == "dark"
+
+
+def test_service_skin_from_admin_reaches_display(page, live_server):
+    """Parcours complet : sélection dans l'admin → publication → DA appliquée à l'écran."""
+    display, errors = _publish_one_group(page, live_server, skin="service")
+    assert errors == [], f"erreurs console sur /display : {errors}"
+    assert display.get_attribute("body", "data-skin") == "service"
+    applied = display.evaluate(
+        """() => {
+            const block = document.querySelector('#display-grid .block');
+            const head = block.querySelector('.block-header');
+            return {
+                radius: getComputedStyle(block).borderRadius,
+                headBg: getComputedStyle(head).backgroundColor,
+                veil: getComputedStyle(document.body, '::before').content,
+            };
+        }"""
+    )
+    assert applied["radius"] == "0px"                      # angles vifs, plus de carte
+    assert applied["headBg"] == "rgb(58, 175, 169)"        # bandeau = couleur du groupe (#3AAFA9)
+    assert applied["veil"] == "none"                       # voile d'ambiance de main.css neutralisé
+
+
+def test_aplats_skin_fills_block_with_group_colour(page, live_server):
+    """`aplats` pose du texte SUR la couleur du groupe : le bloc devient la surface,
+    et l'encre est choisie au rendu selon la luminance (voir inkFor, display.js)."""
+    display, errors = _publish_one_group(page, live_server, skin="aplats")
+    assert errors == [], f"erreurs console sur /display : {errors}"
+    assert display.get_attribute("body", "data-skin") == "aplats"
+    applied = display.evaluate(
+        """() => {
+            const block = document.querySelector('#display-grid .block');
+            const cs = getComputedStyle(block);
+            return { ink: block.dataset.ink, bg: cs.backgroundColor,
+                     fg: cs.color, radius: cs.borderRadius };
+        }"""
+    )
+    # #3AAFA9 → luminance ≈ 0.34, au-dessus du seuil 0.179 → encre sombre.
+    assert applied["bg"] == "rgb(58, 175, 169)"    # le bloc EST la couleur du groupe
+    assert applied["ink"] == "dark"
+    assert applied["fg"] == "rgb(11, 13, 18)"
+    assert applied["radius"] == "0px"
+
+
+def test_preview_shows_draft_and_opens_no_sse(page, live_server):
+    """L'aperçu doit montrer le brouillon NON publié, et surtout n'ouvrir AUCUN flux SSE :
+    chaque /events occupe un thread et un créneau de SSE_MAX_CLIENTS (leçon 2026-07-06)."""
+    # Compteur de constructions d'EventSource, posé par frame avant tout chargement.
+    page.context.add_init_script(
+        """
+        window.__es = 0;
+        const Orig = window.EventSource;
+        if (Orig) {
+            const Wrapped = function (...args) { window.__es++; return new Orig(...args); };
+            Wrapped.prototype = Orig.prototype;
+            window.EventSource = Wrapped;
+        }
+        """
+    )
+    _enter_admin(page, live_server)
+    page.select_option("#skin-select", "aplats")
+    page.click("#add-block-btn")
+    page.fill("#block-name", "Régie")
+    page.click("#block-form button[type=submit]")
+    page.wait_for_selector("#sync-label:has-text('enregistré')")      # brouillon écrit, jamais publié
+
+    page.click("#preview-btn")
+    page.wait_for_selector("#preview-dialog[open]")
+    frame = None
+    for _ in range(60):
+        frame = next((f for f in page.frames if "/admin/preview" in f.url), None)
+        if frame:
+            break
+        page.wait_for_timeout(100)
+    assert frame is not None, "l'iframe d'aperçu ne s'est pas chargée"
+    frame.wait_for_selector("#display-grid .block")
+
+    assert frame.evaluate("document.body.dataset.preview") == "on"
+    assert frame.evaluate("document.body.dataset.skin") == "aplats"    # l'apparence du brouillon
+    assert frame.evaluate("document.querySelectorAll('#display-grid .block').length") == 1
+    assert frame.evaluate("window.__es") == 0, "l'aperçu a ouvert un flux SSE"
+
+    # L'écran de régie, lui, n'a rien reçu : le brouillon n'a jamais été publié.
+    display = page.context.new_page()
+    display.goto(live_server + "/display")
+    # `attached` et non `visible` : une grille sans groupe a une hauteur nulle.
+    display.wait_for_selector("#display-grid", state="attached")
+    assert display.evaluate("document.querySelectorAll('#display-grid .block').length") == 0
+
+
 def test_fresh_box_shows_onboarding(page, live_server):
     # Box neuve (aucun mot de passe défini) → l'écran TV affiche le guide + QR.
     page.goto(live_server + "/display")

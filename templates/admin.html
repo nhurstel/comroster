@@ -25,6 +25,12 @@
           <input type="text" id="meta-subtitle" maxlength="120" autocomplete="off"></label>
 
         <div class="nav-label">Réglages écran</div>
+        <label class="side-field"><span>Apparence</span>
+          <select id="skin-select">
+            <option value="base">Actuelle</option>
+            <option value="service">Tableau de service</option>
+            <option value="aplats">Aplats</option>
+          </select></label>
         <label class="side-field"><span>Mode de luminosité</span>
           <select id="theme-select">
             <option value="night">Sombre</option>
@@ -45,6 +51,10 @@
         <label class="side-check"><input type="checkbox" id="meta-perf"> Mode performance</label>
 
         <nav class="side-nav">
+          <div class="nav-label">Écran</div>
+          <button type="button" id="preview-btn" class="nav-item" title="Voir le brouillon tel qu'il s'affichera">
+            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="8.5" rx="1"/><path d="M6.5 13.5h3"/></svg>Aperçu</button>
+
           <div class="nav-label">Matériel</div>
           <button type="button" id="antenna-btn" class="nav-item" title="Connexion au réseau intercom">
             <span class="dot off" id="antenna-dot"></span>Intercom Net</button>
@@ -150,6 +160,21 @@
       <div class="dialog-actions">
         <button type="submit" class="primary">Enregistrer</button>
         <button type="button" data-close="person-dialog">Annuler</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="preview-dialog" class="admin-dialog preview-dialog">
+    <form method="dialog">
+      <h2>Aperçu de l'écran</h2>
+      <p class="dialog-hint">Rendu du <b>brouillon</b>, à l'échelle. Ce n'est pas ce qui s'affiche
+        en régie tant que vous n'avez pas cliqué « Envoyer à l'affichage ».</p>
+      <div class="preview-frame">
+        <iframe id="preview-iframe" title="Aperçu de l'affichage" src="about:blank"></iframe>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" id="preview-refresh">Actualiser</button>
+        <button type="button" data-close="preview-dialog">Fermer</button>
       </div>
     </form>
   </dialog>

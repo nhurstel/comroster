@@ -370,6 +370,20 @@
 .dash-autosync .side-check { padding-left: 0; font-size: 0.92rem; color: var(--text, #E6E8EC); }
 .dash-autosync .dialog-hint { padding-left: 1.55rem; }
 .dialog-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.3rem; }
+
+/* Aperçu de l'écran : l'iframe rend /admin/preview à sa taille réelle (1280x720), puis
+   on la met à l'échelle du cadre. Rendu fidèle plutôt qu'une page redimensionnée, dont
+   les points de rupture et l'ajustement typographique ne refléteraient pas la régie. */
+.preview-dialog { max-width: min(94vw, 1100px); }
+.preview-frame {
+    position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+    background: #000; border: 1px solid var(--a-border-2);
+}
+.preview-frame iframe {
+    position: absolute; top: 0; left: 0;
+    width: 1280px; height: 720px; border: 0;
+    transform-origin: top left;
+}
 .admin-dialog .dialog-actions .danger { color: var(--a-danger-fg); border-color: var(--a-danger-line); margin-right: auto; }
 .admin-dialog .dialog-actions .danger:hover:not(:disabled) { background: var(--a-danger-bg); color: var(--a-danger-fg); }
 .admin-dialog .dialog-actions .danger:disabled { opacity: 0.4; cursor: default; }

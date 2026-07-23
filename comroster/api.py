@@ -36,6 +36,19 @@ def admin_page():
     return render_template("admin.html", initial_data=_storage().load_draft())
 
 
+@bp.get("/admin/preview")
+@login_required
+def admin_preview():
+    """Aperçu du BROUILLON, rendu par la vraie page display (zéro duplication).
+
+    `preview=True` coupe côté client tout ce qui coûte au serveur ou tourne en continu,
+    au premier chef l'abonnement SSE : chaque flux /events occupe un thread gthread en
+    permanence et un créneau de SSE_MAX_CLIENTS. Un aperçu laissé ouvert affamerait les
+    vrais afficheurs (cf. leçon 2026-07-06).
+    """
+    return render_template("display.html", initial_data=_storage().load_draft(), preview=True)
+
+
 @bp.get("/api/state")
 @login_required
 def get_state():
