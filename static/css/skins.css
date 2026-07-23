@@ -45,14 +45,20 @@ body.display-page:not([data-skin="base"]) .status-badge .pulse {
    remettent le voyant temps réel dans le flux — il n'y a plus de pastille où l'accrocher. */
 body.display-page:not([data-skin="base"]) .bp-badge {
   background: transparent; box-shadow: none; border-radius: 0;
-  height: auto; padding: 0;
+  height: auto;
+  padding: 0 0 0 0.85rem;         /* gouttière réservée au voyant, à gauche */
   align-items: flex-end;
 }
 body.display-page:not([data-skin="base"]) .bp-badge .bp-l { display: none; }
+/* Le voyant reste HORS DU FLUX. Dans le flux il occupait ~11 px sous le chiffre : la
+   pastille étant centrée dans la ligne, le numéro remontait de la moitié et ne s'alignait
+   plus avec le rôle. Il devient une colonne d'état à gauche, centrée sur le chiffre. */
 body.display-page:not([data-skin="base"]) .bp-badge .bp-dot {
-  position: static;
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
   width: 0.4rem; height: 0.4rem;
-  margin-top: 0.3rem;
+  margin: 0;
   border: none;
 }
 /* Les compteurs quittent l'en-tête : chaque groupe porte déjà le sien. */
@@ -207,7 +213,7 @@ body.display-page[data-skin="service"] .person {
 }
 body.display-page[data-skin="service"] .person:last-child { border-bottom: none; }
 body.display-page[data-skin="service"] .bp-badge {
-  min-width: 2.9rem;
+  min-width: 3.6rem;              /* gouttière du voyant comprise (box-sizing: border-box) */
   color: var(--s-fg);
 }
 body.display-page[data-skin="service"] .bp-badge .bp-n { font-weight: 700; letter-spacing: -0.02em; }
@@ -374,7 +380,7 @@ body.display-page[data-skin="aplats"] .person {
   gap: 0.75rem;
 }
 body.display-page[data-skin="aplats"] .bp-badge {
-  min-width: 2.5rem;
+  min-width: 3.2rem;              /* gouttière du voyant comprise (box-sizing: border-box) */
   color: inherit;
 }
 body.display-page[data-skin="aplats"] .bp-badge .bp-n { font-weight: 800; letter-spacing: -0.02em; }

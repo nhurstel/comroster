@@ -47,6 +47,13 @@ def test_setup_create_publish_display(page, live_server):
     assert "42" in grid and "régie" in grid.lower()
 
 
+_NUMBER_ROLE_OFFSET = """() => {
+    const p = document.querySelector('#display-grid .person');
+    const mid = (el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2; };
+    return mid(p.querySelector('.bp-n')) - mid(p.querySelector('.role'));
+}"""
+
+
 def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie", skin=None):
     """Crée un groupe + un beltpack affecté, puis publie.
 
@@ -129,6 +136,10 @@ def test_service_skin_from_admin_reaches_display(page, live_server):
     assert applied["radius"] == "0px"                      # angles vifs, plus de carte
     assert applied["headBg"] == "rgb(58, 175, 169)"        # bandeau = couleur du groupe (#3AAFA9)
     assert applied["veil"] == "none"                       # voile d'ambiance de main.css neutralisé
+    # Le voyant temps réel doit rester hors du flux : dans le flux il décalait le numéro
+    # de ~5,6 px vers le haut, la pastille étant centrée dans la ligne.
+    offset = display.evaluate(_NUMBER_ROLE_OFFSET)
+    assert abs(offset) <= 1, f"numéro désaligné du rôle de {offset:.1f} px"
 
 
 def test_aplats_skin_fills_block_with_group_colour(page, live_server):
@@ -150,6 +161,8 @@ def test_aplats_skin_fills_block_with_group_colour(page, live_server):
     assert applied["ink"] == "dark"
     assert applied["fg"] == "rgb(11, 13, 18)"
     assert applied["radius"] == "0px"
+    offset = display.evaluate(_NUMBER_ROLE_OFFSET)
+    assert abs(offset) <= 1, f"numéro désaligné du rôle de {offset:.1f} px"
 
 
 def test_preview_shows_draft_and_opens_no_sse(page, live_server):
