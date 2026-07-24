@@ -320,9 +320,7 @@ Principe : chaque phase est livrable seule, tests verts, sans casser la précéd
 
 ## E. À trancher
 
-- [ ] E2. Bornage du sélecteur de couleur de groupe : en aplat plein, une teinte
-      trop saturée devient illisible quelle que soit l'encre. Déjà signalé pour
-      l'apparence Grille, devient nécessaire ici aussi.
+- [x] E2. Palette bornée de 12 teintes calibrées (≥ 4.5:1). Fait (031084b).
 
 ## Vérifications exigées à chaque phase
 
