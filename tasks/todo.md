@@ -274,15 +274,15 @@ Principe : chaque phase est livrable seule, tests verts, sans casser la précéd
       boutons en 10 px capitales très espacées).
 - [x] A3. Purger les tailles en dur (`0.82rem`, `0.66rem`…) au profit des jetons.
 
-## B. Blocs-groupes en aplat plein — CSS + un peu de JS
+## B. Blocs-groupes en aplat plein — CSS + un peu de JS  ✅ FAIT (9398bd8)
 
-- [ ] B1. Extraire `inkFor()` de `display.js` vers `static/js/ink.js`, chargé par
+- [x] B1. Extraire `inkFor()` de `display.js` vers `static/js/ink.js`, chargé par
       display.html ET admin.html. NE PAS dupliquer : c'est la même règle de
       luminance (seuil .179) des deux côtés, une divergence serait invisible.
-- [ ] B2. `renderBlocks()` pose `--gel` (couleur du groupe) et `data-ink` sur le
+- [x] B2. `renderBlocks()` pose `--gel` (couleur du groupe) et `data-ink` sur le
       bloc ; le CSS en déduit l'encre. Séparateurs = filets, trait d'union `·`
       entre n° et rôle (miroir de `skins.css`, cf. `--tie`).
-- [ ] B3. Voyants d'état : point, masqué au survol au profit des actions.
+- [x] B3. Voyants d'état : point, masqué au survol au profit des actions.
 
 ## C. Mise en page — template + CSS
 
