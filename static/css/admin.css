@@ -149,6 +149,25 @@
     cursor: pointer; white-space: nowrap; transition: background 0.12s, color 0.12s;
 }
 .admin-side .nav-item:hover:not(:disabled) { background: var(--a-surface); color: var(--fg); }
+
+/* ---------- Inventaire (groupes + vues) ---------- */
+#group-inventory { display: flex; flex-direction: column; gap: 0.06rem; margin-bottom: 0.3rem; }
+.admin-side .inv-item {
+    display: grid; grid-template-columns: 3px 1fr auto; align-items: center; gap: 0.55rem;
+    width: 100%; height: var(--row); padding: 0 0.5rem;
+    background: transparent; border: none; border-radius: var(--rad);
+    color: var(--fg-muted); font-size: var(--ui); font-weight: 500;
+    cursor: pointer; white-space: nowrap; text-decoration: none;
+    transition: background 0.12s, color 0.12s;
+}
+.admin-side .inv-item:hover { background: var(--a-surface); color: var(--fg); }
+.admin-side .inv-item.active { background: var(--a-surface-2); color: var(--fg); box-shadow: inset 2px 0 0 var(--primary); }
+.admin-side .inv-item .inv-dot { width: 3px; height: 14px; border-radius: 1px; background: transparent; }
+.admin-side .inv-item .inv-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.admin-side .inv-item .inv-count { font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--ui-sm); color: var(--a-muted); }
+.admin-side .inv-item.inv-warn .inv-count { color: var(--warning); }
+.admin-side .inv-item.active .inv-count { color: var(--fg-subtle); }
+
 /* Action système (redémarrage) : discrète au repos, teintée d'avertissement au survol */
 .admin-side .nav-danger:hover:not(:disabled) { background: #2A1F14; color: var(--warning); }
 .admin-side .nav-danger:disabled { opacity: 0.6; cursor: default; }
@@ -281,6 +300,14 @@
 .admin-status .s b { color: var(--fg-subtle); font-weight: 400; }
 .admin-status .s.pend:not(:empty) { color: var(--warning); }
 .admin-status .status-right { margin-left: auto; border-right: none; border-left: 1px solid var(--border-soft); color: var(--a-muted); }
+
+/* ---------- Vue filtrante de l'inventaire ---------- */
+/* Estompe (ne masque pas) les cartes hors vue : réversible, sans toucher aux données. */
+.person.view-dim { opacity: 0.22; pointer-events: none; }
+.admin-block.view-dim { opacity: 0.4; }
+/* Flash à l'arrivée sur un groupe depuis l'inventaire. */
+@keyframes inv-flash { 0% { box-shadow: 0 0 0 2px var(--primary); } 100% { box-shadow: 0 0 0 2px transparent; } }
+.admin-block.flash { animation: inv-flash 0.9s ease-out; }
 
 /* ---------- Toast (notification transitoire) ---------- */
 .cr-toast {

@@ -22,6 +22,7 @@
     editingPersonId: null,
     selection: new Set(),
     lastSelectedId: null,   // pour la sélection par plage (MAJ+clic)
+    view: null,             // vue filtrante active de l'inventaire (null = aucune)
   };
 
   const el = {
@@ -146,6 +147,7 @@
     card.draggable = true;
     card.dataset.userId = person.id;
     card.dataset.source = source;
+    card.dataset.bp = person.beltpack;      // pour le filtrage par vue (inventaire)
     if (blockId) card.dataset.blockId = blockId;
 
     // Contenu normal (toujours affiché)
@@ -431,6 +433,105 @@
     renderBlocks();
     refreshAssignOptions();
     applyLiveIndicators();
+    renderInventory();
+    applyView();
+  }
+
+  /* ---------- Inventaire (barre latérale) ----------
+     Liste des groupes (clic = aller au groupe dans le plan de travail) et vues
+     filtrantes. Les compteurs « Hors ligne » / « Batterie faible » dépendent de l'état
+     temps réel : renderInventory() est donc rappelé aussi depuis applyLiveIndicators(). */
+  const LOW_BATTERY = 30;                  // seuil de la vue « batterie faible » (%)
+  function liveStat(bp) {                   // état temps réel d'un beltpack, ou null
+    return liveBeltpacks ? (liveBeltpacks[bp] || { online: false }) : null;
+  }
+  function viewCounts() {
+    const ppl = state.data.people;
+    let offline = 0, low = 0;
+    if (liveBeltpacks) {
+      ppl.forEach((p) => {
+        const s = liveStat(p.beltpack);
+        if (!s.online) offline += 1;
+        else if (typeof s.battery === "number" && s.battery < LOW_BATTERY) low += 1;
+      });
+    }
+    return {
+      all: ppl.length,
+      unassigned: ppl.filter((p) => !p.group_id).length,
+      offline, low,
+    };
+  }
+  function renderInventory() {
+    const host = document.getElementById("group-inventory");
+    if (!host) return;
+    const c = viewCounts();
+    const groups = [...state.data.groups].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const row = (attr, dot, label, count, cls) =>
+      `<a class="inv-item${cls ? " " + cls : ""}" ${attr} role="button" tabindex="0">`
+      + `<i class="inv-dot"${dot ? ` style="background:${dot}"` : ""}></i>`
+      + `<span class="inv-label">${esc(label)}</span>`
+      + `<span class="inv-count">${count}</span></a>`;
+    // Les vues temps réel n'ont de sens qu'antenne connectée : masquées sinon.
+    const liveRows = liveBeltpacks
+      ? row('data-view="offline"', "", "Hors ligne", c.offline, "inv-warn")
+        + row('data-view="low"', "", `Batterie < ${LOW_BATTERY} %`, c.low, "inv-warn")
+      : "";
+    host.innerHTML =
+      `<div class="nav-label">Groupes</div>`
+      + groups.map((g) => row(`data-group="${g.id}"`, sanitizeColor(g.color) || "var(--primary)",
+                              g.name, state.data.people.filter((p) => p.group_id === g.id).length)).join("")
+      + `<div class="nav-label">Vues</div>`
+      + row('data-view="all"', "", "Tous les beltpacks", c.all)
+      + row('data-view="unassigned"', "", "Non affectés", c.unassigned)
+      + liveRows;
+    host.querySelectorAll("[data-group]").forEach((a) =>
+      a.addEventListener("click", () => goToGroup(a.dataset.group)));
+    host.querySelectorAll("[data-view]").forEach((a) => {
+      const act = () => toggleView(a.dataset.view);
+      a.addEventListener("click", act);
+      a.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); act(); } });
+    });
+    host.querySelectorAll("[data-view]").forEach((a) =>
+      a.classList.toggle("active", a.dataset.view === state.view));
+  }
+
+  function goToGroup(gid) {
+    selectTab("board");
+    const wrap = el.blocks.querySelector(`.admin-block[data-block-id="${gid}"]`);
+    if (!wrap) return;
+    wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    wrap.classList.add("flash");
+    setTimeout(() => wrap.classList.remove("flash"), 900);
+  }
+
+  /* Vue filtrante : marque en direct les cartes qui NE correspondent PAS pour que le CSS
+     les estompe. Purement visuel et réversible — ni les données ni le glisser-déposer ne
+     sont touchés (un second clic sur la vue active la retire). */
+  function toggleView(v) {
+    state.view = state.view === v ? null : v;
+    renderInventory();
+    applyView();
+  }
+  function personMatchesView(bp, groupId) {
+    switch (state.view) {
+      case "unassigned": return !groupId;
+      case "offline": { const s = liveStat(bp); return s ? !s.online : false; }
+      case "low": { const s = liveStat(bp); return !!(s && s.online && typeof s.battery === "number" && s.battery < LOW_BATTERY); }
+      default: return true;   // "all" ou null → tout correspond
+    }
+  }
+  function applyView() {
+    const active = state.view && state.view !== "all";
+    document.querySelectorAll(".person[data-bp]").forEach((card) => {
+      const match = !active || personMatchesView(card.dataset.bp, card.dataset.blockId || null);
+      card.classList.toggle("view-dim", active && !match);
+    });
+    // Un groupe entièrement estompé est lui-même mis en retrait.
+    el.blocks.querySelectorAll(".admin-block").forEach((wrap) => {
+      const people = wrap.querySelectorAll(".person[data-bp]");
+      const anyMatch = !active || [...people].some((c) => !c.classList.contains("view-dim"));
+      wrap.classList.toggle("view-dim", active && people.length > 0 && !anyMatch);
+    });
   }
 
   /* ---------- État temps réel des beltpacks (statut connecté / batterie) ---------- */
@@ -453,6 +554,8 @@
   function applyLiveData(res) {
     liveBeltpacks = res && res.connected ? res.beltpacks : null;
     applyLiveIndicators();
+    renderInventory();      // compteurs « hors ligne » / « batterie » + apparition des vues
+    applyView();
   }
   async function pollLive() {
     let res;
