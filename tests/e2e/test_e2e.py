@@ -27,7 +27,7 @@ def test_setup_create_publish_display(page, live_server):
     page.wait_for_selector("#blocks-container >> text=Plateau")
 
     # Créer un beltpack affecté au groupe
-    page.click("#available-users .person-add")
+    page.click("#add-beltpack-pool")
     page.fill("#person-beltpack", "42")
     page.fill("#person-role", "Régie")
     page.select_option("#person-assign", label="Plateau")
@@ -104,7 +104,7 @@ def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie",
     page.fill("#block-name", name)
     page.click("#block-form button[type=submit]")
     page.wait_for_selector(f"#blocks-container >> text={name}")
-    page.click("#available-users .person-add")
+    page.click("#add-beltpack-pool")
     page.fill("#person-beltpack", beltpack)
     page.fill("#person-role", role)
     page.select_option("#person-assign", label=name)
@@ -285,7 +285,7 @@ def test_fresh_box_shows_onboarding(page, live_server):
 def test_available_filter(page, live_server):
     _enter_admin(page, live_server)
     for num, role in [("11", "Regie"), ("22", "Lumiere")]:
-        page.click("#available-users .person-add")
+        page.click("#add-beltpack-pool")
         page.fill("#person-beltpack", num)
         page.fill("#person-role", role)
         page.click("#person-form button[type=submit]")

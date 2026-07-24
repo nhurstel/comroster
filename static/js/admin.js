@@ -28,7 +28,7 @@
     available: document.getElementById("available-users"),
     availableCount: document.getElementById("available-count"),
     blocks: document.getElementById("blocks-container"),
-    blockCount: document.getElementById("block-count"),
+    blockCount: document.getElementById("board-count"),
     title: document.getElementById("board-title"),
     subtitle: document.getElementById("board-subtitle"),
     syncStatus: document.getElementById("sync-status"),
@@ -217,11 +217,13 @@
 
   // Case « + » ajoutée en fin de liste pour créer un beltpack (remplace le bouton dédié).
   function addTile(onClick) {
+    // Zone de dépôt pointillée (registre maquette) : le bloc est déjà cible de
+    // glisser-déposer ; ce même encart sert aussi à ajouter un beltpack au clic.
     const t = document.createElement("button");
     t.type = "button";
-    t.className = "person-add";
+    t.className = "drop-tile";
     t.title = "Ajouter un beltpack";
-    t.innerHTML = '<span class="pa-chip" aria-hidden="true">+</span><span class="pa-label">Beltpack</span>';
+    t.textContent = "déposer un beltpack";
     t.addEventListener("click", onClick);
     return t;
   }
@@ -265,7 +267,7 @@
   function renderAvailable() {
     el.available.innerHTML = "";
     const all = state.data.people.filter((p) => !p.group_id);
-    el.availableCount.textContent = `${all.length} beltpack${all.length > 1 ? "s" : ""}`;
+    el.availableCount.textContent = all.length;
     const q = (state.filter || "").trim().toLowerCase();
     const avail = q
       ? all.filter((p) => String(p.beltpack).toLowerCase().includes(q) || (p.role || "").toLowerCase().includes(q))
@@ -283,8 +285,8 @@
     } else {
       avail.forEach((p) => el.available.append(personCard(p, "available", null)));
     }
-    // La case « + » n'apparaît pas pendant une recherche (on cherche, on n'ajoute pas).
-    if (!q) el.available.append(addTile(() => openPersonDialog(null, null)));
+    // L'ajout se fait par le bouton de pied « + Ajouter un beltpack » (pas de tuile dans
+    // la liste : elle ferait doublon).
   }
   document.getElementById("available-filter").addEventListener("input", (e) => {
     state.filter = e.target.value;
@@ -307,7 +309,9 @@
   function renderBlocks() {
     el.blocks.innerHTML = "";
     const groups = [...state.data.groups].sort((a, b) => (a.order || 0) - (b.order || 0));
-    el.blockCount.textContent = `${groups.length} groupe${groups.length > 1 ? "s" : ""}`;
+    const assigned = state.data.people.filter((p) => p.group_id).length;
+    el.blockCount.textContent =
+      `${groups.length} groupe${groups.length > 1 ? "s" : ""} · ${assigned} affecté${assigned > 1 ? "s" : ""}`;
     groups.forEach((block) => {
       const members = state.data.people.filter((p) => p.group_id === block.id);
       const wrap = document.createElement("section");
@@ -352,7 +356,7 @@
       badge.className = "badge";
       // Compte seul (pas « 2 affectations ») : dans une carte de ~300 px, le libellé
       // long poussait les actions hors de l'en-tête. Le mot complet passe en infobulle.
-      badge.textContent = members.length;
+      badge.textContent = String(members.length).padStart(2, "0");
       badge.title = `${members.length} affectation${members.length > 1 ? "s" : ""}`;
       titleWrap.append(swatch, h3, badge);
       // Poignée de réordonnancement : on glisse le groupe par son titre.
@@ -395,6 +399,33 @@
       wrap.append(header, list);
       el.blocks.append(wrap);
     });
+    // Si la vue Table est active, la maintenir à jour avec les mêmes données.
+    const table = document.getElementById("blocks-table");
+    if (table && !table.hidden) renderTable();
+  }
+
+  /* Vue Table : tous les beltpacks à plat (n° / rôle / groupe), pour trier et lire en
+     diagonale. Rendu en CSSOM (aucun attribut style — CSP stricte). */
+  function renderTable() {
+    const host = document.getElementById("blocks-table");
+    if (!host) return;
+    const byId = new Map(state.data.groups.map((g) => [g.id, g]));
+    const rows = [...state.data.people].sort((a, b) =>
+      String(a.beltpack).localeCompare(String(b.beltpack), "fr", { numeric: true }));
+    host.innerHTML =
+      `<div class="bt-head"><span>BP</span><span>Rôle</span><span>Groupe</span></div>`
+      + rows.map((p) => {
+        const g = byId.get(p.group_id);
+        return `<div class="bt-row" data-user-id="${esc(p.id)}">`
+          + `<span class="bt-bp">${esc(p.beltpack)}</span>`
+          + `<span class="bt-role">${esc(p.role || "—")}</span>`
+          + `<span class="bt-grp">${g ? `<i class="bt-dot" data-color="${esc(sanitizeColor(g.color) || "")}"></i>${esc(g.name)}` : "—"}</span></div>`;
+      }).join("");
+    host.querySelectorAll(".bt-dot[data-color]").forEach((i) => {
+      if (i.dataset.color) i.style.background = i.dataset.color;
+    });
+    host.querySelectorAll(".bt-row").forEach((r) =>
+      r.addEventListener("dblclick", () => openPersonDialog(r.dataset.userId)));
   }
 
   function chip(label, onClick, extra) {
@@ -515,6 +546,18 @@
     renderInventory();
     applyView();
   }
+  function groupNameOf(gid) {
+    const g = state.data.groups.find((x) => x.id === gid);
+    return g ? g.name : "";
+  }
+  function personMatchesText(card) {
+    const q = (state.boardQuery || "").trim().toLowerCase();
+    if (!q) return true;
+    const bp = (card.dataset.bp || "").toLowerCase();
+    const role = (card.querySelector(".role")?.textContent || "").toLowerCase();
+    const gname = groupNameOf(card.dataset.blockId || "").toLowerCase();
+    return bp.includes(q) || role.includes(q) || gname.includes(q);
+  }
   function personMatchesView(bp, groupId) {
     switch (state.view) {
       case "unassigned": return !groupId;
@@ -524,10 +567,13 @@
     }
   }
   function applyView() {
-    const active = state.view && state.view !== "all";
+    const viewActive = state.view && state.view !== "all";
+    const textActive = !!(state.boardQuery || "").trim();
+    const active = viewActive || textActive;
     document.querySelectorAll(".person[data-bp]").forEach((card) => {
-      const match = !active || personMatchesView(card.dataset.bp, card.dataset.blockId || null);
-      card.classList.toggle("view-dim", active && !match);
+      const okView = !viewActive || personMatchesView(card.dataset.bp, card.dataset.blockId || null);
+      const okText = personMatchesText(card);
+      card.classList.toggle("view-dim", active && !(okView && okText));
     });
     // Un groupe entièrement estompé est lui-même mis en retrait.
     el.blocks.querySelectorAll(".admin-block").forEach((wrap) => {
@@ -544,7 +590,9 @@
     const ind = state.data.indicators || DEFAULT_IND;
     document.querySelectorAll(".bp-dot[data-bp]").forEach((d) => {
       const on = liveBeltpacks?.[d.dataset.bp]?.online;
-      if (!ind.online || on === undefined) { d.className = "bp-dot"; d.title = ""; }
+      // Indicateur décoché → masqué ; sinon point neutre (état inconnu) ou vert/gris.
+      if (!ind.online) { d.className = "bp-dot hidden"; d.title = ""; }
+      else if (on === undefined) { d.className = "bp-dot"; d.title = ""; }
       else { d.className = "bp-dot " + (on ? "on" : "down"); d.title = on ? "En ligne" : "Hors ligne"; }
     });
     document.querySelectorAll(".bp-batt[data-bp]").forEach((b) => {
@@ -1431,15 +1479,41 @@
     renderStatusBar(res.displays);
   }
 
-  /* ---------- Onglets (Affectations / Écran) ---------- */
+  /* ---------- Onglets ----------
+     Affectations / Écran sont des panneaux ; Intercom / Journal / Système ouvrent les
+     dialogues existants (data-launch) sans changer de panneau. */
   function selectTab(name) {
-    document.querySelectorAll(".admin-tabs .tab").forEach((t) =>
+    document.querySelectorAll(".admin-tabs .tab[data-tab]").forEach((t) =>
       t.setAttribute("aria-selected", String(t.dataset.tab === name)));
-    document.querySelectorAll(".tab-panel").forEach((p) =>
-      { p.hidden = p.dataset.panel !== name; });
+    document.querySelectorAll(".tab-panel").forEach((p) => { p.hidden = p.dataset.panel !== name; });
   }
-  document.querySelectorAll(".admin-tabs .tab").forEach((t) =>
+  document.querySelectorAll(".admin-tabs .tab[data-tab]").forEach((t) =>
     t.addEventListener("click", () => selectTab(t.dataset.tab)));
+
+  const TAB_LAUNCHERS = { antenna: openAntenna, history: openHistory, network: openNetwork };
+  document.querySelectorAll(".admin-tabs [data-launch]").forEach((t) =>
+    t.addEventListener("click", () => TAB_LAUNCHERS[t.dataset.launch]?.()));
+
+  /* ---------- Barre d'outils du plateau ---------- */
+  // Recherche grep : estompe en direct les cartes hors correspondance (combiné aux vues).
+  const boardFilter = document.getElementById("board-filter");
+  boardFilter?.addEventListener("input", () => { state.boardQuery = boardFilter.value; applyView(); });
+
+  // Bascule Blocs / Table.
+  function setViewMode(mode) {
+    document.querySelectorAll(".tb-seg .seg-btn").forEach((b) =>
+      b.setAttribute("aria-pressed", String(b.dataset.viewMode === mode)));
+    document.getElementById("blocks-container").hidden = mode !== "blocs";
+    const table = document.getElementById("blocks-table");
+    table.hidden = mode !== "table";
+    if (mode === "table") renderTable();
+  }
+  document.querySelectorAll(".tb-seg .seg-btn").forEach((b) =>
+    b.addEventListener("click", () => setViewMode(b.dataset.viewMode)));
+
+  // Ajout de beltpack : depuis la barre d'outils ou le pied de la réserve (non affecté).
+  document.getElementById("add-beltpack-btn")?.addEventListener("click", () => openPersonDialog(null, null));
+  document.getElementById("add-beltpack-pool")?.addEventListener("click", () => openPersonDialog(null, null));
 
   /* ---------- Horloge de l'en-tête ---------- */
   const clockEl = document.getElementById("admin-clock");

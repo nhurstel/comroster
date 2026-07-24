@@ -26,8 +26,13 @@
       </div>
 
       <nav class="admin-tabs" role="tablist" aria-label="Sections de l'administration">
+        {# Affectations et Écran sont des panneaux ; Intercom / Journal / Système ouvrent
+           les dialogues existants (data-launch) sans changer de panneau. #}
         <button type="button" class="tab" data-tab="board" role="tab" aria-selected="true">Affectations</button>
         <button type="button" class="tab" data-tab="screen" role="tab" aria-selected="false">Écran</button>
+        <button type="button" class="tab" data-launch="antenna">Intercom</button>
+        <button type="button" class="tab" data-launch="history">Journal</button>
+        <button type="button" class="tab" data-launch="network">Système</button>
       </nav>
 
       <div class="top-right">
@@ -38,7 +43,7 @@
           <span class="pulse" aria-hidden="true"></span>
           <span class="status-text" id="sync-label">Brouillon synchronisé</span>
         </div>
-        <button type="button" id="publish-btn" class="primary">Envoyer à l'affichage</button>
+        <button type="button" id="publish-btn" class="publish-text">Envoyer à l'affichage<kbd>⌘↵</kbd></button>
       </div>
     </header>
 
@@ -83,21 +88,38 @@
         <section class="tab-panel" data-panel="board">
           <div class="admin-layout">
             <section class="admin-panel panel-board">
-              <div class="block-header">
-                <h3>Affectations</h3>
-                <span class="badge" id="block-count"></span>
-                <button type="button" id="add-block-btn" class="mini-btn add">+ Groupe</button>
+              <div class="board-toolbar">
+                <div class="tb-filter">
+                  <span class="tb-grep">grep</span>
+                  <input type="search" id="board-filter" placeholder="n° · rôle · groupe" autocomplete="off">
+                  <kbd>/</kbd>
+                </div>
+                <div class="tb-seg" role="tablist" aria-label="Mode d'affichage">
+                  <button type="button" class="seg-btn" data-view-mode="blocs" aria-pressed="true">Blocs</button>
+                  <button type="button" class="seg-btn" data-view-mode="table" aria-pressed="false">Table</button>
+                </div>
+                <div class="tb-right">
+                  <span class="tb-count" id="board-count"></span>
+                  <button type="button" id="add-block-btn" class="tb-act">+ Groupe</button>
+                  <button type="button" id="add-beltpack-btn" class="tb-act">+ Beltpack</button>
+                </div>
               </div>
               <div class="board-grid" id="blocks-container"></div>
+              <div class="board-table" id="blocks-table" hidden></div>
             </section>
             <section class="admin-panel panel-pool" aria-labelledby="available-heading">
-              <div class="block-header">
-                <h3 id="available-heading">Non affectés</h3>
-                <span class="badge" id="available-count"></span>
+              <div class="pool-head">
+                <h3 id="available-heading" class="nav-label">Non affectés <span class="badge" id="available-count"></span></h3>
+                <div class="pool-find">
+                  <input type="search" id="available-filter" placeholder="N° ou rôle…" autocomplete="off">
+                  <kbd>⌘K</kbd>
+                </div>
               </div>
-              <input type="search" id="available-filter" class="panel-filter" placeholder="Rechercher (n° ou nom)…" autocomplete="off">
               <div class="user-list" id="available-users"></div>
               <p class="empty-hint">Glissez les beltpacks dans un groupe pour les affecter.</p>
+              <div class="pool-foot">
+                <button type="button" id="add-beltpack-pool" class="pool-add">+ Ajouter un beltpack</button>
+              </div>
             </section>
           </div>
         </section>
