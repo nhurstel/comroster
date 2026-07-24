@@ -3,7 +3,6 @@
   // Optionnel chaîné : si le meta disparaissait, on n'arrête pas tout le script au
   // chargement (les requêtes échoueraient proprement côté serveur avec un CSRF vide).
   const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || "";
-  const DEFAULT_COLOR = "#3AAFA9";
   const SKINS = ["basique", "lineaire", "grille"];   // miroir de model.SKINS
   const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
@@ -37,7 +36,6 @@
     dirty: document.getElementById("dirty-indicator"),
     lastUpdated: document.getElementById("last-updated"),
     publishBtn: document.getElementById("publish-btn"),
-    colorPicker: document.getElementById("block-color-picker"),
     contextMenu: document.getElementById("context-menu"),
     blockDialog: document.getElementById("block-dialog"),
     blockForm: document.getElementById("block-form"),
@@ -638,20 +636,37 @@
   }
 
   /* ---------- Color picker ---------- */
+  /* Palette bornée des couleurs de groupe. Chaque teinte est calibrée pour donner un
+     contraste ≥ 4.5:1 (WCAG AA) avec l'encre calculée par inkFor(), dans les DEUX modes de
+     luminosité — c'est ce que le sélecteur natif ne garantissait pas (d'où le rouge
+     #C4544A retenu au banc, illisible à 4.2:1 sur son aplat). Vives à encre sombre puis
+     profondes à encre claire. */
+  const GROUP_PALETTE = [
+    "#E1554C", "#E8863B", "#E4B93C", "#8FBF52", "#3FA6B0", "#4F86C6",
+    "#8B7CC8", "#C062A6", "#B0B7C0", "#9B2F2F", "#2C4C8E", "#2E6B34",
+  ];
+  const colorDialog = document.getElementById("color-dialog");
+  const colorGrid = document.getElementById("color-grid");
+
   function openColorPicker(blockId) {
     const b = findBlock(blockId);
     if (!b) return;
-    el.colorPicker.value = sanitizeColor(b.color) || DEFAULT_COLOR;
-    el.colorPicker.dataset.blockId = blockId;
-    if (typeof el.colorPicker.showPicker === "function") el.colorPicker.showPicker();
-    else el.colorPicker.click();
-  }
-  function onColorPick(e) {
-    const b = findBlock(e.target.dataset.blockId);
-    if (!b) return;
-    const next = sanitizeColor(e.target.value);
-    if (b.color === next) return;
-    b.color = next; markDirty(); render();
+    const current = sanitizeColor(b.color);
+    colorGrid.innerHTML = "";
+    GROUP_PALETTE.forEach((hex) => {
+      const sw = document.createElement("button");
+      sw.type = "button";
+      sw.className = "color-choice" + (hex === current ? " selected" : "");
+      sw.style.background = hex;                 // CSSOM, jamais un attribut style (CSP)
+      sw.title = hex;
+      sw.setAttribute("aria-label", "Couleur " + hex);
+      sw.addEventListener("click", () => {
+        if (b.color !== hex) { b.color = hex; markDirty(); render(); }
+        colorDialog.close();
+      });
+      colorGrid.append(sw);
+    });
+    colorDialog.showModal();
   }
 
   /* ---------- Dialog personne (création + édition) ---------- */
@@ -898,8 +913,6 @@
   document.getElementById("history-btn").addEventListener("click", openHistory);
   document.getElementById("history-clear").addEventListener("click", clearHistory);
   document.getElementById("history-close").addEventListener("click", () => document.getElementById("history-dialog").close());
-  el.colorPicker.addEventListener("input", onColorPick);
-  el.colorPicker.addEventListener("change", onColorPick);
   document.querySelectorAll("button[data-close]").forEach((b) =>
     b.addEventListener("click", () => document.getElementById(b.dataset.close)?.close()));
   window.addEventListener("keydown", (e) => {

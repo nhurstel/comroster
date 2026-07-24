@@ -113,8 +113,10 @@ Techniquement : un attribut `data-skin` sur `<body>` ; `basique` vit dans
 feuilles sont toutes chargées en permanence, puisque l'apparence peut changer en direct par SSE.
 
 > **`grille` pose du texte sur la couleur du groupe.** L'encre (noire ou blanche) est choisie au
-> rendu d'après la luminance relative sRGB, mais une teinte très saturée reste médiocre quel que
-> soit le choix : si vous adoptez cette apparence, tenez-vous-en à des couleurs franches.
+> rendu d'après la luminance relative sRGB. Pour garantir la lisibilité, le choix de couleur d'un
+> groupe se fait dans une **palette bornée** de 12 teintes calibrées (contraste ≥ 4.5:1 avec l'encre
+> dans les deux modes de luminosité) — pas un sélecteur libre, qui laissait choisir des teintes
+> médiocres. La règle d'encre est partagée par l'écran et l'admin ([ink.js](static/js/ink.js)).
 
 **Aperçu** — un **témoin permanent** en surimpression, coin bas-droit, montre l'état **publié** et
 se rafraîchit à chaque publication. À cette taille le texte est illisible par construction : on y

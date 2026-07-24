@@ -78,7 +78,6 @@
       </aside>
 
       <main class="admin-main">
-        <input type="color" id="block-color-picker" class="visually-hidden" aria-hidden="true">
 
         {# Onglet Affectations : plan de travail (grille de blocs) + réserve. #}
         <section class="tab-panel" data-panel="board">
@@ -177,6 +176,20 @@
               aria-label="Agrandir le report de l'écran de régie"></button>
     </div>
   </aside>
+
+  {# Palette bornée des couleurs de groupe : chaque teinte est calibrée pour rester
+     lisible sur l'aplat de l'écran de régie (contraste ≥ 4.5:1 avec l'encre calculée).
+     Remplace le sélecteur de couleur natif, qui laissait choisir des teintes illisibles. #}
+  <dialog id="color-dialog" class="admin-dialog color-dialog">
+    <form method="dialog">
+      <h2>Couleur du groupe</h2>
+      <p class="dialog-hint">Palette calibrée pour rester lisible sur l'écran de régie, quel que soit le mode de luminosité.</p>
+      <div class="color-grid" id="color-grid"></div>
+      <div class="dialog-actions">
+        <button type="button" data-close="color-dialog">Fermer</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="block-dialog" class="admin-dialog">
     <form id="block-form" method="dialog">

@@ -28,6 +28,13 @@ def test_admin_has_antenna_panel(auth_client):
     assert "settings-dialog" not in html      # ancien dialog retiré
 
 
+def test_admin_color_palette_replaces_native_picker(auth_client):
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert 'id="color-dialog"' in html          # palette bornée
+    assert 'id="color-grid"' in html
+    assert 'type="color"' not in html            # plus de sélecteur natif illisible
+
+
 def test_admin_has_configs_and_selection(auth_client):
     html = auth_client.get("/admin").get_data(as_text=True)
     assert "configs-dialog" in html

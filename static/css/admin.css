@@ -450,6 +450,19 @@
 .admin-block .block-header .badge { background: rgb(0 0 0 / 0.16); border-color: transparent; color: inherit; }
 .admin-block .color-swatch { border-color: rgb(0 0 0 / 0.35); }
 
+/* Palette bornée des couleurs de groupe (dialog) */
+.color-dialog { max-width: 320px; }
+.color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem; }
+.admin-page .color-choice {
+    width: 100%; aspect-ratio: 1; height: auto; min-height: 2rem; padding: 0;
+    border: 2px solid transparent; border-radius: var(--rad); cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25);
+    transition: transform 0.1s;
+}
+.admin-page .color-choice:hover { transform: scale(1.08); }
+.admin-page .color-choice.selected { border-color: var(--fg); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25), 0 0 0 2px var(--a-surface-2); }
+.admin-page .color-choice:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
 /* Case couleur cliquable : clic dessus → sélecteur de couleur du groupe */
 .color-swatch {
     width: 1.05rem; height: 1.05rem; border-radius: 4px;
