@@ -286,7 +286,7 @@ Principe : chaque phase est livrable seule, tests verts, sans casser la précéd
 
 ## C. Mise en page — template + CSS
 
-- [ ] C1. « Beltpacks disponibles » quitte `.admin-layout` et devient une colonne
+- [x] C1. « Beltpacks disponibles » quitte `.admin-layout` et devient une colonne
       de droite (`--pool-w:242px`). Le plan de travail devient une grille
       `repeat(auto-fill, minmax(300px, 1fr))`, gap 7.
 - [ ] C2. En-tête à 53 px : fil d'Ariane + onglets nommés + horloge + état + action.
