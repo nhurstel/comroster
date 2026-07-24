@@ -65,6 +65,31 @@ def get_state():
     return jsonify(_storage().load_draft())
 
 
+@bp.get("/api/status")
+@login_required
+def get_status():
+    """Ce qui est réellement à l'antenne, pour la barre d'état de l'admin.
+
+    - `displays` : nombre d'écrans de régie abonnés au flux SSE (les aperçus de
+      l'admin, eux, n'ouvrent jamais de flux — ils ne comptent donc pas).
+    - `published` : résumé de l'état PUBLIÉ (groupes, beltpacks, horodatage), pour
+      afficher la dernière diffusion et l'écart avec le brouillon en cours. On ne
+      renvoie qu'un résumé, pas l'état entier : la barre n'a besoin que des compteurs.
+    """
+    published = _storage().load_published()
+    summary = None
+    if published:
+        summary = {
+            "groups": len(published.get("groups", [])),
+            "people": len(published.get("people", [])),
+            "updated_at": published.get("updated_at"),
+        }
+    return jsonify({
+        "displays": current_app.extensions["broker"].subscriber_count,
+        "published": summary,
+    })
+
+
 @bp.get("/api/network")
 @login_required
 def get_network():

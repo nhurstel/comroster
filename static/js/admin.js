@@ -65,7 +65,7 @@
 
   function setUnpublished(v) {
     state.unpublished = v;
-    el.dirty.textContent = v ? "Modifications non publiées" : "";
+    renderStatusBar();   // recalcule l'écart brouillon ↔ publié (dirty-indicator)
   }
 
   /* ---------- Notification transitoire (toast) ----------
@@ -435,6 +435,7 @@
     applyLiveIndicators();
     renderInventory();
     applyView();
+    renderStatusBar();   // apparence + écart suivent le brouillon (sans appel réseau)
   }
 
   /* ---------- Inventaire (barre latérale) ----------
@@ -466,9 +467,12 @@
     if (!host) return;
     const c = viewCounts();
     const groups = [...state.data.groups].sort((a, b) => (a.order || 0) - (b.order || 0));
-    const row = (attr, dot, label, count, cls) =>
+    // Pas de `style="…"` en attribut : la CSP stricte de l'admin le bloque (leçon
+    // 2026-07-07). La couleur de pastille est portée par data-color et appliquée en
+    // CSSOM après l'insertion, comme le reste du rendu (renderBlocks).
+    const row = (attr, color, label, count, cls) =>
       `<a class="inv-item${cls ? " " + cls : ""}" ${attr} role="button" tabindex="0">`
-      + `<i class="inv-dot"${dot ? ` style="background:${dot}"` : ""}></i>`
+      + `<i class="inv-dot"${color ? ` data-color="${esc(color)}"` : ""}></i>`
       + `<span class="inv-label">${esc(label)}</span>`
       + `<span class="inv-count">${count}</span></a>`;
     // Les vues temps réel n'ont de sens qu'antenne connectée : masquées sinon.
@@ -484,6 +488,7 @@
       + row('data-view="all"', "", "Tous les beltpacks", c.all)
       + row('data-view="unassigned"', "", "Non affectés", c.unassigned)
       + liveRows;
+    host.querySelectorAll(".inv-dot[data-color]").forEach((i) => { i.style.background = i.dataset.color; });
     host.querySelectorAll("[data-group]").forEach((a) =>
       a.addEventListener("click", () => goToGroup(a.dataset.group)));
     host.querySelectorAll("[data-view]").forEach((a) => {
@@ -763,6 +768,7 @@
       await apiSend("POST", "/api/publish");
       setUnpublished(false);
       reloadPreview();                 // le témoin suit l'écran de régie, il vient de changer
+      refreshStatus();                 // nouveau résumé publié → écart remis à zéro
       setStatus("Envoyé à l'affichage ✓", "updated");
       setTimeout(() => setStatus("Brouillon synchronisé", "idle"), 2500);
     } catch (err) {
@@ -1132,11 +1138,13 @@
   let dockOpen = true;
   try { dockOpen = localStorage.getItem(DOCK_KEY) !== "0"; } catch { /* mode privé */ }
 
-  document.getElementById("preview-btn").addEventListener("click", () => {
+  function openBigPreview() {
     previewDialog.showModal();
     fitPreviews();
     reloadPreview();
-  });
+  }
+  document.getElementById("preview-btn").addEventListener("click", openBigPreview);
+  document.getElementById("status-preview").addEventListener("click", openBigPreview);
   // Clic hors du panneau = fermeture. On teste les COORDONNÉES contre le rectangle du
   // dialog, pas `e.target === previewDialog` : le padding du dialog appartient au dialog
   // lui-même, un clic dedans le fermerait alors qu'il est visuellement à l'intérieur.
@@ -1347,14 +1355,67 @@
   function subscribeAdmin() {
     try {
       const es = new EventSource("/events");
+      es.addEventListener("open", () => setSseHealth(true));
+      es.addEventListener("error", () => setSseHealth(false));
       es.addEventListener("published", () => {
         reloadPreview();          // publication venue d'ailleurs (autre poste, auto-sync)
+        refreshStatus();          // l'état à l'antenne a changé
         if (!state.unpublished) load();
       });
       // État live des beltpacks poussé par le serveur (même flux `live` que l'affichage) :
       // remplace l'ancien polling périodique. L'admin restant abonné, le poller publie.
       es.addEventListener("live", (e) => { try { applyLiveData(JSON.parse(e.data)); } catch { /* ignore */ } });
     } catch { /* SSE indisponible : l'admin reste sur son état courant */ }
+  }
+
+  /* ---------- Barre d'état ----------
+     Ce qui est réellement à l'antenne (état publié, afficheurs connectés) et l'écart avec
+     le brouillon en cours. Le résumé publié vient de /api/status ; l'écart se calcule
+     contre les compteurs du brouillon local (state.data). L'apparence affichée est celle
+     du BROUILLON — c'est ce que la prochaine publication enverra. */
+  let publishedSummary = null;   // {groups, people, updated_at} ou null (rien de publié)
+
+  function setSseHealth(ok) {
+    const seg = document.getElementById("status-sse");
+    if (seg) seg.dataset.ok = ok ? "1" : "0";
+  }
+  const hhmm = (iso) => { try { return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); } catch { return "—"; } };
+
+  function renderStatusBar(displays) {
+    const skinLabel = { basique: "Basique", lineaire: "Linéaire", grille: "Grille" };
+    const setTxt = (id, v) => { const n = document.getElementById(id); if (n) n.textContent = v; };
+    if (displays != null) {
+      setTxt("status-sse-text", displays === 0 ? "aucun afficheur"
+        : displays + " afficheur" + (displays > 1 ? "s" : ""));
+    }
+    setTxt("status-published", publishedSummary ? "publié " + hhmm(publishedSummary.updated_at) : "jamais publié");
+    setTxt("status-skin", skinLabel[state.data.skin] || "Basique");
+
+    // Écart brouillon ↔ publié. Le drapeau `unpublished` est la vérité (toute édition le
+    // lève) ; les compteurs ne servent qu'à préciser « combien ». Sans rien de publié, ou
+    // sans édits en attente, on n'affiche pas d'écart.
+    const pend = document.getElementById("dirty-indicator");
+    if (!pend) return;
+    if (!state.unpublished) { pend.textContent = ""; return; }
+    if (!publishedSummary) { pend.textContent = "jamais publié"; return; }
+    const dg = state.data.groups.length - publishedSummary.groups;
+    const dp = state.data.people.length - publishedSummary.people;
+    const parts = [];
+    let lastAbs = 1;
+    if (dg) { lastAbs = Math.abs(dg); parts.push((dg > 0 ? "+" : "") + dg + " groupe" + (lastAbs > 1 ? "s" : "")); }
+    if (dp) { lastAbs = Math.abs(dp); parts.push((dp > 0 ? "+" : "") + dp + " beltpack" + (lastAbs > 1 ? "s" : "")); }
+    // « non publié » s'accorde avec le dernier terme énuméré (« +1 groupe non publié »,
+    // « +1 groupe, +2 beltpacks non publiés »).
+    pend.textContent = parts.length
+      ? parts.join(", ") + " non publié" + (lastAbs > 1 ? "s" : "")
+      : "modifications non publiées";
+  }
+
+  async function refreshStatus() {
+    let res;
+    try { res = await apiSend("GET", "/api/status"); } catch { return; }
+    publishedSummary = res.published || null;
+    renderStatusBar(res.displays);
   }
 
   /* ---------- Onglets (Affectations / Écran) ---------- */
@@ -1379,6 +1440,7 @@
   render();
   updateSelectionBar();
   refreshAntennaBadge();
+  refreshStatus();            // résumé publié + afficheurs connectés (barre d'état)
   pollLive();                 // état initial ; les MAJ arrivent en push via le SSE `live`
   subscribeAdmin();
   setStatus("Brouillon synchronisé", "idle");

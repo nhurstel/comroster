@@ -75,3 +75,27 @@ def test_events_rejects_when_at_capacity(app, client):
     resp2 = client.get("/events")
     assert resp2.status_code == 200
     resp2.close()
+
+
+def test_status_reports_displays_and_published(auth_client, app):
+    """La barre d'état de l'admin lit /api/status : afficheurs abonnés + résumé publié."""
+    # Rien de publié au départ.
+    r = auth_client.get("/api/status")
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body["published"] is None
+    assert body["displays"] == 0
+
+    # Un abonné SSE (écran de régie) est compté ; la publication remplit le résumé.
+    q = app.extensions["broker"].subscribe()
+    auth_client.post("/api/people", json={"role": "HF", "beltpack": "12"})
+    auth_client.post("/api/publish")
+    body = auth_client.get("/api/status").get_json()
+    assert body["displays"] == 1
+    assert body["published"]["people"] == 1
+    assert body["published"]["updated_at"]
+    del q
+
+
+def test_status_requires_auth(client):
+    assert client.get("/api/status").status_code in (302, 401, 403)

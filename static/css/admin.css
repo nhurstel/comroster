@@ -300,6 +300,15 @@
 .admin-status .s b { color: var(--fg-subtle); font-weight: 400; }
 .admin-status .s.pend:not(:empty) { color: var(--warning); }
 .admin-status .status-right { margin-left: auto; border-right: none; border-left: 1px solid var(--border-soft); color: var(--a-muted); }
+.admin-status .st-dot { width: 6px; height: 6px; border-radius: 2px; background: var(--a-muted); flex: 0 0 auto; }
+.admin-status .status-sse[data-ok="1"] .st-dot { background: var(--success); }
+.admin-status .status-sse[data-ok="0"] .st-dot { background: var(--warning); }
+/* Lien « aperçu écran » : un segment cliquable, pas un bouton — même gabarit que les autres. */
+.admin-page .admin-status .status-link {
+    height: auto; padding: 0 0.8rem; background: transparent; border: none; border-right: 1px solid var(--border-soft);
+    border-radius: 0; color: var(--a-muted); font-family: inherit; font-size: var(--ui-sm); font-weight: 400; cursor: pointer;
+}
+.admin-page .admin-status .status-link:hover:not(:disabled) { background: var(--a-surface-2); color: var(--fg-subtle); }
 
 /* ---------- Vue filtrante de l'inventaire ---------- */
 /* Estompe (ne masque pas) les cartes hors vue : réversible, sans toucher aux données. */

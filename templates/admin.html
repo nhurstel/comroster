@@ -148,11 +148,15 @@
       </main>
     </div>
 
-    {# Barre d'état (pied) : ce qui est réellement à l'antenne + écart du brouillon.
-       Le contenu dynamique (publication, écart) est câblé à l'étape D. #}
+    {# Barre d'état (pied) : ce qui est réellement à l'antenne + écart du brouillon. #}
     <footer class="admin-status">
-      <span class="s" id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>
+      <span class="s status-sse" id="status-sse" title="Écrans de régie abonnés au flux temps réel">
+        <i class="st-dot" aria-hidden="true"></i><span id="status-sse-text">SSE…</span></span>
+      <span class="s" id="status-published">publié —</span>
       <span class="s pend" id="dirty-indicator"></span>
+      <span class="s">apparence <b id="status-skin">—</b></span>
+      <span class="s" id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>
+      <button type="button" class="s status-link" id="status-preview">aperçu écran ↗</button>
       <span class="s status-right">par Nathan Hurstel</span>
     </footer>
   </div>
