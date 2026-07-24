@@ -296,17 +296,16 @@ Principe : chaque phase est livrable seule, tests verts, sans casser la précéd
       (`#skin-select`, `#theme-select`, `#meta-columns`…) : `bindSettings` et
       `syncSettingsInputs` continuent de fonctionner sans y toucher.
 
-## D. Barre d'état — remplace le témoin d'aperçu
+## D. Barre d'état — complète le témoin d'aperçu  ✅ FAIT (83ba5b8)
 
-- [ ] D1. Réutiliser `.admin-foot` (déjà présent, 2,3 rem). Contenu : flux SSE +
+- [x] D1. Réutiliser `.admin-foot` (déjà présent, 2,3 rem). Contenu : flux SSE +
       nombre de clients, heure de la dernière publication, apparence + résolution,
       « aperçu écran ↗ » (rouvre le grand aperçu), export.
-- [ ] D2. Écart brouillon ↔ publié (« +1 groupe, +2 beltpacks non envoyés »).
+- [x] D2. Écart brouillon ↔ publié (« +1 groupe, +2 beltpacks non envoyés »).
       Nouveau calcul côté client entre `state.data` et l'état publié. À faire
       APRÈS D1 : D1 seul remplace déjà la vignette.
-- [ ] D3. Retirer `.preview-dock` et son CSS. Mettre à jour le test e2e
-      `test_preview_tracks_published_and_opens_no_sse` : la vignette disparaît,
-      le grand aperçu et l'absence de SSE restent testés.
+- [~] D3. ANNULÉ (décision Nathan : l'aperçu reste ouvert par défaut). Le témoin
+      cohabite avec la barre d'état ; « aperçu écran ↗ » ouvre le grand aperçu.
 
 ## Décisions de Nathan (2026-07-23)
 
