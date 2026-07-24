@@ -284,13 +284,13 @@ Principe : chaque phase est livrable seule, tests verts, sans casser la précéd
       entre n° et rôle (miroir de `skins.css`, cf. `--tie`).
 - [x] B3. Voyants d'état : point, masqué au survol au profit des actions.
 
-## C. Mise en page — template + CSS
+## C. Mise en page — template + CSS  ✅ FAIT (C1 972808e · C2 085ea4d · C3 fd371c5)
 
 - [x] C1. « Beltpacks disponibles » quitte `.admin-layout` et devient une colonne
       de droite (`--pool-w:242px`). Le plan de travail devient une grille
       `repeat(auto-fill, minmax(300px, 1fr))`, gap 7.
-- [ ] C2. En-tête à 53 px : fil d'Ariane + onglets nommés + horloge + état + action.
-- [ ] C3. Barre latérale → INVENTAIRE : groupes avec effectif, puis vues
+- [x] C2. En-tête à 53 px : fil d'Ariane + onglets nommés + horloge + état + action.
+- [x] C3. Barre latérale → INVENTAIRE : groupes avec effectif, puis vues
       (« Hors ligne », « Batterie < 30 % »), puis Données. Les réglages d'écran
       partent dans l'onglet « Écran ». ⚠️ Garder les MÊMES ids d'inputs
       (`#skin-select`, `#theme-select`, `#meta-columns`…) : `bindSettings` et
