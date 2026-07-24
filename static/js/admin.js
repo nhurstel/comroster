@@ -350,7 +350,10 @@
       h3.textContent = block.name;
       const badge = document.createElement("span");
       badge.className = "badge";
-      badge.textContent = `${members.length} affectation${members.length > 1 ? "s" : ""}`;
+      // Compte seul (pas « 2 affectations ») : dans une carte de ~300 px, le libellé
+      // long poussait les actions hors de l'en-tête. Le mot complet passe en infobulle.
+      badge.textContent = members.length;
+      badge.title = `${members.length} affectation${members.length > 1 ? "s" : ""}`;
       titleWrap.append(swatch, h3, badge);
       // Poignée de réordonnancement : on glisse le groupe par son titre.
       titleWrap.draggable = true;

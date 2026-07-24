@@ -266,10 +266,10 @@
 .admin-page .status-badge[data-state="error"] .pulse { background: var(--error); }
 .admin-page .status-badge[data-state="error"] .status-text { color: var(--error); }
 
-/* ---------- Layout 2 colonnes : panneaux sans couture, séparés par un filet ---------- */
+/* ---------- Coquille : plan de travail | réserve, séparés par un filet ---------- */
 .admin-layout {
     display: grid;
-    grid-template-columns: minmax(240px, 300px) 1fr;
+    grid-template-columns: 1fr var(--pool-w);
     gap: 0;
     flex: 1;
     min-height: 0;
@@ -286,14 +286,15 @@
     gap: 0.65rem;
     min-height: 0;
 }
-/* 3 zones qui s'assombrissent de gauche à droite (nav → disponibles → contenu),
-   bord à bord, chaque colonne remplit toute la hauteur. */
-.admin-layout > .admin-panel:first-child {
+/* La réserve porte une surface enfoncée, séparée du plan de travail par un filet. */
+.admin-layout > .panel-pool {
     background: #111520;
-    border-right: 1px solid var(--border);
+    border-left: 1px solid var(--border);
     padding: 0.9rem 1rem;
 }
-.admin-layout > .admin-panel:last-child { padding: 0.9rem 1.1rem; }
+.admin-layout > .panel-board { padding: 0.9rem 1.1rem; min-width: 0; }
+.panel-board .block-header { margin-bottom: 0.2rem; }
+.panel-board .block-header .add { margin-left: auto; }
 .admin-panel .block-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .admin-panel .block-header h3 { margin: 0; font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--fg-muted); }
 
@@ -311,6 +312,15 @@
     display: flex;
     flex-direction: column;
     gap: 0;
+}
+/* Plan de travail : grille responsive, groupes dimensionnés à leur contenu. */
+#blocks-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
+    grid-auto-rows: min-content;
+    align-items: start;
+    gap: var(--gap);
+    padding-right: 0.3rem;
 }
 .user-list::-webkit-scrollbar,
 #available-users::-webkit-scrollbar,
@@ -335,20 +345,22 @@
     border-radius: var(--rad);
     overflow: hidden;
     padding: 0;
-    margin-bottom: var(--gap);
+    margin-bottom: 0;
     /* Ne jamais écraser un groupe pour tenir dans la colonne : il garde sa hauteur
        naturelle (tous ses beltpacks visibles) et c'est la colonne qui défile. */
     flex: 0 0 auto;
 }
 /* En-tête de section : bandeau marqué (repère de groupe à la Jira) */
 .admin-block .block-header {
-    display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap;
     margin-bottom: 0;
     padding: 0.4rem 0.6rem;
     background: rgb(0 0 0 / 0.14);
     border-bottom: 1px solid rgb(0 0 0 / 0.16);
 }
-.admin-block .block-title { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0; }
+.admin-block .block-title { display: flex; align-items: center; gap: 0.5rem; flex: 1 1 auto; min-width: 0; }
+.admin-block .block-title h3 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.admin-block .block-header .badge { flex: 0 0 auto; }
 .admin-block .block-title h3 { margin: 0; font-size: calc(var(--role) - 1px); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
 .admin-block .block-items { padding: 0 0.6rem; }
 
@@ -370,13 +382,22 @@
 .color-swatch:hover { transform: scale(1.12); box-shadow: 0 0 0 2px rgba(238,241,247,0.18); }
 .color-swatch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
-/* Actions de groupe : TOUJOURS visibles, lisibles et confortables (admin = clarté avant tout) */
-.block-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; }
+/* Actions de groupe : compactes et révélées au survol du bloc. Toujours visibles,
+   elles occupaient 186 px et débordaient des cartes de la grille ; en texte discret
+   apparaissant au survol, elles rendent la place à la donnée (registre de la maquette). */
+.block-actions { display: flex; align-items: center; flex-wrap: nowrap; gap: 0.7rem; flex: 0 0 auto;
+    opacity: 0; transition: opacity 0.12s; }
+.admin-block:hover .block-actions,
+.admin-block:focus-within .block-actions { opacity: 0.92; }
 .chip-btn { font-size: var(--ui); font-weight: 600; border-radius: var(--rad); }
-.block-actions .chip-btn { height: calc(var(--row) - 2px); padding: 0 0.75rem; background: rgb(0 0 0 / 0.16); border: 1px solid transparent; color: inherit; }
-.block-actions .chip-btn:hover:not(:disabled) { background: rgb(0 0 0 / 0.28); border-color: transparent; color: inherit; }
-.block-actions .chip-btn.danger { color: var(--a-danger-fg); border-color: var(--a-danger-line); }
-.block-actions .chip-btn.danger:hover:not(:disabled) { background: var(--a-danger-bg); border-color: var(--a-danger-line); color: var(--a-danger-fg); }
+.admin-page .block-actions .chip-btn {
+    height: auto; padding: 0; background: transparent; border: none;
+    color: inherit; opacity: 0.85; text-decoration: underline; text-underline-offset: 2px;
+    text-decoration-color: rgb(0 0 0 / 0.3);
+}
+.admin-page .block-actions .chip-btn:hover:not(:disabled) { opacity: 1; background: transparent; }
+.admin-page .block-actions .chip-btn.danger { color: inherit; opacity: 0.7; }
+.admin-page .block-actions .chip-btn.danger:hover:not(:disabled) { opacity: 1; color: inherit; }
 
 .block-items { display: flex; flex-direction: column; gap: 0; }
 

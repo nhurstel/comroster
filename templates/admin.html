@@ -99,24 +99,24 @@
       <input type="color" id="block-color-picker" class="visually-hidden" aria-hidden="true">
 
       <div class="admin-layout">
-        <section class="admin-panel" aria-labelledby="available-heading">
+        {# Plan de travail à gauche (grille de blocs-groupes), réserve à droite : on tire
+           les beltpacks non affectés de droite vers un groupe. #}
+        <section class="admin-panel panel-board">
           <div class="block-header">
-            <h3 id="available-heading">Beltpacks disponibles</h3>
+            <h3>Affectations</h3>
+            <span class="badge" id="block-count"></span>
+            <button type="button" id="add-block-btn" class="mini-btn add">+ Groupe</button>
+          </div>
+          <div class="board-grid" id="blocks-container"></div>
+        </section>
+        <section class="admin-panel panel-pool" aria-labelledby="available-heading">
+          <div class="block-header">
+            <h3 id="available-heading">Non affectés</h3>
             <span class="badge" id="available-count"></span>
           </div>
           <input type="search" id="available-filter" class="panel-filter" placeholder="Rechercher (n° ou nom)…" autocomplete="off">
           <div class="user-list" id="available-users"></div>
           <p class="empty-hint">Glissez les beltpacks dans un groupe pour les affecter.</p>
-        </section>
-        <section class="admin-panel">
-          <div class="block-header">
-            <h3>Affectations</h3>
-            <span class="badge" id="block-count"></span>
-          </div>
-          <div class="panel-actions">
-            <button type="button" id="add-block-btn" class="mini-btn add">+ Groupe</button>
-          </div>
-          <div class="user-list" id="blocks-container"></div>
         </section>
       </div>
 
