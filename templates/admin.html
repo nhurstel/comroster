@@ -10,122 +10,151 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body class="admin-page" data-theme="night">
-  <div class="admin-shell">
-    <aside class="admin-sidebar">
-      <div class="side-brand">
-        <img class="admin-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="" width="20" height="20">
+  <div class="admin-app">
+
+    {# En-tête console : marque · fil d'Ariane (état publié en lecture) · onglets ·
+       chips temps réel · action de publication. #}
+    <header class="admin-top">
+      <div class="brand">
+        <img class="admin-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="" width="18" height="18">
         <span class="side-name">ComRoster</span>
       </div>
-
-      <div class="side-scroll">
-        <div class="nav-label">Tableau</div>
-        <label class="side-field"><span>Nom de la production</span>
-          <input type="text" id="meta-title" maxlength="120" autocomplete="off"></label>
-        <label class="side-field"><span>Sous-titre</span>
-          <input type="text" id="meta-subtitle" maxlength="120" autocomplete="off"></label>
-
-        <div class="nav-label">Réglages écran</div>
-        <label class="side-field"><span>Apparence</span>
-          <select id="skin-select">
-            <option value="basique">Basique</option>
-            <option value="lineaire">Linéaire</option>
-            <option value="grille">Grille</option>
-          </select></label>
-        <label class="side-field"><span>Mode de luminosité</span>
-          <select id="theme-select">
-            <option value="night">Sombre</option>
-            <option value="day">Clair</option>
-          </select></label>
-        <label class="side-field"><span>Nombre de colonnes</span>
-          <select id="meta-columns">
-            <option value="0">Automatique</option>
-            <option value="1">1 colonne</option>
-            <option value="2">2 colonnes</option>
-            <option value="3">3 colonnes</option>
-            <option value="4">4 colonnes</option>
-            <option value="5">5 colonnes</option>
-            <option value="6">6 colonnes</option>
-          </select></label>
-        <label class="side-check"><input type="checkbox" id="ind-online"> État Beltpack</label>
-        <label class="side-check"><input type="checkbox" id="ind-battery"> Batterie Beltpack</label>
-        <label class="side-check"><input type="checkbox" id="meta-perf"> Mode performance</label>
-
-        <nav class="side-nav">
-          <div class="nav-label">Matériel</div>
-          <button type="button" id="antenna-btn" class="nav-item" title="Connexion au réseau intercom">
-            <span class="dot off" id="antenna-dot"></span>Intercom Net</button>
-          <button type="button" id="network-btn" class="nav-item" title="Configuration réseau du boîtier">
-            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2C6 4 6 12 8 14"/></svg>Réseau</button>
-
-          <div class="nav-label">Données</div>
-          <button type="button" id="history-btn" class="nav-item">
-            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 4v4l2.5 1.5"/><circle cx="8" cy="8" r="6"/></svg>Historique</button>
-          <button type="button" id="configs-btn" class="nav-item">
-            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/><circle cx="5.5" cy="4.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="10.5" cy="8" r="1.4" fill="currentColor" stroke="none"/><circle cx="6.5" cy="11.5" r="1.4" fill="currentColor" stroke="none"/></svg>Configurations</button>
-          <label class="nav-item import-label">
-            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.5M5 7l3 3 3-3M3 12.5h10"/></svg>Importer<input type="file" id="import-input" accept=".rost,application/json"></label>
-          <button type="button" id="export-btn" class="nav-item">
-            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5V10M5 5.5l3-3 3 3M3 12.5h10"/></svg>Exporter</button>
-
-          <div class="nav-label">Boîtier</div>
-          <button type="button" id="reboot-btn" class="nav-item nav-danger" title="Redémarre le Raspberry Pi (écran et admin indisponibles ~1 min)">
-            <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.8-4.1M13.5 2v3.2h-3.2"/></svg>Redémarrer</button>
-        </nav>
+      <div class="crumb">
+        <b id="board-title">{{ initial_data.title }}</b>
+        <span class="crumb-sep" {% if not initial_data.subtitle %}hidden{% endif %} id="crumb-sep">/</span>
+        <span class="crumb-sub" id="board-subtitle" {% if not initial_data.subtitle %}hidden{% endif %}>{{ initial_data.subtitle or '' }}</span>
       </div>
 
-      <div class="side-foot">
-        <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
-        <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        </form>
-      </div>
-    </aside>
+      <nav class="admin-tabs" role="tablist" aria-label="Sections de l'administration">
+        <button type="button" class="tab" data-tab="board" role="tab" aria-selected="true">Affectations</button>
+        <button type="button" class="tab" data-tab="screen" role="tab" aria-selected="false">Écran</button>
+      </nav>
 
-    <main class="admin-main">
-      <header class="admin-head">
-        <div class="board-meta">
-          <h1 id="board-title">{{ initial_data.title }}</h1>
-          <h2 id="board-subtitle" {% if not initial_data.subtitle %}hidden{% endif %}>{{ initial_data.subtitle or '' }}</h2>
+      <div class="top-right">
+        <button type="button" class="chip chip-antenna" id="antenna-btn" title="Connexion au réseau intercom">
+          <span class="dot off" id="antenna-dot"></span>Intercom</button>
+        <span class="chip clock" id="admin-clock" aria-hidden="true">--:--:--</span>
+        <div class="status-badge" id="sync-status" role="status" aria-live="polite">
+          <span class="pulse" aria-hidden="true"></span>
+          <span class="status-text" id="sync-label">Brouillon synchronisé</span>
         </div>
-        <div class="head-actions">
-          <div class="status-badge" id="sync-status" role="status" aria-live="polite">
-            <span class="pulse" aria-hidden="true"></span>
-            <span class="status-text" id="sync-label">Brouillon synchronisé</span>
-          </div>
-          <button type="button" id="publish-btn" class="primary">Envoyer</button>
-        </div>
-      </header>
-
-      <input type="color" id="block-color-picker" class="visually-hidden" aria-hidden="true">
-
-      <div class="admin-layout">
-        {# Plan de travail à gauche (grille de blocs-groupes), réserve à droite : on tire
-           les beltpacks non affectés de droite vers un groupe. #}
-        <section class="admin-panel panel-board">
-          <div class="block-header">
-            <h3>Affectations</h3>
-            <span class="badge" id="block-count"></span>
-            <button type="button" id="add-block-btn" class="mini-btn add">+ Groupe</button>
-          </div>
-          <div class="board-grid" id="blocks-container"></div>
-        </section>
-        <section class="admin-panel panel-pool" aria-labelledby="available-heading">
-          <div class="block-header">
-            <h3 id="available-heading">Non affectés</h3>
-            <span class="badge" id="available-count"></span>
-          </div>
-          <input type="search" id="available-filter" class="panel-filter" placeholder="Rechercher (n° ou nom)…" autocomplete="off">
-          <div class="user-list" id="available-users"></div>
-          <p class="empty-hint">Glissez les beltpacks dans un groupe pour les affecter.</p>
-        </section>
+        <button type="button" id="publish-btn" class="primary">Envoyer à l'affichage</button>
       </div>
+    </header>
 
-      <footer class="admin-foot">
-        <span id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>
-        <span id="dirty-indicator"></span>
-        <span class="admin-credit">par Nathan Hurstel</span>
-      </footer>
-    </main>
+    <div class="admin-body">
+      {# Barre latérale : inventaire des groupes (rendu par le JS) + actions matériel /
+         données / boîtier. L'inventaire dynamique arrive à l'étape C3. #}
+      <aside class="admin-side">
+        <div class="side-scroll">
+          <nav class="side-nav" id="group-inventory"></nav>
+
+          <nav class="side-nav">
+            <div class="nav-label">Matériel</div>
+            <button type="button" id="network-btn" class="nav-item" title="Configuration réseau du boîtier">
+              <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2C6 4 6 12 8 14"/></svg>Réseau</button>
+
+            <div class="nav-label">Données</div>
+            <button type="button" id="history-btn" class="nav-item">
+              <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 4v4l2.5 1.5"/><circle cx="8" cy="8" r="6"/></svg>Historique</button>
+            <button type="button" id="configs-btn" class="nav-item">
+              <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/><circle cx="5.5" cy="4.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="10.5" cy="8" r="1.4" fill="currentColor" stroke="none"/><circle cx="6.5" cy="11.5" r="1.4" fill="currentColor" stroke="none"/></svg>Configurations</button>
+            <label class="nav-item import-label">
+              <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.5M5 7l3 3 3-3M3 12.5h10"/></svg>Importer<input type="file" id="import-input" accept=".rost,application/json"></label>
+            <button type="button" id="export-btn" class="nav-item">
+              <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5V10M5 5.5l3-3 3 3M3 12.5h10"/></svg>Exporter</button>
+
+            <div class="nav-label">Boîtier</div>
+            <button type="button" id="reboot-btn" class="nav-item nav-danger" title="Redémarre le Raspberry Pi (écran et admin indisponibles ~1 min)">
+              <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.8-4.1M13.5 2v3.2h-3.2"/></svg>Redémarrer</button>
+          </nav>
+        </div>
+        <div class="side-foot">
+          <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
+          <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          </form>
+        </div>
+      </aside>
+
+      <main class="admin-main">
+        <input type="color" id="block-color-picker" class="visually-hidden" aria-hidden="true">
+
+        {# Onglet Affectations : plan de travail (grille de blocs) + réserve. #}
+        <section class="tab-panel" data-panel="board">
+          <div class="admin-layout">
+            <section class="admin-panel panel-board">
+              <div class="block-header">
+                <h3>Affectations</h3>
+                <span class="badge" id="block-count"></span>
+                <button type="button" id="add-block-btn" class="mini-btn add">+ Groupe</button>
+              </div>
+              <div class="board-grid" id="blocks-container"></div>
+            </section>
+            <section class="admin-panel panel-pool" aria-labelledby="available-heading">
+              <div class="block-header">
+                <h3 id="available-heading">Non affectés</h3>
+                <span class="badge" id="available-count"></span>
+              </div>
+              <input type="search" id="available-filter" class="panel-filter" placeholder="Rechercher (n° ou nom)…" autocomplete="off">
+              <div class="user-list" id="available-users"></div>
+              <p class="empty-hint">Glissez les beltpacks dans un groupe pour les affecter.</p>
+            </section>
+          </div>
+        </section>
+
+        {# Onglet Écran : réglages de l'affichage de régie (mêmes id qu'avant → JS intact). #}
+        <section class="tab-panel" data-panel="screen" hidden>
+          <div class="screen-settings">
+            <div class="settings-group">
+              <div class="nav-label">Production</div>
+              <label class="side-field"><span>Nom de la production</span>
+                <input type="text" id="meta-title" maxlength="120" autocomplete="off"></label>
+              <label class="side-field"><span>Sous-titre</span>
+                <input type="text" id="meta-subtitle" maxlength="120" autocomplete="off"></label>
+            </div>
+            <div class="settings-group">
+              <div class="nav-label">Apparence de l'écran</div>
+              <label class="side-field"><span>Apparence</span>
+                <select id="skin-select">
+                  <option value="basique">Basique</option>
+                  <option value="lineaire">Linéaire</option>
+                  <option value="grille">Grille</option>
+                </select></label>
+              <label class="side-field"><span>Mode de luminosité</span>
+                <select id="theme-select">
+                  <option value="night">Sombre</option>
+                  <option value="day">Clair</option>
+                </select></label>
+              <label class="side-field"><span>Nombre de colonnes</span>
+                <select id="meta-columns">
+                  <option value="0">Automatique</option>
+                  <option value="1">1 colonne</option>
+                  <option value="2">2 colonnes</option>
+                  <option value="3">3 colonnes</option>
+                  <option value="4">4 colonnes</option>
+                  <option value="5">5 colonnes</option>
+                  <option value="6">6 colonnes</option>
+                </select></label>
+            </div>
+            <div class="settings-group">
+              <div class="nav-label">Indicateurs temps réel</div>
+              <label class="side-check"><input type="checkbox" id="ind-online"> État Beltpack</label>
+              <label class="side-check"><input type="checkbox" id="ind-battery"> Batterie Beltpack</label>
+              <label class="side-check"><input type="checkbox" id="meta-perf"> Mode performance</label>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    {# Barre d'état (pied) : ce qui est réellement à l'antenne + écart du brouillon.
+       Le contenu dynamique (publication, écart) est câblé à l'étape D. #}
+    <footer class="admin-status">
+      <span class="s" id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>
+      <span class="s pend" id="dirty-indicator"></span>
+      <span class="s status-right">par Nathan Hurstel</span>
+    </footer>
   </div>
 
   {# Témoin permanent de l'écran de régie (état publié), en surimpression plutôt que dans

@@ -14,7 +14,7 @@ def test_admin_page_renders(auth_client):
     assert "js/admin.js" in html
     assert "css/main.css" in html
     assert "css/admin.css" in html
-    assert ">Envoyer</button>" in html
+    assert 'id="publish-btn"' in html      # bouton de publication (libellé « Envoyer à l'affichage »)
     assert "csrf-token" in html
 
 

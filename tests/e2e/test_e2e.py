@@ -66,6 +66,14 @@ _NUMBER_ROLE_OFFSET = """() => {
 }"""
 
 
+def _open_screen_tab(page):
+    """Les réglages écran (apparence, luminosité, colonnes, indicateurs) vivent dans
+    l'onglet « Écran » depuis la refonte admin : il faut l'activer avant d'agir sur eux,
+    sinon Playwright refuse d'interagir avec des champs masqués."""
+    page.click('.admin-tabs .tab[data-tab="screen"]')
+    page.wait_for_selector("#skin-select", state="visible")
+
+
 def _wait_frame(page, name, timeout_ms=6000):
     """Attend l'iframe portant ce `name`. Deux aperçus coexistent (le témoin de la barre
     latérale et le grand), donc on ne peut plus les distinguer par leur URL."""
@@ -86,8 +94,12 @@ def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie",
     """
     _enter_admin(page, base)
     if skin:
+        _open_screen_tab(page)
         page.select_option("#skin-select", skin)
         page.wait_for_selector("#sync-label:has-text('enregistré')")   # brouillon écrit
+        # Retour à l'onglet Affectations : le bouton « + Groupe » y vit.
+        page.click('.admin-tabs .tab[data-tab="board"]')
+        page.wait_for_selector("#add-block-btn", state="visible")
     page.click("#add-block-btn")
     page.fill("#block-name", name)
     page.click("#block-form button[type=submit]")
@@ -205,7 +217,10 @@ def test_preview_tracks_published_and_opens_no_sse(page, live_server):
         """
     )
     _enter_admin(page, live_server)
+    _open_screen_tab(page)
     page.select_option("#skin-select", "grille")
+    page.click('.admin-tabs .tab[data-tab="board"]')     # « + Groupe » vit dans l'onglet Affectations
+    page.wait_for_selector("#add-block-btn", state="visible")
     page.click("#add-block-btn")
     page.fill("#block-name", "Régie")
     page.click("#block-form button[type=submit]")
@@ -282,11 +297,13 @@ def test_available_filter(page, live_server):
 
 def test_indicator_toggles_persist(page, live_server):
     _enter_admin(page, live_server)
-    # Réglages inline dans la sidebar (plus de dialog) : décocher enregistre en direct.
+    # Réglages dans l'onglet « Écran » (plus de dialog) : décocher enregistre en direct.
+    _open_screen_tab(page)
     page.uncheck("#ind-battery")
     page.wait_for_selector("#sync-label:has-text('enregistré')")   # brouillon sauvegardé
     page.reload()
     page.wait_for_selector("#add-block-btn")
+    _open_screen_tab(page)
     assert page.is_checked("#ind-battery") is False        # préférence persistée
     assert page.is_checked("#ind-online") is True
 

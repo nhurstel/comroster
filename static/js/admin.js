@@ -617,10 +617,13 @@
       markDirty();
     });
     const sub = document.getElementById("meta-subtitle");
+    const crumbSep = document.getElementById("crumb-sep");
     sub.addEventListener("input", () => {
       state.data.subtitle = sub.value;
-      if (sub.value.trim()) { el.subtitle.textContent = sub.value.trim(); el.subtitle.hidden = false; }
-      else el.subtitle.hidden = true;
+      const has = !!sub.value.trim();
+      if (has) { el.subtitle.textContent = sub.value.trim(); }
+      el.subtitle.hidden = !has;
+      if (crumbSep) crumbSep.hidden = !has;   // le « / » ne s'affiche qu'avec un sous-titre
       markDirty();
     });
     document.getElementById("meta-columns").addEventListener("change", (e) => {
@@ -1250,6 +1253,24 @@
       es.addEventListener("live", (e) => { try { applyLiveData(JSON.parse(e.data)); } catch { /* ignore */ } });
     } catch { /* SSE indisponible : l'admin reste sur son état courant */ }
   }
+
+  /* ---------- Onglets (Affectations / Écran) ---------- */
+  function selectTab(name) {
+    document.querySelectorAll(".admin-tabs .tab").forEach((t) =>
+      t.setAttribute("aria-selected", String(t.dataset.tab === name)));
+    document.querySelectorAll(".tab-panel").forEach((p) =>
+      { p.hidden = p.dataset.panel !== name; });
+  }
+  document.querySelectorAll(".admin-tabs .tab").forEach((t) =>
+    t.addEventListener("click", () => selectTab(t.dataset.tab)));
+
+  /* ---------- Horloge de l'en-tête ---------- */
+  const clockEl = document.getElementById("admin-clock");
+  function tickClock() {
+    if (clockEl) clockEl.textContent = new Date().toLocaleTimeString("fr-FR");
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
 
   /* ---------- Init ---------- */
   render();
