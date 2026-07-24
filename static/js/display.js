@@ -46,22 +46,12 @@
   const resolveSkin = (v) => (SKINS.includes(v) ? v : "basique");
 
   /* ---------- Encre lisible sur un aplat de couleur ----------
-     Une apparence peut remplir le bloc avec la couleur du groupe, qui est saisie par
-     l'utilisateur : il faut alors choisir une encre claire ou sombre. On calcule la
-     luminance relative sRGB (WCAG) et on expose le verdict en `data-ink` — les teintes
-     exactes restent dans la CSS, où chaque apparence définit sa paire.
-     Seuil 0.179 : point où le contraste avec le noir et avec le blanc s'égalisent. */
-  const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
-  function inkFor(color) {
-    const m = HEX_COLOR.exec(String(color || "").trim());
-    if (!m) return null;              // pas un littéral hex → l'apparence se débrouille seule
-    const hex = m[1].length === 3 ? m[1].replace(/./g, (c) => c + c) : m[1];
-    const lin = [0, 2, 4]
-      .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
-      .map((c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
-    const luminance = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
-    return luminance > 0.179 ? "dark" : "light";
-  }
+     Une apparence peut remplir le bloc avec la couleur du groupe, saisie par
+     l'utilisateur : il faut alors choisir une encre claire ou sombre. Le verdict est
+     exposé en `data-ink`, les teintes exactes restant dans la CSS où chaque apparence
+     définit sa paire. La règle vit dans static/js/ink.js parce que l'admin pose le même
+     texte sur la même couleur : deux copies finiraient par diverger sans qu'on le voie. */
+  const inkFor = window.ComRoster.inkFor;
 
   function setLive(mode) {
     if (!liveIndicator || !liveLabel) return;

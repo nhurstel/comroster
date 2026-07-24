@@ -322,15 +322,20 @@
 .empty-hint { padding: 1rem; text-align: center; color: var(--fg-subtle); font-size: var(--ui); }
 
 /* ---------- Groupes (empilés sur une seule colonne) ---------- */
+/* APLAT : le groupe n'est pas une carte qui décrit une couleur, il EST la couleur —
+   même langage que l'apparence « grille » de l'écran, pour que l'admin ressemble à ce
+   qu'il produit. `--gel` et `data-ink` sont posés par renderBlocks() ; sans couleur
+   valide on retombe sur le fond sombre d'origine. */
 .admin-block {
     --block-accent: var(--primary);
-    background: transparent;
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--block-accent);
-    border-radius: 6px;
+    --on-gel: var(--fg);
+    background: var(--gel, var(--a-surface-2));
+    color: var(--on-gel);
+    border: none;
+    border-radius: var(--rad);
     overflow: hidden;
     padding: 0;
-    margin-bottom: 0.7rem;
+    margin-bottom: var(--gap);
     /* Ne jamais écraser un groupe pour tenir dans la colonne : il garde sa hauteur
        naturelle (tous ses beltpacks visibles) et c'est la colonne qui défile. */
     flex: 0 0 auto;
@@ -340,12 +345,19 @@
     display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; flex-wrap: wrap;
     margin-bottom: 0;
     padding: 0.4rem 0.6rem;
-    background: var(--a-surface-2);
-    border-bottom: 1px solid var(--border);
+    background: rgb(0 0 0 / 0.14);
+    border-bottom: 1px solid rgb(0 0 0 / 0.16);
 }
 .admin-block .block-title { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0; }
 .admin-block .block-title h3 { margin: 0; font-size: calc(var(--role) - 1px); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
 .admin-block .block-items { padding: 0 0.6rem; }
+
+/* Verdict d'encre posé par renderBlocks() (règle partagée : static/js/ink.js). */
+.admin-block[data-ink="dark"]  { --on-gel: #16120A; }
+.admin-block[data-ink="light"] { --on-gel: #F4F7FB; }
+/* Le badge d'effectif et la case couleur doivent survivre à l'aplat. */
+.admin-block .block-header .badge { background: rgb(0 0 0 / 0.16); border-color: transparent; color: inherit; }
+.admin-block .color-swatch { border-color: rgb(0 0 0 / 0.35); }
 
 /* Case couleur cliquable : clic dessus → sélecteur de couleur du groupe */
 .color-swatch {
@@ -361,8 +373,8 @@
 /* Actions de groupe : TOUJOURS visibles, lisibles et confortables (admin = clarté avant tout) */
 .block-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; }
 .chip-btn { font-size: var(--ui); font-weight: 600; border-radius: var(--rad); }
-.block-actions .chip-btn { height: calc(var(--row) - 2px); padding: 0 0.75rem; background: var(--a-surface); border: 1px solid var(--a-border-2); color: #C9CFDA; }
-.block-actions .chip-btn:hover:not(:disabled) { background: var(--a-surface-3); border-color: var(--a-border-3); color: var(--fg); }
+.block-actions .chip-btn { height: calc(var(--row) - 2px); padding: 0 0.75rem; background: rgb(0 0 0 / 0.16); border: 1px solid transparent; color: inherit; }
+.block-actions .chip-btn:hover:not(:disabled) { background: rgb(0 0 0 / 0.28); border-color: transparent; color: inherit; }
 .block-actions .chip-btn.danger { color: var(--a-danger-fg); border-color: var(--a-danger-line); }
 .block-actions .chip-btn.danger:hover:not(:disabled) { background: var(--a-danger-bg); border-color: var(--a-danger-line); color: var(--a-danger-fg); }
 
@@ -372,7 +384,7 @@
 .person {
     background: transparent;
     border: none;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid rgb(0 0 0 / 0.11);
     border-radius: 0;
     min-height: var(--row);
     padding: 0.32rem 0.4rem;
@@ -383,45 +395,50 @@
     flex: 0 0 auto;
 }
 .person:last-child { border-bottom: none; }
-.person:hover { background: var(--a-surface-2); }
+.person:hover { background: rgb(0 0 0 / 0.12); }
 .person.dragging { opacity: 0.45; cursor: grabbing; }
 
-/* Numéro = « id » muet (mono, à la Jira ENG-###), pas un accent */
+/* Numéro : chiffre nu dans une gouttière fixe — ils s'alignent en colonne d'un bloc à
+   l'autre, ce qui rend la liste lisible en diagonale (feuille de patch). La pastille
+   encadrée d'avant ajoutait un cadre par ligne sur un fond déjà coloré. */
 .person .bp {
     position: relative;
     flex: 0 0 auto;
-    min-width: 1.9rem;
-    padding: 0.1rem 0.3rem;
-    text-align: center;
-    border-radius: 4px;
-    background: var(--a-surface-2);
-    border: 1px solid var(--a-border-2);
-    color: var(--fg-muted);
+    min-width: 1.7rem;
+    color: inherit;
+    opacity: 0.88;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     font-size: var(--mono);
 }
+/* Trait d'union entre le numéro et son rôle — miroir de `--tie` dans skins.css. */
+.person .bp::after {
+    content: "\00B7";
+    margin: 0 0.34em;
+    opacity: 0.5;
+    font-weight: 400;
+}
 /* Rôle + nom sur une seule ligne → rangée fine */
 .person .who { display: flex; flex-direction: row; align-items: baseline; min-width: 0; gap: 0.45rem; line-height: 1.2; }
-.person .role { font-size: var(--role); font-weight: var(--role-w); color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.person .name { font-size: var(--ui-sm); color: var(--a-muted-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+.person .role { font-size: var(--role); font-weight: var(--role-w); color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.person .name { font-size: var(--ui-sm); color: inherit; opacity: 0.72; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
 
 /* Case « + » d'ajout : exactement le même gabarit qu'une ligne beltpack (puce + libellé) */
 .admin-page .person-add {
-    background: transparent; border: none; border-bottom: 1px solid var(--border); border-radius: 0;
+    background: transparent; border: none; border-bottom: none; border-radius: 0;
     min-height: var(--row); padding: 0.32rem 0.4rem;
     display: flex; align-items: center; justify-content: flex-start; text-align: left;
     gap: 0.6rem; width: 100%; height: auto;
-    color: var(--fg-subtle); font-weight: 600; cursor: pointer; transition: color 0.12s;
+    color: inherit; opacity: 0.55; font-weight: 600; cursor: pointer; transition: opacity 0.12s;
 }
-.admin-page .person-add:hover { color: var(--fg); }
+.admin-page .person-add:hover { opacity: 0.9; }
 .person-add .pa-chip {
     flex: 0 0 auto; min-width: 1.9rem; padding: 0.1rem 0.3rem; text-align: center;
-    border-radius: 4px; background: var(--a-surface-2); border: 1px solid var(--a-border-2); color: var(--fg-muted);
+    border-radius: 4px; background: rgb(0 0 0 / 0.14); border: 1px solid transparent; color: inherit;
     font-size: 1rem; font-weight: 700; line-height: 1.15;
-    transition: color 0.12s, border-color 0.12s;
+    transition: background 0.12s;
 }
-.admin-page .person-add:hover .pa-chip { color: var(--primary); border-color: var(--primary); }
+.admin-page .person-add:hover .pa-chip { background: rgb(0 0 0 / 0.24); }
 .person-add .pa-label { font-size: var(--role); }
 
 /* Édition sur place du numéro / nom (double-clic) */
@@ -601,10 +618,17 @@
    (« En direct » / « Brouillon synchronisé »), couleurs sémantiques conservées. */
 #antenna-dot { width: 0.5rem; height: 0.5rem; border-radius: 0; }
 
-/* Pastille temps réel sur la carte beltpack (invisible si antenne déconnectée) */
-.bp-dot { position: absolute; top: -3px; right: -3px; width: 0.5rem; height: 0.5rem; border-radius: 50%; }
-.bp-dot.on { background: var(--success); box-shadow: 0 0 5px rgba(46,204,113,.7); border: 1.5px solid var(--bg); }
-.bp-dot.down { background: var(--a-muted); border: 1.5px solid var(--bg); }
+/* Voyant temps réel du beltpack, à droite de la ligne. Le VERT signale « connecté » et
+   doit tenir sur n'importe quel aplat de groupe : d'où l'anneau sombre plutôt qu'une
+   bordure couleur de fond, qui disparaissait sur les teintes claires.
+   Sans antenne, l'état est inconnu : le voyant est retiré du flux (`display:none`) au
+   lieu d'être transparent — un élément invisible qui occupe la place décale ses voisins
+   (leçon 2026-07-23). */
+.bp-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; flex: 0 0 auto; display: none; }
+.bp-dot.on,
+.bp-dot.down { display: block; box-shadow: 0 0 0 1.5px rgb(0 0 0 / 0.3); }
+.bp-dot.on { background: var(--success); }
+.bp-dot.down { background: rgb(0 0 0 / 0.3); box-shadow: 0 0 0 1.5px rgb(0 0 0 / 0.14); }
 
 /* Champ de recherche des beltpacks disponibles */
 .panel-filter {
@@ -617,7 +641,7 @@
 
 /* Indicateurs temps réel sur la carte (batterie + réception) */
 .card-live { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; flex: 0 0 auto; }
-.bp-batt { font-size: var(--ui-sm); font-weight: 700; color: var(--fg-subtle); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bp-batt { font-size: var(--ui-sm); font-weight: 700; color: inherit; opacity: 0.78; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bp-batt.low { color: var(--warning); }
 
 /* Cases « indicateurs » dans le dialog Infos */

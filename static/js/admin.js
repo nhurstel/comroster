@@ -153,10 +153,6 @@
     bp.className = "bp";
     bp.title = "Beltpack n°" + person.beltpack;
     bp.textContent = person.beltpack;
-    const dot = document.createElement("span");
-    dot.className = "bp-dot";
-    dot.dataset.bp = person.beltpack;
-    bp.append(dot);
 
     const who = document.createElement("div");
     who.className = "who";
@@ -168,7 +164,12 @@
     const live = document.createElement("div");
     live.className = "card-live";
     const batt = document.createElement("span"); batt.className = "bp-batt"; batt.dataset.bp = person.beltpack; batt.hidden = true;
-    live.append(batt);
+    // Voyant temps réel : à droite de la ligne, dans un conteneur centré — pas dans le
+    // flux de texte, où un élément invisible décalerait la ligne de base des voisins.
+    const dot = document.createElement("span");
+    dot.className = "bp-dot";
+    dot.dataset.bp = person.beltpack;
+    live.append(batt, dot);
     card.append(bp, who, live);
 
     // Clic = (dé)sélection (MAJ+clic = plage). Le drag déplace la sélection si l'item
@@ -312,7 +313,14 @@
       const wrap = document.createElement("section");
       wrap.className = "admin-block";
       wrap.dataset.blockId = block.id;
-      wrap.style.setProperty("--block-accent", sanitizeColor(block.color) || "var(--primary)");
+      const gel = sanitizeColor(block.color);
+      wrap.style.setProperty("--block-accent", gel || "var(--primary)");
+      // Aplat plein : le bloc EST la couleur du groupe. L'encre suit la luminance
+      // réelle de cette couleur (static/js/ink.js, la même que l'écran de régie) ;
+      // sans verdict — couleur absente ou non littérale — la CSS garde son fond sombre.
+      wrap.style.setProperty("--gel", gel || "");
+      const ink = window.ComRoster.inkFor(gel);
+      if (ink) wrap.dataset.ink = ink;
       // Réordonnancement des groupes : dépose un groupe (glissé par son titre) sur un autre.
       wrap.addEventListener("dragover", (e) => {
         if (state.dragGroup && state.dragGroup !== block.id) { e.preventDefault(); wrap.classList.add("group-drop-target"); }
