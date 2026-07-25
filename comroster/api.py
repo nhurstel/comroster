@@ -3,7 +3,7 @@ import re
 from flask import Blueprint, jsonify, current_app, render_template, request
 
 from .security import login_required, exclusive_state, json_body
-from .services import model, wifi
+from .services import model, wifi, netstatus
 
 bp = Blueprint("api", __name__)
 
@@ -116,6 +116,18 @@ def put_network():
     _journal().record("network_save",
                       f"{public.get('link', '?')} · {public.get('mode', '?')}")
     return jsonify({"ok": True, "config": public, "reboot_required": True})
+
+
+@bp.get("/api/network/status")
+@login_required
+def network_status():
+    """État réseau courant (lecture seule) : où le boîtier est joignable maintenant.
+
+    En dev/test : état fictif. Sur le Pi : nmcli en lecture, sans privilège.
+    """
+    if current_app.debug or current_app.testing:
+        return jsonify({"available": True, "simulated": True, "links": netstatus.sample()})
+    return jsonify(netstatus.current())
 
 
 @bp.get("/api/network/wifi-scan")

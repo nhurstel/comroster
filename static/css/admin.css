@@ -721,6 +721,32 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .dash-autosync { display: flex; flex-direction: column; gap: 5px; }
 .dash-autosync .side-check { padding: 0; color: var(--fg); }
 .dash-autosync .dialog-hint { padding-left: 23px; }
+/* État réseau courant, en tête du dialogue (« où suis-je joignable ? ») */
+.net-current {
+    padding: 8px 11px; border-radius: var(--rad);
+    background: var(--inset); border: 1px solid var(--border-soft);
+    font-size: var(--ui); color: var(--fg-subtle);
+}
+.net-current b { color: var(--fg-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Masque de sous-réseau : préfixe /24 (gauche) + octets 255.255.255.0 (droite) */
+.mask-row { display: flex; gap: 8px; align-items: stretch; }
+.mask-cidr {
+    display: flex; align-items: center; gap: 2px; flex: 0 0 auto;
+    padding-left: 10px; background: var(--inset);
+    border: 1px solid var(--border); border-radius: var(--rad); color: var(--fg-subtle);
+}
+.mask-cidr > span { font-family: var(--f-mono); font-size: var(--mono); }
+.mask-cidr input {
+    width: 3.2ch; height: 30px; padding: 0 6px 0 2px;
+    background: transparent !important; border: none !important; box-shadow: none !important;
+    font-family: var(--f-mono); font-variant-numeric: tabular-nums; -moz-appearance: textfield;
+}
+.mask-cidr input::-webkit-outer-spin-button,
+.mask-cidr input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.mask-cidr:focus-within { border-color: var(--accent); }
+.mask-row > #net-mask { flex: 1; min-width: 0; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
 /* Sélecteur Wi-Fi : réseaux à proximité (dialogue réseau) */
 .wifi-picker { gap: 6px; }
 .wifi-picker-head { display: flex; align-items: baseline; justify-content: space-between; }

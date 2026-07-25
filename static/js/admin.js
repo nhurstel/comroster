@@ -1450,6 +1450,58 @@
   document.getElementById("net-mode").addEventListener("change", toggleNetFields);
   document.getElementById("net-link").addEventListener("change", toggleNetFields);
 
+  /* ---------- Masque de sous-réseau : préfixe /24 ↔ octets 255.255.255.0 ----------
+     Deux écritures du même masque, synchronisées. Le préfixe reste la source de vérité
+     (c'est lui qu'envoie le formulaire) ; le champ octets n'est qu'une commodité. */
+  const prefixEl = document.getElementById("net-prefix");
+  const maskEl = document.getElementById("net-mask");
+  function prefixToMask(p) {
+    const o = [0, 0, 0, 0];
+    for (let i = 0; i < p; i++) o[i >> 3] |= 1 << (7 - (i & 7));
+    return o.join(".");
+  }
+  function maskToPrefix(str) {
+    const parts = str.trim().split(".");
+    if (parts.length !== 4) return null;
+    let bits = "";
+    for (const part of parts) {
+      const n = Number(part);
+      if (!Number.isInteger(n) || n < 0 || n > 255) return null;
+      bits += n.toString(2).padStart(8, "0");
+    }
+    if (!/^1*0*$/.test(bits)) return null;        // les 1 doivent être contigus
+    const zero = bits.indexOf("0");
+    return zero === -1 ? 32 : zero;
+  }
+  function syncMaskFromPrefix() {
+    let p = parseInt(prefixEl.value, 10);
+    if (!Number.isInteger(p) || p < 1 || p > 32) return;
+    maskEl.value = prefixToMask(p);
+  }
+  prefixEl.addEventListener("input", syncMaskFromPrefix);
+  maskEl.addEventListener("input", () => {
+    const p = maskToPrefix(maskEl.value);
+    if (p !== null) prefixEl.value = p;            // masque valide → met à jour le préfixe
+  });
+  // En quittant le champ, un masque invalide se rétablit depuis le préfixe (jamais
+  // d'état incohérent laissé à l'écran).
+  maskEl.addEventListener("blur", () => { if (maskToPrefix(maskEl.value) === null) syncMaskFromPrefix(); });
+
+  // « Joignable actuellement — Wi-Fi « X » · 192.168.1.42 » (état réel, lecture seule).
+  async function loadNetCurrent() {
+    const box = document.getElementById("net-current");
+    box.hidden = true; box.textContent = "";
+    let st;
+    try { st = await apiSend("GET", "/api/network/status"); } catch { return; }
+    if (!st.available || !(st.links || []).length) return;
+    const parts = st.links.map((l) => {
+      const label = l.type === "wifi" ? `Wi-Fi « ${l.ssid || "?"} »` : "Filaire (RJ45)";
+      return l.ip ? `${label} · ${l.ip}` : label;
+    });
+    box.innerHTML = "Joignable actuellement — " + parts.map((p) => `<b>${esc(p)}</b>`).join("&nbsp;&nbsp;·&nbsp;&nbsp;");
+    box.hidden = false;
+  }
+
   async function openNetwork() {
     document.getElementById("net-error").hidden = true;
     document.getElementById("net-result").hidden = true;
@@ -1464,10 +1516,12 @@
     document.getElementById("net-mode").value = cfg.mode || "link-local";
     document.getElementById("net-address").value = cfg.address || "";
     document.getElementById("net-prefix").value = cfg.prefix || 24;
+    syncMaskFromPrefix();                // remplit le champ octets à partir du préfixe
     document.getElementById("net-gateway").value = cfg.gateway || "";
     document.getElementById("net-dns").value = (cfg.dns || []).join(", ");
     wifiScanned = false;                 // scan neuf à chaque ouverture
     wifiListEl.innerHTML = "";
+    loadNetCurrent();                    // état réel du boîtier, en tête du dialogue
     toggleNetFields();
     if ((cfg.link || "ethernet") === "wifi") scanWifi();   // déjà en Wi-Fi : scanner d'emblée
     networkDialog.showModal();
