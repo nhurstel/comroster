@@ -23,11 +23,9 @@ def test_admin_page_renders(auth_client):
 def test_admin_un_bouton_par_fonction(auth_client):
     """Chaque fonction a UN accès : pas de lanceurs en doublon (revue 2026-07-25)."""
     html = auth_client.get("/admin").get_data(as_text=True)
-    assert 'data-launch="journal"' in html          # Journal = onglet unique → dialogue
-    assert 'id="journal-dialog"' in html
-    assert 'data-launch="antenna"' not in html      # Intercom = chip d'état seule
-    assert 'data-launch="history"' not in html      # Publications = latérale seule
-    assert 'data-launch="network"' not in html      # Réseau = latérale (Boîtier) seule
+    assert 'href="/admin/journal"' in html          # Journal = page dédiée (lien d'onglet)
+    assert "journal-dialog" not in html             # plus de dialogue Journal
+    assert "data-launch" not in html                # aucun onglet-lanceur en doublon
     assert 'id="add-beltpack-btn"' not in html      # ajout beltpack = réserve seule
     assert 'id="status-preview"' not in html        # aperçu = témoin « Affichage en cours »
     assert ">Publications<" in html                 # « Historique » renommé, parlant

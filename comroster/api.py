@@ -345,11 +345,25 @@ def publish():
     return jsonify({"ok": True, "updated_at": state["updated_at"]})
 
 
+@bp.get("/admin/journal")
+@login_required
+def journal_page():
+    """Page Journal : événements applicatifs + logs techniques (debug sans SSH)."""
+    return render_template("journal.html")
+
+
 @bp.get("/api/journal")
 @login_required
 def journal_list():
     """Les derniers événements du boîtier (publications, imports, antenne, réseau…)."""
     return jsonify(_journal().entries())
+
+
+@bp.get("/api/logs")
+@login_required
+def logs_list():
+    """Logs techniques captés en mémoire (volet « Technique » de la page Journal)."""
+    return jsonify(current_app.extensions["logbuffer"].entries())
 
 
 @bp.get("/api/history")

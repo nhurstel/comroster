@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Journal · ComRoster</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/comroster-badge.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body class="admin-page journal-page">
+  <div class="admin-app">
+    <header class="admin-top">
+      <div class="brand">
+        <img class="admin-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="" width="18" height="18">
+        <span class="side-name">ComRoster</span>
+      </div>
+      <div class="crumb">
+        <b>Journal</b>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-sub">événements &amp; logs techniques</span>
+      </div>
+      <nav class="admin-tabs">
+        <a class="tab" href="{{ url_for('api.admin_page') }}">← Affectations</a>
+      </nav>
+      <div class="top-right">
+        <span class="chip clock" id="journal-updated" title="Dernière actualisation">—</span>
+      </div>
+    </header>
+
+    <div class="journal-body">
+      <div class="journal-toolbar">
+        {# Deux volets : les ÉVÉNEMENTS (ce que l'opérateur a fait — journal persistant)
+           et le TECHNIQUE (ce que le système raconte — logs en mémoire, pour le debug). #}
+        <div class="tb-seg" role="tablist" aria-label="Volets du journal">
+          <button type="button" class="seg-btn" data-jtab="events" aria-pressed="true">Événements</button>
+          <button type="button" class="seg-btn" data-jtab="logs" aria-pressed="false">Technique</button>
+        </div>
+        <div class="tb-filter">
+          <span class="tb-grep">Filtrer</span>
+          <input type="search" id="journal-filter" placeholder="texte…" autocomplete="off">
+        </div>
+        <div class="level-chips" id="level-chips" hidden>
+          <button type="button" data-level="INFO" aria-pressed="true">info</button>
+          <button type="button" data-level="WARNING" aria-pressed="true">avert.</button>
+          <button type="button" data-level="ERROR" aria-pressed="true">erreurs</button>
+        </div>
+        <div class="tb-right">
+          <span class="tb-count" id="journal-count"></span>
+          <button type="button" class="tb-act" id="refresh-btn">Actualiser</button>
+          <button type="button" class="tb-act" id="download-btn">Télécharger</button>
+        </div>
+      </div>
+
+      <div class="journal-scroll">
+        <ul class="journal-list" id="events-list"></ul>
+        <div class="log-list" id="log-list" hidden></div>
+      </div>
+    </div>
+
+    <footer class="admin-status">
+      <span class="s" id="status-info">chargement…</span>
+      <span class="s status-right">actualisation automatique · 5 s</span>
+    </footer>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/journal.js') }}"></script>
+</body>
+</html>

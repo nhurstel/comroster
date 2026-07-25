@@ -64,3 +64,42 @@ def test_reboot_simule_journalise(auth_client):
     assert auth_client.post("/api/reboot").get_json()["ok"] is True
     events = [e["event"] for e in auth_client.get("/api/journal").get_json()]
     assert "reboot" in events
+
+
+# ---------- Page Journal + logs techniques ----------
+
+def test_journal_page_requiert_session(client):
+    r = client.get("/admin/journal")
+    assert r.status_code in (302, 401, 403)
+
+
+def test_journal_page_rendue(auth_client):
+    html = auth_client.get("/admin/journal").get_data(as_text=True)
+    assert "journal.js" in html
+    assert "Technique" in html          # volet logs présent
+
+
+def test_api_logs_requiert_session(client):
+    assert client.get("/api/logs").status_code in (302, 401, 403)
+
+
+def test_api_logs_capte_un_warning(app, auth_client):
+    app.logger.warning("sentinelle-logbuffer %s", 42)
+    entries = auth_client.get("/api/logs").get_json()
+    assert any("sentinelle-logbuffer 42" in e["message"] for e in entries)
+    assert entries[0]["level"] in ("INFO", "WARNING", "ERROR")
+
+
+def test_logbuffer_borne_et_ordre(tmp_path):
+    from comroster.services.logbuffer import LogBuffer
+    import logging
+    buf = LogBuffer()
+    logger = logging.getLogger("test-borne")
+    logger.addHandler(buf)
+    logger.setLevel(logging.INFO)
+    for i in range(LogBuffer.CAPACITY + 30):
+        logger.info("msg %d", i)
+    logger.removeHandler(buf)
+    entries = buf.entries()
+    assert len(entries) == LogBuffer.CAPACITY
+    assert entries[0]["message"] == f"msg {LogBuffer.CAPACITY + 29}"   # plus récent d'abord

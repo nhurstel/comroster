@@ -1036,45 +1036,6 @@
     catch { toast("Suppression impossible.", true); }
   }
 
-  /* ---------- Journal d'événements ----------
-     Ce qu'il s'est PASSÉ (événements serveur), par opposition aux « Publications »
-     qui archivent des états restaurables. Codes stables côté serveur, libellés ici. */
-  const JOURNAL_LABELS = {
-    publish: "Publication envoyée",
-    import: "Fichier importé",
-    restore: "Publication restaurée",
-    history_clear: "Publications passées effacées",
-    network_save: "Réglages réseau enregistrés",
-    network_apply: "Réglages réseau appliqués",
-    reboot: "Redémarrage du boîtier",
-    antenna_connect: "Antenne connectée",
-    antenna_disconnect: "Antenne déconnectée",
-    antenna_import: "Import depuis l'antenne",
-    config_save: "Configuration sauvegardée",
-    config_load: "Configuration chargée",
-    config_delete: "Configuration supprimée",
-  };
-  const journalWhen = (iso) => {
-    try {
-      return new Date(iso).toLocaleString("fr-FR",
-        { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-    } catch { return "—"; }
-  };
-  async function openJournal() {
-    let entries = [];
-    try { entries = await apiSend("GET", "/api/journal"); }
-    catch { toast("Journal indisponible.", true); return; }
-    const list = document.getElementById("journal-list");
-    list.innerHTML = entries.length
-      ? entries.map((e) =>
-          `<li><span class="j-time">${esc(journalWhen(e.ts))}</span>`
-          + `<span class="j-label">${esc(JOURNAL_LABELS[e.event] || e.event)}</span>`
-          + (e.detail ? `<span class="j-detail">${esc(e.detail)}</span>` : "")
-          + "</li>").join("")
-      : "<li class='empty-hint'>Rien à signaler pour l'instant.</li>";
-    document.getElementById("journal-dialog").showModal();
-  }
-
   /* ---------- Menu contextuel ---------- */
   function hideContextMenu() { el.contextMenu.style.display = "none"; state.context = null; }
   el.contextMenu.addEventListener("click", (e) => {
@@ -1132,7 +1093,18 @@
   document.querySelectorAll("button[data-close]").forEach((b) =>
     b.addEventListener("click", () => document.getElementById(b.dataset.close)?.close()));
   window.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); publish(); }
+    const mod = e.ctrlKey || e.metaKey;
+    // ⌘/Ctrl+Entrée = publier — c'est le raccourci AFFICHÉ sur le bouton (⌘↵).
+    // ⌘S reste accepté (réflexe « enregistrer »).
+    if (mod && (e.key === "Enter" || e.key.toLowerCase() === "s")) { e.preventDefault(); publish(); return; }
+    // ⌘K = recherche de la réserve (affiché sur son champ).
+    if (mod && e.key.toLowerCase() === "k") { e.preventDefault(); document.getElementById("available-filter")?.focus(); return; }
+    // « / » = filtre du plateau (affiché sur son champ) — hors saisie et hors dialogue.
+    const tag = document.activeElement?.tagName || "";
+    if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(tag) && !document.querySelector("dialog[open]")) {
+      e.preventDefault();
+      document.getElementById("board-filter")?.focus();
+    }
   });
 
   /* ---------- Antenne : pastille, assistant, tableau de bord ---------- */
@@ -1653,7 +1625,8 @@
     if (chipState === "syncing" || chipState === "error" || chipState === "updated") return;
     if (!unpublished) { setStatus("À jour", "idle"); return; }
     const n = Math.abs(dg) + Math.abs(dp);
-    setStatus(n ? `${n} en attente` : "En attente de publication", "pending");
+    setStatus(n ? `${n} modification${n > 1 ? "s" : ""} en attente`
+                : "Modifications en attente", "pending");
   }
 
   async function refreshStatus() {
@@ -1664,9 +1637,8 @@
   }
 
   /* ---------- Onglets ----------
-     Affectations / Écran sont des panneaux ; Journal ouvre son dialogue (data-launch)
-     sans changer de panneau. Antenne et réseau ont leur bouton unique ailleurs
-     (chip d'en-tête, barre latérale) : pas de lanceur en doublon ici. */
+     Affectations / Écran sont des panneaux ; Journal est un lien vers sa page dédiée.
+     Antenne et réseau ont leur bouton unique ailleurs (chip d'en-tête, latérale). */
   function selectTab(name) {
     document.querySelectorAll(".admin-tabs .tab[data-tab]").forEach((t) =>
       t.setAttribute("aria-selected", String(t.dataset.tab === name)));
@@ -1674,10 +1646,6 @@
   }
   document.querySelectorAll(".admin-tabs .tab[data-tab]").forEach((t) =>
     t.addEventListener("click", () => selectTab(t.dataset.tab)));
-
-  const TAB_LAUNCHERS = { journal: openJournal };
-  document.querySelectorAll(".admin-tabs [data-launch]").forEach((t) =>
-    t.addEventListener("click", () => TAB_LAUNCHERS[t.dataset.launch]?.()));
 
   /* ---------- Barre d'outils du plateau ---------- */
   // Recherche grep : estompe en direct les cartes hors correspondance (combiné aux vues).

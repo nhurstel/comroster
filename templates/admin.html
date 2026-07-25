@@ -27,12 +27,12 @@
       </div>
 
       <nav class="admin-tabs" role="tablist" aria-label="Sections de l'administration">
-        {# Affectations et Écran sont des panneaux ; Journal ouvre le journal d'événements
-           (data-launch) sans changer de panneau. UN bouton par fonction : l'antenne passe
+        {# Affectations et Écran sont des panneaux ; Journal est une PAGE dédiée
+           (événements + logs techniques). UN bouton par fonction : l'antenne passe
            par sa chip d'état (à droite), le réseau par la barre latérale (Boîtier). #}
         <button type="button" class="tab" data-tab="board" role="tab" aria-selected="true">Affectations</button>
         <button type="button" class="tab" data-tab="screen" role="tab" aria-selected="false">Écran</button>
-        <button type="button" class="tab" data-launch="journal">Journal</button>
+        <a class="tab" href="{{ url_for('api.journal_page') }}">Journal</a>
       </nav>
 
       <div class="top-right">
@@ -252,21 +252,6 @@
       <div class="dialog-actions">
         <button type="button" id="preview-refresh">Actualiser</button>
         <button type="button" data-close="preview-dialog">Fermer</button>
-      </div>
-    </form>
-  </dialog>
-
-  {# Journal d'événements : ce qu'il s'est PASSÉ (publications, imports, antenne,
-     réseau, redémarrages) — distinct des « Publications », qui archivent des états
-     restaurables. Rempli par openJournal() depuis GET /api/journal. #}
-  <dialog id="journal-dialog" class="admin-dialog journal-dialog">
-    <form method="dialog">
-      <h2>Journal</h2>
-      <p class="dialog-hint">Les derniers événements du boîtier : publications, imports,
-        antenne, réseau, redémarrages.</p>
-      <ul id="journal-list" class="journal-list"></ul>
-      <div class="dialog-actions">
-        <button type="button" data-close="journal-dialog">Fermer</button>
       </div>
     </form>
   </dialog>
