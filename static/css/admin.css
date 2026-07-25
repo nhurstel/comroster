@@ -723,11 +723,17 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .dash-autosync .dialog-hint { padding-left: 23px; }
 /* État réseau courant, en tête du dialogue (« où suis-je joignable ? ») */
 .net-current {
+    display: flex; flex-direction: column; gap: 3px;
     padding: 8px 11px; border-radius: var(--rad);
     background: var(--inset); border: 1px solid var(--border-soft);
-    font-size: var(--ui); color: var(--fg-subtle);
 }
-.net-current b { color: var(--fg-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.net-current-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
+}
+.net-link-row { display: flex; align-items: baseline; gap: 12px; font-size: var(--ui); }
+.net-link-type { flex: 1; min-width: 0; color: var(--fg-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.net-link-ip { flex: 0 0 auto; color: var(--fg-subtle); font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
 
 /* Masque de sous-réseau : préfixe /24 (gauche) + octets 255.255.255.0 (droite) */
 .mask-row { display: flex; gap: 8px; align-items: stretch; }

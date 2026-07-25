@@ -1494,11 +1494,14 @@
     let st;
     try { st = await apiSend("GET", "/api/network/status"); } catch { return; }
     if (!st.available || !(st.links || []).length) return;
-    const parts = st.links.map((l) => {
-      const label = l.type === "wifi" ? `Wi-Fi « ${l.ssid || "?"} »` : "Filaire (RJ45)";
-      return l.ip ? `${label} · ${l.ip}` : label;
+    // Une ligne par connexion (type à gauche, IP à droite) : jamais de coupure disgracieuse
+    // entre un réseau et son adresse.
+    const rows = st.links.map((l) => {
+      const type = l.type === "wifi" ? `Wi-Fi « ${l.ssid || "?"} »` : "Filaire (RJ45)";
+      return `<div class="net-link-row"><span class="net-link-type">${esc(type)}</span>`
+        + (l.ip ? `<span class="net-link-ip">${esc(l.ip)}</span>` : "") + "</div>";
     });
-    box.innerHTML = "Joignable actuellement — " + parts.map((p) => `<b>${esc(p)}</b>`).join("&nbsp;&nbsp;·&nbsp;&nbsp;");
+    box.innerHTML = '<span class="net-current-label">Joignable actuellement</span>' + rows.join("");
     box.hidden = false;
   }
 
