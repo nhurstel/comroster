@@ -94,7 +94,9 @@ a { color: var(--accent); text-decoration: none; }
     display: flex; align-items: center; gap: 9px; padding: 0 14px;
     border-right: 1px solid var(--border-soft);
     font-weight: 700; font-size: 12px; letter-spacing: 0.13em;
+    color: inherit;                     /* la marque est un lien : retour au plateau */
 }
+a.brand:hover { background: #ffffff08; }
 .side-name { text-transform: uppercase; }
 .admin-badge { width: 14px; height: 14px; flex: 0 0 auto; display: block; }
 .crumb {
@@ -202,8 +204,10 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 .import-label input[type="file"] { display: none; }
 
 .side-foot { flex: 0 0 auto; border-top: 1px solid var(--border-soft); padding-top: 6px; margin-top: 6px; }
+.side-foot-row { display: flex; align-items: stretch; }
+.side-foot-row .nav-item { width: auto; flex: 0 0 auto; padding: 0 var(--pad); }
 .logout-link {
-    display: flex; align-items: center;
+    display: flex; align-items: center; flex: 1; min-width: 0;
     height: calc(var(--row) - 3px); padding: 0 var(--pad) 0 calc(var(--pad) + 12px);
     color: var(--danger); font-size: calc(var(--ui) + 1px); white-space: nowrap;
 }
@@ -262,16 +266,20 @@ body:has(#import-dialog[open]) #export-btn {
     flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain;
     padding: var(--pad);
     display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
-    grid-auto-rows: min-content; align-items: start; gap: var(--gap);
+    grid-auto-rows: 1fr; gap: var(--gap);
     scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
 #blocks-container::-webkit-scrollbar { width: 8px; }
 #blocks-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
 
 /* ---------- Bloc-groupe (maquette .gr) : le groupe EST la couleur ---------- */
+/* Tous les blocs ont la MÊME hauteur (celle du plus grand : rangées 1fr) — les
+   hauteurs libres faisaient sauter la grille à chaque écart d'effectif. La fente de
+   dépôt est ancrée en bas du bloc, l'espace libre reste entre elle et les lignes. */
 .admin-block {
     border-radius: var(--rad); overflow: hidden;
     background: var(--gel, var(--surface-2)); color: var(--on-gel, var(--fg));
+    display: flex; flex-direction: column;
 }
 /* Cascade d'ARRIVÉE seulement : le conteneur porte data-cascade au premier rendu,
    retiré ensuite — chaque édition re-crée les blocs, et une cascade qui rejouait à
@@ -321,7 +329,8 @@ body:has(#import-dialog[open]) #export-btn {
 .block-actions .chip-btn:hover:not(:disabled) { text-decoration: underline; }
 .block-actions .chip-btn.danger { opacity: 0.8; }
 
-.block-items { display: flex; flex-direction: column; }
+.block-items { display: flex; flex-direction: column; flex: 1; }
+.block-items .drop-tile { margin-top: auto; }
 .block-items .empty-hint { color: inherit; opacity: 0.65; }
 
 /* ---------- Ligne beltpack (maquette .gr li) ---------- */
@@ -611,6 +620,8 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .admin-dialog .dialog-actions .danger:hover:not(:disabled) { background: var(--danger-bg); }
 .admin-dialog .dialog-actions .danger:disabled { opacity: 0.4; }
 /* Redémarrage (action notable, non destructive) */
+.admin-dialog button.primary.confirm-danger { background: var(--error); color: #FFFFFF; }
+.admin-dialog button.primary.confirm-danger:hover:not(:disabled) { background: #E2604F; }
 .admin-dialog .reboot-btn { background: var(--warning); color: #141005; border-color: transparent; font-weight: 700; margin-right: auto; }
 .admin-dialog .reboot-btn:hover:not(:disabled) { background: #F2B457; border-color: transparent; }
 

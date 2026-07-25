@@ -16,10 +16,11 @@
     {# En-tête console : marque · fil d'Ariane (état publié en lecture) · onglets ·
        chips temps réel · action de publication. #}
     <header class="admin-top">
-      <div class="brand">
+      {# La marque ramène au plateau (retour au menu principal d'un clic). #}
+      <a class="brand" href="{{ url_for('api.admin_page') }}" title="Retour aux affectations">
         <img class="admin-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="" width="18" height="18">
         <span class="side-name">ComRoster</span>
-      </div>
+      </a>
       <div class="crumb">
         <b id="board-title">{{ initial_data.title }}</b>
         <span class="crumb-sep" {% if not initial_data.subtitle %}hidden{% endif %} id="crumb-sep">/</span>
@@ -65,14 +66,10 @@
 
             <div class="nav-label">Boîtier</div>
             <button type="button" id="network-btn" class="nav-item" title="Configuration réseau du boîtier">Réseau</button>
-            <button type="button" id="reboot-btn" class="nav-item nav-danger" title="Redémarre le Raspberry Pi (écran et admin indisponibles ~1 min)">Redémarrer</button>
           </nav>
-        </div>
-        <div class="side-foot">
-          {# Témoin permanent de l'écran de régie (état publié), ancré en bas de la
-             latérale — en surimpression il finissait par gêner le plateau. La barre a
-             la place depuis que les réglages vivent dans l'onglet Écran. Ouvert par
-             défaut, repliable (mémorisé) ; clic sur la vignette = grand aperçu. #}
+
+          {# Témoin permanent de l'écran de régie (état publié), dans le fil du menu —
+             ouvert par défaut, repliable (mémorisé) ; clic sur la vignette = grand aperçu. #}
           <aside class="preview-dock" id="preview-dock" data-open="1">
             <button type="button" class="dock-toggle" id="preview-dock-toggle" aria-expanded="true"
                     aria-controls="preview-dock-body">
@@ -86,7 +83,12 @@
                       aria-label="Agrandir le report de l'écran de régie"></button>
             </div>
           </aside>
-          <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
+        </div>
+        <div class="side-foot">
+          <div class="side-foot-row">
+            <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
+            <button type="button" id="reboot-btn" class="nav-item nav-danger" title="Redémarre le Raspberry Pi (écran et admin indisponibles ~1 min)">Redémarrer</button>
+          </div>
           <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           </form>
@@ -128,7 +130,6 @@
                 </div>
               </div>
               <div class="user-list" id="available-users"></div>
-              <p class="empty-hint">Glissez les beltpacks dans un groupe pour les affecter.</p>
               <div class="pool-foot">
                 <button type="button" id="add-beltpack-pool" class="pool-add">+ Ajouter un beltpack</button>
               </div>
@@ -201,7 +202,6 @@
   <dialog id="color-dialog" class="admin-dialog color-dialog">
     <form method="dialog">
       <h2>Couleur du groupe</h2>
-      <p class="dialog-hint">Palette calibrée pour rester lisible sur l'écran de régie, quel que soit le mode de luminosité.</p>
       <div class="color-grid" id="color-grid"></div>
       <div class="dialog-actions">
         <button type="button" data-close="color-dialog">Fermer</button>
@@ -243,9 +243,7 @@
 
   <dialog id="preview-dialog" class="admin-dialog preview-dialog">
     <form method="dialog">
-      <h2>Écran de régie</h2>
-      <p class="dialog-hint">Ce qui est <b>actuellement affiché</b>, à l'échelle. Vos modifications
-        en cours n'y apparaîtront qu'après « Envoyer à l'affichage ».</p>
+      <h2>Écran de régie — état publié</h2>
       <div class="preview-frame">
         {# tabindex=-1 : sinon le focus d'ouverture atterrit DANS l'iframe et Échap y est
            absorbé par son document — impossible de fermer le dialogue au clavier. #}
@@ -263,7 +261,7 @@
   <dialog id="history-dialog" class="admin-dialog">
     <form method="dialog">
       <h2>Publications passées</h2>
-      <p class="dialog-hint">Restaurer recharge le snapshot choisi comme brouillon (renvoyez pour l'afficher). L'historique est conservé 30 jours, puis supprimé automatiquement.</p>
+      <p class="dialog-hint">Restaurer recharge la publication choisie comme brouillon. Conservation : 30 jours.</p>
       <ul id="history-list" class="history-list"></ul>
       <div class="dialog-actions">
         <button type="button" id="history-clear" class="danger">Supprimer l'historique</button>
@@ -336,9 +334,8 @@
           <input type="checkbox" id="dash-autosync">
           <span>Mise à jour automatique depuis l'antenne</span>
         </label>
-        <p class="dialog-hint">Quand un beltpack est renommé, ajouté ou retiré sur le réseau
-          intercom, le roster et l'affichage se mettent à jour tout seuls (dans le périmètre des
-          plages). Sinon, utilisez « Actualiser depuis l'antenne ».</p>
+        <p class="dialog-hint">Reflète en continu les changements du réseau intercom,
+          dans le périmètre des plages.</p>
       </div>
       <div class="dialog-actions">
         <button type="button" id="dash-reconnect-btn" hidden>Reconnecter</button>
@@ -352,8 +349,8 @@
   <dialog id="network-dialog" class="admin-dialog">
     <form id="network-form" method="dialog">
       <h2>Réseau du boîtier</h2>
-      <p class="dialog-hint">Connexion du boîtier au réseau intercom. Infrastructure à base de
-        switchs (sans routeur) : laissez la passerelle vide.</p>
+      <p class="dialog-hint">Sur une infrastructure à base de switchs (sans routeur),
+        laisser la passerelle vide.</p>
       <label class="field"><span>Liaison</span>
         <select id="net-link">
           <option value="ethernet">Filaire (RJ45)</option>
@@ -414,6 +411,20 @@
       </div>
       <ul id="configs-list" class="configs-list"></ul>
       <div class="dialog-actions"><button type="button" data-close="configs-dialog">Fermer</button></div>
+    </form>
+  </dialog>
+
+  {# Confirmation DANS l'interface (remplace window.confirm, étranger à la DA).
+     Boutons value=…/method=dialog : le returnValue porte le choix, Échap = annuler. #}
+  <dialog id="confirm-dialog" class="admin-dialog confirm-dialog">
+    <form method="dialog">
+      <h2 id="confirm-title">Confirmer</h2>
+      <p class="dialog-hint" id="confirm-text"></p>
+      <div class="dialog-actions">
+        {# autofocus sur Annuler : Entrée par réflexe ne détruit rien. #}
+        <button value="cancel" autofocus>Annuler</button>
+        <button value="ok" id="confirm-ok" class="primary">Confirmer</button>
+      </div>
     </form>
   </dialog>
 

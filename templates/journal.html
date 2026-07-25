@@ -10,10 +10,10 @@
 <body class="admin-page journal-page">
   <div class="admin-app">
     <header class="admin-top">
-      <div class="brand">
+      <a class="brand" href="{{ url_for('api.admin_page') }}" title="Retour aux affectations">
         <img class="admin-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="" width="18" height="18">
         <span class="side-name">ComRoster</span>
-      </div>
+      </a>
       <div class="crumb">
         <b>Journal</b>
         <span class="crumb-sep">/</span>

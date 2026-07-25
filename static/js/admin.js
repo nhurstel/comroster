@@ -89,6 +89,23 @@
     toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
   }
 
+  /* ---------- Confirmation dans l'interface ----------
+     Remplace window.confirm (chrome système étranger à la DA). Boutons value=… d'un
+     form method=dialog : le returnValue porte le choix, Échap vaut annulation. */
+  function confirmDialog(text, { title = "Confirmer", okLabel = "Confirmer", danger = false } = {}) {
+    const dlg = document.getElementById("confirm-dialog");
+    document.getElementById("confirm-title").textContent = title;
+    document.getElementById("confirm-text").textContent = text;
+    const ok = document.getElementById("confirm-ok");
+    ok.textContent = okLabel;
+    ok.classList.toggle("confirm-danger", danger);
+    dlg.returnValue = "";
+    return new Promise((resolve) => {
+      dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok"), { once: true });
+      dlg.showModal();
+    });
+  }
+
   function findBlock(id) { return state.data.groups.find((g) => g.id === id); }
   function findPerson(id) { return state.data.people.find((p) => p.id === id); }
   function beltpackTaken(num, ignoreId) {
@@ -397,13 +414,7 @@
         else assign(state.drag.userId, block.id);
       });
 
-      if (members.length) members.forEach((p) => list.append(personCard(p, "block", block.id)));
-      else {
-        const h = document.createElement("div");
-        h.className = "empty-hint";
-        h.textContent = "Déposez des beltpacks ici, ou";
-        list.append(h);
-      }
+      members.forEach((p) => list.append(personCard(p, "block", block.id)));
       list.append(addTile(() => openPersonDialog(null, block.id)));   // case « + » du groupe
       wrap.append(header, list);
       el.blocks.append(wrap);
@@ -773,9 +784,10 @@
     el.blockDialog.showModal();
     requestAnimationFrame(() => { el.blockName.focus(); el.blockName.select(); });
   }
-  function deleteBlock(id) {
+  async function deleteBlock(id) {
     const b = findBlock(id);
-    if (!confirm(`Supprimer le groupe « ${b.name} » ? Les beltpacks retournent dans la liste disponible.`)) return;
+    if (!await confirmDialog(`Supprimer le groupe « ${b.name} » ? Ses beltpacks retournent en réserve.`,
+                             { title: "Supprimer le groupe", okLabel: "Supprimer", danger: true })) return;
     state.data.people.forEach((p) => { if (p.group_id === id) p.group_id = null; });
     state.data.groups = state.data.groups.filter((g) => g.id !== id);
     markDirty(); render();
@@ -1031,7 +1043,8 @@
     document.getElementById("history-dialog").showModal();
   }
   async function clearHistory() {
-    if (!confirm("Supprimer tout l'historique des publications ? Cette action est irréversible.")) return;
+    if (!await confirmDialog("Supprimer toutes les publications passées ? Action irréversible.",
+                             { title: "Vider les publications", okLabel: "Tout supprimer", danger: true })) return;
     try { await apiSend("POST", "/api/history/clear"); await refreshHistory(); toast("Historique supprimé"); }
     catch { toast("Suppression impossible.", true); }
   }
@@ -1045,7 +1058,10 @@
     const action = btn.dataset.action;
     if (action === "edit") openPersonDialog(userId);
     else if (action === "remove") removeFromGroup(userId);
-    else if (action === "delete") { if (confirm("Supprimer ce beltpack ?")) deletePerson(userId); }
+    else if (action === "delete") {
+      confirmDialog("Supprimer ce beltpack ?", { okLabel: "Supprimer", danger: true })
+        .then((ok) => { if (ok) deletePerson(userId); });
+    }
     hideContextMenu();
   });
   document.addEventListener("click", (e) => { if (!el.contextMenu.contains(e.target)) hideContextMenu(); });
@@ -1450,8 +1466,9 @@
 
   // Applique la config réseau à chaud (nmcli), sans redémarrer le boîtier.
   document.getElementById("net-apply-btn").addEventListener("click", async (ev) => {
-    if (!confirm("Appliquer la configuration réseau maintenant ?\n\nSi l'adresse change, cette page perdra la connexion : rouvrez l'admin sur la nouvelle adresse.")) return;
-    const btn = ev.currentTarget;
+    const btn = ev.currentTarget;              // AVANT l'await : currentTarget est nul après
+    if (!await confirmDialog("Si l'adresse change, cette page perdra la connexion : rouvrir l'admin sur la nouvelle adresse.",
+                             { title: "Appliquer la configuration réseau", okLabel: "Appliquer" })) return;
     const label = btn.textContent;
     btn.disabled = true; btn.textContent = "Application…";
     try {
@@ -1467,9 +1484,10 @@
   });
 
   document.getElementById("reboot-btn").addEventListener("click", async (ev) => {
-    if (!confirm("Redémarrer le boîtier maintenant ? L'écran et l'administration seront indisponibles ~1 minute.")) return;
-    const btn = ev.currentTarget;
-    const original = btn.innerHTML;            // le bouton de nav contient une icône SVG
+    const btn = ev.currentTarget;              // AVANT l'await : currentTarget est nul après
+    if (!await confirmDialog("Écran et administration indisponibles environ une minute.",
+                             { title: "Redémarrer le boîtier", okLabel: "Redémarrer" })) return;
+    const original = btn.innerHTML;
     btn.disabled = true; btn.textContent = "Redémarrage…";
     try {
       await apiSend("POST", "/api/reboot");
@@ -1501,7 +1519,9 @@
   document.getElementById("selection-cancel").addEventListener("click", exitSelection);
   document.getElementById("selection-delete").addEventListener("click", async () => {
     if (!state.selection.size) return;
-    if (!confirm(`Supprimer ${state.selection.size} beltpack(s) ?`)) return;
+    const n = state.selection.size;
+    if (!await confirmDialog(`Supprimer ${n} beltpack${n > 1 ? "s" : ""} ?`,
+                             { okLabel: "Supprimer", danger: true })) return;
     const ids = [...state.selection];
     try {
       const res = await apiSend("POST", "/api/people/delete-batch", { ids });
@@ -1522,7 +1542,8 @@
           + `<button type="button" data-del="${esc(c.name)}" class="chip-btn danger">Supprimer</button></span></li>`).join("")
       : "<li class='empty-hint'>Aucune configuration enregistrée.</li>";
     ul.querySelectorAll("[data-load]").forEach((b) => b.addEventListener("click", async () => {
-      if (!confirm(`Charger « ${b.dataset.load} » ? Le tableau actuel sera remplacé et l'antenne déconnectée.`)) return;
+      if (!await confirmDialog(`Charger « ${b.dataset.load} » ? Le tableau actuel sera remplacé et l'antenne déconnectée.`,
+                               { title: "Charger la configuration", okLabel: "Charger" })) return;
       await apiSend("POST", `/api/configs/${encodeURIComponent(b.dataset.load)}/load`);
       document.getElementById("configs-dialog").close();
       setUnpublished(true);
@@ -1530,7 +1551,7 @@
       toast("Configuration chargée");
     }));
     ul.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
-      if (!confirm(`Supprimer « ${b.dataset.del} » ?`)) return;
+      if (!await confirmDialog(`Supprimer « ${b.dataset.del} » ?`, { okLabel: "Supprimer", danger: true })) return;
       await apiSend("DELETE", `/api/configs/${encodeURIComponent(b.dataset.del)}`);
       openConfigs();
     }));
@@ -1669,6 +1690,16 @@
 
   // Ajout de beltpack : UN seul bouton, au pied de la réserve (il arrive non affecté).
   document.getElementById("add-beltpack-pool")?.addEventListener("click", () => openPersonDialog(null, null));
+
+  /* ---------- Raccourcis affichés : suivent la plateforme ----------
+     ⌘ ne parle qu'aux Mac ; ailleurs on affiche Ctrl. Les handlers acceptent les
+     deux (e.ctrlKey || e.metaKey), seul l'AFFICHAGE change. */
+  if (!/Mac|iPhone|iPad/.test(navigator.platform || "")) {
+    const pk = document.querySelector("#publish-btn kbd");
+    if (pk) pk.textContent = "Ctrl+↵";
+    const kk = document.querySelector(".pool-find kbd");
+    if (kk) kk.textContent = "Ctrl+K";
+  }
 
   /* ---------- Horloge de l'en-tête ---------- */
   const clockEl = document.getElementById("admin-clock");
