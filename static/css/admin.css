@@ -640,13 +640,15 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field > span { font-size: var(--ui-sm); font-weight: 600; color: var(--fg-muted); }
 .field em, .field small { font-weight: 400; font-style: normal; color: var(--muted); }
-.admin-dialog input, .admin-dialog select {
+/* Champs texte/nombre/mot de passe pleine largeur — mais PAS les cases à cocher ni les
+   radios (sinon #dash-autosync devient une grosse boîte de 32px pleine largeur). */
+.admin-dialog input:not([type="checkbox"]):not([type="radio"]), .admin-dialog select {
     width: 100%; height: 32px; padding: 0 10px;
     background: var(--inset); border: 1px solid var(--border); border-radius: var(--rad);
     color: var(--fg);
 }
 .admin-dialog input::placeholder { color: var(--muted); }
-.admin-dialog input:focus, .admin-dialog select:focus {
+.admin-dialog input:not([type="checkbox"]):not([type="radio"]):focus, .admin-dialog select:focus {
     outline: none; border-color: var(--accent);
     box-shadow: 0 0 0 2px rgb(217 98 83 / 0.18);
 }
@@ -716,8 +718,16 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .dash-card { background: var(--inset); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 12px; }
 .dash-card-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-subtle); margin-bottom: 7px; }
 #dash-state { display: flex; flex-direction: column; gap: 3px; font-size: var(--ui); }
-#dash-state .ds-line { display: flex; align-items: center; gap: 6px; }
-#dash-state .ds-sub { color: var(--fg-subtle); font-size: var(--ui-sm); }
+#dash-state .ds-line { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; font-weight: 600; }
+/* Une ligne par info : clé à gauche, valeur alignée à droite (comme l'état réseau). */
+#dash-state .ds-row { display: flex; align-items: baseline; gap: 10px; }
+#dash-state .ds-key { flex: 0 0 auto; color: var(--muted); }
+#dash-state .ds-val { flex: 1; min-width: 0; text-align: right; color: var(--fg-muted); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Portée de l'import : segment Tous/Certains + éditeur de plages (assistant + tableau de bord). */
+.scope { display: flex; flex-direction: column; gap: 8px; }
+.scope .tb-seg { align-self: flex-start; }
+.import-note { padding: 7px 9px; color: var(--muted); font-size: var(--ui); list-style: none; }
 .dash-autosync { display: flex; flex-direction: column; gap: 5px; }
 .dash-autosync .side-check { padding: 0; color: var(--fg); }
 .dash-autosync .dialog-hint { padding-left: 23px; }

@@ -1136,7 +1136,7 @@
   function summaryHtml(p) {
     return [
       `<li><b>${p.new.length}</b> à ajouter${p.new.length ? " : " + p.new.map((n) => esc(`#${n.number} ${n.name}`)).join(", ") : ""}</li>`,
-      `<li><b>${p.changed.length}</b> rôle(s) mis à jour${p.changed.length ? " : " + p.changed.map((c) => esc(`#${c.number} ${c.old_role}→${c.new_role}`)).join(", ") : ""}</li>`,
+      `<li><b>${p.changed.length}</b> nom(s) mis à jour${p.changed.length ? " : " + p.changed.map((c) => esc(`#${c.number} ${c.old_role}→${c.new_role}`)).join(", ") : ""}</li>`,
       `<li><b>${p.unchanged}</b> inchangé(s)</li>`,
       `<li><b>${p.missing.length}</b> à retirer${p.missing.length ? " : " + p.missing.map((m) => esc(`#${m.number} ${m.role}`)).join(", ") : ""}</li>`,
     ].join("");
@@ -1150,6 +1150,41 @@
     return st;
   }
 
+  /* ---------- Portée de l'import : Tous (plages vides) ↔ Certains numéros ----------
+     Le même contrôle sert l'assistant et le tableau de bord. `onRangesChanged` permet à
+     l'assistant de rafraîchir son aperçu en direct pendant qu'on édite les numéros. */
+  let onRangesChanged = null;
+  let activeScopeEl = null, activeWrapEl = null;
+
+  function reflectScope() {
+    if (!activeScopeEl) return;
+    const some = currentRanges.length > 0;
+    activeScopeEl.querySelector('[data-scope="all"]').setAttribute("aria-pressed", String(!some));
+    activeScopeEl.querySelector('[data-scope="some"]').setAttribute("aria-pressed", String(some));
+    activeWrapEl.hidden = !some;
+  }
+  // Monte le bloc portée du contexte visible (assistant OU tableau de bord).
+  function showScope(scopeId, wrapId, listId) {
+    activeScopeEl = document.getElementById(scopeId);
+    activeWrapEl = document.getElementById(wrapId);
+    rangesListEl = document.getElementById(listId);
+    reflectScope();
+    renderRanges();
+  }
+  function wireScope(scopeId) {
+    document.getElementById(scopeId).addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-scope]");
+      if (!b) return;
+      if (b.dataset.scope === "all") currentRanges = [];
+      else if (!currentRanges.length) currentRanges = [[1, 25]];   // amorce une plage
+      reflectScope();
+      renderRanges();
+      saveRanges();
+    });
+  }
+  wireScope("wiz-scope");
+  wireScope("dash-scope");
+
   function renderRanges() {
     if (!rangesListEl) return;
     rangesListEl.innerHTML = "";
@@ -1160,7 +1195,12 @@
         + `<input type="number" min="1" value="${r[1]}" data-i="${i}" data-k="1">`;
       const del = document.createElement("button");
       del.type = "button"; del.className = "range-del"; del.textContent = "✕";
-      del.addEventListener("click", () => { currentRanges.splice(i, 1); renderRanges(); saveRanges(); });
+      del.addEventListener("click", () => {
+        currentRanges.splice(i, 1);
+        reflectScope();               // dernière plage retirée → repasse à « Tous »
+        renderRanges();
+        saveRanges();
+      });
       row.appendChild(del);
       rangesListEl.appendChild(row);
     });
@@ -1173,16 +1213,32 @@
     const clean = currentRanges
       .map((r) => [parseInt(r[0] || 0, 10), parseInt(r[1] || 0, 10)])
       .filter((r) => r[0] >= 1 && r[1] >= r[0]);
-    try { await apiSend("PUT", "/api/settings", { antenna_ranges: clean }); }
-    catch { toast("Plages invalides", true); }
+    try {
+      await apiSend("PUT", "/api/settings", { antenna_ranges: clean });
+      if (onRangesChanged) onRangesChanged();     // aperçu live de l'assistant
+    } catch { toast("Plages invalides", true); }
   }
   function addRange() { currentRanges.push([1, 25]); renderRanges(); saveRanges(); }
   document.getElementById("wiz-add-range").addEventListener("click", addRange);
   document.getElementById("dash-add-range").addEventListener("click", addRange);
 
+  // Aperçu live de ce que l'import va faire (assistant, étape 2).
+  async function refreshWizPreview() {
+    const box = document.getElementById("wiz-summary");
+    box.innerHTML = "<li class='import-note'>Lecture des beltpacks de l'antenne…</li>";
+    try { box.innerHTML = summaryHtml(await apiSend("POST", "/api/antenna/import/preview")); }
+    catch { box.innerHTML = "<li class='import-note'>Lecture impossible pour l'instant.</li>"; }
+  }
+
   function wizGo(step) {
     antennaDialog.querySelectorAll(".wiz-step").forEach((s) => { s.hidden = +s.dataset.step !== step; });
-    if (step === 2) { rangesListEl = document.getElementById("wiz-ranges-list"); renderRanges(); }
+    if (step === 2) {
+      showScope("wiz-scope", "wiz-ranges-wrap", "wiz-ranges-list");
+      onRangesChanged = refreshWizPreview;   // ré-aperçu à chaque changement de portée
+      refreshWizPreview();
+    } else {
+      onRangesChanged = null;
+    }
   }
 
   async function openAntenna() {
@@ -1197,14 +1253,21 @@
       const fw = st.info?.firmware?.version || "?";
       const name = st.info?.local?.name || st.ip;
       const nbp = (st.info?.nodes || []).reduce((a, n) => a + (n.bp ? n.bp.length : 0), 0);
+      // Bloc structuré (comme l'état réseau) : une ligne par info, valeur alignée à droite.
+      const rows = [
+        ["Nom", name],
+        ["Adresse", st.ip],
+        online ? ["Firmware", fw] : null,
+        online && nbp ? ["Beltpacks", `${nbp} sur le réseau`] : null,
+      ].filter(Boolean);
       document.getElementById("dash-state").innerHTML =
         `<div class="ds-line"><span class="dot ${online ? "online" : "offline"}"></span>`
         + `<b>${online ? "Connecté" : "Hors ligne"}</b></div>`
-        + `<div class="ds-sub">${esc(name)}${online ? ` · firmware ${esc(fw)}` : ""}</div>`
-        + (online && nbp ? `<div class="ds-sub">${nbp} beltpack(s) sur le réseau</div>` : "");
+        + rows.map(([k, v]) => `<div class="ds-row"><span class="ds-key">${esc(k)}</span><span class="ds-val">${esc(v)}</span></div>`).join("");
       document.getElementById("dash-reconnect-btn").hidden = online;
       document.getElementById("dash-refresh-btn").hidden = !online;
-      rangesListEl = document.getElementById("dash-ranges-list"); renderRanges();
+      onRangesChanged = null;                 // le tableau de bord n'a pas d'aperçu live
+      showScope("dash-scope", "dash-ranges-wrap", "dash-ranges-list");
     } else {
       document.getElementById("antenna-dashboard").hidden = true;
       document.getElementById("antenna-wizard").hidden = false;
@@ -1239,15 +1302,7 @@
     }
   });
   document.getElementById("wiz-back-2").addEventListener("click", () => wizGo(1));
-  document.getElementById("wiz-back-3").addEventListener("click", () => wizGo(2));
 
-  document.getElementById("wiz-next-2").addEventListener("click", async () => {
-    let p;
-    try { p = await apiSend("POST", "/api/antenna/import/preview"); }
-    catch { toast("Lecture des beltpacks impossible", true); return; }
-    document.getElementById("wiz-summary").innerHTML = summaryHtml(p);
-    wizGo(3);
-  });
   document.getElementById("wiz-import-btn").addEventListener("click", async () => {
     try {
       await apiSend("POST", "/api/antenna/import/apply");

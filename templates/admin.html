@@ -36,7 +36,7 @@
         <a class="tab" href="{{ url_for('api.journal_page') }}">Journal</a>
         {# Intercom (avec son voyant d'état) et Réseau : même allure que les autres
            onglets — ils ouvrent leur dialogue au lieu de changer de panneau. #}
-        <button type="button" class="tab" id="antenna-btn" title="Connexion au réseau intercom">
+        <button type="button" class="tab" id="antenna-btn" title="Connexion à l'antenne intercom">
           <span class="dot off" id="antenna-dot"></span>Intercom</button>
         <button type="button" class="tab" id="network-btn" title="Configuration réseau du boîtier">Réseau</button>
       </nav>
@@ -275,7 +275,7 @@
       {# Progression en compteur discret dans le titre : des points flottants au-dessus
          ressemblaient à des voyants d'état. #}
       <section class="wiz-step" data-step="1">
-        <h2>Connexion au réseau Intercom <span class="wiz-count">1/3</span></h2>
+        <h2>Connexion à l'antenne intercom <span class="wiz-count">1/2</span></h2>
         <label class="field"><span>Adresse IP</span>
           <input type="text" id="wiz-ip" placeholder="192.168.1.11" autocomplete="off"></label>
         <label class="field"><span>Mot de passe</span>
@@ -284,43 +284,50 @@
         <p id="wiz-error" class="auth-error" hidden></p>
         <div class="dialog-actions">
           <button type="button" data-close="antenna-dialog">Annuler</button>
-          <button type="button" id="wiz-connect-btn" class="primary">Connecter →</button>
+          <button type="button" id="wiz-connect-btn" class="primary">Connecter</button>
         </div>
       </section>
       <section class="wiz-step" data-step="2" hidden>
-        <h2>Beltpacks à charger <span class="wiz-count">2/3</span></h2>
-        <div class="ranges-editor">
-          <span class="dlg-label">Numéros (vide = tous)</span>
-          <div id="wiz-ranges-list"></div>
-          <button type="button" id="wiz-add-range">+ Plage</button>
+        <h2>Importer les beltpacks <span class="wiz-count">2/2</span></h2>
+        <p class="dialog-hint">Les beltpacks de l'antenne sont ajoutés au roster ; ceux déjà présents sont mis à jour.</p>
+        {# Portée de l'import : « Tous » par défaut (plages vides côté serveur) ; « Certains
+           numéros » révèle l'éditeur de plages. #}
+        <div class="scope" id="wiz-scope">
+          <div class="tb-seg" role="group" aria-label="Quels beltpacks importer">
+            <button type="button" class="seg-btn" data-scope="all" aria-pressed="true">Tous</button>
+            <button type="button" class="seg-btn" data-scope="some" aria-pressed="false">Certains numéros</button>
+          </div>
+          <div class="ranges-editor" id="wiz-ranges-wrap" hidden>
+            <div id="wiz-ranges-list"></div>
+            <button type="button" id="wiz-add-range" class="tb-act">+ Ajouter des numéros</button>
+          </div>
         </div>
-        <div class="dialog-actions">
-          <button type="button" id="wiz-back-2">← Retour</button>
-          <button type="button" id="wiz-next-2" class="primary">Suivant →</button>
-        </div>
-      </section>
-      <section class="wiz-step" data-step="3" hidden>
-        <h2>Import <span class="wiz-count">3/3</span></h2>
         <ul id="wiz-summary" class="import-summary"></ul>
         <div class="dialog-actions">
-          <button type="button" id="wiz-back-3">← Retour</button>
+          <button type="button" id="wiz-back-2">Retour</button>
           <button type="button" id="wiz-import-btn" class="primary">Importer</button>
         </div>
       </section>
     </div>
 
     <div id="antenna-dashboard" hidden>
-      <h2>Réseau Intercom</h2>
+      <h2>Antenne intercom</h2>
       <div class="dash-grid">
         <section class="dash-card">
           <div class="dash-card-title">État</div>
           <div id="dash-state"></div>
         </section>
         <section class="dash-card">
-          <div class="dash-card-title">Beltpacks à charger</div>
-          <div class="ranges-editor">
-            <div id="dash-ranges-list"></div>
-            <button type="button" id="dash-add-range">+ Plage</button>
+          <div class="dash-card-title">Beltpacks importés</div>
+          <div class="scope" id="dash-scope">
+            <div class="tb-seg" role="group" aria-label="Quels beltpacks importer">
+              <button type="button" class="seg-btn" data-scope="all" aria-pressed="true">Tous</button>
+              <button type="button" class="seg-btn" data-scope="some" aria-pressed="false">Certains numéros</button>
+            </div>
+            <div class="ranges-editor" id="dash-ranges-wrap" hidden>
+              <div id="dash-ranges-list"></div>
+              <button type="button" id="dash-add-range" class="tb-act">+ Ajouter des numéros</button>
+            </div>
           </div>
         </section>
       </div>
