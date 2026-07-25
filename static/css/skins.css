@@ -156,9 +156,9 @@ body.display-page[data-skin="lineaire"] .board-meta h1 {
   color: var(--l-fg);
 }
 body.display-page[data-skin="lineaire"] .board-meta h2 {
-  font-size: 0.8rem; font-weight: 400;
+  font-size: 0.9rem; font-weight: 500;
   text-transform: none; letter-spacing: 0;
-  color: var(--l-muted);
+  color: var(--l-fg); opacity: 0.75;
 }
 body.display-page[data-skin="lineaire"] .header-actions {
   margin-left: auto; gap: 0;
@@ -326,9 +326,9 @@ body.display-page[data-skin="grille"] .board-meta h1 {
   color: var(--g-fg);
 }
 body.display-page[data-skin="grille"] .board-meta h2 {
-  font-size: 0.78rem; font-weight: 400;
+  font-size: 0.92rem; font-weight: 500;
   text-transform: none; letter-spacing: 0;
-  color: var(--g-muted);
+  color: var(--g-fg); opacity: 0.75;
 }
 body.display-page[data-skin="grille"] .header-actions {
   margin-left: auto; gap: 1.5rem; align-items: center;

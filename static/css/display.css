@@ -82,8 +82,11 @@ body.display-page[data-theme="day"] .person { background: rgba(23,27,36,0.03); }
   font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.01em;
   text-shadow: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--d-fg);
 }
+/* Sous-titre : couleur du titre atténuée par opacité (plus lisible que le gris « muted »
+   et s'adapte au thème clair/sombre). Un peu plus grand, interlettrage réduit. */
 .display-page .board-meta h2 {
-  font-size: 0.62rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.22em; color: var(--d-muted);
+  font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--d-fg); opacity: 0.72;
 }
 .display-page .header-actions { gap: 1.6rem; margin-left: auto; align-items: center; }
 /* Logo ComRoster (glyphe seul) en haut à droite, séparé par un filet des indicateurs. */
