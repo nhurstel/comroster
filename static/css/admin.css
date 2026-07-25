@@ -38,11 +38,21 @@
     --pool-w: 242px;
     --top-h: 53px;
 
+    /* Polices du preset « base » retenu au banc : Outfit pour l'UI, Inter (tabulaire)
+       pour les nombres. Sans ces lignes, l'UI héritait d'Inter et les nombres tombaient
+       en monospace SYSTÈME (Menlo) — deux polices fausses sur tout l'écran. */
+    --font-mono: var(--font-body);          /* Inter tabulaire pour n°, horloge, compteurs */
+    font-family: var(--font-display);       /* Outfit pour libellés, rôles, boutons */
+    font-variant-numeric: tabular-nums;
+
     height: 100vh;
     overflow: hidden;
     background: #141821;
     color: var(--fg);
+    line-height: 1.3;                       /* main.css impose 1.6 → lignes trop hautes */
 }
+/* Pas de halo turquoise (body::before de main.css) sur l'admin : fond plat comme la maquette. */
+body.admin-page::before { display: none; }
 
 /* ---------- Boutons compacts (dialogs, actions de panneau) ---------- */
 .admin-page button,
@@ -384,7 +394,7 @@
     border-left: 1px solid var(--border);
     padding: 0.9rem 1rem;
 }
-.admin-layout > .panel-board { padding: 0.9rem 1.1rem; min-width: 0; }
+.admin-layout > .panel-board { padding: 0; min-width: 0; display: flex; flex-direction: column; }
 .panel-pool .pool-head { flex: 0 0 auto; display: flex; flex-direction: column; gap: 0.55rem; margin-bottom: 0.55rem; }
 .panel-pool .pool-head h3 { display: flex; align-items: center; gap: 0.45rem; }
 .panel-pool .pool-find { display: flex; align-items: center; gap: 0.5rem; height: 1.9rem; padding: 0 0.6rem;
@@ -415,7 +425,8 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .board-table .bt-dot { width: 3px; height: 14px; border-radius: 1px; flex: 0 0 auto; background: var(--a-muted); }
 /* Barre d'outils du plateau : grep · Blocs/Table · compteurs · actions */
-.board-toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 0.6rem; padding: 0 0 0.7rem; }
+.board-toolbar { flex: 0 0 auto; height: 40px; display: flex; align-items: center; gap: 0.6rem;
+    padding: 0 1.1rem; border-bottom: 1px solid var(--a-border-soft); }
 .tb-filter { display: flex; align-items: center; gap: 0.5rem; height: 1.75rem; padding: 0 0.6rem;
     background: var(--a-inset); border: 1px solid var(--a-border); border-radius: var(--rad); flex: 0 1 260px; min-width: 200px; }
 .tb-grep { font-size: var(--ui-sm); color: var(--a-muted); font-weight: 600; }
@@ -459,8 +470,10 @@
     grid-auto-rows: min-content;
     align-items: start;
     gap: var(--gap);
-    padding-right: 0.3rem;
+    padding: 0.85rem 1.1rem;
+    overflow-y: auto;
 }
+.board-table { padding: 0.4rem 1.1rem 0.85rem; }
 .user-list::-webkit-scrollbar,
 #available-users::-webkit-scrollbar,
 #blocks-container::-webkit-scrollbar { width: 8px; }
@@ -561,8 +574,8 @@
     border: none;
     border-bottom: 1px solid rgb(0 0 0 / 0.11);
     border-radius: 0;
-    min-height: var(--row);
-    padding: 0.32rem 0.4rem;
+    height: var(--row);
+    padding: 0 0.4rem;
     display: flex;
     align-items: center;
     gap: 0.6rem;
@@ -582,6 +595,7 @@
     min-width: 1.7rem;
     color: inherit;
     opacity: 0.88;
+    font-family: var(--font-mono);      /* Inter tabulaire, comme la maquette */
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     font-size: var(--mono);
