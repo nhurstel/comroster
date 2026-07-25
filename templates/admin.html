@@ -352,12 +352,22 @@
           <option value="wifi">Wi-Fi (point d'accès du réseau intercom)</option>
         </select></label>
       <div id="net-wifi-fields" hidden>
+        {# Sélecteur : réseaux à proximité (scan lecture seule). Cliquer un réseau remplit
+           le SSID ci-dessous — qui reste saisissable pour un réseau masqué ou si le scan
+           n'aboutit pas. #}
+        <div class="field wifi-picker">
+          <div class="wifi-picker-head">
+            <span>Réseaux à proximité</span>
+            <button type="button" id="net-scan-btn" class="tb-act">Rechercher</button>
+          </div>
+          <ul id="net-wifi-list" class="wifi-list" aria-live="polite"></ul>
+        </div>
         <label class="field"><span>Nom du réseau (SSID)</span>
           <input type="text" id="net-ssid" maxlength="32" autocomplete="off"></label>
         <label class="field"><span>Mot de passe Wi-Fi (WPA2)</span>
           <input type="password" id="net-psk" minlength="8" maxlength="63" autocomplete="new-password"></label>
-        <p class="dialog-hint">En Wi-Fi, la prise RJ45 reste un port de service : un câble
-          direct vers un ordinateur permet toujours d'ouvrir cette page (comroster.local).</p>
+        <p class="dialog-hint">La prise RJ45 reste un port de service : un câble direct
+          vers un ordinateur ouvre toujours cette page (comroster.local).</p>
       </div>
       <label class="field"><span>Mode</span>
         <select id="net-mode">

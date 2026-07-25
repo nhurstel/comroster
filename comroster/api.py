@@ -3,7 +3,7 @@ import re
 from flask import Blueprint, jsonify, current_app, render_template, request
 
 from .security import login_required, exclusive_state, json_body
-from .services import model
+from .services import model, wifi
 
 bp = Blueprint("api", __name__)
 
@@ -116,6 +116,19 @@ def put_network():
     _journal().record("network_save",
                       f"{public.get('link', '?')} · {public.get('mode', '?')}")
     return jsonify({"ok": True, "config": public, "reboot_required": True})
+
+
+@bp.get("/api/network/wifi-scan")
+@login_required
+def wifi_scan():
+    """Réseaux Wi-Fi à proximité (lecture seule) pour le sélecteur du dialogue réseau.
+
+    En dev/test : liste fictive (aucun nmcli disponible) — l'UI reste testable.
+    Sur le Pi : nmcli en lecture, sans privilège (le scan ne modifie rien).
+    """
+    if current_app.debug or current_app.testing:
+        return jsonify({"available": True, "simulated": True, "networks": wifi.sample()})
+    return jsonify(wifi.scan())
 
 
 @bp.post("/api/network/apply")

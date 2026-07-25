@@ -1380,6 +1380,7 @@
   function toggleNetFields() {
     const link = document.getElementById("net-link").value;
     const modeSel = document.getElementById("net-mode");
+    const wasHidden = document.getElementById("net-wifi-fields").hidden;
     document.getElementById("net-wifi-fields").hidden = link !== "wifi";
     // link-local n'a pas de sens en Wi-Fi : option masquée, bascule vers DHCP
     const ll = modeSel.querySelector('option[value="link-local"]');
@@ -1387,7 +1388,65 @@
     ll.hidden = link === "wifi";
     if (link === "wifi" && modeSel.value === "link-local") modeSel.value = "dhcp";
     document.getElementById("net-static-fields").hidden = modeSel.value !== "static";
+    // Premier passage en Wi-Fi : lancer le scan une fois, sans le rejouer à chaque toggle.
+    if (link === "wifi" && wasHidden && !wifiScanned) scanWifi();
   }
+
+  /* ---------- Scan Wi-Fi : réseaux à proximité (lecture seule) ---------- */
+  let wifiScanned = false;
+  const wifiListEl = document.getElementById("net-wifi-list");
+  function wifiState(html) { wifiListEl.innerHTML = `<li class="wifi-note">${html}</li>`; }
+  function renderWifiList(networks) {
+    const current = document.getElementById("net-ssid").value.trim();
+    if (!networks.length) { wifiState("Aucun réseau détecté. Saisir le nom manuellement."); return; }
+    wifiListEl.innerHTML = "";
+    networks.forEach((n) => {
+      const bars = Math.max(1, Math.min(4, Math.ceil(n.signal / 25)));   // 0-100 → 1-4 barres
+      const li = document.createElement("li");
+      li.className = "wifi-row" + (n.ssid === current ? " selected" : "");
+      li.tabIndex = 0;
+      li.setAttribute("role", "button");
+      const sig = document.createElement("span");
+      sig.className = "wifi-sig";
+      for (let i = 1; i <= 4; i++) {
+        const b = document.createElement("i");
+        if (i <= bars) b.className = "on";
+        sig.append(b);
+      }
+      const name = document.createElement("span");
+      name.className = "wifi-name";
+      name.textContent = n.ssid;                       // SSID non fiable : textContent, jamais innerHTML
+      li.append(sig, name);
+      if (n.secured) {
+        const lock = document.createElement("span");
+        lock.className = "wifi-lock";
+        lock.title = "Réseau sécurisé";
+        li.append(lock);
+      }
+      const pick = () => {
+        document.getElementById("net-ssid").value = n.ssid;
+        wifiListEl.querySelectorAll(".wifi-row").forEach((r) => r.classList.remove("selected"));
+        li.classList.add("selected");
+        document.getElementById("net-psk").focus();
+      };
+      li.addEventListener("click", pick);
+      li.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+      wifiListEl.append(li);
+    });
+  }
+  async function scanWifi() {
+    wifiScanned = true;
+    const btn = document.getElementById("net-scan-btn");
+    btn.disabled = true;
+    wifiState("Recherche des réseaux…");
+    try {
+      const res = await apiSend("GET", "/api/network/wifi-scan");
+      if (!res.available) { wifiState("Recherche indisponible sur ce boîtier — saisir le nom manuellement."); }
+      else renderWifiList(res.networks || []);
+    } catch { wifiState("Recherche impossible — saisir le nom manuellement."); }
+    finally { btn.disabled = false; }
+  }
+  document.getElementById("net-scan-btn").addEventListener("click", scanWifi);
   document.getElementById("net-mode").addEventListener("change", toggleNetFields);
   document.getElementById("net-link").addEventListener("change", toggleNetFields);
 
@@ -1407,7 +1466,10 @@
     document.getElementById("net-prefix").value = cfg.prefix || 24;
     document.getElementById("net-gateway").value = cfg.gateway || "";
     document.getElementById("net-dns").value = (cfg.dns || []).join(", ");
+    wifiScanned = false;                 // scan neuf à chaque ouverture
+    wifiListEl.innerHTML = "";
     toggleNetFields();
+    if ((cfg.link || "ethernet") === "wifi") scanWifi();   // déjà en Wi-Fi : scanner d'emblée
     networkDialog.showModal();
   }
   document.getElementById("network-btn").addEventListener("click", openNetwork);
