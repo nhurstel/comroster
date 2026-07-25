@@ -277,7 +277,12 @@ body:has(#import-dialog[open]) #export-btn {
     flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain;
     padding: var(--pad);
     display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
-    grid-auto-rows: 1fr; gap: var(--gap);
+    /* Rangées à `min-content` : chaque rangée prend la hauteur de son plus grand bloc, et
+       le conteneur DÉFILE au-delà. `1fr` (répartir la hauteur fixe) ET `auto` (le bloc en
+       overflow:hidden est un conteneur de défilement dont la hauteur intrinsèque est mal
+       vue par la grille) rétrécissaient et rognaient les blocs quand on ajoutait des
+       groupes. `align-items: stretch` égalise les blocs d'une même rangée sur ce maximum. */
+    grid-auto-rows: min-content; align-items: stretch; align-content: start; gap: var(--gap);
     scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
 #blocks-container::-webkit-scrollbar { width: 8px; }
