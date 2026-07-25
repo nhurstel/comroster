@@ -36,7 +36,7 @@
         <a class="tab" href="{{ url_for('api.journal_page') }}">Journal</a>
         {# Intercom (avec son voyant d'état) et Réseau : même allure que les autres
            onglets — ils ouvrent leur dialogue au lieu de changer de panneau. #}
-        <button type="button" class="tab" id="antenna-btn" title="Connexion à l'antenne intercom">
+        <button type="button" class="tab" id="antenna-btn" title="Connexion au réseau intercom">
           <span class="dot off" id="antenna-dot"></span>Intercom</button>
         <button type="button" class="tab" id="network-btn" title="Configuration réseau du boîtier">Réseau</button>
       </nav>
@@ -275,7 +275,7 @@
       {# Progression en compteur discret dans le titre : des points flottants au-dessus
          ressemblaient à des voyants d'état. #}
       <section class="wiz-step" data-step="1">
-        <h2>Connexion à l'antenne intercom <span class="wiz-count">1/2</span></h2>
+        <h2>Connexion au réseau intercom <span class="wiz-count">1/2</span></h2>
         <label class="field"><span>Adresse IP</span>
           <input type="text" id="wiz-ip" placeholder="192.168.1.11" autocomplete="off"></label>
         <label class="field"><span>Mot de passe</span>
@@ -289,7 +289,7 @@
       </section>
       <section class="wiz-step" data-step="2" hidden>
         <h2>Importer les beltpacks <span class="wiz-count">2/2</span></h2>
-        <p class="dialog-hint">Les beltpacks de l'antenne sont ajoutés au roster ; ceux déjà présents sont mis à jour.</p>
+        <p class="dialog-hint">Les beltpacks du réseau intercom sont ajoutés au roster ; ceux déjà présents sont mis à jour.</p>
         {# Portée de l'import : « Tous » par défaut (plages vides côté serveur) ; « Certains
            numéros » révèle l'éditeur de plages. #}
         <div class="scope" id="wiz-scope">
@@ -311,7 +311,7 @@
     </div>
 
     <div id="antenna-dashboard" hidden>
-      <h2>Antenne intercom</h2>
+      <h2>Réseau intercom</h2>
       <div class="dash-grid">
         <section class="dash-card">
           <div class="dash-card-title">État</div>
@@ -334,14 +334,14 @@
       <div class="dash-autosync">
         <label class="side-check">
           <input type="checkbox" id="dash-autosync">
-          <span>Mise à jour automatique depuis l'antenne</span>
+          <span>Mise à jour automatique depuis le réseau</span>
         </label>
         <p class="dialog-hint">Reflète en continu les changements du réseau intercom,
           dans le périmètre des plages.</p>
       </div>
       <div class="dialog-actions">
         <button type="button" id="dash-reconnect-btn" hidden>Reconnecter</button>
-        <button type="button" id="dash-refresh-btn" class="primary">Actualiser depuis l'antenne</button>
+        <button type="button" id="dash-refresh-btn" class="primary">Actualiser depuis le réseau</button>
         <button type="button" id="dash-disconnect-btn">Déconnecter</button>
         <button type="button" data-close="antenna-dialog">Fermer</button>
       </div>

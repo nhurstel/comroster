@@ -118,9 +118,9 @@ def antenna_status():
 def antenna_reconnect():
     client = _client()
     if not client.ip:
-        return jsonify({"connected": False, "error": "Aucune antenne configurée"}), 400
+        return jsonify({"connected": False, "error": "Aucun réseau intercom configuré"}), 400
     if not client.reconnect():
-        return jsonify({"connected": False, "error": "Reconnexion échouée — antenne injoignable"}), 502
+        return jsonify({"connected": False, "error": "Reconnexion échouée — réseau intercom injoignable"}), 502
     return jsonify({"connected": True, "info": client.status()["info"]})
 
 

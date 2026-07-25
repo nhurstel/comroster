@@ -1225,7 +1225,7 @@
   // Aperçu live de ce que l'import va faire (assistant, étape 2).
   async function refreshWizPreview() {
     const box = document.getElementById("wiz-summary");
-    box.innerHTML = "<li class='import-note'>Lecture des beltpacks de l'antenne…</li>";
+    box.innerHTML = "<li class='import-note'>Lecture des beltpacks du réseau intercom…</li>";
     try { box.innerHTML = summaryHtml(await apiSend("POST", "/api/antenna/import/preview")); }
     catch { box.innerHTML = "<li class='import-note'>Lecture impossible pour l'instant.</li>"; }
   }
@@ -1321,7 +1321,7 @@
     btn.disabled = true; btn.textContent = "Connexion…";
     try {
       await apiSend("POST", "/api/antenna/reconnect");
-      toast("Antenne reconnectée");
+      toast("Réseau intercom reconnecté");
       await openAntenna();          // ré-affiche le tableau de bord à jour
     } catch (err) {
       toast(err.payload?.error || "Reconnexion échouée", true);
