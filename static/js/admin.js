@@ -312,11 +312,13 @@
     const assigned = state.data.people.filter((p) => p.group_id).length;
     el.blockCount.textContent =
       `${groups.length} groupe${groups.length > 1 ? "s" : ""} · ${assigned} affecté${assigned > 1 ? "s" : ""}`;
-    groups.forEach((block) => {
+    groups.forEach((block, bi) => {
       const members = state.data.people.filter((p) => p.group_id === block.id);
       const wrap = document.createElement("section");
       wrap.className = "admin-block";
       wrap.dataset.blockId = block.id;
+      // Animation « cascade » (réglage retenu) : même loi que la maquette (i×40+20 ms).
+      wrap.style.animationDelay = `${bi * 40 + 20}ms`;
       const gel = sanitizeColor(block.color);
       wrap.style.setProperty("--block-accent", gel || "var(--primary)");
       // Aplat plein : le bloc EST la couleur du groupe. L'encre suit la luminance

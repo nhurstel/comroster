@@ -6,7 +6,8 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Administration · {{ initial_data.title }}</title>
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/comroster-badge.svg') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {# admin.css est AUTONOME (source : design/maquette-admin-7.html). Ne pas recharger
+     main.css ici : son héritage (polices, line-height, chrome) fausse la refonte. #}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body class="admin-page" data-theme="night">

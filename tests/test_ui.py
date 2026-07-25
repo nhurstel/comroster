@@ -12,7 +12,9 @@ def test_admin_page_renders(auth_client):
     assert r.status_code == 200
     html = r.get_data(as_text=True)
     assert "js/admin.js" in html
-    assert "css/main.css" in html
+    # admin.css est AUTONOME (source : design/maquette-admin-7.html) : recharger
+    # main.css réintroduirait l'héritage global qui faussait la refonte.
+    assert "css/main.css" not in html
     assert "css/admin.css" in html
     assert 'id="publish-btn"' in html      # bouton de publication (libellé « Envoyer à l'affichage »)
     assert "csrf-token" in html
