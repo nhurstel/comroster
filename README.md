@@ -114,7 +114,7 @@ feuilles sont toutes chargées en permanence, puisque l'apparence peut changer e
 
 > **`grille` pose du texte sur la couleur du groupe.** L'encre (noire ou blanche) est choisie au
 > rendu d'après la luminance relative sRGB. Pour garantir la lisibilité, le choix de couleur d'un
-> groupe se fait dans une **palette bornée** de 12 teintes calibrées (contraste ≥ 4.5:1 avec l'encre
+> groupe se fait dans une **palette bornée** de 24 teintes calibrées (contraste ≥ 4.5:1 avec l'encre
 > dans les deux modes de luminosité) — pas un sélecteur libre, qui laissait choisir des teintes
 > médiocres. La règle d'encre est partagée par l'écran et l'admin ([ink.js](static/js/ink.js)).
 

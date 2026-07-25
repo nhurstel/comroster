@@ -706,11 +706,14 @@
   /* Palette bornée des couleurs de groupe. Chaque teinte est calibrée pour donner un
      contraste ≥ 4.5:1 (WCAG AA) avec l'encre calculée par inkFor(), dans les DEUX modes de
      luminosité — c'est ce que le sélecteur natif ne garantissait pas (d'où le rouge
-     #C4544A retenu au banc, illisible à 4.2:1 sur son aplat). Vives à encre sombre puis
-     profondes à encre claire. */
+     #C4544A retenu au banc, illisible à 4.2:1 sur son aplat). Deux rangées vives à encre
+     sombre, une pastel, une profonde à encre claire — 24 teintes, toutes vérifiées par
+     calcul avant admission (jamais à l'œil). */
   const GROUP_PALETTE = [
     "#E1554C", "#E8863B", "#E4B93C", "#8FBF52", "#3FA6B0", "#4F86C6",
-    "#8B7CC8", "#C062A6", "#B0B7C0", "#9B2F2F", "#2C4C8E", "#2E6B34",
+    "#F4A259", "#C9A227", "#6B8E23", "#7FC8D6", "#8B7CC8", "#C062A6",
+    "#C77E6A", "#D98CB3", "#B0B7C0", "#55606E", "#5C6BC0", "#6A4FA3",
+    "#9B2F2F", "#7A5230", "#2E6B34", "#2A6E60", "#2C4C8E", "#8E3B6B",
   ];
   const colorDialog = document.getElementById("color-dialog");
   const colorGrid = document.getElementById("color-grid");

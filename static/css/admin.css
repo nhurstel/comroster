@@ -27,10 +27,11 @@
     --success: #2ECC71; --warning: #E8A13A; --error: #F04D3E;
     --danger: #F0857A; --danger-line: #4A2A2E; --danger-bg: #2E1C1F;
 
-    /* Accent ROUGE OCRE (choix 2026-07-25, ex-turquoise jugé froid) : #D2694A tient
-       ≈ 4.5:1 sur les surfaces sombres, et sa luminance (0.24 > 0.179) garde l'encre
-       SOMBRE sur les boutons pleins — même règle d'encre que l'écran (ink.js). */
-    --accent: #D2694A; --accent-lt: #DC8A72; --on-accent: #141005;
+    /* Accent ROUGE OCRE (choix 2026-07-25, ex-turquoise jugé froid ; #D2694A jugé trop
+       orangé → #D96253, plus rouge). Tient ≈ 4.4:1 sur les surfaces sombres (texte
+       cliquable en graisse ≥ 600) et sa luminance (0.24 > 0.179) garde l'encre SOMBRE
+       sur les boutons pleins — même règle d'encre que l'écran (ink.js). */
+    --accent: #D96253; --accent-lt: #E18579; --on-accent: #141005;
     /* Alias : admin.js pose littéralement "var(--primary)" sur les blocs sans couleur. */
     --primary: var(--accent); --primary-light: var(--accent-lt);
 
@@ -213,7 +214,7 @@ body:has(#network-dialog[open]) #network-btn,
 body:has(#history-dialog[open]) #history-btn,
 body:has(#configs-dialog[open]) #configs-btn,
 body:has(#import-dialog[open]) #export-btn {
-    background: rgb(210 105 74 / 0.14); color: var(--fg);
+    background: rgb(217 98 83 / 0.14); color: var(--fg);
     box-shadow: inset 2px 0 0 var(--accent);
 }
 
@@ -433,12 +434,14 @@ body:has(#import-dialog[open]) #export-btn {
 }
 #available-users::-webkit-scrollbar { width: 8px; }
 #available-users::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
-/* Rangées de la réserve : n° turquoise, séparateurs discrets. */
+/* Rangées de la réserve : MÊME typographie que les blocs (corps, graisse) — seule la
+   couleur distingue le n° (accent) et le nom (atténué). Les graisses 400 et le corps
+   réduit hérités de la maquette donnaient l'impression d'une autre police. */
 .panel-pool .person { padding: 0 var(--pad); }
 .panel-pool .person + .person { border-top: 1px solid var(--border-soft); }
 .panel-pool .person:hover { background: var(--surface-2); }
-.panel-pool .person .bp { color: var(--accent); font-weight: 400; opacity: 1; }
-.panel-pool .person .role { font-size: calc(var(--role) - 0.5px); font-weight: 400; color: var(--fg-muted); }
+.panel-pool .person .bp { color: var(--accent); opacity: 1; }
+.panel-pool .person .role { color: var(--fg-muted); }
 .empty-hint { padding: 10px var(--pad); text-align: center; color: var(--muted); font-size: var(--ui); }
 .pool-foot { flex: 0 0 auto; padding: 10px var(--pad); border-top: 1px solid var(--border-soft); }
 .pool-add {
@@ -611,7 +614,7 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .admin-dialog input::placeholder { color: var(--muted); }
 .admin-dialog input:focus, .admin-dialog select:focus {
     outline: none; border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgb(210 105 74 / 0.18);
+    box-shadow: 0 0 0 2px rgb(217 98 83 / 0.18);
 }
 /* Saisie du n° : préfixe accolé */
 .beltpack-input { display: flex; align-items: center; background: var(--inset); border: 1px solid var(--border); border-radius: var(--rad); overflow: hidden; }
@@ -659,8 +662,8 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
     color: var(--danger); font-size: var(--ui); font-weight: 500;
 }
 .dialog-status {
-    padding: 8px 11px; background: rgb(210 105 74 / 0.1);
-    border: 1px solid rgb(210 105 74 / 0.32); border-radius: var(--rad);
+    padding: 8px 11px; background: rgb(217 98 83 / 0.1);
+    border: 1px solid rgb(217 98 83 / 0.32); border-radius: var(--rad);
     color: var(--fg-muted); font-size: var(--ui); line-height: 1.5;
 }
 .dialog-status b { color: var(--fg); }
