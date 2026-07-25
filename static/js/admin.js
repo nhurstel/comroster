@@ -774,18 +774,30 @@
     e.preventDefault();
     const beltpack = normBp(el.personBeltpack.value);
     if (!beltpack) { toast("Indiquez le numéro du beltpack.", true); el.personBeltpack.focus(); return; }
+    const role = el.personRole.value.trim();
+    const groupId = el.personAssign.value || null;
     if (beltpackTaken(beltpack, state.editingPersonId)) {
-      // Dire OÙ il est : « déjà utilisé » seul oblige à chercher dans tous les groupes.
       const holder = state.data.people.find(
         (p) => p.id !== state.editingPersonId && normBp(p.beltpack) === beltpack);
+      // Reprise depuis la réserve : « déposer le n°22 » dans un groupe alors que le 22
+      // ATTEND en réserve n'est pas un conflit, c'est l'affectation qu'on cherchait —
+      // on le reprend (et on retire le doublon de saisie). Uniquement en CRÉATION vers
+      // un groupe : un beltpack déjà affecté AILLEURS ne bouge jamais silencieusement.
+      if (!state.editingPersonId && holder && !holder.group_id && groupId) {
+        if (role) holder.role = role;         // nom retapé → mis à jour ; vide → conservé
+        holder.group_id = groupId;
+        el.personDialog.close();
+        toast(`N°${beltpack} repris de la réserve → « ${groupNameOf(groupId)} ».`);
+        markDirty(); render();
+        return;
+      }
+      // Dire OÙ il est : « déjà utilisé » seul oblige à chercher dans tous les groupes.
       const where = holder?.group_id
         ? `dans « ${groupNameOf(holder.group_id)} »` : "dans la réserve";
       toast(`Le n°${beltpack} existe déjà ${where}.`, true);
       el.personBeltpack.focus();
       return;
     }
-    const role = el.personRole.value.trim();
-    const groupId = el.personAssign.value || null;
 
     if (state.editingPersonId) {
       const p = findPerson(state.editingPersonId);

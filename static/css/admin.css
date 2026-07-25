@@ -27,7 +27,10 @@
     --success: #2ECC71; --warning: #E8A13A; --error: #F04D3E;
     --danger: #F0857A; --danger-line: #4A2A2E; --danger-bg: #2E1C1F;
 
-    --accent: #33D6C6; --accent-lt: #5FE3D6; --on-accent: #141005;
+    /* Accent ROUGE OCRE (choix 2026-07-25, ex-turquoise jugé froid) : #D2694A tient
+       ≈ 4.5:1 sur les surfaces sombres, et sa luminance (0.24 > 0.179) garde l'encre
+       SOMBRE sur les boutons pleins — même règle d'encre que l'écran (ink.js). */
+    --accent: #D2694A; --accent-lt: #DC8A72; --on-accent: #141005;
     /* Alias : admin.js pose littéralement "var(--primary)" sur les blocs sans couleur. */
     --primary: var(--accent); --primary-light: var(--accent-lt);
 
@@ -210,7 +213,7 @@ body:has(#network-dialog[open]) #network-btn,
 body:has(#history-dialog[open]) #history-btn,
 body:has(#configs-dialog[open]) #configs-btn,
 body:has(#import-dialog[open]) #export-btn {
-    background: rgba(51, 214, 198, 0.12); color: var(--fg);
+    background: rgb(210 105 74 / 0.14); color: var(--fg);
     box-shadow: inset 2px 0 0 var(--accent);
 }
 
@@ -608,7 +611,7 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .admin-dialog input::placeholder { color: var(--muted); }
 .admin-dialog input:focus, .admin-dialog select:focus {
     outline: none; border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(51, 214, 198, 0.15);
+    box-shadow: 0 0 0 2px rgb(210 105 74 / 0.18);
 }
 /* Saisie du n° : préfixe accolé */
 .beltpack-input { display: flex; align-items: center; background: var(--inset); border: 1px solid var(--border); border-radius: var(--rad); overflow: hidden; }
@@ -656,8 +659,8 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
     color: var(--danger); font-size: var(--ui); font-weight: 500;
 }
 .dialog-status {
-    padding: 8px 11px; background: rgba(51, 214, 198, 0.1);
-    border: 1px solid rgba(51, 214, 198, 0.32); border-radius: var(--rad);
+    padding: 8px 11px; background: rgb(210 105 74 / 0.1);
+    border: 1px solid rgb(210 105 74 / 0.32); border-radius: var(--rad);
     color: var(--fg-muted); font-size: var(--ui); line-height: 1.5;
 }
 .dialog-status b { color: var(--fg); }
