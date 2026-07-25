@@ -73,7 +73,14 @@
   let toastTimer = null;
   function toast(msg, isError) {
     let t = document.getElementById("cr-toast");
-    if (!t) { t = document.createElement("div"); t.id = "cr-toast"; t.className = "cr-toast"; document.body.appendChild(t); }
+    if (!t) { t = document.createElement("div"); t.id = "cr-toast"; t.className = "cr-toast"; }
+    // Un <dialog> MODAL vit dans le top layer du navigateur, au-dessus de tout z-index :
+    // un toast laissé dans <body> est invisible tant qu'un dialogue est ouvert — le
+    // refus (« n° déjà utilisé ») semblait muet. On monte donc le toast dans le dialogue
+    // ouvert le plus récent s'il y en a un, sinon dans <body>.
+    const modal = [...document.querySelectorAll("dialog[open]")].pop();
+    const host = modal || document.body;
+    if (t.parentElement !== host) host.appendChild(t);
     t.textContent = msg;
     t.classList.toggle("error", !!isError);
     t.classList.add("show");
@@ -306,18 +313,28 @@
     markDirty(); render();
   }
 
+  // La cascade ne joue qu'à l'ARRIVÉE sur le plateau : chaque édition re-crée les
+  // blocs, et une cascade rejouée à chaque frappe faisait sauter toute la grille.
+  let cascadePlayed = false;
   function renderBlocks() {
     el.blocks.innerHTML = "";
     const groups = [...state.data.groups].sort((a, b) => (a.order || 0) - (b.order || 0));
     const assigned = state.data.people.filter((p) => p.group_id).length;
     el.blockCount.textContent =
       `${groups.length} groupe${groups.length > 1 ? "s" : ""} · ${assigned} affecté${assigned > 1 ? "s" : ""}`;
+    if (!cascadePlayed) {
+      cascadePlayed = true;
+      el.blocks.dataset.cascade = "1";
+      // Attribut retiré après le dernier délai + la durée : les rendus suivants
+      // (éditions) n'animent plus rien.
+      setTimeout(() => { delete el.blocks.dataset.cascade; }, groups.length * 40 + 400);
+    }
     groups.forEach((block, bi) => {
       const members = state.data.people.filter((p) => p.group_id === block.id);
       const wrap = document.createElement("section");
       wrap.className = "admin-block";
       wrap.dataset.blockId = block.id;
-      // Animation « cascade » (réglage retenu) : même loi que la maquette (i×40+20 ms).
+      // Loi de la maquette : i×40+20 ms (sans effet hors cascade initiale).
       wrap.style.animationDelay = `${bi * 40 + 20}ms`;
       const gel = sanitizeColor(block.color);
       wrap.style.setProperty("--block-accent", gel || "var(--primary)");
@@ -734,22 +751,36 @@
       el.personTitle.textContent = "Ajouter un beltpack";
       el.personAssign.value = defaultBlockId || "";
     }
+    roleAutofilled = false;
     el.personDialog.showModal();
     requestAnimationFrame(() => el.personBeltpack.focus());
   }
 
-  // Le nom suit le beltpack : proposer le nom déjà connu pour ce numéro
+  // Le nom suit le beltpack : proposer le nom déjà connu pour ce numéro. La proposition
+  // reste VIVANTE tant que l'utilisateur n'a pas touché le champ nom lui-même : taper
+  // « 2 » propose le nom du 2, continuer en « 22 » doit re-proposer (ou vider) — un
+  // remplissage qui se fige au premier chiffre est un piège. Une saisie manuelle du
+  // nom, elle, ne doit jamais être écrasée.
+  let roleAutofilled = false;
   el.personBeltpack.addEventListener("input", () => {
+    if (el.personRole.value && !roleAutofilled) return;   // nom saisi à la main : intouchable
     const known = state.data.beltpack_roles?.[normBp(el.personBeltpack.value)];
-    if (known && !el.personRole.value) el.personRole.value = known;
+    el.personRole.value = known || "";
+    roleAutofilled = !!known;
   });
+  el.personRole.addEventListener("input", () => { roleAutofilled = false; });
 
   function submitPerson(e) {
     e.preventDefault();
     const beltpack = normBp(el.personBeltpack.value);
-    if (!beltpack) { el.personBeltpack.focus(); return; }
+    if (!beltpack) { toast("Indiquez le numéro du beltpack.", true); el.personBeltpack.focus(); return; }
     if (beltpackTaken(beltpack, state.editingPersonId)) {
-      toast(`Le beltpack n°${beltpack} est déjà utilisé.`, true);
+      // Dire OÙ il est : « déjà utilisé » seul oblige à chercher dans tous les groupes.
+      const holder = state.data.people.find(
+        (p) => p.id !== state.editingPersonId && normBp(p.beltpack) === beltpack);
+      const where = holder?.group_id
+        ? `dans « ${groupNameOf(holder.group_id)} »` : "dans la réserve";
+      toast(`Le n°${beltpack} existe déjà ${where}.`, true);
       el.personBeltpack.focus();
       return;
     }
