@@ -529,14 +529,12 @@ body:has(#import-dialog[open]) #export-btn {
 
 /* ═════════════════════ SURFACES PROPRES À L'APP (même DA) ═════════════════════ */
 
-/* ---------- Témoin d'aperçu : la vraie page display en réduction, en surimpression.
-   On y lit la STRUCTURE (colonnes, couleurs, densité), pas le contenu. Clic → grand
-   aperçu. Décalé à gauche de la réserve pour ne pas couvrir son bouton d'ajout. ---------- */
+/* ---------- Témoin d'aperçu : la vraie page display en réduction, ANCRÉ en bas de la
+   latérale (en surimpression il gênait le plateau). On y lit la STRUCTURE (colonnes,
+   couleurs, densité), pas le contenu. Clic sur la vignette → grand aperçu. ---------- */
 .preview-dock {
-    position: fixed; right: calc(var(--pool-w) + 14px); bottom: 36px; z-index: 40;
-    width: 216px; overflow: hidden;
+    margin: 6px 8px; overflow: hidden;
     background: var(--inset); border: 1px solid var(--border); border-radius: 8px;
-    box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
 }
 .dock-toggle {
     display: flex; align-items: center; gap: 6px;

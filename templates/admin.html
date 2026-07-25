@@ -69,6 +69,23 @@
           </nav>
         </div>
         <div class="side-foot">
+          {# Témoin permanent de l'écran de régie (état publié), ancré en bas de la
+             latérale — en surimpression il finissait par gêner le plateau. La barre a
+             la place depuis que les réglages vivent dans l'onglet Écran. Ouvert par
+             défaut, repliable (mémorisé) ; clic sur la vignette = grand aperçu. #}
+          <aside class="preview-dock" id="preview-dock" data-open="1">
+            <button type="button" class="dock-toggle" id="preview-dock-toggle" aria-expanded="true"
+                    aria-controls="preview-dock-body">
+              <svg class="dock-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+              Affichage en cours
+            </button>
+            <div class="preview-tile-frame" id="preview-dock-body">
+              <iframe id="preview-mini" name="preview-mini" title="Report réduit de l'écran de régie"
+                      src="about:blank" tabindex="-1"></iframe>
+              <button type="button" id="preview-btn" class="preview-tile-hit"
+                      aria-label="Agrandir le report de l'écran de régie"></button>
+            </div>
+          </aside>
           <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
           <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -178,23 +195,6 @@
     </footer>
   </div>
 
-  {# Témoin permanent de l'écran de régie (état publié), en surimpression plutôt que dans
-     la barre latérale : il y mangeait un quart du menu. Repliable, l'état est mémorisé.
-     Clic n'importe où sur la vignette = grand aperçu. #}
-  <aside class="preview-dock" id="preview-dock" data-open="1">
-    <button type="button" class="dock-toggle" id="preview-dock-toggle" aria-expanded="true"
-            aria-controls="preview-dock-body">
-      <svg class="dock-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
-      Affichage en cours
-    </button>
-    <div class="preview-tile-frame" id="preview-dock-body">
-      <iframe id="preview-mini" name="preview-mini" title="Report réduit de l'écran de régie"
-              src="about:blank" tabindex="-1"></iframe>
-      <button type="button" id="preview-btn" class="preview-tile-hit"
-              aria-label="Agrandir le report de l'écran de régie"></button>
-    </div>
-  </aside>
-
   {# Palette bornée des couleurs de groupe : chaque teinte est calibrée pour rester
      lisible sur l'aplat de l'écran de régie (contraste ≥ 4.5:1 avec l'encre calculée).
      Remplace le sélecteur de couleur natif, qui laissait choisir des teintes illisibles. #}
@@ -247,11 +247,15 @@
       <p class="dialog-hint">Ce qui est <b>actuellement affiché</b>, à l'échelle. Vos modifications
         en cours n'y apparaîtront qu'après « Envoyer à l'affichage ».</p>
       <div class="preview-frame">
-        <iframe id="preview-iframe" name="preview-full" title="Aperçu de l'affichage" src="about:blank"></iframe>
+        {# tabindex=-1 : sinon le focus d'ouverture atterrit DANS l'iframe et Échap y est
+           absorbé par son document — impossible de fermer le dialogue au clavier. #}
+        <iframe id="preview-iframe" name="preview-full" title="Aperçu de l'affichage" src="about:blank" tabindex="-1"></iframe>
       </div>
       <div class="dialog-actions">
         <button type="button" id="preview-refresh">Actualiser</button>
-        <button type="button" data-close="preview-dialog">Fermer</button>
+        {# autofocus : sans lui le dialogue focalise l'iframe (focalisable malgré
+           tabindex=-1) et Échap, absorbé par son document, ne ferme plus rien. #}
+        <button type="button" data-close="preview-dialog" autofocus>Fermer</button>
       </div>
     </form>
   </dialog>

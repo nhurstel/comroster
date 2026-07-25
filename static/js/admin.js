@@ -1652,7 +1652,8 @@
   const boardFilter = document.getElementById("board-filter");
   boardFilter?.addEventListener("input", () => { state.boardQuery = boardFilter.value; applyView(); });
 
-  // Bascule Blocs / Table.
+  // Bascule Blocs / Table — persistée : un rafraîchissement ne ramène pas aux Blocs.
+  const VIEWMODE_KEY = "comroster.admin.viewmode";
   function setViewMode(mode) {
     document.querySelectorAll(".tb-seg .seg-btn").forEach((b) =>
       b.setAttribute("aria-pressed", String(b.dataset.viewMode === mode)));
@@ -1660,9 +1661,11 @@
     const table = document.getElementById("blocks-table");
     table.hidden = mode !== "table";
     if (mode === "table") renderTable();
+    try { localStorage.setItem(VIEWMODE_KEY, mode); } catch { /* mode privé */ }
   }
   document.querySelectorAll(".tb-seg .seg-btn").forEach((b) =>
     b.addEventListener("click", () => setViewMode(b.dataset.viewMode)));
+  try { if (localStorage.getItem(VIEWMODE_KEY) === "table") setViewMode("table"); } catch { /* mode privé */ }
 
   // Ajout de beltpack : UN seul bouton, au pied de la réserve (il arrive non affecté).
   document.getElementById("add-beltpack-pool")?.addEventListener("click", () => openPersonDialog(null, null));
