@@ -451,7 +451,7 @@
     host.innerHTML = "";
     const head = document.createElement("div");
     head.className = "bt-head";
-    [["bp", "BP"], ["role", "Rôle"], ["group", "Groupe"]].forEach(([k, label]) => {
+    [["bp", "BP"], ["role", "Nom"], ["group", "Groupe"]].forEach(([k, label]) => {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "bt-sort";
@@ -611,8 +611,13 @@
       `<div class="nav-label">Groupes</div>`
       + groups.map((g) => row(`data-group="${g.id}"`, sanitizeColor(g.color) || "var(--primary)",
                               g.name, state.data.people.filter((p) => p.group_id === g.id).length)).join("")
+      + `<a class="inv-item inv-add" data-add-group role="button" tabindex="0">`
+      + `<i class="inv-dot"></i><span class="inv-label">+ Ajouter un groupe</span></a>`
       + liveRows;
     host.querySelectorAll(".inv-dot[data-color]").forEach((i) => { i.style.background = i.dataset.color; });
+    const addRow = host.querySelector("[data-add-group]");
+    addRow.addEventListener("click", openCreateBlock);
+    addRow.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCreateBlock(); } });
     host.querySelectorAll("[data-group]").forEach((a) =>
       a.addEventListener("click", () => goToGroup(a.dataset.group)));
     host.querySelectorAll("[data-view]").forEach((a) => {
@@ -1177,11 +1182,6 @@
 
   function wizGo(step) {
     antennaDialog.querySelectorAll(".wiz-step").forEach((s) => { s.hidden = +s.dataset.step !== step; });
-    antennaDialog.querySelectorAll(".wiz-dot").forEach((d) => {
-      const n = +d.dataset.dot;
-      d.classList.toggle("active", n === step);
-      d.classList.toggle("done", n < step);
-    });
     if (step === 2) { rangesListEl = document.getElementById("wiz-ranges-list"); renderRanges(); }
   }
 

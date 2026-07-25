@@ -28,7 +28,7 @@ def test_admin_un_bouton_par_fonction(auth_client):
     assert "data-launch" not in html                # aucun onglet-lanceur en doublon
     assert 'id="add-beltpack-btn"' not in html      # ajout beltpack = réserve seule
     assert 'id="status-preview"' not in html        # aperçu = témoin « Affichage en cours »
-    assert ">Publications<" in html                 # « Historique » renommé, parlant
+    assert ">Historique<" in html                   # entrée latérale des publications passées
 
 
 def test_admin_has_antenna_panel(auth_client):

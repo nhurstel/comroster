@@ -109,7 +109,7 @@ a.brand:hover { background: #ffffff08; }
 
 .admin-tabs { margin-left: auto; display: flex; align-items: stretch; }
 .admin-tabs .tab {
-    display: flex; align-items: center;
+    display: flex; align-items: center; gap: 7px;
     padding: 0 13px; font-size: var(--ui); font-weight: 600; letter-spacing: var(--track);
     color: var(--fg-muted); border-bottom: 2px solid transparent; margin-bottom: -1px;
 }
@@ -138,7 +138,9 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
     color: var(--fg-muted); white-space: nowrap;
 }
 .status-badge .pulse { width: 6px; height: 6px; border-radius: 2px; background: var(--muted); flex: 0 0 auto; }
-.status-badge[data-state="idle"] .pulse { background: var(--accent); }
+/* Voyant POSITIF = VERT, quel que soit l'accent de la DA : le vert dit « tout va
+   bien », l'accent dit « cliquable » — deux langages à ne pas mélanger. */
+.status-badge[data-state="idle"] .pulse { background: var(--success); }
 .status-badge[data-state="updated"] .pulse { background: var(--success); }
 .status-badge[data-state="error"] .pulse { background: var(--error); }
 .status-badge[data-state="error"] .status-text { color: var(--error); }
@@ -169,7 +171,13 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
     display: flex; flex-direction: column; min-height: 0;
     padding: 9px 0;
 }
-.side-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.side-scroll {
+    flex: 1; min-height: 0; overflow-y: auto;
+    display: flex; flex-direction: column;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+/* Le témoin est poussé VERS LE BAS du menu (l'espace libre reste au-dessus). */
+.side-scroll .preview-dock { margin-top: auto; }
 .side-scroll::-webkit-scrollbar { width: 7px; }
 .side-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 7px; }
 .side-nav { display: flex; flex-direction: column; }
@@ -179,9 +187,12 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 .inv-item {
     display: grid; grid-template-columns: 3px 1fr auto; align-items: center; gap: 9px;
     width: 100%; padding: 0 var(--pad); height: calc(var(--row) - 3px);
-    color: var(--fg-muted); font-size: calc(var(--ui) + 1px); text-align: left;
-    white-space: nowrap; cursor: pointer;
+    color: var(--fg-muted); font-size: calc(var(--ui) + 1px); font-weight: 600;
+    text-align: left; white-space: nowrap; cursor: pointer;
 }
+/* Rangée d'ajout de groupe : même gabarit, en retrait tant qu'on ne la vise pas. */
+.inv-item.inv-add { color: var(--fg-subtle); }
+.inv-item.inv-add:hover { color: var(--fg); }
 .inv-item:hover { background: #ffffff08; color: var(--fg); }
 .inv-item.active { background: var(--surface-3); color: var(--fg); }
 .inv-item .inv-dot { width: 3px; height: 14px; border-radius: 1px; background: transparent; }
@@ -195,8 +206,8 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
     display: flex; align-items: center;
     width: 100%; height: calc(var(--row) - 3px);
     padding: 0 var(--pad) 0 calc(var(--pad) + 12px);
-    color: var(--fg-muted); font-size: calc(var(--ui) + 1px); text-align: left;
-    white-space: nowrap; cursor: pointer;
+    color: var(--fg-muted); font-size: calc(var(--ui) + 1px); font-weight: 600;
+    text-align: left; white-space: nowrap; cursor: pointer;
 }
 .nav-item:hover:not(:disabled) { background: #ffffff08; color: var(--fg); }
 .nav-danger:hover:not(:disabled) { background: #2A1F14; color: var(--warning); }
@@ -209,7 +220,7 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 .logout-link {
     display: flex; align-items: center; flex: 1; min-width: 0;
     height: calc(var(--row) - 3px); padding: 0 var(--pad) 0 calc(var(--pad) + 12px);
-    color: var(--danger); font-size: calc(var(--ui) + 1px); white-space: nowrap;
+    color: var(--danger); font-size: calc(var(--ui) + 1px); font-weight: 600; white-space: nowrap;
 }
 .logout-link:hover { background: var(--danger-bg); }
 
@@ -697,13 +708,9 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 #antenna-wizard:not([hidden]), #antenna-dashboard:not([hidden]) { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
 #antenna-dashboard h2 { font-size: 16px; }
 #antenna-dashboard .dialog-actions { flex-wrap: wrap; }
-.wiz-steps { display: flex; align-items: center; justify-content: center; gap: 8px; }
-.wiz-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--border); transition: background 0.15s; }
-.wiz-dot.active { background: var(--accent); }
-.wiz-dot.done { background: var(--success); }
-.wiz-line { width: 38px; height: 2px; background: var(--border); }
 .wiz-step:not([hidden]) { display: flex; flex-direction: column; gap: 12px; }
-.wiz-step h2 { font-size: 16px; text-align: center; }
+.wiz-step h2 { font-size: 16px; display: flex; align-items: baseline; justify-content: space-between; }
+.wiz-count { font-family: var(--f-mono); font-size: 11.5px; font-weight: 400; color: var(--muted); }
 .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 520px) { .dash-grid { grid-template-columns: 1fr; } }
 .dash-card { background: var(--inset); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 12px; }
