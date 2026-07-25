@@ -394,23 +394,36 @@ body:has(#import-dialog[open]) #export-btn {
 }
 .board-table .bt-head {
     height: 28px; border-bottom: 1px solid var(--border-2); position: sticky; top: 0;
-    background: var(--bg); font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    background: var(--bg); z-index: 1;
+}
+/* En-têtes TRIABLES : re-clic = ordre inverse ; la flèche marque la colonne active. */
+.board-table .bt-sort {
+    display: flex; align-items: center; gap: 4px; height: 100%; text-align: left;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
     text-transform: uppercase; color: var(--muted);
 }
-.board-table .bt-row { height: var(--row); border-bottom: 1px solid var(--border-soft); }
+.board-table .bt-sort:hover { color: var(--fg); }
+.board-table .bt-sort[data-dir] { color: var(--fg); }
+.board-table .bt-sort[data-dir="asc"]::after  { content: "▲"; font-size: 8px; }
+.board-table .bt-sort[data-dir="desc"]::after { content: "▼"; font-size: 8px; }
+.board-table .bt-row { height: var(--row); border-bottom: 1px solid var(--border-soft); cursor: pointer; }
 .board-table .bt-row:hover { background: var(--surface-2); }
+.board-table .bt-row.selected { background: rgb(217 98 83 / 0.1); box-shadow: inset 0 0 0 2px var(--accent); }
+.board-table .bt-row.view-dim { opacity: 0.22; pointer-events: none; }
 .board-table .bt-bp { font-family: var(--f-mono); font-size: var(--mono); font-weight: 500; color: var(--fg-muted); }
 .board-table .bt-role { font-size: var(--role); font-weight: var(--role-w); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.board-table .bt-grp { display: flex; align-items: center; min-width: 0; color: var(--fg-subtle); font-size: var(--ui); }
-/* Pastille de groupe : l'aplat du groupe avec son encre (même langage que les blocs). */
-.board-table .bt-chip {
-    display: inline-block; max-width: 100%; padding: 3px 9px;
-    background: var(--surface-3); border-radius: 5px;
+.board-table .bt-grp { display: flex; align-items: center; min-width: 0; }
+/* Sélecteur de groupe à l'aplat du groupe (encre calculée) : réaffecter SUR PLACE. */
+.board-table .bt-assign {
+    max-width: 100%; height: 22px; padding: 0 6px;
+    background: var(--surface-3); border: none; border-radius: 5px;
     font-size: var(--ui); font-weight: 600; letter-spacing: var(--track); color: var(--fg);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    cursor: pointer;
 }
-.board-table .bt-chip[data-ink="dark"]  { color: #141005; }
-.board-table .bt-chip[data-ink="light"] { color: #F4F7FB; }
+.board-table .bt-assign[data-ink="dark"]  { color: #141005; }
+.board-table .bt-assign[data-ink="light"] { color: #F4F7FB; }
+.board-table .bt-bp .inline-edit { width: 4ch; text-align: center; }
+.board-table .bt-role .inline-edit { width: 100%; min-width: 7ch; }
 
 /* ---------- Réserve (maquette .pool) ---------- */
 .panel-pool {

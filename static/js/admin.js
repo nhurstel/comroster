@@ -22,6 +22,7 @@
     selection: new Set(),
     lastSelectedId: null,   // pour la sélection par plage (MAJ+clic)
     view: null,             // vue filtrante active de l'inventaire (null = aucune)
+    tableSort: { key: "bp", dir: 1 },   // tri de la vue Table (re-clic = inverse)
   };
 
   const el = {
@@ -183,18 +184,7 @@
     // en fait partie, sinon juste lui. Double-clic = éditer, clic droit = menu.
     card.classList.add("selectable");
     if (state.selection.has(person.id)) card.classList.add("selected");
-    card.addEventListener("click", (e) => {
-      if (e.shiftKey && state.lastSelectedId) {
-        selectRange(state.lastSelectedId, person.id);
-      } else if (state.selection.has(person.id)) {
-        state.selection.delete(person.id);
-      } else {
-        state.selection.add(person.id);
-      }
-      state.lastSelectedId = person.id;
-      refreshSelectionClasses();
-      updateSelectionBar();
-    });
+    card.addEventListener("click", (e) => selectClick(e, person.id));
     card.addEventListener("dragstart", (e) => {
       card.classList.add("dragging");
       if (state.selection.has(person.id) && state.selection.size) {
@@ -423,34 +413,108 @@
     if (table && !table.hidden) renderTable();
   }
 
-  /* Vue Table : tous les beltpacks à plat (n° / rôle / groupe), pour trier et lire en
-     diagonale. Rendu en CSSOM (aucun attribut style — CSP stricte). */
+  /* Vue Table : tous les beltpacks à plat — un poste d'administration COMPLET, pas un
+     tableau informatif : tri par colonne (re-clic = ordre inverse), sélection et clic
+     droit comme la vue Blocs, double-clic sur n°/nom = édition sur place, et le groupe
+     est un SÉLECTEUR à l'aplat du groupe : réaffecter se fait dans la rangée. */
+  const cmpBp = (a, b) =>
+    String(a.beltpack).localeCompare(String(b.beltpack), "fr", { numeric: true });
   function renderTable() {
     const host = document.getElementById("blocks-table");
     if (!host) return;
-    const byId = new Map(state.data.groups.map((g) => [g.id, g]));
-    const rows = [...state.data.people].sort((a, b) =>
-      String(a.beltpack).localeCompare(String(b.beltpack), "fr", { numeric: true }));
-    host.innerHTML =
-      `<div class="bt-head"><span>BP</span><span>Rôle</span><span>Groupe</span></div>`
-      + rows.map((p) => {
-        const g = byId.get(p.group_id);
-        // Le groupe est une PASTILLE à l'aplat du groupe (même langage que les blocs) :
-        // une barrette de 3 px était illisible à ces tailles.
-        return `<div class="bt-row" data-user-id="${esc(p.id)}">`
-          + `<span class="bt-bp">${esc(p.beltpack)}</span>`
-          + `<span class="bt-role">${esc(p.role || "—")}</span>`
-          + `<span class="bt-grp">${g ? `<span class="bt-chip" data-color="${esc(sanitizeColor(g.color) || "")}">${esc(g.name)}</span>` : "—"}</span></div>`;
-      }).join("");
-    host.querySelectorAll(".bt-chip").forEach((c) => {
-      const color = c.dataset.color;
-      if (!color) return;
-      c.style.background = color;                       // CSSOM : la CSP interdit style=""
-      const ink = window.ComRoster.inkFor(color);       // même règle d'encre que l'écran
-      if (ink) c.dataset.ink = ink;
+    const groups = [...state.data.groups].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const byId = new Map(groups.map((g) => [g.id, g]));
+    const orderOf = new Map(groups.map((g, i) => [g.id, i]));
+    const cmp = {
+      bp: cmpBp,
+      role: (a, b) => String(a.role || "").localeCompare(String(b.role || ""), "fr") || cmpBp(a, b),
+      // Groupe : l'ordre du plateau (celui des blocs), réserve en queue, n° croissant dedans.
+      group: (a, b) => {
+        const ia = a.group_id ? (orderOf.get(a.group_id) ?? 1e8) : 1e9;
+        const ib = b.group_id ? (orderOf.get(b.group_id) ?? 1e8) : 1e9;
+        return (ia - ib) || cmpBp(a, b);
+      },
+    }[state.tableSort.key] || cmpBp;
+    const rows = [...state.data.people].sort((a, b) => cmp(a, b) * state.tableSort.dir);
+
+    host.innerHTML = "";
+    const head = document.createElement("div");
+    head.className = "bt-head";
+    [["bp", "BP"], ["role", "Rôle"], ["group", "Groupe"]].forEach(([k, label]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "bt-sort";
+      b.textContent = label;
+      if (k === state.tableSort.key) b.dataset.dir = state.tableSort.dir > 0 ? "asc" : "desc";
+      b.addEventListener("click", () => {
+        if (state.tableSort.key === k) state.tableSort.dir *= -1;
+        else state.tableSort = { key: k, dir: 1 };
+        renderTable();
+      });
+      head.append(b);
     });
-    host.querySelectorAll(".bt-row").forEach((r) =>
-      r.addEventListener("dblclick", () => openPersonDialog(r.dataset.userId)));
+    host.append(head);
+    rows.forEach((p) => host.append(tableRow(p, byId, groups)));
+  }
+
+  function tableRow(p, byId, groups) {
+    const g = byId.get(p.group_id);
+    const row = document.createElement("div");
+    row.className = "bt-row selectable";
+    row.dataset.userId = p.id;
+    row.dataset.bp = p.beltpack;                       // filtre/vues, comme les cartes
+    if (p.group_id) row.dataset.blockId = p.group_id;
+    if (state.selection.has(p.id)) row.classList.add("selected");
+
+    const bp = document.createElement("span");
+    bp.className = "bt-bp";
+    bp.textContent = p.beltpack;
+    bp.title = "Double-cliquez pour changer le numéro";
+    bp.addEventListener("dblclick", (e) => { e.preventDefault(); e.stopPropagation(); startInlineEdit(p, "beltpack", bp); });
+
+    const role = document.createElement("span");
+    role.className = "bt-role role";                   // .role : requis par le filtre texte
+    role.textContent = p.role || "—";
+    role.title = "Double-cliquez pour renommer";
+    role.addEventListener("dblclick", (e) => { e.preventDefault(); e.stopPropagation(); startInlineEdit(p, "role", role); });
+
+    // Sélecteur de groupe à l'aplat du groupe : réaffectation sur place.
+    const cell = document.createElement("span");
+    cell.className = "bt-grp";
+    const sel = document.createElement("select");
+    sel.className = "bt-assign";
+    sel.title = "Affecter à un groupe";
+    const optNone = document.createElement("option");
+    optNone.value = "";
+    optNone.textContent = "— réserve —";
+    sel.append(optNone);
+    groups.forEach((grp) => {
+      const o = document.createElement("option");
+      o.value = grp.id;
+      o.textContent = grp.name;
+      sel.append(o);
+    });
+    sel.value = p.group_id || "";
+    const gel = g ? sanitizeColor(g.color) : "";
+    if (gel) {
+      sel.style.background = gel;                      // CSSOM : la CSP interdit style=""
+      const ink = window.ComRoster.inkFor(gel);        // même règle d'encre que l'écran
+      if (ink) sel.dataset.ink = ink;
+    }
+    sel.addEventListener("click", (e) => e.stopPropagation());   // ne pas (dé)sélectionner
+    sel.addEventListener("change", () => assign(p.id, sel.value || null));
+    cell.append(sel);
+
+    row.append(bp, role, cell);
+    row.addEventListener("click", (e) => selectClick(e, p.id));
+    row.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      state.context = { userId: p.id, blockId: p.group_id || null };
+      el.contextMenu.style.display = "block";
+      el.contextMenu.style.left = e.pageX + "px";
+      el.contextMenu.style.top = e.pageY + "px";
+    });
+    return row;
   }
 
   function chip(label, onClick, extra) {
@@ -589,7 +653,8 @@
     const viewActive = !!state.view;
     const textActive = !!(state.boardQuery || "").trim();
     const active = viewActive || textActive;
-    document.querySelectorAll(".person[data-bp]").forEach((card) => {
+    // Cartes de la vue Blocs ET rangées de la vue Table : même filtre, mêmes vues.
+    document.querySelectorAll(".person[data-bp], .bt-row[data-bp]").forEach((card) => {
       const okView = !viewActive || personMatchesView(card.dataset.bp);
       const okText = personMatchesText(card);
       card.classList.toggle("view-dim", active && !(okView && okText));
@@ -653,8 +718,22 @@
     exitSelection(); markDirty(); render();
   }
   // Sélection d'une plage (MAJ+clic) selon l'ordre visuel des cartes.
+  // Geste de sélection partagé entre les vues Blocs (cartes) et Table (rangées).
+  function selectClick(e, personId) {
+    if (e.shiftKey && state.lastSelectedId) {
+      selectRange(state.lastSelectedId, personId);
+    } else if (state.selection.has(personId)) {
+      state.selection.delete(personId);
+    } else {
+      state.selection.add(personId);
+    }
+    state.lastSelectedId = personId;
+    refreshSelectionClasses();
+    updateSelectionBar();
+  }
   function selectRange(fromId, toId) {
-    const ids = [...document.querySelectorAll(".person[data-user-id]")].map((c) => c.dataset.userId);
+    const ids = [...document.querySelectorAll(".person[data-user-id], .bt-row[data-user-id]")]
+      .map((c) => c.dataset.userId);
     let i = ids.indexOf(fromId), j = ids.indexOf(toId);
     if (i < 0 || j < 0) { state.selection.add(toId); return; }
     if (i > j) { const t = i; i = j; j = t; }
@@ -662,7 +741,7 @@
   }
   // Reflète la sélection sans reconstruire le DOM (sinon le double-clic est cassé).
   function refreshSelectionClasses() {
-    document.querySelectorAll(".person[data-user-id]").forEach((c) => {
+    document.querySelectorAll(".person[data-user-id], .bt-row[data-user-id]").forEach((c) => {
       c.classList.toggle("selected", state.selection.has(c.dataset.userId));
     });
   }
