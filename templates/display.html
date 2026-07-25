@@ -13,7 +13,6 @@
 </head>
 <body class="display-page" data-theme="{{ initial_data.theme or 'night' }}" data-skin="{{ initial_data.skin or 'basique' }}" data-perf="{{ 'on' if initial_data.perf else 'off' }}"{% if preview %} data-preview="on"{% if preview_scroll %} data-preview-scroll="on"{% endif %}{% endif %}>
   <header>
-    <img class="board-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="ComRoster" width="30" height="30">
     <div class="board-meta">
       <h1 id="board-title">{{ initial_data.title }}</h1>
       <h2 id="board-subtitle" {% if not initial_data.subtitle %}hidden{% endif %}>{{ initial_data.subtitle or '' }}</h2>
@@ -28,6 +27,8 @@
         <span class="pulse" aria-hidden="true"></span>
         <span class="status-text">En direct</span>
       </div>
+      {# Logo ComRoster en haut à droite (glyphe seul, sans le mot). #}
+      <img class="brand-mark" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="ComRoster" width="28" height="28">
     </div>
   </header>
   <main id="display-scroll"><div class="display-grid" id="display-grid"></div></main>

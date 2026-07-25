@@ -58,8 +58,6 @@ body.display-page[data-theme="day"] header {
 body.display-page[data-theme="day"] .block { box-shadow: 0 1px 3px rgba(23,27,36,0.07); }
 body.display-page[data-theme="day"] .block-header .badge { background: rgba(23,27,36,0.05); color: var(--d-fg); }
 body.display-page[data-theme="day"] .person { background: rgba(23,27,36,0.03); }
-/* Logo (glyphe blanc) : on l'inverse en mode clair pour qu'il reste visible sur fond clair */
-body.display-page[data-theme="day"] .board-badge { filter: invert(1); }
 
 /* Kiosk : masquer le curseur de souris. */
 .display-page, .display-page * { cursor: none !important; }
@@ -77,13 +75,8 @@ body.display-page[data-theme="day"] .board-badge { filter: invert(1); }
   justify-content: flex-start;
 }
 .display-page header::before { display: none; }
-.board-badge { width: 2rem; height: 2rem; flex: 0 0 auto; }
-/* Filet vertical de séparation : le logo et le titre sont deux entités distinctes */
-.display-page .board-meta {
-  gap: 0.1rem; min-width: 0;
-  border-left: 1px solid var(--d-line-strong);
-  padding-left: 0.9rem; margin-left: 0.2rem;
-}
+/* Le logo de marque est à DROITE (.brand-mark) ; le titre occupe seul la gauche. */
+.display-page .board-meta { gap: 0.1rem; min-width: 0; }
 .display-page .board-meta h1 {
   font-family: var(--font-body);
   font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.01em;
@@ -93,6 +86,12 @@ body.display-page[data-theme="day"] .board-badge { filter: invert(1); }
   font-size: 0.62rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.22em; color: var(--d-muted);
 }
 .display-page .header-actions { gap: 1.6rem; margin-left: auto; align-items: center; }
+/* Logo ComRoster (glyphe seul) en haut à droite, séparé par un filet des indicateurs. */
+.display-page .brand-mark {
+  width: 1.85rem; height: 1.85rem; flex: 0 0 auto; opacity: 0.9;
+  padding-left: 1.2rem; border-left: 1px solid var(--d-line-strong); box-sizing: content-box;
+}
+body.display-page[data-theme="day"] .brand-mark { filter: invert(1); }
 
 /* Stats : chiffre typographique + label capitale (Swiss) */
 .stats-container { display: flex; align-items: center; gap: 1.4rem; }
