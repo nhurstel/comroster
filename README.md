@@ -14,8 +14,8 @@ mémorise la correspondance n° → rôle et la propose à la saisie.
 
 Python 3.12 · Flask · Flask-WTF (CSRF) · Flask-Limiter (anti-bruteforce) · Werkzeug
 (hashing) · SSE (`EventSource`) · drag-and-drop HTML5 natif (zéro dépendance JS) ·
-design system glassmorphism (thèmes jour/nuit) · pytest. Persistance par fichiers JSON
-plats avec écriture atomique. Aucun SGBD.
+trois apparences d'écran commutables × deux modes de luminosité · pytest. Persistance
+par fichiers JSON plats avec écriture atomique. Aucun SGBD.
 
 ## Installation
 
@@ -90,16 +90,57 @@ Flags utiles en appliance : `COMROSTER_BIND` (défaut `127.0.0.1:8080`) et
 
 ## Premier démarrage
 
-1. Ouvrir `/admin/setup` → définir le mot de passe admin (8 caractères min.).
+1. Ouvrir `/admin/setup` → définir le mot de passe admin (4 caractères min.).
 2. **Noter le code de récupération** affiché une seule fois (sert à réinitialiser le mot de passe).
-3. `/admin` : créer les groupes (canaux), ajouter les personnes (nom + n° beltpack + rôle),
-   glisser-déposer dans les groupes, puis **Publier**.
+3. `/admin` : créer les groupes (canaux), ajouter les beltpacks (n° + rôle),
+   glisser-déposer dans les groupes, puis **Envoyer à l'affichage**.
 4. Ouvrir `/display` sur l'écran de régie — mise à jour en direct à chaque publication.
+
+## Apparences de l'écran
+
+`/display` se décline en trois **apparences** (réglage « Apparence » dans l'admin), chacune
+disponible en mode sombre et clair. Le choix est stocké dans l'état publié : il change à chaud,
+sans recharger l'écran de régie.
+
+| Valeur | Nom | Parti pris |
+|--------|-----|-----------|
+| `basique` | Basique | **Défaut.** Cartes en verre dépoli, accent turquoise, capitales. |
+| `lineaire` | Linéaire | Tableau réglé, à-plat. La couleur du groupe se limite au bandeau de tête. Rôles nettement plus gros (pas de cadre à financer). |
+| `grille` | Grille | Mosaïque pleine : le groupe **est** une surface colorée. Le plus lisible de loin. |
+
+Techniquement : un attribut `data-skin` sur `<body>` ; `basique` vit dans
+[display.css](static/css/display.css), les autres dans [skins.css](static/css/skins.css). Les
+feuilles sont toutes chargées en permanence, puisque l'apparence peut changer en direct par SSE.
+
+> **`grille` pose du texte sur la couleur du groupe.** L'encre (noire ou blanche) est choisie au
+> rendu d'après la luminance relative sRGB. Pour garantir la lisibilité, le choix de couleur d'un
+> groupe se fait dans une **palette bornée** de 24 teintes calibrées (contraste ≥ 4.5:1 avec l'encre
+> dans les deux modes de luminosité) — pas un sélecteur libre, qui laissait choisir des teintes
+> médiocres. La règle d'encre est partagée par l'écran et l'admin ([ink.js](static/js/ink.js)).
+
+**Aperçu** — un **témoin permanent** en surimpression, coin bas-droit, montre l'état **publié** et
+se rafraîchit à chaque publication. À cette taille le texte est illisible par construction : on y
+lit la structure (colonnes, couleurs de groupes, densité), pas le contenu. Cliquer dessus ouvre le
+grand aperçu ; un clic à côté le referme. Le bandeau replie le témoin, et ce choix est mémorisé.
+
+Les deux sont des iframes sur `/admin/preview`, c'est-à-dire la vraie page display à l'échelle —
+aucun rendu parallèle, donc aucune dérive possible. Ni l'une ni l'autre n'ouvre de flux SSE
+(voir ci-dessous).
+
+> **L'aperçu est rendu en 1920×1080**, la résolution du kiosk Pi. En colonnes « Automatique », leur
+> nombre dépend de la largeur en pixels (`minmax(340px, 1fr)`) : un aperçu ne peut donc être fidèle
+> qu'à **une** résolution. Si votre écran de régie n'est pas en 1080p, fixez le nombre de colonnes
+> — le rendu devient alors indépendant de la largeur, et l'aperçu exact partout.
 
 ## Parcours & routes
 
 - `/admin/setup`, `/admin/login`, `/admin/recover` — comptes (public).
 - `/admin` + `/api/*` — administration (session requise, CSRF sur les requêtes mutatives).
+- `/admin/preview` — aperçu de l'état **publié**, session requise. Rend `display.html` avec
+  `data-preview="on"` : le JS y coupe le SSE, les sondages, l'anti-veille et le défilement.
+  `?scroll=1` rétablit le défilement (grand aperçu seulement — le témoin permanent reste immobile).
+  Chaque flux `/events` occupe un thread et un créneau de `COMROSTER_SSE_MAX` (12 par défaut) —
+  un aperçu laissé ouvert affamerait les vrais afficheurs.
 - `/display` + `/events` — affichage TV public, **lecture seule** (état publié uniquement).
 
 ## Réinitialisation totale (A6)

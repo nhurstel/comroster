@@ -87,6 +87,119 @@ Verdict : très bon niveau, aucun bug critique. Corrigés :
 - **Non touché (assumé)** : `will-change` global de main.css (perf Pi discutable mais non
   mesurable ici) ; quelques couleurs d'état en dur dans display.css (DA distincte).
 
+## Lot 2026-07-22 (suite) — Apparences du display (`skin`) — PLAN, À VALIDER
+
+**Origine :** retour extérieur « ça fait projet fait par l'IA ». Diagnostic : le fond est sain,
+c'est la DA de `/display` qui trahit (auréoles turquoise en `radial-gradient`, verre dépoli +
+reflet `inset 0 1px 0`, accent teal `#33D6C6`, 13 niveaux de capitales tracées, tuiles de stats
+dans le header, échelle `--gray-*` Tailwind morte, Inter+Outfit). Maquettes hors dépôt validées
+par Nathan → **2 apparences en plus de l'actuelle : B et F** (C, D, E, G, H écartés).
+Décision revue en cours de lot : d'abord B/E/F/H, puis resserré à A+B+F avant d'écrire la moindre
+feuille de style — donc aucun travail jeté. Rejoint la réserve émise au plan (3 valeurs, pas 6) :
+moins de dette CSS, et moins de façons de se tromper d'apparence avant un show.
+
+**Décision d'architecture :** un seul champ `skin`, orthogonal à `theme`. Chaque apparence porte
+sa STRUCTURE une seule fois + DEUX jeux de jetons de couleur (nuit/jour). On ne crée pas un axe
+`apparence × luminosité` à 10 combinaisons à dessiner : `theme` reste le commutateur de luminosité
+et garde sa sémantique actuelle.
+
+| Valeur | Nom UI | Réf. | Luminosité |
+|---|---|---|---|
+| `basique` | Basique | l'existant, **défaut** | jour + nuit |
+| `lineaire` | Linéaire | Swiss, filets, Helvetica | jour + nuit |
+| `grille` | Grille | Bauhaus/De Stijl, le groupe = une surface | jour + nuit |
+
+**Constat à acter :** `/display` n'affiche PAS le nom des personnes
+(`createPersonCard` display.js:66-71 ne pose que le rôle ; `.person .name` est un sélecteur mort
+dans display.css). Les apparences seront donc plus aérées que les maquettes.
+
+### Chemins d'écriture de `skin` (leçon 2026-07-06 : TOUS les chemins)
+- [x] `model.empty_state()` → `"skin": "base"`
+- [x] `model.build_draft()` → `state["skin"] = sanitize_skin(...)`
+- [x] `model.sanitize_skin()` : allowlist, toute valeur inconnue → `"base"`
+- [x] `admin.js` reconstruction à l'import → `skin: SKINS.includes(...)` ⚠️ sinon perdu
+- [x] `admin.js` `syncSettingsInputs` + `bindSettings` (calqué sur `theme-select`)
+
+### Étapes (chacune mergeable seule)
+- [x] **1. Mécanisme seul** — `skin` de bout en bout, seule valeur `basique`. `data-skin` sur `<body>`
+      (display.html) + `bodyEl.dataset.skin` dans `render()` à côté de la l.85. `<select>` Apparence
+      dans le panneau Réglages écran. **Aucun changement visuel.** Tests unitaires du sanitize.
+- [x] **2. Deux points de blocage JS** (toujours aucun changement visuel sur `basique`) :
+      - `fitDisplayText()` : bornes 13/24 et 12/19 **en dur** (display.js:180-181) → lues depuis des
+        variables CSS (`--fit-title-min/max`, `--fit-role-min/max`), défauts = valeurs actuelles.
+        ⚠️ Contrat négocié avec Nathan au lot 2026-07-15 (taille unique, une ligne, alignée, jamais
+        tronquée, qui grossit) — à préserver à l'identique.
+      - `--block-ink` : luminance relative sRGB de `group.color` → encre noire ou blanche, posée à
+        côté du `--block-accent` existant (l.111). Requis par `grille`, inerte ailleurs.
+- [x] **3.** Apparence `lineaire` → `static/css/skins.css` (~230 l.), chargée en permanence.
+      Tableau réglé : `gap: 0` + filet droit/bas sur chaque case, fermé en haut/à gauche par la
+      grille (pas de double trait, pas de cellule vide colorée). Bandeau de groupe = seul aplat de
+      couleur et seul niveau de capitales ; numéro sorti de sa pastille, aligné sur les unités.
+      Plafonds d'ajustement relevés (rôles 26 px contre 19) : sans cadre ni pastille, il reste de la place.
+      **Trouvé au rendu** : `main.css` pose un voile radial turquoise (`body::before`) qui traverse
+      tout — neutralisé pour toute apparence ≠ `basique` via `:not([data-skin="basique"])::before`.
+      Idem la pilule arrondie + le halo animé de `.status-badge` (main.css), remplacés par un
+      carré-signal et un clignotement d'opacité.
+- [x] **4.** Apparence `grille` : mosaïque pleine bord à bord, gouttières de 6 px, blocs en
+      `1fr` + `min-height: 100%` (remplit l'écran quand tout tient, grandit et laisse l'auto-scroll
+      reprendre au-delà). Le bloc EST la couleur du groupe → `data-ink` sert enfin.
+      Deux arbitrages notés : le voyant temps réel passe par l'encre (pleine/effacée) au lieu du
+      vert, qui jurerait avec la teinte ; la batterie faible s'affiche en encre inversée plutôt
+      qu'en ambre, invisible sur un groupe ambre.
+      Factorisation : ce que TOUTE alternative neutralise (voile `body::before`, pilule + halo du
+      badge live, pastille `BP`, tuiles de stats) est regroupé sous `:not([data-skin="basique"])`.
+      Branche encre claire vérifiée séparément sur 4 couleurs (marine/crème/rouge/bleu) : bascule
+      correcte dans les deux sens.
+- [x] **5.** Aperçu dans l'admin (demande Nathan) : item « Aperçu » → dialog avec iframe sur
+      `GET /admin/preview`, qui rend `display.html` avec le **brouillon** et `data-preview="on"`.
+      Le JS y coupe SSE / sondages / anti-veille / auto-scroll — sans quoi un aperçu laissé ouvert
+      brûlerait un créneau `SSE_MAX_CLIENTS` et un thread en permanence (leçon 2026-07-06).
+      Iframe rendue à 1280×720 puis mise à l'échelle : rendu fidèle, pas une page rétrécie.
+      Le clic vide d'abord les édits en attente (`savePending`) — l'aperçu lit le brouillon SERVEUR.
+      Vérifié : `X-Frame-Options: SAMEORIGIN` + `frame-ancestors 'self'` autorisent l'iframe même
+      origine sans toucher à la CSP.
+- [x] **6.** Passe de doc — README : section « Apparences de l'écran », route `/admin/preview`,
+      pile technique. **Deux périmés corrigés au passage** : le mot de passe annoncé à 8 caractères
+      (le code impose 4 depuis le 2026-07-06) et « ajouter les personnes (nom + …) » alors que le
+      champ nom n'existe plus ni dans l'admin ni dans le modèle.
+- [ ] **7.** Reste : captures dans la doc si souhaité ; cahier des charges (D1) non retouché.
+
+**Étapes 1 et 2 vérifiées :** 254 tests unitaires + 10 e2e verts, ruff propre. 3 e2e ajoutés
+(bornes historiques d'ajustement respectées + 0 troncature sur `basique` ; `data-ink` calculé ;
+**console navigateur sans erreur** — collecteur `console`/`pageerror` branché avant le chargement,
+et vérifié non creux sur une page qui échoue volontairement).
+
+⚠️ **Environnement :** `.venv/bin/*` a un shebang mort (`/Users/nathan/Desktop/CODA/COMROSTER/…`,
+chemin d'avant le déplacement dans `INTERCOM/`). `./run-dev.sh` et `.venv/bin/pytest` échouent ;
+passer par `.venv/bin/python -m pytest`. Réparation : `python3.12 -m venv --upgrade .venv`.
+
+### Contraintes à respecter (issues des leçons)
+- [ ] `[hidden]` : ne poser AUCUN `display` inconditionnel sur `#board-subtitle`, `#onboarding`,
+      `.bp-batt` (leçon 2026-06-21 — le `[hidden]{display:none!important}` de main.css:156 protège,
+      mais on ne s'appuie pas dessus par paresse)
+- [ ] Ne pas casser `height:100vh; overflow:hidden` sur `.display-page` ni `#display-scroll`
+      (leçon 2026-06-20 — sinon l'auto-scroll meurt silencieusement)
+- [ ] CSP stricte : aucun `<style>` inline, feuilles servies depuis `self` (leçon 2026-07-07)
+- [ ] **Toutes les feuilles d'apparence chargées d'avance** : le `skin` change en direct par SSE
+      `published` sans rechargement de page → un `<link>` conditionnel côté serveur ne marcherait pas
+- [ ] Validation par **rendu réel** (screenshot + console navigateur), pas par tests DOM
+      (leçon 2026-07-07)
+
+### Risques assumés / à trancher
+- **Dette de maintenance** : ~+600 lignes de CSS ; toute évolution future du display devra être
+  restylée 5 fois. C'est le vrai coût, pas l'implémentation.
+- **`grille` impose de contraindre le nuancier des groupes** : poser du texte sur la couleur saisie
+  par l'utilisateur exige un contraste minimal. `--block-ink` gère noir/blanc, mais une couleur très
+  saturée restera mauvaise → travail produit (borner le sélecteur de couleur), pas seulement du CSS.
+- **`grille` en mosaïque pleine** n'a de sens que si tout tient sans défilement ; au-delà il faut
+  qu'il dégrade proprement en blocs normaux (`grid-auto-rows: minmax(min-content, 1fr)`).
+- **Mode performance** devient un no-op sur les 4 nouvelles apparences (aucune n'utilise
+  `backdrop-filter`) — bénéfice net pour le Pi 3, mais la case reste utile pour `basique`.
+- **Onboarding** (`#onboarding`) non décliné par apparence : il ne s'affiche que sur une box non
+  configurée, donc toujours en `basique`. À confirmer.
+- **5 choix dans l'admin** = 5 façons de se tromper avant un show. Alternative écartée par Nathan :
+  n'en garder que 2 ou 3.
+
 ## Décisions techniques actées
 - Python 3.12, Flask
 - CSRF : Flask-WTF · Rate-limit login : Flask-Limiter
@@ -140,3 +253,77 @@ Spec validée : [docs/superpowers/specs/2026-07-06-network-wifi-ethernet-design.
   (aucune référence dans le dépôt ; `.venv/` en 3.12 reste le seul environnement utilisé).
 - `beltpack_roles` jamais purgé (croissance négligeable).
 - Compteurs rate-limit en mémoire (reset au restart) : acceptable appliance mono-process.
+
+---
+
+# LOT « REFONTE ADMIN » — plan (2026-07-23)
+
+Base : maquette 7 du scratchpad, valeurs retenues par Nathan (reportées en A1).
+Principe : chaque phase est livrable seule, tests verts, sans casser la précédente.
+
+## A. Jetons et typographie — CSS seul, risque nul  ✅ FAIT (d18be95)
+
+- [x] A1. Poser les jetons retenus en tête de `.admin-page` :
+      `--ui:12.5px` `--track:.02em` `--mono:15px` `--role:15px` `--role-w:600`
+      `--row:31px` `--pad:12px` `--gap:7px` `--rad:7px` `--card-min:300px`
+      `--side-w:204px` `--pool-w:242px` `--top-h:53px`
+      Police = **Base** (Outfit + Inter) → rien à auto-héberger, les .woff2 sont déjà là.
+- [x] A2. Règle typographique : capitales réservées aux TITRES (nom de groupe,
+      en-têtes de section). Tout ce qui se clique passe en bas-de-casse 12,5 px,
+      interlettrage .02em. C'est le défaut signalé par Nathan (illisibilité des
+      boutons en 10 px capitales très espacées).
+- [x] A3. Purger les tailles en dur (`0.82rem`, `0.66rem`…) au profit des jetons.
+
+## B. Blocs-groupes en aplat plein — CSS + un peu de JS  ✅ FAIT (9398bd8)
+
+- [x] B1. Extraire `inkFor()` de `display.js` vers `static/js/ink.js`, chargé par
+      display.html ET admin.html. NE PAS dupliquer : c'est la même règle de
+      luminance (seuil .179) des deux côtés, une divergence serait invisible.
+- [x] B2. `renderBlocks()` pose `--gel` (couleur du groupe) et `data-ink` sur le
+      bloc ; le CSS en déduit l'encre. Séparateurs = filets, trait d'union `·`
+      entre n° et rôle (miroir de `skins.css`, cf. `--tie`).
+- [x] B3. Voyants d'état : point, masqué au survol au profit des actions.
+
+## C. Mise en page — template + CSS  ✅ FAIT (C1 972808e · C2 085ea4d · C3 fd371c5)
+
+- [x] C1. « Beltpacks disponibles » quitte `.admin-layout` et devient une colonne
+      de droite (`--pool-w:242px`). Le plan de travail devient une grille
+      `repeat(auto-fill, minmax(300px, 1fr))`, gap 7.
+- [x] C2. En-tête à 53 px : fil d'Ariane + onglets nommés + horloge + état + action.
+- [x] C3. Barre latérale → INVENTAIRE : groupes avec effectif, puis vues
+      (« Hors ligne », « Batterie < 30 % »), puis Données. Les réglages d'écran
+      partent dans l'onglet « Écran ». ⚠️ Garder les MÊMES ids d'inputs
+      (`#skin-select`, `#theme-select`, `#meta-columns`…) : `bindSettings` et
+      `syncSettingsInputs` continuent de fonctionner sans y toucher.
+
+## D. Barre d'état — complète le témoin d'aperçu  ✅ FAIT (83ba5b8)
+
+- [x] D1. Réutiliser `.admin-foot` (déjà présent, 2,3 rem). Contenu : flux SSE +
+      nombre de clients, heure de la dernière publication, apparence + résolution,
+      « aperçu écran ↗ » (rouvre le grand aperçu), export.
+- [x] D2. Écart brouillon ↔ publié (« +1 groupe, +2 beltpacks non envoyés »).
+      Nouveau calcul côté client entre `state.data` et l'état publié. À faire
+      APRÈS D1 : D1 seul remplace déjà la vignette.
+- [~] D3. ANNULÉ (décision Nathan : l'aperçu reste ouvert par défaut). Le témoin
+      cohabite avec la barre d'état ; « aperçu écran ↗ » ouvre le grand aperçu.
+
+## Décisions de Nathan (2026-07-23)
+
+- **Bouton d'action : « texte » confirmé.** Réserve exprimée (publier est
+  l'action la plus conséquente, sans fond ni contour elle perd son affordance),
+  réponse : non. Appliqué tel quel, on n'y revient pas.
+- **L'aperçu reste ouvert par défaut.** D3 est donc REVU : on ne supprime pas le
+  témoin, il cohabite avec la barre d'état et s'affiche déplié au chargement.
+- **Voyant de beltpack connecté en vert.** `.bp-dot.on` l'est déjà (--success) ;
+  le point est de ne PAS le passer en `currentColor` dans les blocs en aplat,
+  comme le faisait la maquette. Le vert doit survivre au fond coloré.
+
+## E. À trancher
+
+- [x] E2. Palette bornée de 12 teintes calibrées (≥ 4.5:1). Fait (031084b).
+
+## Vérifications exigées à chaque phase
+
+- 256 unitaires + 13 e2e verts, ruff propre.
+- Capture de l'admin + console navigateur vide (leçon 2026-07-07).
+- Contraste mesuré, pas jugé à l'œil, sur les 6 couleurs de groupe (leçon 2026-07-23).

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ComRoster — banc de réglage admin</title>
+<!-- MAQUETTE JETABLE. Quatre familles chargées pour comparer en direct ; en prod
+     une seule serait retenue et auto-hébergée (le Pi est hors-ligne). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Archivo:wdth,wght@75..125,400..700&family=DM+Mono:wght@400;500&family=Inter:wght@400..800&family=Outfit:wght@400..800&family=Space+Grotesk:wght@400..700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════════════════════
+   BANC DE RÉGLAGE — synthèse base + piste 1 (blocs-groupes) + piste 4 (console).
+
+   Tout ce qui est discutable est une VARIABLE CSS pilotée par le panneau de
+   droite. Rien n'est écrit en dur dans les règles ci-dessous sans avoir été jugé
+   non négociable. Le plan de travail est engendré depuis un jeu de données en bas
+   de fichier : c'est ce qui permet de faire varier séparateurs, voyants, trait
+   d'union et densité sans dupliquer 200 lignes de balisage.
+
+   Rappel de la règle typographique du jour : les CAPITALES sont réservées aux
+   TITRES. Tout ce qui se clique est en bas-de-casse, plus gros, peu interlettré.
+   ══════════════════════════════════════════════════════════════════════════════ */
+:root{
+  /* — Jetons repris tels quels de la base ComRoster — */
+  --bg:#141821; --inset:#0E1119; --surface:#1E2330; --surface-2:#212633; --surface-3:#262C3B;
+  --border:#333A49; --border-2:#39404F; --border-3:#454E63; --border-soft:#2C3242;
+  --fg:#EEF1F7; --fg-muted:#B9BDC6; --fg-subtle:#7D828C; --muted:#626871;
+  --warning:#E8A13A; --danger:#F0857A;
+
+  /* — RÉGLABLES — */
+  --accent:#33D6C6; --accent-lt:#5FE3D6; --on-accent:#0B0D12;
+  --ui:12px; --track:.02em; --caps:none;
+  --mono:13.5px; --role:13.5px; --role-w:500;
+  --row:29px; --rad:7px; --gap:11px; --card-min:272px;
+  --side-w:198px; --pool-w:254px; --top-h:46px; --pad:13px;
+  --tie:""; --tie-gap:0em;
+  --f-ui:"IBM Plex Sans",sans-serif; --f-mono:"IBM Plex Mono",monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:13px;
+  overflow:hidden;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.k{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+.app{height:100%;display:flex;flex-direction:column;
+  margin-right:var(--panel-w,320px)}   /* le banc occupe la droite de l'écran */
+
+/* ─── En-tête ─────────────────────────────────────────────────────────────── */
+.top{flex:0 0 var(--top-h);display:flex;align-items:stretch;background:var(--surface);
+  border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:9px;padding:0 14px;
+  border-right:1px solid var(--border-soft);font-weight:700;font-size:12px;letter-spacing:.13em}
+.brand i{width:9px;height:9px;background:var(--accent);display:block;border-radius:2px}
+.crumb{display:flex;align-items:center;gap:8px;padding:0 14px;font-family:var(--f-mono);
+  font-size:12.5px;color:var(--fg-subtle);min-width:0}
+.crumb b{color:var(--fg);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumb .sep{color:var(--muted)}
+.top nav{margin-left:auto;display:flex;align-items:stretch}
+.top nav button{padding:0 13px;font-size:var(--ui);font-weight:600;letter-spacing:var(--track);
+  text-transform:var(--caps);color:var(--fg-subtle);border-bottom:2px solid transparent;margin-bottom:-1px}
+.top nav button:hover{color:var(--fg);background:#ffffff08}
+.top nav button[aria-current]{color:var(--fg);border-bottom-color:var(--accent)}
+.chip{display:flex;align-items:center;gap:7px;padding:0 12px;
+  border-left:1px solid var(--border-soft);font-size:calc(var(--ui) - .5px);font-weight:500;
+  color:var(--fg-subtle);white-space:nowrap}
+.chip i{width:6px;height:6px;display:block;background:var(--accent);border-radius:2px}
+.chip.warn{color:var(--warning)} .chip.warn i{background:var(--warning)}
+.chip .t{font-family:var(--f-mono);font-size:12.5px;color:var(--fg-muted);
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+.send{display:flex;align-items:center;gap:11px;padding:0 20px;background:var(--accent);
+  color:var(--on-accent);font-size:calc(var(--ui) + .5px);font-weight:700;
+  letter-spacing:var(--track);text-transform:var(--caps);white-space:nowrap;transition:background .12s}
+.send:hover{background:var(--accent-lt)}
+.send kbd{font-family:var(--f-mono);font-size:11.5px;font-weight:500;background:#0000001f;
+  padding:2px 5px;border-radius:3px;letter-spacing:0;text-transform:none}
+/* Deux poids d'action alternatifs, du plus affirmé au plus effacé. */
+body[data-btn="contour"] .send{background:transparent;color:var(--accent);
+  box-shadow:inset 0 0 0 1px var(--accent);margin:8px 10px;border-radius:var(--rad)}
+body[data-btn="contour"] .send:hover{background:#ffffff0d}
+body[data-btn="contour"] .send kbd{background:#ffffff14}
+body[data-btn="texte"] .send{background:transparent;color:var(--accent);padding:0 16px}
+body[data-btn="texte"] .send:hover{background:#ffffff0d}
+body[data-btn="texte"] .send kbd{background:#ffffff14}
+
+/* ─── Corps ──────────────────────────────────────────────────────────────── */
+.body{flex:1;min-height:0;display:grid;grid-template-columns:var(--side-w) 1fr var(--pool-w)}
+body[data-pool="gauche"] .body{grid-template-columns:var(--side-w) var(--pool-w) 1fr}
+body[data-pool="gauche"] .pool{order:-1;border-left:0;border-right:1px solid var(--border)}
+body[data-pool="masquee"] .body{grid-template-columns:var(--side-w) 1fr}
+body[data-pool="masquee"] .pool{display:none}
+body[data-side="masquee"] .body{grid-template-columns:1fr var(--pool-w)}
+body[data-side="masquee"] .side{display:none}
+body[data-side="masquee"][data-pool="masquee"] .body{grid-template-columns:1fr}
+
+.side{background:var(--surface);border-right:1px solid var(--border);overflow:auto;padding:9px 0}
+.side .h{padding:10px var(--pad) 5px}
+.side a{display:grid;grid-template-columns:3px 1fr auto;align-items:center;gap:9px;
+  padding:0 var(--pad);height:calc(var(--row) - 3px);color:var(--fg-subtle);cursor:pointer;
+  font-size:calc(var(--ui) + 1px)}
+.side a:hover{background:#ffffff08;color:var(--fg)}
+.side a[aria-current]{background:var(--surface-3);color:var(--fg)}
+.side a i{width:3px;height:14px;display:block;border-radius:1px}
+.side a .c{font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.side hr{border:0;border-top:1px solid var(--border-soft);margin:9px 0}
+.side .warnrow .c{color:var(--warning)}
+
+/* ─── Plan de travail ─────────────────────────────────────────────────────── */
+.main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.bar{flex:0 0 40px;display:flex;align-items:center;gap:10px;padding:0 12px;
+  border-bottom:1px solid var(--border-soft)}
+.filter{display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;background:var(--inset);
+  border:1px solid var(--border);border-radius:var(--rad);min-width:210px;flex:0 1 260px}
+.filter input{flex:1;min-width:0;background:none;border:0;font-family:var(--f-mono);font-size:12.5px}
+.filter input::placeholder{color:var(--muted)}
+.filter input:focus{outline:0}
+.filter kbd{font-family:var(--f-mono);font-size:11px;color:var(--muted);
+  border:1px solid var(--border);border-radius:3px;padding:1px 5px}
+.seg{display:flex;border:1px solid var(--border);border-radius:var(--rad);overflow:hidden;flex:0 0 auto}
+.seg button{height:28px;padding:0 12px;font-size:var(--ui);font-weight:600;
+  letter-spacing:var(--track);text-transform:var(--caps);color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface-3);color:var(--fg)}
+.bar .right{margin-left:auto;display:flex;align-items:center;gap:13px;min-width:0}
+.bar .n{font-family:var(--f-mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.bar .lnk{font-size:var(--ui);font-weight:600;letter-spacing:var(--track);
+  text-transform:var(--caps);color:var(--fg-subtle);border-bottom:1px solid transparent;
+  white-space:nowrap}
+.bar .lnk:hover{color:var(--fg);border-bottom-color:var(--border-3)}
+
+.board{flex:1;min-height:0;overflow:auto;padding:var(--pad)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--card-min),1fr));
+  gap:var(--gap);align-items:start}
+
+/* ── Bloc-groupe ─────────────────────────────────────────────────────────────
+   `--gel` et `--on` (l'encre) sont calculés en JS pour chaque bloc : intensité et
+   saturation étant réglables, l'encre doit suivre la luminance réelle du fond
+   obtenu — c'est la règle appliquée à l'écran pour l'apparence Grille. */
+.gr{border-radius:var(--rad);overflow:hidden;background:var(--gel);color:var(--on)}
+body[data-anim="cascade"] .gr{animation:up .3s cubic-bezier(.2,.7,.3,1) backwards}
+body[data-anim="simple"] .gr{animation:fade .22s ease backwards}
+@keyframes up{from{opacity:0;transform:translateY(5px)}}
+@keyframes fade{from{opacity:0}}
+
+.gr-head{display:flex;align-items:center;gap:9px;height:calc(var(--row) + 5px);
+  padding:0 11px;border-bottom:1px solid rgb(0 0 0 / .17)}
+.gr-head h3{flex:1;min-width:0;font-size:calc(var(--role) - .5px);font-weight:700;
+  letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.gr-head .c{font-family:var(--f-mono);font-size:calc(var(--mono) - 2px);opacity:.7}
+.gr-head .acts{display:flex;gap:11px;opacity:0;transition:opacity .12s;
+  font-size:var(--ui);font-weight:600;letter-spacing:var(--track)}
+.gr:hover .gr-head .acts{opacity:.95}
+.gr-head .acts button:hover{text-decoration:underline}
+
+.gr ul{list-style:none}
+.gr li{display:flex;align-items:center;height:var(--row);padding:0 11px}
+.gr li:hover{background:rgb(0 0 0 / .12)}
+.gr li .bp{flex:0 0 auto;min-width:26px;font-family:var(--f-mono);font-size:var(--mono);
+  font-weight:500;font-variant-numeric:tabular-nums;opacity:.88}
+/* Trait d'union optionnel entre le numéro et son rôle, comme sur l'écran. */
+.gr li .bp::after{content:var(--tie);margin:0 var(--tie-gap);opacity:.5;font-weight:400}
+.gr li .role{flex:1;min-width:0;font-size:var(--role);font-weight:var(--role-w);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:8px}
+body[data-tie-mode="none"] .gr li .role{padding-left:8px}
+.gr li .st{flex:0 0 6px;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.85}
+.gr li .st.off{opacity:.3}
+.gr li .stt{font-family:var(--f-mono);font-size:calc(var(--mono) - 2.5px);opacity:.72;
+  white-space:nowrap;display:none}
+.gr li .ops{margin-left:10px;display:flex;gap:11px;font-size:var(--ui);font-weight:600;
+  letter-spacing:var(--track);opacity:0}
+.gr li:hover .ops{opacity:.95}
+.gr li .ops button:hover{text-decoration:underline}
+.gr li.new .bp{box-shadow:inset 2px 0 0 currentColor;padding-left:6px;margin-left:-6px}
+
+/* Voyants : point coloré, libellé texte, ou rien. */
+body[data-st="texte"] .st{display:none} body[data-st="texte"] .stt{display:block}
+body[data-st="aucun"] .st,body[data-st="aucun"] .stt{display:none}
+body:not([data-st="aucun"]) .gr li:hover .st{display:none}
+body[data-st="texte"] .gr li:hover .stt{display:none}
+
+/* Séparateurs de lignes : filets, zébrures, ou rien. */
+body[data-sep="filets"] .gr li + li{border-top:1px solid rgb(0 0 0 / .1)}
+body[data-sep="zebre"] .gr li:nth-child(even){background:rgb(0 0 0 / .09)}
+body[data-sep="zebre"] .gr li:nth-child(even):hover{background:rgb(0 0 0 / .16)}
+body[data-sep="filets"] .pool li + li{border-top:1px solid var(--border-soft)}
+body[data-sep="zebre"] .pool li:nth-child(even){background:#ffffff06}
+
+.drop{margin:7px 11px 11px;padding:9px;border:1px dashed currentColor;
+  border-radius:max(0px, calc(var(--rad) - 2px));opacity:.5;font-size:var(--ui);
+  font-weight:600;letter-spacing:var(--track);text-transform:var(--caps);
+  text-align:center;transition:opacity .12s}
+.gr:hover .drop{opacity:.85}
+body[data-drop="masquee"] .drop{display:none}
+
+/* Intensité de couleur : plein, bandeau seul, ou simple liseré. */
+body[data-gel="bandeau"] .gr{background:var(--inset);color:var(--fg);border:1px solid var(--border-soft)}
+body[data-gel="bandeau"] .gr-head{background:var(--gel);color:var(--on);border-bottom:0}
+body[data-gel="bandeau"] .gr li + li{border-top-color:var(--border-soft)}
+body[data-gel="bandeau"] .gr li:hover{background:var(--surface-2)}
+body[data-gel="bandeau"] .gr li:nth-child(even){background:none}
+body[data-gel="bandeau"] .drop{opacity:.45;color:var(--fg-subtle);border-color:var(--border)}
+body[data-gel="lisere"] .gr{background:var(--inset);color:var(--fg);
+  border:1px solid var(--border-soft);border-left:3px solid var(--gel)}
+body[data-gel="lisere"] .gr-head{background:transparent;color:var(--fg);
+  border-bottom:1px solid var(--border-soft)}
+body[data-gel="lisere"] .gr-head h3{color:var(--gel)}
+body[data-gel="lisere"] .gr li + li{border-top-color:var(--border-soft)}
+body[data-gel="lisere"] .gr li:hover{background:var(--surface-2)}
+body[data-gel="lisere"] .gr li:nth-child(even){background:none}
+body[data-gel="lisere"] .drop{opacity:.45;color:var(--fg-subtle);border-color:var(--border)}
+
+/* ─── Réserve ────────────────────────────────────────────────────────────── */
+.pool{background:var(--surface);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;min-height:0}
+.pool .ph{padding:var(--pad) var(--pad) 9px}
+.pool .ph h2{margin-bottom:9px}
+.pool .find{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;
+  background:var(--inset);border:1px solid var(--border);border-radius:var(--rad)}
+.pool .find input{flex:1;min-width:0;background:none;border:0;font-size:13px}
+.pool .find input::placeholder{color:var(--muted)}
+.pool .find input:focus{outline:0}
+.pool .find span{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.pool ul{flex:1;min-height:0;overflow:auto;list-style:none}
+.pool li{display:flex;align-items:center;height:var(--row);padding:0 var(--pad);cursor:grab}
+.pool li:hover{background:var(--surface-2)}
+.pool li .bp{flex:0 0 auto;min-width:26px;font-family:var(--f-mono);font-size:var(--mono);
+  color:var(--accent);font-variant-numeric:tabular-nums}
+.pool li .bp::after{content:var(--tie);margin:0 var(--tie-gap);opacity:.4}
+.pool li .role{flex:1;min-width:0;font-size:calc(var(--role) - .5px);padding-left:8px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg-muted)}
+.pool li .st{width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.7}
+.pool li .st.off{background:var(--muted)}
+.pool li .stt{font-family:var(--f-mono);font-size:calc(var(--mono) - 2.5px);
+  color:var(--muted);display:none}
+.pool li .ops{margin-left:10px;font-size:var(--ui);font-weight:600;letter-spacing:var(--track);
+  color:var(--fg-subtle);opacity:0}
+.pool li:hover .ops{opacity:1}
+.pool .pf{padding:10px var(--pad);border-top:1px solid var(--border-soft)}
+.pool .pf button{width:100%;height:32px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--rad);font-size:var(--ui);font-weight:600;letter-spacing:var(--track);
+  text-transform:var(--caps);transition:.12s}
+.pool .pf button:hover{background:var(--surface-3);border-color:var(--border-3)}
+
+/* ─── Barre d'état ───────────────────────────────────────────────────────── */
+.status{flex:0 0 25px;display:flex;align-items:stretch;background:var(--surface);
+  border-top:1px solid var(--border);font-family:var(--f-mono);font-size:11.5px}
+body[data-status="masquee"] .status{display:none}
+.status .s{display:flex;align-items:center;gap:7px;padding:0 11px;color:var(--muted);
+  border-right:1px solid var(--border-soft);white-space:nowrap}
+.status .s b{color:var(--fg-subtle);font-weight:400}
+.status .s i{width:6px;height:6px;display:block;background:var(--accent);border-radius:2px}
+.status .s.pend{color:var(--warning)}
+.status .right{margin-left:auto;display:flex;align-items:stretch}
+.status .right .s{border-right:0;border-left:1px solid var(--border-soft);cursor:pointer}
+.status .right .s:hover{background:var(--surface-3);color:var(--fg-subtle)}
+
+/* ═══ BANC DE RÉGLAGE (maquette uniquement) ══════════════════════════════════ */
+.tune{position:fixed;top:0;right:0;bottom:0;width:320px;background:var(--surface-2);
+  border-left:1px solid var(--border-2);z-index:50;display:flex;flex-direction:column;
+  font-family:"IBM Plex Sans",sans-serif}
+.tune .th{flex:0 0 auto;padding:11px 13px;border-bottom:1px solid var(--border-soft);
+  display:flex;align-items:center;gap:9px}
+.tune .th b{font-size:11.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--fg-muted)}
+.tune .th i{width:7px;height:7px;background:var(--accent);border-radius:2px;flex:0 0 auto}
+.tune .scroll{flex:1;min-height:0;overflow:auto;padding:2px 13px 13px}
+.tune h5{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);margin:14px 0 4px;padding-top:9px;border-top:1px solid var(--border-soft)}
+.tune h5:first-child{border-top:0;margin-top:8px;padding-top:0}
+.r{display:grid;grid-template-columns:96px 1fr 44px;align-items:center;gap:8px;
+  padding:4px 0;font-size:12px;color:var(--fg-subtle)}
+.r>label{font-weight:500}
+.r output{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--fg-muted);text-align:right}
+.r input[type=range]{width:100%;accent-color:var(--accent);height:15px}
+.r .opts{display:flex;gap:4px;grid-column:2 / span 2;flex-wrap:wrap}
+.r .opts button{flex:1 1 auto;min-width:0;height:23px;padding:0 6px;background:var(--inset);
+  border:1px solid var(--border);border-radius:5px;font-size:11px;font-weight:500;
+  color:var(--fg-subtle);letter-spacing:0;text-transform:none;white-space:nowrap}
+.r .opts button[aria-pressed=true]{background:var(--accent);color:var(--on-accent);
+  border-color:transparent;font-weight:600}
+.r .sw{display:flex;gap:5px;grid-column:2 / span 2}
+.r .sw button{width:22px;height:22px;border-radius:5px;border:1px solid var(--border);flex:0 0 auto}
+.r .sw button[aria-pressed=true]{outline:2px solid var(--fg);outline-offset:1px}
+.presets{display:flex;gap:5px;margin:8px 0 2px}
+.presets button{flex:1;height:27px;background:var(--inset);border:1px solid var(--border);
+  border-radius:6px;font-size:11.5px;font-weight:600;color:var(--fg-muted)}
+.presets button:hover{border-color:var(--accent);color:var(--fg)}
+.tune pre{margin-top:10px;padding:9px;background:var(--inset);border:1px solid var(--border);
+  border-radius:6px;font-family:"IBM Plex Mono",monospace;font-size:10px;line-height:1.65;
+  color:var(--fg-subtle);white-space:pre-wrap;user-select:all}
+.tune .tf{flex:0 0 auto;padding:10px 13px;border-top:1px solid var(--border-soft);display:flex;gap:6px}
+.tune .tf button{flex:1;height:28px;border:1px solid var(--border);border-radius:6px;
+  font-size:11.5px;color:var(--fg-subtle)}
+.tune .tf button:hover{border-color:var(--border-3);color:var(--fg)}
+</style>
+</head>
+<body data-gel="plein" data-sep="filets" data-st="point" data-anim="cascade"
+      data-btn="plein" data-pool="droite" data-side="visible" data-status="visible"
+      data-drop="visible" data-tie-mode="none">
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><i></i>COMROSTER</div>
+    <div class="crumb"><b>Casse-Noisette — Générale</b><span class="sep">/</span>affectations</div>
+    <nav>
+      <button aria-current="page">Affectations</button><button>Écran</button>
+      <button>Intercom</button><button>Journal</button><button>Système</button>
+    </nav>
+    <div class="chip"><i></i>Antenne 18/23</div>
+    <div class="chip"><span class="t">19:42:07</span></div>
+    <div class="chip warn"><i></i>3 en attente</div>
+    <button class="send">Envoyer à l'affichage <kbd>⌘↵</kbd></button>
+  </header>
+
+  <div class="body">
+    <nav class="side" id="side-nav"></nav>
+    <main class="main">
+      <div class="bar">
+        <div class="filter"><span class="k">grep</span>
+          <input placeholder="n° · rôle · groupe"><kbd>/</kbd></div>
+        <div class="seg"><button aria-pressed="true">Blocs</button><button>Table</button></div>
+        <div class="right">
+          <span class="n" id="counts"></span>
+          <button class="lnk">+ Groupe</button><button class="lnk">+ Beltpack</button>
+        </div>
+      </div>
+      <div class="board"><div class="grid" id="grid"></div></div>
+    </main>
+    <aside class="pool">
+      <div class="ph"><h2 class="k">Non affectés · 5</h2>
+        <div class="find"><input type="search" placeholder="N° ou rôle…"><span>⌘K</span></div></div>
+      <ul id="pool-list"></ul>
+      <div class="pf"><button>+ Ajouter un beltpack</button></div>
+    </aside>
+  </div>
+
+  <footer class="status">
+    <div class="s"><i></i>SSE <b>1 client</b></div>
+    <div class="s">publié <b>19:11:04</b></div>
+    <div class="s pend">brouillon +1 groupe / +2 beltpacks</div>
+    <div class="s">apparence <b>grille</b> · <b>1920×1080</b></div>
+    <div class="right"><div class="s">aperçu écran ↗</div><div class="s">exporter .rost</div></div>
+  </footer>
+</div>
+
+<aside class="tune">
+  <div class="th"><i></i><b>Banc de réglage</b></div>
+  <div class="scroll">
+    <div class="presets">
+      <button data-preset="base">Base</button>
+      <button data-preset="console">Console</button>
+      <button data-preset="atelier">Atelier</button>
+    </div>
+
+    <h5>Typographie</h5>
+    <div class="r"><label>Texte cliquable</label><input type="range" id="ui" min="10" max="16" step="0.5"><output id="ui-o"></output></div>
+    <div class="r"><label>Interlettrage</label><input type="range" id="track" min="0" max="16" step="1"><output id="track-o"></output></div>
+    <div class="r"><label>Chiffres (mono)</label><input type="range" id="mono" min="11" max="18" step="0.5"><output id="mono-o"></output></div>
+    <div class="r"><label>Rôles</label><input type="range" id="role" min="11" max="18" step="0.5"><output id="role-o"></output></div>
+    <div class="r"><label>Graisse des rôles</label><span class="opts" id="role-w">
+      <button data-v="400">400</button><button data-v="500">500</button><button data-v="600">600</button></span></div>
+    <div class="r"><label>Capitales</label><span class="opts" id="caps">
+      <button data-v="none">bas-de-casse</button><button data-v="uppercase">CAPITALES</button></span></div>
+    <div class="r"><label>Police</label><span class="opts" id="font">
+      <button data-v="plex">Plex</button><button data-v="archivo">Archivo</button>
+      <button data-v="base">Base</button><button data-v="grotesk">Grotesk</button></span></div>
+
+    <h5>Densité &amp; mise en page</h5>
+    <div class="r"><label>Hauteur de ligne</label><input type="range" id="row" min="22" max="40" step="1"><output id="row-o"></output></div>
+    <div class="r"><label>Marge générale</label><input type="range" id="pad" min="6" max="24" step="1"><output id="pad-o"></output></div>
+    <div class="r"><label>Écart des blocs</label><input type="range" id="gap" min="2" max="26" step="1"><output id="gap-o"></output></div>
+    <div class="r"><label>Largeur mini bloc</label><input type="range" id="card-min" min="200" max="420" step="4"><output id="card-min-o"></output></div>
+    <div class="r"><label>Barre latérale</label><input type="range" id="side-w" min="150" max="300" step="2"><output id="side-w-o"></output></div>
+    <div class="r"><label>Réserve</label><input type="range" id="pool-w" min="190" max="360" step="2"><output id="pool-w-o"></output></div>
+    <div class="r"><label>Hauteur en-tête</label><input type="range" id="top-h" min="38" max="70" step="1"><output id="top-h-o"></output></div>
+    <div class="r"><label>Angles</label><input type="range" id="rad" min="0" max="16" step="1"><output id="rad-o"></output></div>
+
+    <h5>Couleur</h5>
+    <div class="r"><label>Blocs-groupes</label><span class="opts" id="gel">
+      <button data-v="plein">plein</button><button data-v="bandeau">bandeau</button>
+      <button data-v="lisere">liseré</button></span></div>
+    <div class="r"><label>Intensité</label><input type="range" id="tint" min="30" max="100" step="2"><output id="tint-o"></output></div>
+    <div class="r"><label>Saturation</label><input type="range" id="sat" min="20" max="130" step="2"><output id="sat-o"></output></div>
+    <div class="r"><label>Accent</label><span class="sw" id="accent">
+      <button data-v="#33D6C6" style="background:#33D6C6" title="Turquoise (base)"></button>
+      <button data-v="#E8A13A" style="background:#E8A13A" title="Ambre"></button>
+      <button data-v="#4F86C6" style="background:#4F86C6" title="Bleu"></button>
+      <button data-v="#3F9E7C" style="background:#3F9E7C" title="Vert"></button>
+      <button data-v="#C4544A" style="background:#C4544A" title="Rouge"></button>
+      <button data-v="#B9BDC6" style="background:#B9BDC6" title="Neutre"></button></span></div>
+    <div class="r"><label>Fond</label><span class="opts" id="bg">
+      <button data-v="#141821">base</button><button data-v="#0B0D12">nuit</button>
+      <button data-v="#0F141A">ardoise</button><button data-v="#191621">prune</button></span></div>
+
+    <h5>Détails</h5>
+    <div class="r"><label>Séparateurs</label><span class="opts" id="sep">
+      <button data-v="filets">filets</button><button data-v="zebre">zébrures</button>
+      <button data-v="aucun">aucun</button></span></div>
+    <div class="r"><label>Voyants</label><span class="opts" id="st">
+      <button data-v="point">point</button><button data-v="texte">texte</button>
+      <button data-v="aucun">aucun</button></span></div>
+    <div class="r"><label>Trait d'union</label><span class="opts" id="tie">
+      <button data-v="none">aucun</button><button data-v="dash">–</button>
+      <button data-v="dot">·</button><button data-v="em">—</button></span></div>
+    <div class="r"><label>Bouton d'action</label><span class="opts" id="btn">
+      <button data-v="plein">plein</button><button data-v="contour">contour</button>
+      <button data-v="texte">texte</button></span></div>
+    <div class="r"><label>Animation</label><span class="opts" id="anim">
+      <button data-v="cascade">cascade</button><button data-v="simple">simple</button>
+      <button data-v="aucune">aucune</button></span></div>
+    <div class="r"><label>Fente de dépôt</label><span class="opts" id="drop">
+      <button data-v="visible">visible</button><button data-v="masquee">masquée</button></span></div>
+    <div class="r"><label>Barre d'état</label><span class="opts" id="status">
+      <button data-v="visible">visible</button><button data-v="masquee">masquée</button></span></div>
+    <div class="r"><label>Réserve</label><span class="opts" id="pool">
+      <button data-v="droite">droite</button><button data-v="gauche">gauche</button>
+      <button data-v="masquee">masquée</button></span></div>
+    <div class="r"><label>Barre latérale</label><span class="opts" id="side">
+      <button data-v="visible">visible</button><button data-v="masquee">masquée</button></span></div>
+
+    <h5>Valeurs retenues</h5>
+    <pre id="out"></pre>
+  </div>
+  <div class="tf">
+    <button id="copy">Copier</button>
+    <button id="reset">Réinitialiser</button>
+  </div>
+</aside>
+
+<script>
+/* ══ Banc de réglage — maquette uniquement ═══════════════════════════════════
+   Chaque contrôle écrit soit une variable CSS sur <html>, soit un attribut
+   data-* sur <body>. L'état est mémorisé (localStorage) pour survivre à un
+   rechargement, et recopié en bas du panneau pour être transcrit dans le vrai
+   admin.css sans avoir à le redevinner.                                       */
+
+const GROUPS = [
+  {n:"Régie",   t:"#C4544A", bp:[["01","Régie générale",1],["02","Régie plateau",1],["03","Assistant régie",0]]},
+  {n:"Plateau", t:"#E8A33D", bp:[["11","Machiniste chef",1],["12","Machiniste cour",1],["13","Machiniste jardin",1],["14","Cintrier",0,1]]},
+  {n:"Lumière", t:"#D8C24A", bp:[["21","Chef électro",1],["22","Poursuite 1",1],["23","Poursuite 2",1]]},
+  {n:"Son",     t:"#4F86C6", bp:[["31","Ingé son façade",1],["32","Retours",1],["33","Micros HF",1]]},
+  {n:"Vidéo",   t:"#8B7CC8", bp:[["41","Réalisateur",1],["42","Cadreur 1",1],["43","Cadreur 2",0]]},
+  {n:"Rigging", t:"#3F9E7C", bp:[["51","Chef rigger",1,1],["52","Rigger",1,1]]},
+];
+const POOL = [["61","Habilleuse",1],["62","Perruques",1],["71","Surtitrage",0],
+              ["72","Chef de chant",0],["81","Sécurité",1]];
+const VUES = [["Tous les beltpacks",23,0],["Non affectés",5,0],["Hors ligne",5,1],["Batterie < 30 %",2,1]];
+
+/* — couleur — */
+const hex2rgb = h => [1,3,5].map(i => parseInt(h.slice(i,i+2),16));
+const rgb2hex = c => "#" + c.map(v => Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0")).join("");
+const mix = (a,b,k) => a.map((v,i) => v + (b[i]-v)*k);          // k=1 → b
+function lum(c){                                                 // luminance relative sRGB
+  const s = c.map(v => { v/=255; return v<=.03928 ? v/12.92 : Math.pow((v+.055)/1.055,2.4); });
+  return .2126*s[0] + .7152*s[1] + .0722*s[2];
+}
+const ink = c => lum(c) > .179 ? "#141005" : "#F4F7FB";
+const lighten = (h,k) => rgb2hex(mix(hex2rgb(h), [255,255,255], k));
+// Saturation : on rapproche/éloigne la teinte de son propre gris (même luminance).
+function saturate(c, k){
+  const g = c[0]*.2126 + c[1]*.7152 + c[2]*.0722;
+  return c.map(v => g + (v-g)*k);
+}
+
+const FONTS = {
+  plex:   ['"IBM Plex Sans",sans-serif',    '"IBM Plex Mono",monospace'],
+  archivo:['"Archivo",sans-serif',          '"DM Mono",monospace'],
+  base:   ['"Outfit","Inter",sans-serif',   '"Inter",monospace'],
+  grotesk:['"Space Grotesk",sans-serif',    '"IBM Plex Mono",monospace'],
+};
+const TIES = {none:['""','0em'], dash:['"\\2013"','.34em'], dot:['"\\00B7"','.34em'], em:['"\\2014"','.3em']};
+
+const DEFAULTS = {
+  ui:12, track:2, mono:13.5, role:13.5, "role-w":"500", caps:"none", font:"plex",
+  row:29, pad:13, gap:11, "card-min":272, "side-w":198, "pool-w":254, "top-h":46, rad:7,
+  gel:"plein", tint:100, sat:100, accent:"#33D6C6", bg:"#141821",
+  sep:"filets", st:"point", tie:"none", btn:"plein", anim:"cascade",
+  drop:"visible", status:"visible", pool:"droite", side:"visible",
+};
+const PRESETS = {
+  base:    {...DEFAULTS, font:"base", rad:10, gel:"plein"},
+  console: {...DEFAULTS, font:"plex", rad:0, row:26, gel:"lisere", bg:"#0F141A",
+            accent:"#E8A13A", sep:"filets", st:"texte", tint:100, "card-min":300},
+  atelier: {...DEFAULTS, font:"archivo", rad:9, row:34, gel:"plein", tint:88, sat:112,
+            tie:"dash", sep:"aucun", ui:12.5, gap:14, pad:16},
+};
+const SLIDERS = ["ui","track","mono","role","row","pad","gap","card-min","side-w","pool-w","top-h","rad","tint","sat"];
+const CHOICES = ["role-w","caps","font","gel","accent","bg","sep","st","tie","btn","anim","drop","status","pool","side"];
+const PX = {ui:1,mono:1,role:1,row:1,pad:1,gap:1,"card-min":1,"side-w":1,"pool-w":1,"top-h":1,rad:1};
+
+let S = {...DEFAULTS};
+try { S = {...DEFAULTS, ...JSON.parse(localStorage.getItem("comroster.tune") || "{}")}; } catch {}
+
+const root = document.documentElement, body = document.body;
+
+function paintGroups(){
+  // Chaque bloc reçoit sa couleur calculée ET son encre : intensité et saturation
+  // étant réglables, l'encre doit suivre la luminance RÉELLE du fond obtenu.
+  document.querySelectorAll(".gr").forEach(el => {
+    const base = saturate(hex2rgb(el.dataset.tint), S.sat/100);
+    const gel  = mix(hex2rgb("#0E1119"), base, S.tint/100);
+    el.style.setProperty("--gel", rgb2hex(gel));
+    el.style.setProperty("--on", ink(gel));
+  });
+}
+
+function apply(save=true){
+  for (const id of SLIDERS){
+    const v = S[id], unit = id==="track" ? "em" : (PX[id] ? "px" : "");
+    if (id==="track")      root.style.setProperty("--track", (v/100)+"em");
+    else if (id==="tint" || id==="sat") { /* traité par paintGroups */ }
+    else                   root.style.setProperty("--"+id, v+unit);
+    const o = document.getElementById(id+"-o");
+    if (o) o.textContent = id==="track" ? (v/100)+"em"
+                         : (id==="tint"||id==="sat") ? v+" %"
+                         : v+(PX[id]?"px":"");
+    const inp = document.getElementById(id); if (inp) inp.value = v;
+  }
+  root.style.setProperty("--role-w", S["role-w"]);
+  root.style.setProperty("--caps", S.caps);
+  root.style.setProperty("--accent", S.accent);
+  root.style.setProperty("--accent-lt", lighten(S.accent, .22));
+  root.style.setProperty("--on-accent", ink(hex2rgb(S.accent)));
+  root.style.setProperty("--bg", S.bg);
+  root.style.setProperty("--f-ui", FONTS[S.font][0]);
+  root.style.setProperty("--f-mono", FONTS[S.font][1]);
+  root.style.setProperty("--tie", TIES[S.tie][0]);
+  root.style.setProperty("--tie-gap", TIES[S.tie][1]);
+  for (const [k,v] of Object.entries({gel:S.gel, sep:S.sep, st:S.st, anim:S.anim, btn:S.btn,
+                                      drop:S.drop, status:S.status, pool:S.pool, side:S.side,
+                                      "tie-mode":S.tie})) body.dataset[k.replace(/-(\w)/g,(m,c)=>c.toUpperCase())] = v;
+  body.dataset.tieMode = S.tie;
+  for (const id of CHOICES){
+    const box = document.getElementById(id); if (!box) continue;
+    box.querySelectorAll("button[data-v]").forEach(b =>
+      b.setAttribute("aria-pressed", String(b.dataset.v === String(S[id]))));
+  }
+  paintGroups();
+  document.getElementById("out").textContent = dump();
+  if (save) try { localStorage.setItem("comroster.tune", JSON.stringify(S)); } catch {}
+}
+
+function dump(){
+  return `/* typographie */
+--ui: ${S.ui}px;            /* texte cliquable */
+--track: ${S.track/100}em;
+--mono: ${S.mono}px;        --role: ${S.role}px;  --role-w: ${S["role-w"]};
+capitales: ${S.caps}        police: ${S.font}
+/* densité & mise en page */
+--row: ${S.row}px;  --pad: ${S.pad}px;  --gap: ${S.gap}px;  --rad: ${S.rad}px;
+--card-min: ${S["card-min"]}px;  --side-w: ${S["side-w"]}px;  --pool-w: ${S["pool-w"]}px;
+--top-h: ${S["top-h"]}px;
+/* couleur */
+blocs: ${S.gel}   intensité: ${S.tint}%   saturation: ${S.sat}%
+--accent: ${S.accent};  --bg: ${S.bg};
+/* détails */
+séparateurs: ${S.sep}   voyants: ${S.st}   trait d'union: ${S.tie}
+bouton: ${S.btn}   animation: ${S.anim}   fente: ${S.drop}
+barre d'état: ${S.status}   réserve: ${S.pool}   latérale: ${S.side}`;
+}
+
+/* — rendu du plan de travail — */
+function render(){
+  document.getElementById("grid").innerHTML = GROUPS.map((g,i) => `
+    <section class="gr" data-tint="${g.t}" style="animation-delay:${(i*40+20)}ms">
+      <div class="gr-head"><h3>${g.n}</h3><span class="c">${String(g.bp.length).padStart(2,"0")}</span>
+        <span class="acts"><button>couleur</button><button>renommer</button></span></div>
+      <ul>${g.bp.map(([n,r,on,neuf]) => `
+        <li class="${neuf?"new":""}"><span class="bp">${n}</span><span class="role">${r}</span>
+          <span class="st ${on?"":"off"}"></span>
+          <span class="stt">${on?"en ligne":"hors ligne"}</span>
+          <span class="ops"><button>déplacer</button><button>retirer</button></span></li>`).join("")}
+      </ul>
+      <div class="drop">déposer un beltpack</div>
+    </section>`).join("");
+
+  document.getElementById("pool-list").innerHTML = POOL.map(([n,r,on]) => `
+    <li><span class="bp">${n}</span><span class="role">${r}</span>
+      <span class="st ${on?"":"off"}"></span><span class="stt">${on?"en ligne":"hors ligne"}</span>
+      <span class="ops"><button>affecter</button></span></li>`).join("");
+
+  document.getElementById("side-nav").innerHTML =
+    `<div class="h k">Groupes</div>` +
+    GROUPS.map((g,i) => `<a ${i?"":'aria-current="page"'}><i style="background:${g.t}"></i>${g.n}<span class="c">${g.bp.length}</span></a>`).join("") +
+    `<hr><div class="h k">Vues</div>` +
+    VUES.map(([n,c,w]) => `<a class="${w?"warnrow":""}"><i></i>${n}<span class="c">${c}</span></a>`).join("") +
+    `<hr><div class="h k">Données</div>` +
+    ["Configurations","Importer / Exporter","Historique"].map(n => `<a><i></i>${n}</a>`).join("");
+
+  const total = GROUPS.reduce((s,g) => s+g.bp.length, 0);
+  document.getElementById("counts").textContent =
+    `${GROUPS.length} groupes · ${total} affectés · 3 modifiés`;
+}
+
+/* — câblage — */
+for (const id of SLIDERS){
+  const el = document.getElementById(id); if (!el) continue;
+  el.addEventListener("input", e => { S[id] = parseFloat(e.target.value); apply(); });
+}
+for (const id of CHOICES){
+  const box = document.getElementById(id); if (!box) continue;
+  box.addEventListener("click", e => {
+    const b = e.target.closest("button[data-v]"); if (!b) return;
+    S[id] = b.dataset.v; apply();
+  });
+}
+document.querySelectorAll("[data-preset]").forEach(b =>
+  b.addEventListener("click", () => { S = {...PRESETS[b.dataset.preset]}; apply(); }));
+document.getElementById("reset").addEventListener("click", () => { S = {...DEFAULTS}; apply(); });
+document.getElementById("copy").addEventListener("click", async (e) => {
+  try { await navigator.clipboard.writeText(dump()); e.target.textContent = "Copié"; }
+  catch { e.target.textContent = "Sélection manuelle"; }
+  setTimeout(() => { e.target.textContent = "Copier"; }, 1400);
+});
+
+render();
+apply(false);
+</script>
+</body>
+</html>

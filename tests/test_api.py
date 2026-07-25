@@ -114,6 +114,39 @@ def test_put_draft_replaces_and_persists(auth_client):
     assert state["beltpack_roles"]["5"] == "Régie"
 
 
+def test_preview_requires_auth(client):
+    r = client.get("/admin/preview")
+    assert r.status_code in (302, 401)
+
+
+def test_preview_renders_published_not_draft(auth_client):
+    """Le témoin de l'admin reporte l'écran de régie : il suit le PUBLIÉ, pas le brouillon."""
+    auth_client.put("/api/draft", json={"title": "Publié", "skin": "lineaire", "groups": [], "people": []})
+    assert auth_client.post("/api/publish").status_code == 200
+    # Le brouillon diverge ensuite : le témoin ne doit PAS le suivre.
+    auth_client.put("/api/draft", json={"title": "Brouillon", "skin": "grille", "groups": [], "people": []})
+
+    preview = auth_client.get("/admin/preview").data
+    assert b'data-preview="on"' in preview
+    assert b'data-skin="lineaire"' in preview      # l'état publié
+    assert b'data-skin="grille"' not in preview   # surtout pas le brouillon en cours
+    # Il montre donc exactement la même chose que l'écran de régie.
+    assert b'data-skin="lineaire"' in auth_client.get("/display").data
+
+
+def test_put_draft_keeps_skin(auth_client):
+    payload = {"title": "x", "skin": "lineaire", "groups": [], "people": []}
+    assert auth_client.put("/api/draft", json=payload).status_code == 200
+    assert auth_client.get("/api/state").get_json()["skin"] == "lineaire"
+
+
+def test_published_display_carries_skin(auth_client):
+    auth_client.put("/api/draft", json={"title": "x", "skin": "grille", "groups": [], "people": []})
+    assert auth_client.post("/api/publish").status_code == 200
+    # L'apparence doit atteindre l'écran : c'est l'attribut lu par display.js/display.css.
+    assert b'data-skin="grille"' in auth_client.get("/display").data
+
+
 def test_put_draft_duplicate_beltpack_409(auth_client):
     payload = {"title": "x", "groups": [], "people": [
         {"id": "a", "name": "A", "role": "", "beltpack": "5", "group_id": None},

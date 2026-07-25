@@ -12,10 +12,23 @@ def test_admin_page_renders(auth_client):
     assert r.status_code == 200
     html = r.get_data(as_text=True)
     assert "js/admin.js" in html
-    assert "css/main.css" in html
+    # admin.css est AUTONOME (source : design/maquette-admin-7.html) : recharger
+    # main.css réintroduirait l'héritage global qui faussait la refonte.
+    assert "css/main.css" not in html
     assert "css/admin.css" in html
-    assert ">Envoyer</button>" in html
+    assert 'id="publish-btn"' in html      # bouton de publication (libellé « Envoyer à l'affichage »)
     assert "csrf-token" in html
+
+
+def test_admin_un_bouton_par_fonction(auth_client):
+    """Chaque fonction a UN accès : pas de lanceurs en doublon (revue 2026-07-25)."""
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert 'href="/admin/journal"' in html          # Journal = page dédiée (lien d'onglet)
+    assert "journal-dialog" not in html             # plus de dialogue Journal
+    assert "data-launch" not in html                # aucun onglet-lanceur en doublon
+    assert 'id="add-beltpack-btn"' not in html      # ajout beltpack = réserve seule
+    assert 'id="status-preview"' not in html        # aperçu = témoin « Affichage en cours »
+    assert ">Historique<" in html                   # entrée latérale des publications passées
 
 
 def test_admin_has_antenna_panel(auth_client):
@@ -26,6 +39,13 @@ def test_admin_has_antenna_panel(auth_client):
     assert "antenna-dashboard" in html
     assert "import-dialog" in html
     assert "settings-dialog" not in html      # ancien dialog retiré
+
+
+def test_admin_color_palette_replaces_native_picker(auth_client):
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert 'id="color-dialog"' in html          # palette bornée
+    assert 'id="color-grid"' in html
+    assert 'type="color"' not in html            # plus de sélecteur natif illisible
 
 
 def test_admin_has_configs_and_selection(auth_client):

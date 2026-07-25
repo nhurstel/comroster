@@ -25,6 +25,10 @@ def _configs():
     return current_app.extensions["configs"]
 
 
+def _journal():
+    return current_app.extensions["journal"]
+
+
 def _valid_ranges(ranges):
     if not isinstance(ranges, list):
         return None
@@ -90,6 +94,7 @@ def antenna_connect():
         info = _client().connect(ip, password)
     except AntennaError as exc:
         return jsonify({"error": str(exc)}), 502
+    _journal().record("antenna_connect", ip)
     return jsonify({"connected": True, "info": info})
 
 
@@ -97,6 +102,7 @@ def antenna_connect():
 @login_required
 def antenna_disconnect():
     _client().disconnect()
+    _journal().record("antenna_disconnect")
     return jsonify({"connected": False})
 
 
@@ -158,6 +164,7 @@ def antenna_import_apply():
         state = _storage().load_draft()
         result = model.mirror_beltpacks(state, items, ranges=ranges)
         _storage().save_draft(state)
+    _journal().record("antenna_import", f"{len(items)} beltpacks")
     return jsonify(result)
 
 
@@ -178,6 +185,7 @@ def save_config():
         _configs().save(name, _storage().load_draft())
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 409
+    _journal().record("config_save", name)
     return jsonify({"ok": True})
 
 
@@ -191,6 +199,7 @@ def load_config(name):
         return jsonify({"error": "not_found"}), 404
     _storage().save_draft(state)
     _client().disconnect()      # charger une config déconnecte l'antenne
+    _journal().record("config_load", name)
     return jsonify({"ok": True})
 
 
@@ -201,4 +210,5 @@ def delete_config(name):
         _configs().delete(name)
     except KeyError:
         return jsonify({"error": "not_found"}), 404
+    _journal().record("config_delete", name)
     return jsonify({"ok": True})

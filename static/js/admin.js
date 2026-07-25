@@ -3,7 +3,7 @@
   // Optionnel chaîné : si le meta disparaissait, on n'arrête pas tout le script au
   // chargement (les requêtes échoueraient proprement côté serveur avec un CSRF vide).
   const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || "";
-  const DEFAULT_COLOR = "#3AAFA9";
+  const SKINS = ["basique", "lineaire", "grille"];   // miroir de model.SKINS
   const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
   // Données initiales injectées via un bloc <script type="application/json">
@@ -12,7 +12,7 @@
   try { INITIAL = JSON.parse(document.getElementById("initial-data")?.textContent || "null"); } catch { /* bloc absent ou invalide */ }
 
   const state = {
-    data: INITIAL || { title: "", subtitle: "", theme: "night", groups: [], people: [], beltpack_roles: {} },
+    data: INITIAL || { title: "", subtitle: "", theme: "night", skin: "basique", groups: [], people: [], beltpack_roles: {} },
     drag: null,
     dragGroup: null,        // id du groupe en cours de réordonnancement
     context: null,
@@ -21,13 +21,15 @@
     editingPersonId: null,
     selection: new Set(),
     lastSelectedId: null,   // pour la sélection par plage (MAJ+clic)
+    view: null,             // vue filtrante active de l'inventaire (null = aucune)
+    tableSort: { key: "bp", dir: 1 },   // tri de la vue Table (re-clic = inverse)
   };
 
   const el = {
     available: document.getElementById("available-users"),
     availableCount: document.getElementById("available-count"),
     blocks: document.getElementById("blocks-container"),
-    blockCount: document.getElementById("block-count"),
+    blockCount: document.getElementById("board-count"),
     title: document.getElementById("board-title"),
     subtitle: document.getElementById("board-subtitle"),
     syncStatus: document.getElementById("sync-status"),
@@ -35,7 +37,6 @@
     dirty: document.getElementById("dirty-indicator"),
     lastUpdated: document.getElementById("last-updated"),
     publishBtn: document.getElementById("publish-btn"),
-    colorPicker: document.getElementById("block-color-picker"),
     contextMenu: document.getElementById("context-menu"),
     blockDialog: document.getElementById("block-dialog"),
     blockForm: document.getElementById("block-form"),
@@ -63,7 +64,7 @@
 
   function setUnpublished(v) {
     state.unpublished = v;
-    el.dirty.textContent = v ? "Modifications non publiées" : "";
+    renderStatusBar();   // recalcule l'écart brouillon ↔ publié (dirty-indicator)
   }
 
   /* ---------- Notification transitoire (toast) ----------
@@ -73,12 +74,36 @@
   let toastTimer = null;
   function toast(msg, isError) {
     let t = document.getElementById("cr-toast");
-    if (!t) { t = document.createElement("div"); t.id = "cr-toast"; t.className = "cr-toast"; document.body.appendChild(t); }
+    if (!t) { t = document.createElement("div"); t.id = "cr-toast"; t.className = "cr-toast"; }
+    // Un <dialog> MODAL vit dans le top layer du navigateur, au-dessus de tout z-index :
+    // un toast laissé dans <body> est invisible tant qu'un dialogue est ouvert — le
+    // refus (« n° déjà utilisé ») semblait muet. On monte donc le toast dans le dialogue
+    // ouvert le plus récent s'il y en a un, sinon dans <body>.
+    const modal = [...document.querySelectorAll("dialog[open]")].pop();
+    const host = modal || document.body;
+    if (t.parentElement !== host) host.appendChild(t);
     t.textContent = msg;
     t.classList.toggle("error", !!isError);
     t.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+  }
+
+  /* ---------- Confirmation dans l'interface ----------
+     Remplace window.confirm (chrome système étranger à la DA). Boutons value=… d'un
+     form method=dialog : le returnValue porte le choix, Échap vaut annulation. */
+  function confirmDialog(text, { title = "Confirmer", okLabel = "Confirmer", danger = false } = {}) {
+    const dlg = document.getElementById("confirm-dialog");
+    document.getElementById("confirm-title").textContent = title;
+    document.getElementById("confirm-text").textContent = text;
+    const ok = document.getElementById("confirm-ok");
+    ok.textContent = okLabel;
+    ok.classList.toggle("confirm-danger", danger);
+    dlg.returnValue = "";
+    return new Promise((resolve) => {
+      dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok"), { once: true });
+      dlg.showModal();
+    });
   }
 
   function findBlock(id) { return state.data.groups.find((g) => g.id === id); }
@@ -145,6 +170,7 @@
     card.draggable = true;
     card.dataset.userId = person.id;
     card.dataset.source = source;
+    card.dataset.bp = person.beltpack;      // pour le filtrage par vue (inventaire)
     if (blockId) card.dataset.blockId = blockId;
 
     // Contenu normal (toujours affiché)
@@ -152,10 +178,6 @@
     bp.className = "bp";
     bp.title = "Beltpack n°" + person.beltpack;
     bp.textContent = person.beltpack;
-    const dot = document.createElement("span");
-    dot.className = "bp-dot";
-    dot.dataset.bp = person.beltpack;
-    bp.append(dot);
 
     const who = document.createElement("div");
     who.className = "who";
@@ -167,25 +189,19 @@
     const live = document.createElement("div");
     live.className = "card-live";
     const batt = document.createElement("span"); batt.className = "bp-batt"; batt.dataset.bp = person.beltpack; batt.hidden = true;
-    live.append(batt);
+    // Voyant temps réel : à droite de la ligne, dans un conteneur centré — pas dans le
+    // flux de texte, où un élément invisible décalerait la ligne de base des voisins.
+    const dot = document.createElement("span");
+    dot.className = "bp-dot";
+    dot.dataset.bp = person.beltpack;
+    live.append(batt, dot);
     card.append(bp, who, live);
 
     // Clic = (dé)sélection (MAJ+clic = plage). Le drag déplace la sélection si l'item
     // en fait partie, sinon juste lui. Double-clic = éditer, clic droit = menu.
     card.classList.add("selectable");
     if (state.selection.has(person.id)) card.classList.add("selected");
-    card.addEventListener("click", (e) => {
-      if (e.shiftKey && state.lastSelectedId) {
-        selectRange(state.lastSelectedId, person.id);
-      } else if (state.selection.has(person.id)) {
-        state.selection.delete(person.id);
-      } else {
-        state.selection.add(person.id);
-      }
-      state.lastSelectedId = person.id;
-      refreshSelectionClasses();
-      updateSelectionBar();
-    });
+    card.addEventListener("click", (e) => selectClick(e, person.id));
     card.addEventListener("dragstart", (e) => {
       card.classList.add("dragging");
       if (state.selection.has(person.id) && state.selection.size) {
@@ -215,11 +231,13 @@
 
   // Case « + » ajoutée en fin de liste pour créer un beltpack (remplace le bouton dédié).
   function addTile(onClick) {
+    // Zone de dépôt pointillée (registre maquette) : le bloc est déjà cible de
+    // glisser-déposer ; ce même encart sert aussi à ajouter un beltpack au clic.
     const t = document.createElement("button");
     t.type = "button";
-    t.className = "person-add";
+    t.className = "drop-tile";
     t.title = "Ajouter un beltpack";
-    t.innerHTML = '<span class="pa-chip" aria-hidden="true">+</span><span class="pa-label">Beltpack</span>';
+    t.textContent = "déposer un beltpack";
     t.addEventListener("click", onClick);
     return t;
   }
@@ -263,7 +281,7 @@
   function renderAvailable() {
     el.available.innerHTML = "";
     const all = state.data.people.filter((p) => !p.group_id);
-    el.availableCount.textContent = `${all.length} beltpack${all.length > 1 ? "s" : ""}`;
+    el.availableCount.textContent = all.length;
     const q = (state.filter || "").trim().toLowerCase();
     const avail = q
       ? all.filter((p) => String(p.beltpack).toLowerCase().includes(q) || (p.role || "").toLowerCase().includes(q))
@@ -281,8 +299,8 @@
     } else {
       avail.forEach((p) => el.available.append(personCard(p, "available", null)));
     }
-    // La case « + » n'apparaît pas pendant une recherche (on cherche, on n'ajoute pas).
-    if (!q) el.available.append(addTile(() => openPersonDialog(null, null)));
+    // L'ajout se fait par le bouton de pied « + Ajouter un beltpack » (pas de tuile dans
+    // la liste : elle ferait doublon).
   }
   document.getElementById("available-filter").addEventListener("input", (e) => {
     state.filter = e.target.value;
@@ -302,16 +320,37 @@
     markDirty(); render();
   }
 
+  // La cascade ne joue qu'à l'ARRIVÉE sur le plateau : chaque édition re-crée les
+  // blocs, et une cascade rejouée à chaque frappe faisait sauter toute la grille.
+  let cascadePlayed = false;
   function renderBlocks() {
     el.blocks.innerHTML = "";
     const groups = [...state.data.groups].sort((a, b) => (a.order || 0) - (b.order || 0));
-    el.blockCount.textContent = `${groups.length} groupe${groups.length > 1 ? "s" : ""}`;
-    groups.forEach((block) => {
+    const assigned = state.data.people.filter((p) => p.group_id).length;
+    el.blockCount.textContent =
+      `${groups.length} groupe${groups.length > 1 ? "s" : ""} · ${assigned} affecté${assigned > 1 ? "s" : ""}`;
+    if (!cascadePlayed) {
+      cascadePlayed = true;
+      el.blocks.dataset.cascade = "1";
+      // Attribut retiré après le dernier délai + la durée : les rendus suivants
+      // (éditions) n'animent plus rien.
+      setTimeout(() => { delete el.blocks.dataset.cascade; }, groups.length * 40 + 400);
+    }
+    groups.forEach((block, bi) => {
       const members = state.data.people.filter((p) => p.group_id === block.id);
       const wrap = document.createElement("section");
       wrap.className = "admin-block";
       wrap.dataset.blockId = block.id;
-      wrap.style.setProperty("--block-accent", sanitizeColor(block.color) || "var(--primary)");
+      // Loi de la maquette : i×40+20 ms (sans effet hors cascade initiale).
+      wrap.style.animationDelay = `${bi * 40 + 20}ms`;
+      const gel = sanitizeColor(block.color);
+      wrap.style.setProperty("--block-accent", gel || "var(--primary)");
+      // Aplat plein : le bloc EST la couleur du groupe. L'encre suit la luminance
+      // réelle de cette couleur (static/js/ink.js, la même que l'écran de régie) ;
+      // sans verdict — couleur absente ou non littérale — la CSS garde son fond sombre.
+      wrap.style.setProperty("--gel", gel || "");
+      const ink = window.ComRoster.inkFor(gel);
+      if (ink) wrap.dataset.ink = ink;
       // Réordonnancement des groupes : dépose un groupe (glissé par son titre) sur un autre.
       wrap.addEventListener("dragover", (e) => {
         if (state.dragGroup && state.dragGroup !== block.id) { e.preventDefault(); wrap.classList.add("group-drop-target"); }
@@ -341,7 +380,10 @@
       h3.textContent = block.name;
       const badge = document.createElement("span");
       badge.className = "badge";
-      badge.textContent = `${members.length} affectation${members.length > 1 ? "s" : ""}`;
+      // Compte seul (pas « 2 affectations ») : dans une carte de ~300 px, le libellé
+      // long poussait les actions hors de l'en-tête. Le mot complet passe en infobulle.
+      badge.textContent = String(members.length).padStart(2, "0");
+      badge.title = `${members.length} affectation${members.length > 1 ? "s" : ""}`;
       titleWrap.append(swatch, h3, badge);
       // Poignée de réordonnancement : on glisse le groupe par son titre.
       titleWrap.draggable = true;
@@ -372,17 +414,118 @@
         else assign(state.drag.userId, block.id);
       });
 
-      if (members.length) members.forEach((p) => list.append(personCard(p, "block", block.id)));
-      else {
-        const h = document.createElement("div");
-        h.className = "empty-hint";
-        h.textContent = "Déposez des beltpacks ici, ou";
-        list.append(h);
-      }
+      members.forEach((p) => list.append(personCard(p, "block", block.id)));
       list.append(addTile(() => openPersonDialog(null, block.id)));   // case « + » du groupe
       wrap.append(header, list);
       el.blocks.append(wrap);
     });
+    // Si la vue Table est active, la maintenir à jour avec les mêmes données.
+    const table = document.getElementById("blocks-table");
+    if (table && !table.hidden) renderTable();
+  }
+
+  /* Vue Table : tous les beltpacks à plat — un poste d'administration COMPLET, pas un
+     tableau informatif : tri par colonne (re-clic = ordre inverse), sélection et clic
+     droit comme la vue Blocs, double-clic sur n°/nom = édition sur place, et le groupe
+     est un SÉLECTEUR à l'aplat du groupe : réaffecter se fait dans la rangée. */
+  const cmpBp = (a, b) =>
+    String(a.beltpack).localeCompare(String(b.beltpack), "fr", { numeric: true });
+  function renderTable() {
+    const host = document.getElementById("blocks-table");
+    if (!host) return;
+    const groups = [...state.data.groups].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const byId = new Map(groups.map((g) => [g.id, g]));
+    const orderOf = new Map(groups.map((g, i) => [g.id, i]));
+    const cmp = {
+      bp: cmpBp,
+      role: (a, b) => String(a.role || "").localeCompare(String(b.role || ""), "fr") || cmpBp(a, b),
+      // Groupe : l'ordre du plateau (celui des blocs), réserve en queue, n° croissant dedans.
+      group: (a, b) => {
+        const ia = a.group_id ? (orderOf.get(a.group_id) ?? 1e8) : 1e9;
+        const ib = b.group_id ? (orderOf.get(b.group_id) ?? 1e8) : 1e9;
+        return (ia - ib) || cmpBp(a, b);
+      },
+    }[state.tableSort.key] || cmpBp;
+    const rows = [...state.data.people].sort((a, b) => cmp(a, b) * state.tableSort.dir);
+
+    host.innerHTML = "";
+    const head = document.createElement("div");
+    head.className = "bt-head";
+    [["bp", "BP"], ["role", "Nom"], ["group", "Groupe"]].forEach(([k, label]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "bt-sort";
+      b.textContent = label;
+      if (k === state.tableSort.key) b.dataset.dir = state.tableSort.dir > 0 ? "asc" : "desc";
+      b.addEventListener("click", () => {
+        if (state.tableSort.key === k) state.tableSort.dir *= -1;
+        else state.tableSort = { key: k, dir: 1 };
+        renderTable();
+      });
+      head.append(b);
+    });
+    host.append(head);
+    rows.forEach((p) => host.append(tableRow(p, byId, groups)));
+  }
+
+  function tableRow(p, byId, groups) {
+    const g = byId.get(p.group_id);
+    const row = document.createElement("div");
+    row.className = "bt-row selectable";
+    row.dataset.userId = p.id;
+    row.dataset.bp = p.beltpack;                       // filtre/vues, comme les cartes
+    if (p.group_id) row.dataset.blockId = p.group_id;
+    if (state.selection.has(p.id)) row.classList.add("selected");
+
+    const bp = document.createElement("span");
+    bp.className = "bt-bp";
+    bp.textContent = p.beltpack;
+    bp.title = "Double-cliquez pour changer le numéro";
+    bp.addEventListener("dblclick", (e) => { e.preventDefault(); e.stopPropagation(); startInlineEdit(p, "beltpack", bp); });
+
+    const role = document.createElement("span");
+    role.className = "bt-role role";                   // .role : requis par le filtre texte
+    role.textContent = p.role || "—";
+    role.title = "Double-cliquez pour renommer";
+    role.addEventListener("dblclick", (e) => { e.preventDefault(); e.stopPropagation(); startInlineEdit(p, "role", role); });
+
+    // Sélecteur de groupe à l'aplat du groupe : réaffectation sur place.
+    const cell = document.createElement("span");
+    cell.className = "bt-grp";
+    const sel = document.createElement("select");
+    sel.className = "bt-assign";
+    sel.title = "Affecter à un groupe";
+    const optNone = document.createElement("option");
+    optNone.value = "";
+    optNone.textContent = "— réserve —";
+    sel.append(optNone);
+    groups.forEach((grp) => {
+      const o = document.createElement("option");
+      o.value = grp.id;
+      o.textContent = grp.name;
+      sel.append(o);
+    });
+    sel.value = p.group_id || "";
+    const gel = g ? sanitizeColor(g.color) : "";
+    if (gel) {
+      sel.style.background = gel;                      // CSSOM : la CSP interdit style=""
+      const ink = window.ComRoster.inkFor(gel);        // même règle d'encre que l'écran
+      if (ink) sel.dataset.ink = ink;
+    }
+    sel.addEventListener("click", (e) => e.stopPropagation());   // ne pas (dé)sélectionner
+    sel.addEventListener("change", () => assign(p.id, sel.value || null));
+    cell.append(sel);
+
+    row.append(bp, role, cell);
+    row.addEventListener("click", (e) => selectClick(e, p.id));
+    row.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      state.context = { userId: p.id, blockId: p.group_id || null };
+      el.contextMenu.style.display = "block";
+      el.contextMenu.style.left = e.pageX + "px";
+      el.contextMenu.style.top = e.pageY + "px";
+    });
+    return row;
   }
 
   function chip(label, onClick, extra) {
@@ -419,6 +562,125 @@
     renderBlocks();
     refreshAssignOptions();
     applyLiveIndicators();
+    renderInventory();
+    applyView();
+    renderStatusBar();   // apparence + écart suivent le brouillon (sans appel réseau)
+  }
+
+  /* ---------- Inventaire (barre latérale) ----------
+     Liste des groupes (clic = aller au groupe dans le plan de travail) et vues
+     filtrantes. Les compteurs « Hors ligne » / « Batterie faible » dépendent de l'état
+     temps réel : renderInventory() est donc rappelé aussi depuis applyLiveIndicators(). */
+  const LOW_BATTERY = 30;                  // seuil de la vue « batterie faible » (%)
+  function liveStat(bp) {                   // état temps réel d'un beltpack, ou null
+    return liveBeltpacks ? (liveBeltpacks[bp] || { online: false }) : null;
+  }
+  function viewCounts() {
+    let offline = 0, low = 0;
+    if (liveBeltpacks) {
+      state.data.people.forEach((p) => {
+        const s = liveStat(p.beltpack);
+        if (!s.online) offline += 1;
+        else if (typeof s.battery === "number" && s.battery < LOW_BATTERY) low += 1;
+      });
+    }
+    return { offline, low };
+  }
+  function renderInventory() {
+    const host = document.getElementById("group-inventory");
+    if (!host) return;
+    const c = viewCounts();
+    const groups = [...state.data.groups].sort((a, b) => (a.order || 0) - (b.order || 0));
+    // Pas de `style="…"` en attribut : la CSP stricte de l'admin le bloque (leçon
+    // 2026-07-07). La couleur de pastille est portée par data-color et appliquée en
+    // CSSOM après l'insertion, comme le reste du rendu (renderBlocks).
+    const row = (attr, color, label, count, cls) =>
+      `<a class="inv-item${cls ? " " + cls : ""}" ${attr} role="button" tabindex="0">`
+      + `<i class="inv-dot"${color ? ` data-color="${esc(color)}"` : ""}></i>`
+      + `<span class="inv-label">${esc(label)}</span>`
+      + `<span class="inv-count">${count}</span></a>`;
+    // Les vues temps réel n'ont de sens qu'antenne connectée : la section entière est
+    // masquée sinon. Pas de vue « Tous » (c'est l'état par défaut) ni « Non affectés »
+    // (la réserve, toujours visible à droite, EST cette vue).
+    const liveRows = liveBeltpacks
+      ? `<div class="nav-label">Vues</div>`
+        + row('data-view="offline"', "", "Hors ligne", c.offline, "inv-warn")
+        + row('data-view="low"', "", `Batterie < ${LOW_BATTERY} %`, c.low, "inv-warn")
+      : "";
+    host.innerHTML =
+      `<div class="nav-label">Groupes</div>`
+      + groups.map((g) => row(`data-group="${g.id}"`, sanitizeColor(g.color) || "var(--primary)",
+                              g.name, state.data.people.filter((p) => p.group_id === g.id).length)).join("")
+      + `<a class="inv-item inv-add" data-add-group role="button" tabindex="0">`
+      + `<i class="inv-dot"></i><span class="inv-label">+ Ajouter un groupe</span></a>`
+      + liveRows;
+    host.querySelectorAll(".inv-dot[data-color]").forEach((i) => { i.style.background = i.dataset.color; });
+    const addRow = host.querySelector("[data-add-group]");
+    addRow.addEventListener("click", openCreateBlock);
+    addRow.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCreateBlock(); } });
+    host.querySelectorAll("[data-group]").forEach((a) =>
+      a.addEventListener("click", () => goToGroup(a.dataset.group)));
+    host.querySelectorAll("[data-view]").forEach((a) => {
+      const act = () => toggleView(a.dataset.view);
+      a.addEventListener("click", act);
+      a.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); act(); } });
+    });
+    host.querySelectorAll("[data-view]").forEach((a) =>
+      a.classList.toggle("active", a.dataset.view === state.view));
+  }
+
+  function goToGroup(gid) {
+    selectTab("board");
+    const wrap = el.blocks.querySelector(`.admin-block[data-block-id="${gid}"]`);
+    if (!wrap) return;
+    wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    wrap.classList.add("flash");
+    setTimeout(() => wrap.classList.remove("flash"), 900);
+  }
+
+  /* Vue filtrante : marque en direct les cartes qui NE correspondent PAS pour que le CSS
+     les estompe. Purement visuel et réversible — ni les données ni le glisser-déposer ne
+     sont touchés (un second clic sur la vue active la retire). */
+  function toggleView(v) {
+    state.view = state.view === v ? null : v;
+    renderInventory();
+    applyView();
+  }
+  function groupNameOf(gid) {
+    const g = state.data.groups.find((x) => x.id === gid);
+    return g ? g.name : "";
+  }
+  function personMatchesText(card) {
+    const q = (state.boardQuery || "").trim().toLowerCase();
+    if (!q) return true;
+    const bp = (card.dataset.bp || "").toLowerCase();
+    const role = (card.querySelector(".role")?.textContent || "").toLowerCase();
+    const gname = groupNameOf(card.dataset.blockId || "").toLowerCase();
+    return bp.includes(q) || role.includes(q) || gname.includes(q);
+  }
+  function personMatchesView(bp) {
+    switch (state.view) {
+      case "offline": { const s = liveStat(bp); return s ? !s.online : false; }
+      case "low": { const s = liveStat(bp); return !!(s && s.online && typeof s.battery === "number" && s.battery < LOW_BATTERY); }
+      default: return true;   // null → tout correspond
+    }
+  }
+  function applyView() {
+    const viewActive = !!state.view;
+    const textActive = !!(state.boardQuery || "").trim();
+    const active = viewActive || textActive;
+    // Cartes de la vue Blocs ET rangées de la vue Table : même filtre, mêmes vues.
+    document.querySelectorAll(".person[data-bp], .bt-row[data-bp]").forEach((card) => {
+      const okView = !viewActive || personMatchesView(card.dataset.bp);
+      const okText = personMatchesText(card);
+      card.classList.toggle("view-dim", active && !(okView && okText));
+    });
+    // Un groupe entièrement estompé est lui-même mis en retrait.
+    el.blocks.querySelectorAll(".admin-block").forEach((wrap) => {
+      const people = wrap.querySelectorAll(".person[data-bp]");
+      const anyMatch = !active || [...people].some((c) => !c.classList.contains("view-dim"));
+      wrap.classList.toggle("view-dim", active && people.length > 0 && !anyMatch);
+    });
   }
 
   /* ---------- État temps réel des beltpacks (statut connecté / batterie) ---------- */
@@ -428,7 +690,9 @@
     const ind = state.data.indicators || DEFAULT_IND;
     document.querySelectorAll(".bp-dot[data-bp]").forEach((d) => {
       const on = liveBeltpacks?.[d.dataset.bp]?.online;
-      if (!ind.online || on === undefined) { d.className = "bp-dot"; d.title = ""; }
+      // Indicateur décoché → masqué ; sinon point neutre (état inconnu) ou vert/gris.
+      if (!ind.online) { d.className = "bp-dot hidden"; d.title = ""; }
+      else if (on === undefined) { d.className = "bp-dot"; d.title = ""; }
       else { d.className = "bp-dot " + (on ? "on" : "down"); d.title = on ? "En ligne" : "Hors ligne"; }
     });
     document.querySelectorAll(".bp-batt[data-bp]").forEach((b) => {
@@ -441,6 +705,8 @@
   function applyLiveData(res) {
     liveBeltpacks = res && res.connected ? res.beltpacks : null;
     applyLiveIndicators();
+    renderInventory();      // compteurs « hors ligne » / « batterie » + apparition des vues
+    applyView();
   }
   async function pollLive() {
     let res;
@@ -468,8 +734,22 @@
     exitSelection(); markDirty(); render();
   }
   // Sélection d'une plage (MAJ+clic) selon l'ordre visuel des cartes.
+  // Geste de sélection partagé entre les vues Blocs (cartes) et Table (rangées).
+  function selectClick(e, personId) {
+    if (e.shiftKey && state.lastSelectedId) {
+      selectRange(state.lastSelectedId, personId);
+    } else if (state.selection.has(personId)) {
+      state.selection.delete(personId);
+    } else {
+      state.selection.add(personId);
+    }
+    state.lastSelectedId = personId;
+    refreshSelectionClasses();
+    updateSelectionBar();
+  }
   function selectRange(fromId, toId) {
-    const ids = [...document.querySelectorAll(".person[data-user-id]")].map((c) => c.dataset.userId);
+    const ids = [...document.querySelectorAll(".person[data-user-id], .bt-row[data-user-id]")]
+      .map((c) => c.dataset.userId);
     let i = ids.indexOf(fromId), j = ids.indexOf(toId);
     if (i < 0 || j < 0) { state.selection.add(toId); return; }
     if (i > j) { const t = i; i = j; j = t; }
@@ -477,7 +757,7 @@
   }
   // Reflète la sélection sans reconstruire le DOM (sinon le double-clic est cassé).
   function refreshSelectionClasses() {
-    document.querySelectorAll(".person[data-user-id]").forEach((c) => {
+    document.querySelectorAll(".person[data-user-id], .bt-row[data-user-id]").forEach((c) => {
       c.classList.toggle("selected", state.selection.has(c.dataset.userId));
     });
   }
@@ -509,29 +789,50 @@
     el.blockDialog.showModal();
     requestAnimationFrame(() => { el.blockName.focus(); el.blockName.select(); });
   }
-  function deleteBlock(id) {
+  async function deleteBlock(id) {
     const b = findBlock(id);
-    if (!confirm(`Supprimer le groupe « ${b.name} » ? Les beltpacks retournent dans la liste disponible.`)) return;
+    if (!await confirmDialog(`Supprimer le groupe « ${b.name} » ? Ses beltpacks retournent en réserve.`,
+                             { title: "Supprimer le groupe", okLabel: "Supprimer", danger: true })) return;
     state.data.people.forEach((p) => { if (p.group_id === id) p.group_id = null; });
     state.data.groups = state.data.groups.filter((g) => g.id !== id);
     markDirty(); render();
   }
 
   /* ---------- Color picker ---------- */
+  /* Palette bornée des couleurs de groupe. Chaque teinte est calibrée pour donner un
+     contraste ≥ 4.5:1 (WCAG AA) avec l'encre calculée par inkFor(), dans les DEUX modes de
+     luminosité — c'est ce que le sélecteur natif ne garantissait pas (d'où le rouge
+     #C4544A retenu au banc, illisible à 4.2:1 sur son aplat). Deux rangées vives à encre
+     sombre, une pastel, une profonde à encre claire — 24 teintes, toutes vérifiées par
+     calcul avant admission (jamais à l'œil). */
+  const GROUP_PALETTE = [
+    "#E1554C", "#E8863B", "#E4B93C", "#8FBF52", "#3FA6B0", "#4F86C6",
+    "#F4A259", "#C9A227", "#6B8E23", "#7FC8D6", "#8B7CC8", "#C062A6",
+    "#C77E6A", "#D98CB3", "#B0B7C0", "#55606E", "#5C6BC0", "#6A4FA3",
+    "#9B2F2F", "#7A5230", "#2E6B34", "#2A6E60", "#2C4C8E", "#8E3B6B",
+  ];
+  const colorDialog = document.getElementById("color-dialog");
+  const colorGrid = document.getElementById("color-grid");
+
   function openColorPicker(blockId) {
     const b = findBlock(blockId);
     if (!b) return;
-    el.colorPicker.value = sanitizeColor(b.color) || DEFAULT_COLOR;
-    el.colorPicker.dataset.blockId = blockId;
-    if (typeof el.colorPicker.showPicker === "function") el.colorPicker.showPicker();
-    else el.colorPicker.click();
-  }
-  function onColorPick(e) {
-    const b = findBlock(e.target.dataset.blockId);
-    if (!b) return;
-    const next = sanitizeColor(e.target.value);
-    if (b.color === next) return;
-    b.color = next; markDirty(); render();
+    const current = sanitizeColor(b.color);
+    colorGrid.innerHTML = "";
+    GROUP_PALETTE.forEach((hex) => {
+      const sw = document.createElement("button");
+      sw.type = "button";
+      sw.className = "color-choice" + (hex === current ? " selected" : "");
+      sw.style.background = hex;                 // CSSOM, jamais un attribut style (CSP)
+      sw.title = hex;
+      sw.setAttribute("aria-label", "Couleur " + hex);
+      sw.addEventListener("click", () => {
+        if (b.color !== hex) { b.color = hex; markDirty(); render(); }
+        colorDialog.close();
+      });
+      colorGrid.append(sw);
+    });
+    colorDialog.showModal();
   }
 
   /* ---------- Dialog personne (création + édition) ---------- */
@@ -549,27 +850,53 @@
       el.personTitle.textContent = "Ajouter un beltpack";
       el.personAssign.value = defaultBlockId || "";
     }
+    roleAutofilled = false;
     el.personDialog.showModal();
     requestAnimationFrame(() => el.personBeltpack.focus());
   }
 
-  // Le nom suit le beltpack : proposer le nom déjà connu pour ce numéro
+  // Le nom suit le beltpack : proposer le nom déjà connu pour ce numéro. La proposition
+  // reste VIVANTE tant que l'utilisateur n'a pas touché le champ nom lui-même : taper
+  // « 2 » propose le nom du 2, continuer en « 22 » doit re-proposer (ou vider) — un
+  // remplissage qui se fige au premier chiffre est un piège. Une saisie manuelle du
+  // nom, elle, ne doit jamais être écrasée.
+  let roleAutofilled = false;
   el.personBeltpack.addEventListener("input", () => {
+    if (el.personRole.value && !roleAutofilled) return;   // nom saisi à la main : intouchable
     const known = state.data.beltpack_roles?.[normBp(el.personBeltpack.value)];
-    if (known && !el.personRole.value) el.personRole.value = known;
+    el.personRole.value = known || "";
+    roleAutofilled = !!known;
   });
+  el.personRole.addEventListener("input", () => { roleAutofilled = false; });
 
   function submitPerson(e) {
     e.preventDefault();
     const beltpack = normBp(el.personBeltpack.value);
-    if (!beltpack) { el.personBeltpack.focus(); return; }
+    if (!beltpack) { toast("Indiquez le numéro du beltpack.", true); el.personBeltpack.focus(); return; }
+    const role = el.personRole.value.trim();
+    const groupId = el.personAssign.value || null;
     if (beltpackTaken(beltpack, state.editingPersonId)) {
-      toast(`Le beltpack n°${beltpack} est déjà utilisé.`, true);
+      const holder = state.data.people.find(
+        (p) => p.id !== state.editingPersonId && normBp(p.beltpack) === beltpack);
+      // Reprise depuis la réserve : « déposer le n°22 » dans un groupe alors que le 22
+      // ATTEND en réserve n'est pas un conflit, c'est l'affectation qu'on cherchait —
+      // on le reprend (et on retire le doublon de saisie). Uniquement en CRÉATION vers
+      // un groupe : un beltpack déjà affecté AILLEURS ne bouge jamais silencieusement.
+      if (!state.editingPersonId && holder && !holder.group_id && groupId) {
+        if (role) holder.role = role;         // nom retapé → mis à jour ; vide → conservé
+        holder.group_id = groupId;
+        el.personDialog.close();
+        toast(`N°${beltpack} repris de la réserve → « ${groupNameOf(groupId)} ».`);
+        markDirty(); render();
+        return;
+      }
+      // Dire OÙ il est : « déjà utilisé » seul oblige à chercher dans tous les groupes.
+      const where = holder?.group_id
+        ? `dans « ${groupNameOf(holder.group_id)} »` : "dans la réserve";
+      toast(`Le n°${beltpack} existe déjà ${where}.`, true);
       el.personBeltpack.focus();
       return;
     }
-    const role = el.personRole.value.trim();
-    const groupId = el.personAssign.value || null;
 
     if (state.editingPersonId) {
       const p = findPerson(state.editingPersonId);
@@ -590,6 +917,7 @@
     setVal("meta-subtitle", d.subtitle || "");
     setVal("meta-columns", String(d.columns || 0));
     setVal("theme-select", d.theme === "day" ? "day" : "night");
+    setVal("skin-select", SKINS.includes(d.skin) ? d.skin : "basique");
     const ind = d.indicators || DEFAULT_IND;
     setChk("ind-online", ind.online !== false);
     setChk("ind-battery", ind.battery !== false);
@@ -604,10 +932,13 @@
       markDirty();
     });
     const sub = document.getElementById("meta-subtitle");
+    const crumbSep = document.getElementById("crumb-sep");
     sub.addEventListener("input", () => {
       state.data.subtitle = sub.value;
-      if (sub.value.trim()) { el.subtitle.textContent = sub.value.trim(); el.subtitle.hidden = false; }
-      else el.subtitle.hidden = true;
+      const has = !!sub.value.trim();
+      if (has) { el.subtitle.textContent = sub.value.trim(); }
+      el.subtitle.hidden = !has;
+      if (crumbSep) crumbSep.hidden = !has;   // le « / » ne s'affiche qu'avec un sous-titre
       markDirty();
     });
     document.getElementById("meta-columns").addEventListener("change", (e) => {
@@ -615,6 +946,9 @@
     });
     document.getElementById("theme-select").addEventListener("change", (e) => {
       state.data.theme = e.target.value === "day" ? "day" : "night"; markDirty();
+    });
+    document.getElementById("skin-select").addEventListener("change", (e) => {
+      state.data.skin = SKINS.includes(e.target.value) ? e.target.value : "basique"; markDirty();
     });
     const onInd = () => {
       state.data.indicators = {
@@ -640,8 +974,12 @@
       if (savePending || saveTimer) await saveDraft();
       await apiSend("POST", "/api/publish");
       setUnpublished(false);
+      reloadPreview();                 // le témoin suit l'écran de régie, il vient de changer
+      refreshStatus();                 // nouveau résumé publié → écart remis à zéro
       setStatus("Envoyé à l'affichage ✓", "updated");
-      setTimeout(() => setStatus("Brouillon synchronisé", "idle"), 2500);
+      // Après le flash de confirmation, la chip retourne à sa vérité recalculée
+      // (« À jour » / « N en attente »), pas à un libellé figé.
+      setTimeout(() => { if (el.syncStatus?.dataset.state === "updated") { el.syncStatus.dataset.state = "idle"; renderStatusBar(); } }, 2500);
     } catch (err) {
       if (err.message === "beltpack_conflict") toast("Beltpack en double : impossible de publier.", true);
       else toast("Échec de la publication.", true);
@@ -672,6 +1010,7 @@
         if (!json || typeof json !== "object") throw new Error("invalide");
         state.data = {
           title: json.title || "", subtitle: json.subtitle || "", theme: json.theme || "night",
+          skin: SKINS.includes(json.skin) ? json.skin : "basique",
           indicators: json.indicators || DEFAULT_IND, columns: json.columns || 0,
           perf: json.perf === true,
           groups: json.groups || [], people: json.people || [], beltpack_roles: json.beltpack_roles || {},
@@ -698,7 +1037,7 @@
         render();
         document.getElementById("history-dialog").close();
         setStatus("Snapshot restauré dans le brouillon", "updated");
-        setTimeout(() => setStatus("Brouillon synchronisé", "idle"), 2500);
+        setTimeout(() => { if (el.syncStatus?.dataset.state === "updated") { el.syncStatus.dataset.state = "idle"; renderStatusBar(); } }, 2500);
       } catch { toast("Restauration impossible.", true); }
     }));
     const clearBtn = document.getElementById("history-clear");
@@ -709,7 +1048,8 @@
     document.getElementById("history-dialog").showModal();
   }
   async function clearHistory() {
-    if (!confirm("Supprimer tout l'historique des publications ? Cette action est irréversible.")) return;
+    if (!await confirmDialog("Supprimer toutes les publications passées ? Action irréversible.",
+                             { title: "Vider les publications", okLabel: "Tout supprimer", danger: true })) return;
     try { await apiSend("POST", "/api/history/clear"); await refreshHistory(); toast("Historique supprimé"); }
     catch { toast("Suppression impossible.", true); }
   }
@@ -723,7 +1063,10 @@
     const action = btn.dataset.action;
     if (action === "edit") openPersonDialog(userId);
     else if (action === "remove") removeFromGroup(userId);
-    else if (action === "delete") { if (confirm("Supprimer ce beltpack ?")) deletePerson(userId); }
+    else if (action === "delete") {
+      confirmDialog("Supprimer ce beltpack ?", { okLabel: "Supprimer", danger: true })
+        .then((ok) => { if (ok) deletePerson(userId); });
+    }
     hideContextMenu();
   });
   document.addEventListener("click", (e) => { if (!el.contextMenu.contains(e.target)) hideContextMenu(); });
@@ -768,12 +1111,21 @@
   document.getElementById("history-btn").addEventListener("click", openHistory);
   document.getElementById("history-clear").addEventListener("click", clearHistory);
   document.getElementById("history-close").addEventListener("click", () => document.getElementById("history-dialog").close());
-  el.colorPicker.addEventListener("input", onColorPick);
-  el.colorPicker.addEventListener("change", onColorPick);
   document.querySelectorAll("button[data-close]").forEach((b) =>
     b.addEventListener("click", () => document.getElementById(b.dataset.close)?.close()));
   window.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); publish(); }
+    const mod = e.ctrlKey || e.metaKey;
+    // ⌘/Ctrl+Entrée = publier — c'est le raccourci AFFICHÉ sur le bouton (⌘↵).
+    // ⌘S reste accepté (réflexe « enregistrer »).
+    if (mod && (e.key === "Enter" || e.key.toLowerCase() === "s")) { e.preventDefault(); publish(); return; }
+    // ⌘K = recherche de la réserve (affiché sur son champ).
+    if (mod && e.key.toLowerCase() === "k") { e.preventDefault(); document.getElementById("available-filter")?.focus(); return; }
+    // « / » = filtre du plateau (affiché sur son champ) — hors saisie et hors dialogue.
+    const tag = document.activeElement?.tagName || "";
+    if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(tag) && !document.querySelector("dialog[open]")) {
+      e.preventDefault();
+      document.getElementById("board-filter")?.focus();
+    }
   });
 
   /* ---------- Antenne : pastille, assistant, tableau de bord ---------- */
@@ -830,11 +1182,6 @@
 
   function wizGo(step) {
     antennaDialog.querySelectorAll(".wiz-step").forEach((s) => { s.hidden = +s.dataset.step !== step; });
-    antennaDialog.querySelectorAll(".wiz-dot").forEach((d) => {
-      const n = +d.dataset.dot;
-      d.classList.toggle("active", n === step);
-      d.classList.toggle("done", n < step);
-    });
     if (step === 2) { rangesListEl = document.getElementById("wiz-ranges-list"); renderRanges(); }
   }
 
@@ -964,6 +1311,70 @@
     } catch { toast("Import impossible", true); }
   });
 
+  /* ---------- Report de l'écran de régie ----------
+     Une iframe sur /admin/preview : c'est la VRAIE page display servant l'état PUBLIÉ,
+     avec son vrai CSS et son vrai JS. Aucun moteur de rendu parallèle à maintenir, donc
+     aucune dérive possible. Rendue à 1920x1080 (résolution du kiosk) puis mise à l'échelle.
+     Elle ne suit PAS le brouillon : elle se rafraîchit aux publications (locale ou
+     distante), pas aux enregistrements. */
+  const previewDialog = document.getElementById("preview-dialog");
+  const previewFrame = document.getElementById("preview-iframe");
+  const previewMini = document.getElementById("preview-mini");   // témoin permanent
+  const previewDock = document.getElementById("preview-dock");
+  const dockToggle = document.getElementById("preview-dock-toggle");
+
+  // L'échelle se déduit de la largeur de rendu déclarée en CSS (`offsetWidth`, insensible
+  // au transform) : la résolution de l'écran de régie n'est écrite qu'à un seul endroit.
+  function fitPreview(frame) {
+    const box = frame?.parentElement;
+    if (!box || !box.clientWidth || !frame.offsetWidth) return;
+    frame.style.transform = `scale(${box.clientWidth / frame.offsetWidth})`;
+  }
+  function fitPreviews() { fitPreview(previewMini); fitPreview(previewFrame); }
+
+  // Un seul horodatage pour les deux : ils montrent forcément le même état publié.
+  // `scroll=1` n'est demandé que pour le grand aperçu (cf. commentaire de /admin/preview).
+  function reloadPreview() {
+    const t = Date.now();
+    if (previewMini && previewDock.dataset.open === "1") previewMini.src = `/admin/preview?t=${t}`;
+    if (previewDialog?.open) previewFrame.src = `/admin/preview?scroll=1&t=${t}`;
+  }
+
+  // Repli mémorisé : sans persistance il se rouvrirait à chaque publication (l'admin
+  // recharge la page rarement, mais assez pour que ce soit agaçant).
+  const DOCK_KEY = "comroster.preview-dock";
+  function setDock(open) {
+    previewDock.dataset.open = open ? "1" : "0";
+    dockToggle.setAttribute("aria-expanded", String(open));
+    try { localStorage.setItem(DOCK_KEY, open ? "1" : "0"); } catch { /* mode privé */ }
+    // Replié, l'iframe est retirée du DOM de rendu : on la recharge (et remesure) au
+    // dépliage, sinon elle afficherait l'état publié d'il y a peut-être une heure.
+    if (open) { fitPreview(previewMini); reloadPreview(); }
+  }
+  dockToggle.addEventListener("click", () => setDock(previewDock.dataset.open !== "1"));
+  let dockOpen = true;
+  try { dockOpen = localStorage.getItem(DOCK_KEY) !== "0"; } catch { /* mode privé */ }
+
+  function openBigPreview() {
+    previewDialog.showModal();
+    fitPreviews();
+    reloadPreview();
+  }
+  document.getElementById("preview-btn").addEventListener("click", openBigPreview);
+  // Clic hors du panneau = fermeture. On teste les COORDONNÉES contre le rectangle du
+  // dialog, pas `e.target === previewDialog` : le padding du dialog appartient au dialog
+  // lui-même, un clic dedans le fermerait alors qu'il est visuellement à l'intérieur.
+  previewDialog.addEventListener("click", (e) => {
+    const r = previewDialog.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
+      previewDialog.close();
+    }
+  });
+  document.getElementById("preview-refresh").addEventListener("click", reloadPreview);
+  window.addEventListener("resize", fitPreviews);
+  setDock(dockOpen);               // pose l'état + premier chargement du témoin
+  fitPreview(previewFrame);
+
   /* ---------- Réseau du boîtier ---------- */
   const networkDialog = document.getElementById("network-dialog");
   function toggleNetFields() {
@@ -1055,8 +1466,9 @@
 
   // Applique la config réseau à chaud (nmcli), sans redémarrer le boîtier.
   document.getElementById("net-apply-btn").addEventListener("click", async (ev) => {
-    if (!confirm("Appliquer la configuration réseau maintenant ?\n\nSi l'adresse change, cette page perdra la connexion : rouvrez l'admin sur la nouvelle adresse.")) return;
-    const btn = ev.currentTarget;
+    const btn = ev.currentTarget;              // AVANT l'await : currentTarget est nul après
+    if (!await confirmDialog("Si l'adresse change, cette page perdra la connexion : rouvrir l'admin sur la nouvelle adresse.",
+                             { title: "Appliquer la configuration réseau", okLabel: "Appliquer" })) return;
     const label = btn.textContent;
     btn.disabled = true; btn.textContent = "Application…";
     try {
@@ -1072,9 +1484,10 @@
   });
 
   document.getElementById("reboot-btn").addEventListener("click", async (ev) => {
-    if (!confirm("Redémarrer le boîtier maintenant ? L'écran et l'administration seront indisponibles ~1 minute.")) return;
-    const btn = ev.currentTarget;
-    const original = btn.innerHTML;            // le bouton de nav contient une icône SVG
+    const btn = ev.currentTarget;              // AVANT l'await : currentTarget est nul après
+    if (!await confirmDialog("Écran et administration indisponibles environ une minute.",
+                             { title: "Redémarrer le boîtier", okLabel: "Redémarrer" })) return;
+    const original = btn.innerHTML;
     btn.disabled = true; btn.textContent = "Redémarrage…";
     try {
       await apiSend("POST", "/api/reboot");
@@ -1106,7 +1519,9 @@
   document.getElementById("selection-cancel").addEventListener("click", exitSelection);
   document.getElementById("selection-delete").addEventListener("click", async () => {
     if (!state.selection.size) return;
-    if (!confirm(`Supprimer ${state.selection.size} beltpack(s) ?`)) return;
+    const n = state.selection.size;
+    if (!await confirmDialog(`Supprimer ${n} beltpack${n > 1 ? "s" : ""} ?`,
+                             { okLabel: "Supprimer", danger: true })) return;
     const ids = [...state.selection];
     try {
       const res = await apiSend("POST", "/api/people/delete-batch", { ids });
@@ -1127,7 +1542,8 @@
           + `<button type="button" data-del="${esc(c.name)}" class="chip-btn danger">Supprimer</button></span></li>`).join("")
       : "<li class='empty-hint'>Aucune configuration enregistrée.</li>";
     ul.querySelectorAll("[data-load]").forEach((b) => b.addEventListener("click", async () => {
-      if (!confirm(`Charger « ${b.dataset.load} » ? Le tableau actuel sera remplacé et l'antenne déconnectée.`)) return;
+      if (!await confirmDialog(`Charger « ${b.dataset.load} » ? Le tableau actuel sera remplacé et l'antenne déconnectée.`,
+                               { title: "Charger la configuration", okLabel: "Charger" })) return;
       await apiSend("POST", `/api/configs/${encodeURIComponent(b.dataset.load)}/load`);
       document.getElementById("configs-dialog").close();
       setUnpublished(true);
@@ -1135,7 +1551,7 @@
       toast("Configuration chargée");
     }));
     ul.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
-      if (!confirm(`Supprimer « ${b.dataset.del} » ?`)) return;
+      if (!await confirmDialog(`Supprimer « ${b.dataset.del} » ?`, { okLabel: "Supprimer", danger: true })) return;
       await apiSend("DELETE", `/api/configs/${encodeURIComponent(b.dataset.del)}`);
       openConfigs();
     }));
@@ -1160,18 +1576,145 @@
   function subscribeAdmin() {
     try {
       const es = new EventSource("/events");
-      es.addEventListener("published", () => { if (!state.unpublished) load(); });
+      es.addEventListener("open", () => setSseHealth(true));
+      es.addEventListener("error", () => setSseHealth(false));
+      es.addEventListener("published", () => {
+        reloadPreview();          // publication venue d'ailleurs (autre poste, auto-sync)
+        refreshStatus();          // l'état à l'antenne a changé
+        if (!state.unpublished) load();
+      });
       // État live des beltpacks poussé par le serveur (même flux `live` que l'affichage) :
       // remplace l'ancien polling périodique. L'admin restant abonné, le poller publie.
       es.addEventListener("live", (e) => { try { applyLiveData(JSON.parse(e.data)); } catch { /* ignore */ } });
     } catch { /* SSE indisponible : l'admin reste sur son état courant */ }
   }
 
+  /* ---------- Barre d'état ----------
+     Ce qui est réellement à l'antenne (état publié, afficheurs connectés) et l'écart avec
+     le brouillon en cours. Le résumé publié vient de /api/status ; l'écart se calcule
+     contre les compteurs du brouillon local (state.data). L'apparence affichée est celle
+     du BROUILLON — c'est ce que la prochaine publication enverra. */
+  let publishedSummary = null;   // {groups, people, updated_at} ou null (rien de publié)
+
+  function setSseHealth(ok) {
+    const seg = document.getElementById("status-sse");
+    if (seg) seg.dataset.ok = ok ? "1" : "0";
+  }
+  const hhmm = (iso) => { try { return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); } catch { return "—"; } };
+
+  function renderStatusBar(displays) {
+    const skinLabel = { basique: "Basique", lineaire: "Linéaire", grille: "Grille" };
+    const setTxt = (id, v) => { const n = document.getElementById(id); if (n) n.textContent = v; };
+    if (displays != null) {
+      setTxt("status-sse-text", displays === 0 ? "aucun afficheur"
+        : displays + " afficheur" + (displays > 1 ? "s" : ""));
+    }
+    setTxt("status-published", publishedSummary ? "publié " + hhmm(publishedSummary.updated_at) : "jamais publié");
+    setTxt("status-skin", skinLabel[state.data.skin] || "Basique");
+
+    // Écart brouillon ↔ publié. Le drapeau `unpublished` couvre la session (toute édition
+    // le lève) ; la comparaison d'horodatages couvre le RECHARGEMENT de la page — un
+    // brouillon plus récent que le publié est en attente même si on n'a encore rien
+    // touché ici. Les compteurs ne servent qu'à préciser « combien ».
+    const pend = document.getElementById("dirty-indicator");
+    if (!pend) return;
+    // Sans rien de publié, l'écart est le brouillon entier (le segment « jamais publié »
+    // du pied de page dit déjà l'absence de publication : pas de doublon de texte).
+    const dg = state.data.groups.length - (publishedSummary ? publishedSummary.groups : 0);
+    const dp = state.data.people.length - (publishedSummary ? publishedSummary.people : 0);
+    const draftAhead = publishedSummary
+      ? (state.data.updated_at || "") > (publishedSummary.updated_at || "")   // ISO : ordre lexical
+      : (state.data.groups.length > 0 || state.data.people.length > 0);
+    const unpublished = state.unpublished || draftAhead;
+    if (!unpublished) { pend.textContent = ""; }
+    else {
+      const parts = [];
+      let lastAbs = 1;
+      if (dg) { lastAbs = Math.abs(dg); parts.push((dg > 0 ? "+" : "") + dg + " groupe" + (lastAbs > 1 ? "s" : "")); }
+      if (dp) { lastAbs = Math.abs(dp); parts.push((dp > 0 ? "+" : "") + dp + " beltpack" + (lastAbs > 1 ? "s" : "")); }
+      // « non publié » s'accorde avec le dernier terme énuméré (« +1 groupe non publié »,
+      // « +1 groupe, +2 beltpacks non publiés »).
+      pend.textContent = parts.length
+        ? parts.join(", ") + " non publié" + (lastAbs > 1 ? "s" : "")
+        : "modifications non publiées";
+    }
+
+    // Chip d'en-tête « N en attente » (maquette) : même vérité que le pied de page, en
+    // résumé. Les états transitoires (enregistrement en cours, erreur) restent
+    // prioritaires — on ne les écrase pas.
+    const chipState = el.syncStatus?.dataset.state;
+    if (chipState === "syncing" || chipState === "error" || chipState === "updated") return;
+    if (!unpublished) { setStatus("À jour", "idle"); return; }
+    const n = Math.abs(dg) + Math.abs(dp);
+    setStatus(n ? `${n} modification${n > 1 ? "s" : ""} en attente`
+                : "Modifications en attente", "pending");
+  }
+
+  async function refreshStatus() {
+    let res;
+    try { res = await apiSend("GET", "/api/status"); } catch { return; }
+    publishedSummary = res.published || null;
+    renderStatusBar(res.displays);
+  }
+
+  /* ---------- Onglets ----------
+     Affectations / Écran sont des panneaux ; Journal est un lien vers sa page dédiée.
+     Antenne et réseau ont leur bouton unique ailleurs (chip d'en-tête, latérale). */
+  function selectTab(name) {
+    document.querySelectorAll(".admin-tabs .tab[data-tab]").forEach((t) =>
+      t.setAttribute("aria-selected", String(t.dataset.tab === name)));
+    document.querySelectorAll(".tab-panel").forEach((p) => { p.hidden = p.dataset.panel !== name; });
+  }
+  document.querySelectorAll(".admin-tabs .tab[data-tab]").forEach((t) =>
+    t.addEventListener("click", () => selectTab(t.dataset.tab)));
+
+  /* ---------- Barre d'outils du plateau ---------- */
+  // Recherche grep : estompe en direct les cartes hors correspondance (combiné aux vues).
+  const boardFilter = document.getElementById("board-filter");
+  boardFilter?.addEventListener("input", () => { state.boardQuery = boardFilter.value; applyView(); });
+
+  // Bascule Blocs / Table — persistée : un rafraîchissement ne ramène pas aux Blocs.
+  const VIEWMODE_KEY = "comroster.admin.viewmode";
+  function setViewMode(mode) {
+    document.querySelectorAll(".tb-seg .seg-btn").forEach((b) =>
+      b.setAttribute("aria-pressed", String(b.dataset.viewMode === mode)));
+    document.getElementById("blocks-container").hidden = mode !== "blocs";
+    const table = document.getElementById("blocks-table");
+    table.hidden = mode !== "table";
+    if (mode === "table") renderTable();
+    try { localStorage.setItem(VIEWMODE_KEY, mode); } catch { /* mode privé */ }
+  }
+  document.querySelectorAll(".tb-seg .seg-btn").forEach((b) =>
+    b.addEventListener("click", () => setViewMode(b.dataset.viewMode)));
+  try { if (localStorage.getItem(VIEWMODE_KEY) === "table") setViewMode("table"); } catch { /* mode privé */ }
+
+  // Ajout de beltpack : UN seul bouton, au pied de la réserve (il arrive non affecté).
+  document.getElementById("add-beltpack-pool")?.addEventListener("click", () => openPersonDialog(null, null));
+
+  /* ---------- Raccourcis affichés : suivent la plateforme ----------
+     ⌘ ne parle qu'aux Mac ; ailleurs on affiche Ctrl. Les handlers acceptent les
+     deux (e.ctrlKey || e.metaKey), seul l'AFFICHAGE change. */
+  if (!/Mac|iPhone|iPad/.test(navigator.platform || "")) {
+    const pk = document.querySelector("#publish-btn kbd");
+    if (pk) pk.textContent = "Ctrl+↵";
+    const kk = document.querySelector(".pool-find kbd");
+    if (kk) kk.textContent = "Ctrl+K";
+  }
+
+  /* ---------- Horloge de l'en-tête ---------- */
+  const clockEl = document.getElementById("admin-clock");
+  function tickClock() {
+    if (clockEl) clockEl.textContent = new Date().toLocaleTimeString("fr-FR");
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
   /* ---------- Init ---------- */
   render();
   updateSelectionBar();
   refreshAntennaBadge();
+  refreshStatus();            // résumé publié + afficheurs connectés (barre d'état)
   pollLive();                 // état initial ; les MAJ arrivent en push via le SSE `live`
   subscribeAdmin();
-  setStatus("Brouillon synchronisé", "idle");
+  renderStatusBar();          // chip d'état initiale (« À jour » / « N en attente »)
 })();

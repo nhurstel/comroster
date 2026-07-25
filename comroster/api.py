@@ -1,6 +1,6 @@
 import re
 
-from flask import Blueprint, jsonify, current_app, render_template
+from flask import Blueprint, jsonify, current_app, render_template, request
 
 from .security import login_required, exclusive_state, json_body
 from .services import model
@@ -26,6 +26,10 @@ def _netconfig():
     return current_app.extensions["netconfig"]
 
 
+def _journal():
+    return current_app.extensions["journal"]
+
+
 def _error(exc):
     return jsonify({"error": str(exc), "code": exc.code}), _CODE_TO_HTTP.get(exc.code, 400)
 
@@ -36,10 +40,58 @@ def admin_page():
     return render_template("admin.html", initial_data=_storage().load_draft())
 
 
+@bp.get("/admin/preview")
+@login_required
+def admin_preview():
+    """Report de l'écran de régie : rend l'état PUBLIÉ, comme /display.
+
+    C'est un témoin de ce qui est réellement affiché en salle, pas un aperçu du
+    brouillon — l'admin travaille sur le brouillon, il a donc surtout besoin de voir
+    ce que le public voit pendant qu'il le prépare.
+
+    `preview=True` coupe côté client tout ce qui coûte au serveur ou tourne en continu,
+    au premier chef l'abonnement SSE : chaque flux /events occupe un thread gthread en
+    permanence et un créneau de SSE_MAX_CLIENTS. Ce témoin étant monté en permanence
+    dans l'admin, il en ouvrirait un par onglet ouvert (cf. leçon 2026-07-06).
+
+    `?scroll=1` rend le défilement automatique, qui est la seule façon de voir si le
+    contenu déborde de l'écran. Réservé au grand aperçu, ouvert à la demande : le témoin
+    permanent le laisse coupé (une animation en continu dans un onglet toujours ouvert).
+    """
+    published = _storage().load_published() or model.empty_state()
+    return render_template("display.html", initial_data=published, preview=True,
+                           preview_scroll=request.args.get("scroll") == "1")
+
+
 @bp.get("/api/state")
 @login_required
 def get_state():
     return jsonify(_storage().load_draft())
+
+
+@bp.get("/api/status")
+@login_required
+def get_status():
+    """Ce qui est réellement à l'antenne, pour la barre d'état de l'admin.
+
+    - `displays` : nombre d'écrans de régie abonnés au flux SSE (les aperçus de
+      l'admin, eux, n'ouvrent jamais de flux — ils ne comptent donc pas).
+    - `published` : résumé de l'état PUBLIÉ (groupes, beltpacks, horodatage), pour
+      afficher la dernière diffusion et l'écart avec le brouillon en cours. On ne
+      renvoie qu'un résumé, pas l'état entier : la barre n'a besoin que des compteurs.
+    """
+    published = _storage().load_published()
+    summary = None
+    if published:
+        summary = {
+            "groups": len(published.get("groups", [])),
+            "people": len(published.get("people", [])),
+            "updated_at": published.get("updated_at"),
+        }
+    return jsonify({
+        "displays": current_app.extensions["broker"].subscriber_count,
+        "published": summary,
+    })
 
 
 @bp.get("/api/network")
@@ -60,7 +112,10 @@ def put_network():
     # L'application réelle (nmcli) se fait par le service système comroster-network :
     # soit à chaud via POST /api/network/apply, soit au prochain démarrage.
     # Vue publique dans la réponse : le psk ne doit jamais ressortir.
-    return jsonify({"ok": True, "config": _netconfig().load_public(), "reboot_required": True})
+    public = _netconfig().load_public()
+    _journal().record("network_save",
+                      f"{public.get('link', '?')} · {public.get('mode', '?')}")
+    return jsonify({"ok": True, "config": public, "reboot_required": True})
 
 
 @bp.post("/api/network/apply")
@@ -68,10 +123,12 @@ def put_network():
 def apply_network_now():
     """Applique la config réseau immédiatement, sans redémarrer le boîtier."""
     if current_app.debug or current_app.testing:
+        _journal().record("network_apply", "simulé (mode dev)")
         return jsonify({"ok": True, "simulated": True})
     ok, error = _apply_network()
     if not ok:
         return jsonify({"ok": False, "error": f"Application impossible : {error}"}), 500
+    _journal().record("network_apply")
     return jsonify({"ok": True})
 
 
@@ -120,12 +177,14 @@ def _apply_network():
 def reboot_box():
     # En dev (debug) ou sous tests, on ne redémarre pas vraiment la machine.
     if current_app.debug or current_app.testing:
+        _journal().record("reboot", "simulé (mode dev)")
         return jsonify({"ok": True, "simulated": True})
     ok, error = _trigger_reboot()
     if not ok:
         # Cas typique : /etc/sudoers.d/comroster-reboot absent (Pi installé avant 2026-07-15)
         # → « sudo: a password is required ». On le dit au lieu de faire semblant.
         return jsonify({"ok": False, "error": f"Redémarrage refusé : {error}"}), 500
+    _journal().record("reboot")
     return jsonify({"ok": True})
 
 
@@ -264,6 +323,8 @@ def import_state():
     except model.ValidationError as exc:
         return _error(exc)
     _storage().save_draft(state)
+    _journal().record("import",
+                      f"{len(state['groups'])} groupes · {len(state['people'])} beltpacks")
     return jsonify(state)
 
 
@@ -279,7 +340,30 @@ def publish():
         return jsonify({"error": str(exc), "code": exc.code}), 409
     from .services.publisher import broadcast_published
     broadcast_published(current_app, state)
+    _journal().record("publish",
+                      f"{len(state['groups'])} groupes · {len(state['people'])} beltpacks")
     return jsonify({"ok": True, "updated_at": state["updated_at"]})
+
+
+@bp.get("/admin/journal")
+@login_required
+def journal_page():
+    """Page Journal : événements applicatifs + logs techniques (debug sans SSH)."""
+    return render_template("journal.html")
+
+
+@bp.get("/api/journal")
+@login_required
+def journal_list():
+    """Les derniers événements du boîtier (publications, imports, antenne, réseau…)."""
+    return jsonify(_journal().entries())
+
+
+@bp.get("/api/logs")
+@login_required
+def logs_list():
+    """Logs techniques captés en mémoire (volet « Technique » de la page Journal)."""
+    return jsonify(current_app.extensions["logbuffer"].entries())
 
 
 @bp.get("/api/history")
@@ -291,7 +375,9 @@ def history_list():
 @bp.post("/api/history/clear")
 @login_required
 def history_clear():
-    return jsonify({"cleared": _history().clear()})
+    cleared = _history().clear()
+    _journal().record("history_clear", f"{cleared} publications effacées")
+    return jsonify({"cleared": cleared})
 
 
 @bp.post("/api/history/<ts>/restore")
@@ -306,4 +392,5 @@ def history_restore(ts):
         return jsonify({"error": "not_found", "code": "not_found"}), 404
     model.touch(snapshot)
     _storage().save_draft(snapshot)
+    _journal().record("restore", _history()._humanize(ts))
     return jsonify(snapshot)
