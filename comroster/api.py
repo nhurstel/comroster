@@ -26,6 +26,10 @@ def _netconfig():
     return current_app.extensions["netconfig"]
 
 
+def _journal():
+    return current_app.extensions["journal"]
+
+
 def _error(exc):
     return jsonify({"error": str(exc), "code": exc.code}), _CODE_TO_HTTP.get(exc.code, 400)
 
@@ -108,7 +112,10 @@ def put_network():
     # L'application réelle (nmcli) se fait par le service système comroster-network :
     # soit à chaud via POST /api/network/apply, soit au prochain démarrage.
     # Vue publique dans la réponse : le psk ne doit jamais ressortir.
-    return jsonify({"ok": True, "config": _netconfig().load_public(), "reboot_required": True})
+    public = _netconfig().load_public()
+    _journal().record("network_save",
+                      f"{public.get('link', '?')} · {public.get('mode', '?')}")
+    return jsonify({"ok": True, "config": public, "reboot_required": True})
 
 
 @bp.post("/api/network/apply")
@@ -116,10 +123,12 @@ def put_network():
 def apply_network_now():
     """Applique la config réseau immédiatement, sans redémarrer le boîtier."""
     if current_app.debug or current_app.testing:
+        _journal().record("network_apply", "simulé (mode dev)")
         return jsonify({"ok": True, "simulated": True})
     ok, error = _apply_network()
     if not ok:
         return jsonify({"ok": False, "error": f"Application impossible : {error}"}), 500
+    _journal().record("network_apply")
     return jsonify({"ok": True})
 
 
@@ -168,12 +177,14 @@ def _apply_network():
 def reboot_box():
     # En dev (debug) ou sous tests, on ne redémarre pas vraiment la machine.
     if current_app.debug or current_app.testing:
+        _journal().record("reboot", "simulé (mode dev)")
         return jsonify({"ok": True, "simulated": True})
     ok, error = _trigger_reboot()
     if not ok:
         # Cas typique : /etc/sudoers.d/comroster-reboot absent (Pi installé avant 2026-07-15)
         # → « sudo: a password is required ». On le dit au lieu de faire semblant.
         return jsonify({"ok": False, "error": f"Redémarrage refusé : {error}"}), 500
+    _journal().record("reboot")
     return jsonify({"ok": True})
 
 
@@ -312,6 +323,8 @@ def import_state():
     except model.ValidationError as exc:
         return _error(exc)
     _storage().save_draft(state)
+    _journal().record("import",
+                      f"{len(state['groups'])} groupes · {len(state['people'])} beltpacks")
     return jsonify(state)
 
 
@@ -327,7 +340,16 @@ def publish():
         return jsonify({"error": str(exc), "code": exc.code}), 409
     from .services.publisher import broadcast_published
     broadcast_published(current_app, state)
+    _journal().record("publish",
+                      f"{len(state['groups'])} groupes · {len(state['people'])} beltpacks")
     return jsonify({"ok": True, "updated_at": state["updated_at"]})
+
+
+@bp.get("/api/journal")
+@login_required
+def journal_list():
+    """Les derniers événements du boîtier (publications, imports, antenne, réseau…)."""
+    return jsonify(_journal().entries())
 
 
 @bp.get("/api/history")
@@ -339,7 +361,9 @@ def history_list():
 @bp.post("/api/history/clear")
 @login_required
 def history_clear():
-    return jsonify({"cleared": _history().clear()})
+    cleared = _history().clear()
+    _journal().record("history_clear", f"{cleared} publications effacées")
+    return jsonify({"cleared": cleared})
 
 
 @bp.post("/api/history/<ts>/restore")
@@ -354,4 +378,5 @@ def history_restore(ts):
         return jsonify({"error": "not_found", "code": "not_found"}), 404
     model.touch(snapshot)
     _storage().save_draft(snapshot)
+    _journal().record("restore", _history()._humanize(ts))
     return jsonify(snapshot)

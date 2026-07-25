@@ -135,6 +135,9 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 .status-badge[data-state="updated"] .pulse { background: var(--success); }
 .status-badge[data-state="error"] .pulse { background: var(--error); }
 .status-badge[data-state="error"] .status-text { color: var(--error); }
+/* « N en attente » : modifs du brouillon pas encore envoyées à l'affichage (chip warn). */
+.status-badge[data-state="pending"] { color: var(--warning); }
+.status-badge[data-state="pending"] .pulse { background: var(--warning); }
 
 /* Publication en « texte » (réglage retenu) : turquoise sans fond + raccourci. */
 #publish-btn.publish-text {
@@ -189,8 +192,6 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
     white-space: nowrap; cursor: pointer;
 }
 .nav-item:hover:not(:disabled) { background: #ffffff08; color: var(--fg); }
-/* La maquette n'a pas d'icônes dans la latérale : rangées textuelles pures. */
-.nav-ico { display: none; }
 .nav-danger:hover:not(:disabled) { background: #2A1F14; color: var(--warning); }
 .nav-danger:disabled { opacity: 0.6; cursor: default; }
 .import-label input[type="file"] { display: none; }
@@ -391,11 +392,16 @@ body:has(#import-dialog[open]) #export-btn {
 .board-table .bt-row:hover { background: var(--surface-2); }
 .board-table .bt-bp { font-family: var(--f-mono); font-size: var(--mono); font-weight: 500; color: var(--fg-muted); }
 .board-table .bt-role { font-size: var(--role); font-weight: var(--role-w); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.board-table .bt-grp {
-    display: flex; align-items: center; gap: 8px; font-size: var(--ui); color: var(--fg-subtle);
+.board-table .bt-grp { display: flex; align-items: center; min-width: 0; color: var(--fg-subtle); font-size: var(--ui); }
+/* Pastille de groupe : l'aplat du groupe avec son encre (même langage que les blocs). */
+.board-table .bt-chip {
+    display: inline-block; max-width: 100%; padding: 3px 9px;
+    background: var(--surface-3); border-radius: 5px;
+    font-size: var(--ui); font-weight: 600; letter-spacing: var(--track); color: var(--fg);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.board-table .bt-dot { width: 3px; height: 14px; border-radius: 1px; flex: 0 0 auto; background: var(--muted); }
+.board-table .bt-chip[data-ink="dark"]  { color: #141005; }
+.board-table .bt-chip[data-ink="light"] { color: #F4F7FB; }
 
 /* ---------- Réserve (maquette .pool) ---------- */
 .panel-pool {
@@ -473,8 +479,6 @@ body:has(#import-dialog[open]) #export-btn {
 .admin-status .st-dot { width: 6px; height: 6px; border-radius: 2px; background: var(--muted); flex: 0 0 auto; }
 .admin-status .status-sse[data-ok="1"] .st-dot { background: var(--success); }
 .admin-status .status-sse[data-ok="0"] .st-dot { background: var(--warning); }
-.admin-status .status-link { font-family: inherit; font-size: inherit; cursor: pointer; }
-.admin-status .status-link:hover:not(:disabled) { background: var(--surface-3); color: var(--fg-subtle); }
 .admin-status .status-right { margin-left: auto; border-right: 0; border-left: 1px solid var(--border-soft); }
 
 /* ---------- Vue filtrante de l'inventaire ---------- */
@@ -682,6 +686,27 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .range-row { display: flex; align-items: center; gap: 6px; }
 .range-row input { width: 76px; }
 .range-row .range-del { color: var(--danger); border-color: var(--danger-line); }
+
+/* ---------- Journal d'événements ---------- */
+.journal-dialog { max-width: 480px; }
+.journal-list {
+    list-style: none; display: flex; flex-direction: column;
+    max-height: 55vh; overflow-y: auto;
+    border: 1px solid var(--border-soft); border-radius: var(--rad); background: var(--inset);
+}
+.journal-list li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 10px; min-height: var(--row);
+    font-size: var(--ui);
+}
+.journal-list li + li { border-top: 1px solid var(--border-soft); }
+.journal-list .j-time { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); flex: 0 0 auto; }
+.journal-list .j-label { font-weight: 600; white-space: nowrap; }
+.journal-list .j-detail {
+    margin-left: auto; color: var(--fg-subtle); font-size: var(--ui-sm);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right;
+}
+.journal-list .empty-hint { width: 100%; }
 
 /* ---------- Historique / Configurations / Import ---------- */
 .history-list, .configs-list, .import-summary {

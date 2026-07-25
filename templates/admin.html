@@ -27,13 +27,12 @@
       </div>
 
       <nav class="admin-tabs" role="tablist" aria-label="Sections de l'administration">
-        {# Affectations et Écran sont des panneaux ; Intercom / Journal / Système ouvrent
-           les dialogues existants (data-launch) sans changer de panneau. #}
+        {# Affectations et Écran sont des panneaux ; Journal ouvre le journal d'événements
+           (data-launch) sans changer de panneau. UN bouton par fonction : l'antenne passe
+           par sa chip d'état (à droite), le réseau par la barre latérale (Boîtier). #}
         <button type="button" class="tab" data-tab="board" role="tab" aria-selected="true">Affectations</button>
         <button type="button" class="tab" data-tab="screen" role="tab" aria-selected="false">Écran</button>
-        <button type="button" class="tab" data-launch="antenna">Intercom</button>
-        <button type="button" class="tab" data-launch="history">Journal</button>
-        <button type="button" class="tab" data-launch="network">Système</button>
+        <button type="button" class="tab" data-launch="journal">Journal</button>
       </nav>
 
       <div class="top-right">
@@ -55,24 +54,18 @@
         <div class="side-scroll">
           <nav class="side-nav" id="group-inventory"></nav>
 
+          {# Rangées textuelles pures (registre maquette). Données = ce qu'on manipule ;
+             Boîtier = la machine elle-même (réseau, redémarrage). #}
           <nav class="side-nav">
-            <div class="nav-label">Matériel</div>
-            <button type="button" id="network-btn" class="nav-item" title="Configuration réseau du boîtier">
-              <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2C6 4 6 12 8 14"/></svg>Réseau</button>
-
             <div class="nav-label">Données</div>
-            <button type="button" id="history-btn" class="nav-item">
-              <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 4v4l2.5 1.5"/><circle cx="8" cy="8" r="6"/></svg>Historique</button>
-            <button type="button" id="configs-btn" class="nav-item">
-              <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/><circle cx="5.5" cy="4.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="10.5" cy="8" r="1.4" fill="currentColor" stroke="none"/><circle cx="6.5" cy="11.5" r="1.4" fill="currentColor" stroke="none"/></svg>Configurations</button>
-            <label class="nav-item import-label">
-              <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10V2.5M5 7l3 3 3-3M3 12.5h10"/></svg>Importer<input type="file" id="import-input" accept=".rost,application/json"></label>
-            <button type="button" id="export-btn" class="nav-item">
-              <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5V10M5 5.5l3-3 3 3M3 12.5h10"/></svg>Exporter</button>
+            <button type="button" id="history-btn" class="nav-item" title="Publications passées (restaurer un état envoyé à l'affichage)">Publications</button>
+            <button type="button" id="configs-btn" class="nav-item">Configurations</button>
+            <label class="nav-item import-label">Importer<input type="file" id="import-input" accept=".rost,application/json"></label>
+            <button type="button" id="export-btn" class="nav-item">Exporter</button>
 
             <div class="nav-label">Boîtier</div>
-            <button type="button" id="reboot-btn" class="nav-item nav-danger" title="Redémarre le Raspberry Pi (écran et admin indisponibles ~1 min)">
-              <svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.8-4.1M13.5 2v3.2h-3.2"/></svg>Redémarrer</button>
+            <button type="button" id="network-btn" class="nav-item" title="Configuration réseau du boîtier">Réseau</button>
+            <button type="button" id="reboot-btn" class="nav-item nav-danger" title="Redémarre le Raspberry Pi (écran et admin indisponibles ~1 min)">Redémarrer</button>
           </nav>
         </div>
         <div class="side-foot">
@@ -91,7 +84,7 @@
             <section class="admin-panel panel-board">
               <div class="board-toolbar">
                 <div class="tb-filter">
-                  <span class="tb-grep">grep</span>
+                  <span class="tb-grep">Filtrer</span>
                   <input type="search" id="board-filter" placeholder="n° · rôle · groupe" autocomplete="off">
                   <kbd>/</kbd>
                 </div>
@@ -99,10 +92,11 @@
                   <button type="button" class="seg-btn" data-view-mode="blocs" aria-pressed="true">Blocs</button>
                   <button type="button" class="seg-btn" data-view-mode="table" aria-pressed="false">Table</button>
                 </div>
+                {# UN bouton par fonction : l'ajout de beltpack vit dans la réserve
+                   (« + Ajouter un beltpack »), pas en doublon ici. #}
                 <div class="tb-right">
                   <span class="tb-count" id="board-count"></span>
                   <button type="button" id="add-block-btn" class="tb-act">+ Groupe</button>
-                  <button type="button" id="add-beltpack-btn" class="tb-act">+ Beltpack</button>
                 </div>
               </div>
               <div class="board-grid" id="blocks-container"></div>
@@ -177,8 +171,9 @@
       <span class="s" id="status-published">publié —</span>
       <span class="s pend" id="dirty-indicator"></span>
       <span class="s">apparence <b id="status-skin">—</b></span>
+      {# Pas de lien « aperçu écran » ici : le témoin « Affichage en cours » (coin
+         bas-droit) est LE bouton de l'aperçu — un bouton par fonction. #}
       <span class="s" id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>
-      <button type="button" class="s status-link" id="status-preview">aperçu écran ↗</button>
       <span class="s status-right">par Nathan Hurstel</span>
     </footer>
   </div>
@@ -257,6 +252,21 @@
       <div class="dialog-actions">
         <button type="button" id="preview-refresh">Actualiser</button>
         <button type="button" data-close="preview-dialog">Fermer</button>
+      </div>
+    </form>
+  </dialog>
+
+  {# Journal d'événements : ce qu'il s'est PASSÉ (publications, imports, antenne,
+     réseau, redémarrages) — distinct des « Publications », qui archivent des états
+     restaurables. Rempli par openJournal() depuis GET /api/journal. #}
+  <dialog id="journal-dialog" class="admin-dialog journal-dialog">
+    <form method="dialog">
+      <h2>Journal</h2>
+      <p class="dialog-hint">Les derniers événements du boîtier : publications, imports,
+        antenne, réseau, redémarrages.</p>
+      <ul id="journal-list" class="journal-list"></ul>
+      <div class="dialog-actions">
+        <button type="button" data-close="journal-dialog">Fermer</button>
       </div>
     </form>
   </dialog>

@@ -418,13 +418,19 @@
       `<div class="bt-head"><span>BP</span><span>Rôle</span><span>Groupe</span></div>`
       + rows.map((p) => {
         const g = byId.get(p.group_id);
+        // Le groupe est une PASTILLE à l'aplat du groupe (même langage que les blocs) :
+        // une barrette de 3 px était illisible à ces tailles.
         return `<div class="bt-row" data-user-id="${esc(p.id)}">`
           + `<span class="bt-bp">${esc(p.beltpack)}</span>`
           + `<span class="bt-role">${esc(p.role || "—")}</span>`
-          + `<span class="bt-grp">${g ? `<i class="bt-dot" data-color="${esc(sanitizeColor(g.color) || "")}"></i>${esc(g.name)}` : "—"}</span></div>`;
+          + `<span class="bt-grp">${g ? `<span class="bt-chip" data-color="${esc(sanitizeColor(g.color) || "")}">${esc(g.name)}</span>` : "—"}</span></div>`;
       }).join("");
-    host.querySelectorAll(".bt-dot[data-color]").forEach((i) => {
-      if (i.dataset.color) i.style.background = i.dataset.color;
+    host.querySelectorAll(".bt-chip").forEach((c) => {
+      const color = c.dataset.color;
+      if (!color) return;
+      c.style.background = color;                       // CSSOM : la CSP interdit style=""
+      const ink = window.ComRoster.inkFor(color);       // même règle d'encre que l'écran
+      if (ink) c.dataset.ink = ink;
     });
     host.querySelectorAll(".bt-row").forEach((r) =>
       r.addEventListener("dblclick", () => openPersonDialog(r.dataset.userId)));
@@ -478,20 +484,15 @@
     return liveBeltpacks ? (liveBeltpacks[bp] || { online: false }) : null;
   }
   function viewCounts() {
-    const ppl = state.data.people;
     let offline = 0, low = 0;
     if (liveBeltpacks) {
-      ppl.forEach((p) => {
+      state.data.people.forEach((p) => {
         const s = liveStat(p.beltpack);
         if (!s.online) offline += 1;
         else if (typeof s.battery === "number" && s.battery < LOW_BATTERY) low += 1;
       });
     }
-    return {
-      all: ppl.length,
-      unassigned: ppl.filter((p) => !p.group_id).length,
-      offline, low,
-    };
+    return { offline, low };
   }
   function renderInventory() {
     const host = document.getElementById("group-inventory");
@@ -506,18 +507,18 @@
       + `<i class="inv-dot"${color ? ` data-color="${esc(color)}"` : ""}></i>`
       + `<span class="inv-label">${esc(label)}</span>`
       + `<span class="inv-count">${count}</span></a>`;
-    // Les vues temps réel n'ont de sens qu'antenne connectée : masquées sinon.
+    // Les vues temps réel n'ont de sens qu'antenne connectée : la section entière est
+    // masquée sinon. Pas de vue « Tous » (c'est l'état par défaut) ni « Non affectés »
+    // (la réserve, toujours visible à droite, EST cette vue).
     const liveRows = liveBeltpacks
-      ? row('data-view="offline"', "", "Hors ligne", c.offline, "inv-warn")
+      ? `<div class="nav-label">Vues</div>`
+        + row('data-view="offline"', "", "Hors ligne", c.offline, "inv-warn")
         + row('data-view="low"', "", `Batterie < ${LOW_BATTERY} %`, c.low, "inv-warn")
       : "";
     host.innerHTML =
       `<div class="nav-label">Groupes</div>`
       + groups.map((g) => row(`data-group="${g.id}"`, sanitizeColor(g.color) || "var(--primary)",
                               g.name, state.data.people.filter((p) => p.group_id === g.id).length)).join("")
-      + `<div class="nav-label">Vues</div>`
-      + row('data-view="all"', "", "Tous les beltpacks", c.all)
-      + row('data-view="unassigned"', "", "Non affectés", c.unassigned)
       + liveRows;
     host.querySelectorAll(".inv-dot[data-color]").forEach((i) => { i.style.background = i.dataset.color; });
     host.querySelectorAll("[data-group]").forEach((a) =>
@@ -560,20 +561,19 @@
     const gname = groupNameOf(card.dataset.blockId || "").toLowerCase();
     return bp.includes(q) || role.includes(q) || gname.includes(q);
   }
-  function personMatchesView(bp, groupId) {
+  function personMatchesView(bp) {
     switch (state.view) {
-      case "unassigned": return !groupId;
       case "offline": { const s = liveStat(bp); return s ? !s.online : false; }
       case "low": { const s = liveStat(bp); return !!(s && s.online && typeof s.battery === "number" && s.battery < LOW_BATTERY); }
-      default: return true;   // "all" ou null → tout correspond
+      default: return true;   // null → tout correspond
     }
   }
   function applyView() {
-    const viewActive = state.view && state.view !== "all";
+    const viewActive = !!state.view;
     const textActive = !!(state.boardQuery || "").trim();
     const active = viewActive || textActive;
     document.querySelectorAll(".person[data-bp]").forEach((card) => {
-      const okView = !viewActive || personMatchesView(card.dataset.bp, card.dataset.blockId || null);
+      const okView = !viewActive || personMatchesView(card.dataset.bp);
       const okText = personMatchesText(card);
       card.classList.toggle("view-dim", active && !(okView && okText));
     });
@@ -835,7 +835,9 @@
       reloadPreview();                 // le témoin suit l'écran de régie, il vient de changer
       refreshStatus();                 // nouveau résumé publié → écart remis à zéro
       setStatus("Envoyé à l'affichage ✓", "updated");
-      setTimeout(() => setStatus("Brouillon synchronisé", "idle"), 2500);
+      // Après le flash de confirmation, la chip retourne à sa vérité recalculée
+      // (« À jour » / « N en attente »), pas à un libellé figé.
+      setTimeout(() => { if (el.syncStatus?.dataset.state === "updated") { el.syncStatus.dataset.state = "idle"; renderStatusBar(); } }, 2500);
     } catch (err) {
       if (err.message === "beltpack_conflict") toast("Beltpack en double : impossible de publier.", true);
       else toast("Échec de la publication.", true);
@@ -893,7 +895,7 @@
         render();
         document.getElementById("history-dialog").close();
         setStatus("Snapshot restauré dans le brouillon", "updated");
-        setTimeout(() => setStatus("Brouillon synchronisé", "idle"), 2500);
+        setTimeout(() => { if (el.syncStatus?.dataset.state === "updated") { el.syncStatus.dataset.state = "idle"; renderStatusBar(); } }, 2500);
       } catch { toast("Restauration impossible.", true); }
     }));
     const clearBtn = document.getElementById("history-clear");
@@ -907,6 +909,45 @@
     if (!confirm("Supprimer tout l'historique des publications ? Cette action est irréversible.")) return;
     try { await apiSend("POST", "/api/history/clear"); await refreshHistory(); toast("Historique supprimé"); }
     catch { toast("Suppression impossible.", true); }
+  }
+
+  /* ---------- Journal d'événements ----------
+     Ce qu'il s'est PASSÉ (événements serveur), par opposition aux « Publications »
+     qui archivent des états restaurables. Codes stables côté serveur, libellés ici. */
+  const JOURNAL_LABELS = {
+    publish: "Publication envoyée",
+    import: "Fichier importé",
+    restore: "Publication restaurée",
+    history_clear: "Publications passées effacées",
+    network_save: "Réglages réseau enregistrés",
+    network_apply: "Réglages réseau appliqués",
+    reboot: "Redémarrage du boîtier",
+    antenna_connect: "Antenne connectée",
+    antenna_disconnect: "Antenne déconnectée",
+    antenna_import: "Import depuis l'antenne",
+    config_save: "Configuration sauvegardée",
+    config_load: "Configuration chargée",
+    config_delete: "Configuration supprimée",
+  };
+  const journalWhen = (iso) => {
+    try {
+      return new Date(iso).toLocaleString("fr-FR",
+        { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    } catch { return "—"; }
+  };
+  async function openJournal() {
+    let entries = [];
+    try { entries = await apiSend("GET", "/api/journal"); }
+    catch { toast("Journal indisponible.", true); return; }
+    const list = document.getElementById("journal-list");
+    list.innerHTML = entries.length
+      ? entries.map((e) =>
+          `<li><span class="j-time">${esc(journalWhen(e.ts))}</span>`
+          + `<span class="j-label">${esc(JOURNAL_LABELS[e.event] || e.event)}</span>`
+          + (e.detail ? `<span class="j-detail">${esc(e.detail)}</span>` : "")
+          + "</li>").join("")
+      : "<li class='empty-hint'>Rien à signaler pour l'instant.</li>";
+    document.getElementById("journal-dialog").showModal();
   }
 
   /* ---------- Menu contextuel ---------- */
@@ -1207,7 +1248,6 @@
     reloadPreview();
   }
   document.getElementById("preview-btn").addEventListener("click", openBigPreview);
-  document.getElementById("status-preview").addEventListener("click", openBigPreview);
   // Clic hors du panneau = fermeture. On teste les COORDONNÉES contre le rectangle du
   // dialog, pas `e.target === previewDialog` : le padding du dialog appartient au dialog
   // lui-même, un clic dedans le fermerait alors qu'il est visuellement à l'intérieur.
@@ -1454,24 +1494,41 @@
     setTxt("status-published", publishedSummary ? "publié " + hhmm(publishedSummary.updated_at) : "jamais publié");
     setTxt("status-skin", skinLabel[state.data.skin] || "Basique");
 
-    // Écart brouillon ↔ publié. Le drapeau `unpublished` est la vérité (toute édition le
-    // lève) ; les compteurs ne servent qu'à préciser « combien ». Sans rien de publié, ou
-    // sans édits en attente, on n'affiche pas d'écart.
+    // Écart brouillon ↔ publié. Le drapeau `unpublished` couvre la session (toute édition
+    // le lève) ; la comparaison d'horodatages couvre le RECHARGEMENT de la page — un
+    // brouillon plus récent que le publié est en attente même si on n'a encore rien
+    // touché ici. Les compteurs ne servent qu'à préciser « combien ».
     const pend = document.getElementById("dirty-indicator");
     if (!pend) return;
-    if (!state.unpublished) { pend.textContent = ""; return; }
-    if (!publishedSummary) { pend.textContent = "jamais publié"; return; }
-    const dg = state.data.groups.length - publishedSummary.groups;
-    const dp = state.data.people.length - publishedSummary.people;
-    const parts = [];
-    let lastAbs = 1;
-    if (dg) { lastAbs = Math.abs(dg); parts.push((dg > 0 ? "+" : "") + dg + " groupe" + (lastAbs > 1 ? "s" : "")); }
-    if (dp) { lastAbs = Math.abs(dp); parts.push((dp > 0 ? "+" : "") + dp + " beltpack" + (lastAbs > 1 ? "s" : "")); }
-    // « non publié » s'accorde avec le dernier terme énuméré (« +1 groupe non publié »,
-    // « +1 groupe, +2 beltpacks non publiés »).
-    pend.textContent = parts.length
-      ? parts.join(", ") + " non publié" + (lastAbs > 1 ? "s" : "")
-      : "modifications non publiées";
+    // Sans rien de publié, l'écart est le brouillon entier (le segment « jamais publié »
+    // du pied de page dit déjà l'absence de publication : pas de doublon de texte).
+    const dg = state.data.groups.length - (publishedSummary ? publishedSummary.groups : 0);
+    const dp = state.data.people.length - (publishedSummary ? publishedSummary.people : 0);
+    const draftAhead = publishedSummary
+      ? (state.data.updated_at || "") > (publishedSummary.updated_at || "")   // ISO : ordre lexical
+      : (state.data.groups.length > 0 || state.data.people.length > 0);
+    const unpublished = state.unpublished || draftAhead;
+    if (!unpublished) { pend.textContent = ""; }
+    else {
+      const parts = [];
+      let lastAbs = 1;
+      if (dg) { lastAbs = Math.abs(dg); parts.push((dg > 0 ? "+" : "") + dg + " groupe" + (lastAbs > 1 ? "s" : "")); }
+      if (dp) { lastAbs = Math.abs(dp); parts.push((dp > 0 ? "+" : "") + dp + " beltpack" + (lastAbs > 1 ? "s" : "")); }
+      // « non publié » s'accorde avec le dernier terme énuméré (« +1 groupe non publié »,
+      // « +1 groupe, +2 beltpacks non publiés »).
+      pend.textContent = parts.length
+        ? parts.join(", ") + " non publié" + (lastAbs > 1 ? "s" : "")
+        : "modifications non publiées";
+    }
+
+    // Chip d'en-tête « N en attente » (maquette) : même vérité que le pied de page, en
+    // résumé. Les états transitoires (enregistrement en cours, erreur) restent
+    // prioritaires — on ne les écrase pas.
+    const chipState = el.syncStatus?.dataset.state;
+    if (chipState === "syncing" || chipState === "error" || chipState === "updated") return;
+    if (!unpublished) { setStatus("À jour", "idle"); return; }
+    const n = Math.abs(dg) + Math.abs(dp);
+    setStatus(n ? `${n} en attente` : "En attente de publication", "pending");
   }
 
   async function refreshStatus() {
@@ -1482,8 +1539,9 @@
   }
 
   /* ---------- Onglets ----------
-     Affectations / Écran sont des panneaux ; Intercom / Journal / Système ouvrent les
-     dialogues existants (data-launch) sans changer de panneau. */
+     Affectations / Écran sont des panneaux ; Journal ouvre son dialogue (data-launch)
+     sans changer de panneau. Antenne et réseau ont leur bouton unique ailleurs
+     (chip d'en-tête, barre latérale) : pas de lanceur en doublon ici. */
   function selectTab(name) {
     document.querySelectorAll(".admin-tabs .tab[data-tab]").forEach((t) =>
       t.setAttribute("aria-selected", String(t.dataset.tab === name)));
@@ -1492,7 +1550,7 @@
   document.querySelectorAll(".admin-tabs .tab[data-tab]").forEach((t) =>
     t.addEventListener("click", () => selectTab(t.dataset.tab)));
 
-  const TAB_LAUNCHERS = { antenna: openAntenna, history: openHistory, network: openNetwork };
+  const TAB_LAUNCHERS = { journal: openJournal };
   document.querySelectorAll(".admin-tabs [data-launch]").forEach((t) =>
     t.addEventListener("click", () => TAB_LAUNCHERS[t.dataset.launch]?.()));
 
@@ -1513,8 +1571,7 @@
   document.querySelectorAll(".tb-seg .seg-btn").forEach((b) =>
     b.addEventListener("click", () => setViewMode(b.dataset.viewMode)));
 
-  // Ajout de beltpack : depuis la barre d'outils ou le pied de la réserve (non affecté).
-  document.getElementById("add-beltpack-btn")?.addEventListener("click", () => openPersonDialog(null, null));
+  // Ajout de beltpack : UN seul bouton, au pied de la réserve (il arrive non affecté).
   document.getElementById("add-beltpack-pool")?.addEventListener("click", () => openPersonDialog(null, null));
 
   /* ---------- Horloge de l'en-tête ---------- */
@@ -1532,5 +1589,5 @@
   refreshStatus();            // résumé publié + afficheurs connectés (barre d'état)
   pollLive();                 // état initial ; les MAJ arrivent en push via le SSE `live`
   subscribeAdmin();
-  setStatus("Brouillon synchronisé", "idle");
+  renderStatusBar();          // chip d'état initiale (« À jour » / « N en attente »)
 })();

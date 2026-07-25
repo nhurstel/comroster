@@ -14,6 +14,7 @@ from .services.settings import Settings
 from .services.antenna import AntennaClient
 from .services.configs import Configs
 from .services.netconfig import NetConfig
+from .services.journal import Journal
 from .services.live_poller import start_live_poller
 from .auth import bp as auth_bp
 from .api import bp as api_bp
@@ -71,6 +72,7 @@ def create_app(config_overrides=None):
     app.extensions["antenna"].load_persisted()  # recharge les identifiants s'ils existent
     app.extensions["configs"] = Configs(app.extensions["storage"])
     app.extensions["netconfig"] = NetConfig(app.config["DATA_DIR"])
+    app.extensions["journal"] = Journal(app.config["DATA_DIR"])
 
     # Pousse l'état antenne via SSE (au lieu du polling client). Pas sous tests.
     if not app.config.get("TESTING"):
