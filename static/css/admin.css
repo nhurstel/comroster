@@ -908,6 +908,23 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
     box-shadow: 0 8px 24px rgb(0 0 0 / 0.5); font-size: var(--ui);
 }
 .selection-bar.active { display: flex; }
+
+/* Garde-fou de publication : barre centrée avec décompte + progression + annulation. */
+.publish-countdown {
+    position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px; padding: 10px 14px; z-index: 70;
+    background: var(--surface-2); border: 1px solid var(--border-3); border-radius: 9px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.5); font-size: var(--ui); min-width: 340px;
+}
+.publish-countdown .pc-text { font-weight: 600; white-space: nowrap; }
+.publish-countdown .pc-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
+.publish-countdown .pc-fill { height: 100%; width: 0; background: var(--accent); }
+.publish-countdown #publish-cancel {
+    flex: 0 0 auto; height: 28px; padding: 0 12px;
+    background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--rad);
+    font-size: var(--ui); font-weight: 600; color: var(--accent);
+}
+.publish-countdown #publish-cancel:hover:not(:disabled) { border-color: var(--accent); }
 .selection-bar button {
     height: 26px; padding: 0 10px;
     background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--rad);

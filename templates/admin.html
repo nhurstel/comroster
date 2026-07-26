@@ -459,6 +459,14 @@
     <button type="button" id="selection-cancel">Annuler</button>
   </div>
 
+  {# Garde-fou de publication : envoi différé de 5 s, encore annulable (comme « annuler
+     l'envoi » d'un mail). La barre se remplit pendant le décompte. #}
+  <div id="publish-countdown" class="publish-countdown" role="status" aria-live="polite" hidden>
+    <span class="pc-text" id="pc-text">Envoi à l'affichage…</span>
+    <div class="pc-bar"><div class="pc-fill" id="pc-fill"></div></div>
+    <button type="button" id="publish-cancel">Annuler l'envoi</button>
+  </div>
+
   <div class="context-menu" id="context-menu" role="menu">
     <button type="button" data-action="edit">Modifier les informations…</button>
     <button type="button" data-action="remove">Retirer du groupe</button>
