@@ -4,6 +4,7 @@
   // chargement (les requêtes échoueraient proprement côté serveur avec un CSRF vide).
   const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || "";
   const SKINS = ["basique", "lineaire", "grille"];   // miroir de model.SKINS
+  const TEXT_SCALES = ["original", "grand", "tres-grand", "auto"];   // miroir de model.TEXT_SCALES
   const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
   // Données initiales injectées via un bloc <script type="application/json">
@@ -917,6 +918,7 @@
     setVal("meta-title", d.title || "");
     setVal("meta-subtitle", d.subtitle || "");
     setVal("meta-columns", String(d.columns || 0));
+    setVal("meta-text-scale", TEXT_SCALES.includes(d.text_scale) ? d.text_scale : "original");
     setVal("theme-select", d.theme === "day" ? "day" : "night");
     setVal("skin-select", SKINS.includes(d.skin) ? d.skin : "basique");
     const ind = d.indicators || DEFAULT_IND;
@@ -949,6 +951,10 @@
     });
     document.getElementById("meta-columns").addEventListener("change", (e) => {
       state.data.columns = parseInt(e.target.value, 10) || 0; markDirty();
+    });
+    document.getElementById("meta-text-scale").addEventListener("change", (e) => {
+      state.data.text_scale = TEXT_SCALES.includes(e.target.value) ? e.target.value : "original";
+      markDirty();
     });
     document.getElementById("theme-select").addEventListener("change", (e) => {
       state.data.theme = e.target.value === "day" ? "day" : "night"; markDirty();

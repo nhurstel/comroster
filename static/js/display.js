@@ -108,6 +108,8 @@
     bodyEl.dataset.skin = resolveSkin(data.skin);
     // Mode performance : désactive le flou GPU (voir display.css [data-perf="on"])
     bodyEl.dataset.perf = data.perf ? "on" : "off";
+    // Taille du texte : multiplie le plafond de l'auto-ajustement (fitDisplayText).
+    bodyEl.dataset.textScale = data.text_scale || "original";
     // Nombre de colonnes de groupes (0 = automatique selon la largeur d'écran)
     if (grid) grid.style.gridTemplateColumns = data.columns > 0 ? `repeat(${data.columns}, minmax(0, 1fr))` : "";
 
@@ -219,6 +221,11 @@
     return out;
   }
 
+  // Multiplicateur du PLAFOND d'ajustement selon la taille choisie. `original` = ×1
+  // (rigoureusement inchangé). Ne touche pas les planchers (lisibilité minimale).
+  const SCALE_MAX = { original: 1, grand: 1.3, "tres-grand": 1.6, auto: 2.4 };
+  function scaleFactor() { return SCALE_MAX[bodyEl.dataset.textScale] || 1; }
+
   function fitDisplayText() {
     if (!grid) return;
     // On mesure toujours en mode « une ligne » : on retire un éventuel repli wrap précédent.
@@ -227,11 +234,12 @@
     const titles = [...grid.querySelectorAll(".block-header h3")];
     const roles = [...grid.querySelectorAll(".person .role")];
     const b = fitBounds();
-    const t = fitUniformFontSize(titles, b["--fit-title-min"], b["--fit-title-max"]);
-    const r = fitUniformFontSize(roles, b["--fit-role-min"], b["--fit-role-max"]);
+    const sc = scaleFactor();
+    const t = fitUniformFontSize(titles, b["--fit-title-min"], Math.round(b["--fit-title-max"] * sc));
+    const r = fitUniformFontSize(roles, b["--fit-role-min"], Math.round(b["--fit-role-max"] * sc));
     grid.style.setProperty("--title-fs", t.size + "px");
     grid.style.setProperty("--role-fs", r.size + "px");
-    const bpn = Math.min(Math.max(r.size * b["--fit-bpn-ratio"], b["--fit-bpn-min"]), b["--fit-bpn-max"]);
+    const bpn = Math.min(Math.max(r.size * b["--fit-bpn-ratio"], b["--fit-bpn-min"]), b["--fit-bpn-max"] * sc);
     grid.style.setProperty("--bpn-fs", Math.round(bpn) + "px");
     // Repli anti-troncature : si même au plancher lisible un texte ne tient pas sur une ligne
     // (nom très long en colonne étroite), on autorise le retour à la ligne — jamais coupé.

@@ -11,7 +11,7 @@
   {# Apparences alternatives : toujours chargées, le skin change en direct par SSE. #}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/skins.css') }}">
 </head>
-<body class="display-page" data-theme="{{ initial_data.theme or 'night' }}" data-skin="{{ initial_data.skin or 'basique' }}" data-perf="{{ 'on' if initial_data.perf else 'off' }}"{% if preview %} data-preview="on"{% if preview_scroll %} data-preview-scroll="on"{% endif %}{% endif %}>
+<body class="display-page" data-theme="{{ initial_data.theme or 'night' }}" data-skin="{{ initial_data.skin or 'basique' }}" data-text-scale="{{ initial_data.text_scale or 'original' }}" data-perf="{{ 'on' if initial_data.perf else 'off' }}"{% if preview %} data-preview="on"{% if preview_scroll %} data-preview-scroll="on"{% endif %}{% endif %}>
   <header>
     {# Nom de la production : titre centré (axes H et V) de l'en-tête, indépendant du
        titre/sous-titre de gauche. Masqué s'il est vide. #}

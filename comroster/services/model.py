@@ -53,6 +53,15 @@ def sanitize_skin(value):
     return value if value in SKINS else "basique"
 
 
+TEXT_SCALES = ("original", "grand", "tres-grand", "auto")
+
+
+def sanitize_text_scale(value):
+    """Taille du texte de l'écran : multiplie le plafond de l'auto-ajustement.
+    `original` = comportement historique (×1). Allowlist stricte."""
+    return value if value in TEXT_SCALES else "original"
+
+
 def sanitize_columns(value):
     """Nombre de colonnes de groupes sur l'écran (0 = automatique selon la largeur)."""
     try:
@@ -71,6 +80,7 @@ def empty_state():
         "production_name": "",
         "theme": "night",
         "skin": "basique",
+        "text_scale": "original",
         "indicators": {"online": True, "battery": True},
         "perf": False,
         "columns": 0,
@@ -97,6 +107,7 @@ def build_draft(payload):
     state["production_name"] = (payload.get("production_name") or "").strip()
     state["theme"] = sanitize_theme(payload.get("theme"))
     state["skin"] = sanitize_skin(payload.get("skin"))
+    state["text_scale"] = sanitize_text_scale(payload.get("text_scale"))
     state["indicators"] = sanitize_indicators(payload.get("indicators"))
     state["perf"] = sanitize_perf(payload.get("perf"))
     state["columns"] = sanitize_columns(payload.get("columns"))

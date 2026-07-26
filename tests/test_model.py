@@ -124,7 +124,15 @@ def test_empty_state_has_meta():
     assert s["title"]
     assert s["subtitle"] == ""
     assert s["production_name"] == ""
+    assert s["text_scale"] == "original"
     assert s["theme"] == "night"
+
+
+def test_sanitize_text_scale():
+    assert model.sanitize_text_scale("grand") == "grand"
+    assert model.sanitize_text_scale("auto") == "auto"
+    assert model.sanitize_text_scale("géant") == "original"     # inconnu → défaut
+    assert model.sanitize_text_scale(None) == "original"
 
 
 def test_sanitize_theme():
