@@ -1014,6 +1014,22 @@
     toast("Envoi annulé");
   }
   function sendNow() { if (publishTimer) { endCountdown(); publish(); } }
+  // Confirmation « envoyé » : bref balayage vert + « Envoyé ✓ », au niveau du bouton.
+  function flashSent() {
+    const btn = el.publishBtn;
+    const fill = document.getElementById("pub-fill");
+    const label = document.getElementById("pub-label");
+    btn.classList.add("sent");
+    label.textContent = "Envoyé ✓";
+    fill.style.transition = "none"; fill.style.width = "0%";
+    requestAnimationFrame(() => { fill.style.transition = "width 0.4s ease"; fill.style.width = "100%"; });
+    setTimeout(() => {
+      if (publishTimer) return;              // un nouveau décompte a repris la main
+      btn.classList.remove("sent");
+      fill.style.transition = "width 0.3s ease"; fill.style.width = "0%";
+      label.textContent = "Envoyer à l'affichage";
+    }, 1300);
+  }
   // Clic sur le bouton : armer, ou annuler s'il est déjà armé (il affiche « Annuler l'envoi »).
   function publishButtonClick() { if (publishTimer) cancelPublish(); else armPublish(); }
   // Raccourci ⌘↵ : armer, ou envoyer tout de suite si déjà armé.
@@ -1029,10 +1045,7 @@
       setUnpublished(false);
       reloadPreview();                 // le témoin suit l'écran de régie, il vient de changer
       refreshStatus();                 // nouveau résumé publié → écart remis à zéro
-      setStatus("Envoyé à l'affichage ✓", "updated");
-      // Après le flash de confirmation, la chip retourne à sa vérité recalculée
-      // (« À jour » / « N en attente »), pas à un libellé figé.
-      setTimeout(() => { if (el.syncStatus?.dataset.state === "updated") { el.syncStatus.dataset.state = "idle"; renderStatusBar(); } }, 2500);
+      flashSent();                     // confirmation « envoyé » discrète, au niveau du bouton
     } catch (err) {
       if (err.message === "beltpack_conflict") toast("Beltpack en double : impossible de publier.", true);
       else toast("Échec de la publication.", true);

@@ -38,7 +38,7 @@ def test_setup_create_publish_display(page, live_server):
     # envoie tout de suite (« envoyer maintenant ») — évite d'attendre 5 s dans le test.
     page.click("#publish-btn")
     page.keyboard.press("Control+Enter")
-    page.wait_for_selector("text=Envoyé à l'affichage")
+    page.wait_for_selector("#sync-label:has-text('À jour')")
 
     # L'écran TV affiche bien le beltpack publié
     display = page.context.new_page()
@@ -126,7 +126,7 @@ def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie",
     page.click("#person-form button[type=submit]")
     page.click("#publish-btn")               # arme le décompte
     page.keyboard.press("Control+Enter")     # envoyer maintenant (court-circuite le garde-fou 5 s)
-    page.wait_for_selector("text=Envoyé à l'affichage")
+    page.wait_for_selector("#sync-label:has-text('À jour')")
     display = page.context.new_page()
     errors = []
     display.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
@@ -252,7 +252,7 @@ def test_preview_tracks_published_and_opens_no_sse(page, live_server):
     # Après publication, il rattrape l'écran de régie.
     page.click("#publish-btn")               # arme le décompte
     page.keyboard.press("Control+Enter")     # envoyer maintenant (court-circuite le garde-fou 5 s)
-    page.wait_for_selector("text=Envoyé à l'affichage")
+    page.wait_for_selector("#sync-label:has-text('À jour')")
     mini = _wait_frame(page, "preview-mini")
     mini.wait_for_selector("#display-grid .block")
     assert mini.evaluate("document.body.dataset.skin") == "grille"
