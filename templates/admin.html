@@ -142,7 +142,11 @@
           <div class="screen-settings">
             <div class="settings-group">
               <div class="nav-label">Production</div>
+              {# « Nom de la production » = titre centré de l'écran ; « Titre » + « Sous-titre »
+                 = paire en haut à gauche. #}
               <label class="side-field"><span>Nom de la production</span>
+                <input type="text" id="meta-production" maxlength="120" autocomplete="off"></label>
+              <label class="side-field"><span>Titre</span>
                 <input type="text" id="meta-title" maxlength="120" autocomplete="off"></label>
               <label class="side-field"><span>Sous-titre</span>
                 <input type="text" id="meta-subtitle" maxlength="120" autocomplete="off"></label>

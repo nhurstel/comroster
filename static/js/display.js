@@ -9,6 +9,7 @@
   const bodyEl = document.body;
   const titleEl = document.getElementById("board-title");
   const subtitleEl = document.getElementById("board-subtitle");
+  const centerEl = document.getElementById("board-center");
   const liveIndicator = document.getElementById("live-indicator");
   const liveLabel = liveIndicator?.querySelector(".status-text");
   const clockEl = document.getElementById("board-clock");
@@ -114,6 +115,10 @@
     if (subtitleEl) {
       if (data.subtitle) { subtitleEl.textContent = data.subtitle; subtitleEl.hidden = false; }
       else subtitleEl.hidden = true;
+    }
+    if (centerEl) {
+      if (data.production_name) { centerEl.textContent = data.production_name; centerEl.hidden = false; }
+      else centerEl.hidden = true;
     }
     if (updatedAtTime && data.updated_at) {
       try { updatedAtTime.textContent = new Date(data.updated_at).toLocaleString("fr-FR"); }

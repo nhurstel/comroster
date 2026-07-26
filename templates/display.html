@@ -13,6 +13,9 @@
 </head>
 <body class="display-page" data-theme="{{ initial_data.theme or 'night' }}" data-skin="{{ initial_data.skin or 'basique' }}" data-perf="{{ 'on' if initial_data.perf else 'off' }}"{% if preview %} data-preview="on"{% if preview_scroll %} data-preview-scroll="on"{% endif %}{% endif %}>
   <header>
+    {# Nom de la production : titre centré (axes H et V) de l'en-tête, indépendant du
+       titre/sous-titre de gauche. Masqué s'il est vide. #}
+    <div class="board-center" id="board-center" {% if not initial_data.production_name %}hidden{% endif %}>{{ initial_data.production_name or '' }}</div>
     <div class="board-meta">
       <h1 id="board-title">{{ initial_data.title }}</h1>
       <h2 id="board-subtitle" {% if not initial_data.subtitle %}hidden{% endif %}>{{ initial_data.subtitle or '' }}</h2>

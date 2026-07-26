@@ -913,6 +913,7 @@
     const d = state.data;
     const setVal = (id, v) => { const n = document.getElementById(id); if (n && document.activeElement !== n) n.value = v; };
     const setChk = (id, v) => { const n = document.getElementById(id); if (n) n.checked = v; };
+    setVal("meta-production", d.production_name || "");
     setVal("meta-title", d.title || "");
     setVal("meta-subtitle", d.subtitle || "");
     setVal("meta-columns", String(d.columns || 0));
@@ -924,6 +925,11 @@
     setChk("meta-perf", d.perf === true);
   }
   function bindSettings() {
+    const production = document.getElementById("meta-production");
+    production.addEventListener("input", () => {
+      state.data.production_name = production.value;   // titre centré de l'écran
+      markDirty();
+    });
     const title = document.getElementById("meta-title");
     title.addEventListener("input", () => {
       state.data.title = title.value;

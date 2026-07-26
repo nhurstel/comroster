@@ -123,6 +123,7 @@ def test_empty_state_has_meta():
     s = model.empty_state()
     assert s["title"]
     assert s["subtitle"] == ""
+    assert s["production_name"] == ""
     assert s["theme"] == "night"
 
 
@@ -161,12 +162,13 @@ def test_build_draft_skin_unknown_falls_back():
 
 def test_build_draft_basic():
     payload = {
-        "title": "Festival", "subtitle": "Scène A", "theme": "day",
+        "title": "Festival", "subtitle": "Scène A", "production_name": "Casse-Noisette", "theme": "day",
         "groups": [{"id": "g1", "name": "Régie", "color": "#ffffff", "order": 0}],
         "people": [{"id": "p1", "role": "Régie", "beltpack": "5", "group_id": "g1"}],
     }
     s = model.build_draft(payload)
     assert s["title"] == "Festival" and s["subtitle"] == "Scène A" and s["theme"] == "day"
+    assert s["production_name"] == "Casse-Noisette"
     assert s["groups"][0]["name"] == "Régie"
     assert s["people"][0]["beltpack"] == "5"
     assert "name" not in s["people"][0]
