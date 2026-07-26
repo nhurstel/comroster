@@ -150,7 +150,7 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 
 /* Publication en « texte » (réglage retenu) : turquoise sans fond + raccourci. */
 #publish-btn.publish-text {
-    display: flex; align-items: center; gap: 11px; padding: 0 16px;
+    display: flex; align-items: center; justify-content: center; gap: 11px; padding: 0 16px;
     background: transparent; color: var(--accent);
     font-size: calc(var(--ui) + 0.5px); font-weight: 700;
     letter-spacing: var(--track); white-space: nowrap; transition: background 0.12s;

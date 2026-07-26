@@ -16,7 +16,7 @@ def test_admin_page_renders(auth_client):
     # main.css réintroduirait l'héritage global qui faussait la refonte.
     assert "css/main.css" not in html
     assert "css/admin.css" in html
-    assert 'id="publish-btn"' in html      # bouton de publication (libellé « Envoyer à l'affichage »)
+    assert 'id="publish-btn"' in html      # bouton de publication (libellé « Publier »)
     assert "csrf-token" in html
 
 

@@ -978,23 +978,52 @@
   }
 
   /* ---------- Publication : garde-fou de 5 s annulable, INTÉGRÉ AU BOUTON ----------
-     Cliquer « Envoyer » ne publie pas tout de suite : le bouton se remplit d'une
-     progression sur 5 s et devient « Annuler l'envoi » (re-clic = annuler), comme
+     Cliquer « Publier » ne publie pas tout de suite : le bouton se remplit d'une
+     progression sur 5 s et devient « Annuler la publication » (re-clic = annuler), comme
      l'« annuler l'envoi » d'un mail. ⌘↵ pendant le décompte envoie tout de suite. */
   const PUBLISH_DELAY = 5000;
+  const PUB_IDLE = "Publier";
+  const PUB_ARM = (n) => `Annuler la publication · ${n}`;
+  const PUB_DONE = "Publié ✓";
+  const pubLabel = () => document.getElementById("pub-label");
+  const pubFill = () => document.getElementById("pub-fill");
   let publishTimer = null, publishTick = null;
+
+  // Largeurs figées sur le PLUS LONG état (mesuré) : les libellés changent sans décaler
+  // l'en-tête (le bouton ET la chip d'état varient au fil de la publication). Appelé à
+  // l'init, puis à nouveau une fois les polices prêtes.
+  function fixWidthToLongest(el2, texts, apply) {
+    el2.style.minWidth = "";                     // repart de la largeur naturelle (re-mesure)
+    let max = 0;
+    const restore = apply(null, true);           // sauvegarde l'état courant
+    texts.forEach((t) => { apply(t); max = Math.max(max, el2.scrollWidth); });
+    restore();
+    el2.style.minWidth = Math.ceil(max) + "px";
+  }
+  function lockHeaderWidths() {
+    const btn = el.publishBtn, label = pubLabel(), kbd = btn.querySelector("kbd");
+    fixWidthToLongest(btn, [PUB_IDLE, PUB_ARM(5), PUB_DONE], (t, save) => {
+      if (save) { const s = label.textContent, k = kbd.style.display; return () => { label.textContent = s; kbd.style.display = k; }; }
+      label.textContent = t; kbd.style.display = t === PUB_IDLE ? "" : "none";   // ⌘↵ visible au repos seul
+    });
+    // Chip d'état : figée sur son libellé le plus long → l'horloge ne saute plus.
+    if (el.syncStatus && el.syncLabel) {
+      fixWidthToLongest(el.syncStatus,
+        ["À jour", "88 modifications en attente", "Échec de l'enregistrement"],
+        (t, save) => { if (save) { const s = el.syncLabel.textContent; return () => { el.syncLabel.textContent = s; }; } el.syncLabel.textContent = t; });
+    }
+  }
+
   function armPublish() {
     if (state.busy || publishTimer) return;
-    const btn = el.publishBtn;
-    const fill = document.getElementById("pub-fill");
-    const label = document.getElementById("pub-label");
+    const btn = el.publishBtn, fill = pubFill(), label = pubLabel();
     const start = Date.now();
     btn.classList.add("arming");
     fill.style.transition = "none"; fill.style.width = "0%";
     requestAnimationFrame(() => { fill.style.transition = `width ${PUBLISH_DELAY}ms linear`; fill.style.width = "100%"; });
     const render = () => {
       const left = Math.max(0, Math.ceil((PUBLISH_DELAY - (Date.now() - start)) / 1000));
-      label.textContent = `Annuler l'envoi · ${left}`;
+      label.textContent = PUB_ARM(left);
     };
     render();
     publishTick = setInterval(render, 200);
@@ -1004,33 +1033,31 @@
     if (publishTimer) { clearTimeout(publishTimer); publishTimer = null; }
     if (publishTick) { clearInterval(publishTick); publishTick = null; }
     el.publishBtn.classList.remove("arming");
-    const fill = document.getElementById("pub-fill");
+    const fill = pubFill();
     fill.style.transition = "none"; fill.style.width = "0%";
-    document.getElementById("pub-label").textContent = "Envoyer à l'affichage";
+    pubLabel().textContent = PUB_IDLE;
   }
   function cancelPublish() {
     if (!publishTimer) return;
     endCountdown();
-    toast("Envoi annulé");
+    toast("Publication annulée");
   }
   function sendNow() { if (publishTimer) { endCountdown(); publish(); } }
-  // Confirmation « envoyé » : bref balayage vert + « Envoyé ✓ », au niveau du bouton.
+  // Confirmation : bref balayage vert + « Publié ✓ », au niveau du bouton.
   function flashSent() {
-    const btn = el.publishBtn;
-    const fill = document.getElementById("pub-fill");
-    const label = document.getElementById("pub-label");
+    const btn = el.publishBtn, fill = pubFill(), label = pubLabel();
     btn.classList.add("sent");
-    label.textContent = "Envoyé ✓";
+    label.textContent = PUB_DONE;
     fill.style.transition = "none"; fill.style.width = "0%";
     requestAnimationFrame(() => { fill.style.transition = "width 0.4s ease"; fill.style.width = "100%"; });
     setTimeout(() => {
       if (publishTimer) return;              // un nouveau décompte a repris la main
       btn.classList.remove("sent");
       fill.style.transition = "width 0.3s ease"; fill.style.width = "0%";
-      label.textContent = "Envoyer à l'affichage";
+      label.textContent = PUB_IDLE;
     }, 1300);
   }
-  // Clic sur le bouton : armer, ou annuler s'il est déjà armé (il affiche « Annuler l'envoi »).
+  // Clic sur le bouton : armer, ou annuler s'il est déjà armé (il affiche « Annuler la publication »).
   function publishButtonClick() { if (publishTimer) cancelPublish(); else armPublish(); }
   // Raccourci ⌘↵ : armer, ou envoyer tout de suite si déjà armé.
   function publishShortcut() { if (publishTimer) sendNow(); else armPublish(); }
@@ -1959,4 +1986,6 @@
   pollLive();                 // état initial ; les MAJ arrivent en push via le SSE `live`
   subscribeAdmin();
   renderStatusBar();          // chip d'état initiale (« À jour » / « N en attente »)
+  lockHeaderWidths();         // largeurs figées (bouton + chip), re-mesurées polices prêtes
+  if (document.fonts?.ready) document.fonts.ready.then(lockHeaderWidths);
 })();
