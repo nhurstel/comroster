@@ -807,6 +807,30 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .range-row input { width: 76px; }
 .range-row .range-del { color: var(--danger); border-color: var(--danger-line); }
 
+/* ---------- Page Santé (/admin/health) : cartes de monitoring ---------- */
+.health-body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--pad); scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.health-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--gap); align-content: start; }
+.h-card { background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--rad); padding: 14px 16px; }
+.h-card h2 { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.h-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 3px 0; font-size: var(--ui); }
+.h-key { color: var(--fg-subtle); flex: 0 0 auto; }
+.h-val { color: var(--fg-muted); font-family: var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-val.ok { color: var(--success); }
+.h-val.warn { color: var(--warning); }
+.h-val.bad { color: var(--danger); }
+.h-val.muted { color: var(--muted); }
+.h-gauge { height: 6px; margin: 6px 0 4px; border-radius: 3px; background: var(--inset); overflow: hidden; }
+.h-gauge-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.3s; }
+.h-gauge-fill.ok { background: var(--success); }
+.h-gauge-fill.warn { background: var(--warning); }
+.h-gauge-fill.bad { background: var(--danger); }
+.h-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.h-flag { padding: 2px 8px; border-radius: 999px; font-size: var(--ui-sm); font-weight: 600; border: 1px solid var(--border); }
+.h-flag.ok { color: var(--success); border-color: rgba(46,204,113,0.4); }
+.h-flag.bad { color: var(--danger); border-color: var(--danger-line); background: var(--danger-bg); }
+.h-flag.muted { color: var(--muted); }
+.h-note { margin-top: 8px; font-size: var(--ui-sm); color: var(--muted); }
+
 /* ---------- Page Journal (/admin/journal) : événements + logs techniques ---------- */
 .journal-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .journal-toolbar {

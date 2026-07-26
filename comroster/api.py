@@ -3,7 +3,7 @@ import re
 from flask import Blueprint, jsonify, current_app, render_template, request
 
 from .security import login_required, exclusive_state, json_body
-from .services import model, wifi, netstatus
+from .services import model, wifi, netstatus, health
 
 bp = Blueprint("api", __name__)
 
@@ -375,6 +375,20 @@ def publish():
 def journal_page():
     """Page Journal : événements applicatifs + logs techniques (debug sans SSH)."""
     return render_template("journal.html")
+
+
+@bp.get("/admin/health")
+@login_required
+def health_page():
+    """Page de monitoring : santé du boîtier (température, disque, RAM, uptime…)."""
+    return render_template("health.html")
+
+
+@bp.get("/api/health")
+@login_required
+def health_snapshot():
+    """Instantané de santé du boîtier (lecture seule, tolérant hors Pi)."""
+    return jsonify(health.snapshot(current_app))
 
 
 @bp.get("/api/journal")
