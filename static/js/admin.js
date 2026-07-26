@@ -977,42 +977,47 @@
     syncSettingsInputs();
   }
 
-  /* ---------- Publication : garde-fou de 5 s annulable ----------
-     Cliquer « Envoyer » ne publie pas tout de suite : un décompte de 5 s (barre qui se
-     remplit) laisse le temps d'annuler, comme « annuler l'envoi » d'un mail. */
+  /* ---------- Publication : garde-fou de 5 s annulable, INTÉGRÉ AU BOUTON ----------
+     Cliquer « Envoyer » ne publie pas tout de suite : le bouton se remplit d'une
+     progression sur 5 s et devient « Annuler l'envoi » (re-clic = annuler), comme
+     l'« annuler l'envoi » d'un mail. ⌘↵ pendant le décompte envoie tout de suite. */
   const PUBLISH_DELAY = 5000;
   let publishTimer = null, publishTick = null;
-  function requestPublish() {
-    if (state.busy) return;
-    if (publishTimer) { endCountdown(); publish(); return; }   // 2e déclenchement = envoyer tout de suite
-    const bar = document.getElementById("publish-countdown");
-    const fill = document.getElementById("pc-fill");
-    const text = document.getElementById("pc-text");
+  function armPublish() {
+    if (state.busy || publishTimer) return;
+    const btn = el.publishBtn;
+    const fill = document.getElementById("pub-fill");
+    const label = document.getElementById("pub-label");
     const start = Date.now();
-    bar.hidden = false;
+    btn.classList.add("arming");
     fill.style.transition = "none"; fill.style.width = "0%";
     requestAnimationFrame(() => { fill.style.transition = `width ${PUBLISH_DELAY}ms linear`; fill.style.width = "100%"; });
     const render = () => {
       const left = Math.max(0, Math.ceil((PUBLISH_DELAY - (Date.now() - start)) / 1000));
-      text.textContent = `Envoi à l'affichage dans ${left} s…`;
+      label.textContent = `Annuler l'envoi · ${left}`;
     };
     render();
     publishTick = setInterval(render, 200);
     publishTimer = setTimeout(() => { endCountdown(); publish(); }, PUBLISH_DELAY);
   }
   function endCountdown() {
-    const bar = document.getElementById("publish-countdown");
-    const fill = document.getElementById("pc-fill");
     if (publishTimer) { clearTimeout(publishTimer); publishTimer = null; }
     if (publishTick) { clearInterval(publishTick); publishTick = null; }
-    bar.hidden = true;
+    el.publishBtn.classList.remove("arming");
+    const fill = document.getElementById("pub-fill");
     fill.style.transition = "none"; fill.style.width = "0%";
+    document.getElementById("pub-label").textContent = "Envoyer à l'affichage";
   }
   function cancelPublish() {
     if (!publishTimer) return;
     endCountdown();
     toast("Envoi annulé");
   }
+  function sendNow() { if (publishTimer) { endCountdown(); publish(); } }
+  // Clic sur le bouton : armer, ou annuler s'il est déjà armé (il affiche « Annuler l'envoi »).
+  function publishButtonClick() { if (publishTimer) cancelPublish(); else armPublish(); }
+  // Raccourci ⌘↵ : armer, ou envoyer tout de suite si déjà armé.
+  function publishShortcut() { if (publishTimer) sendNow(); else armPublish(); }
 
   async function publish() {
     if (state.busy) return;
@@ -1153,8 +1158,7 @@
   });
   el.personForm.addEventListener("submit", submitPerson);
   bindSettings();
-  el.publishBtn.addEventListener("click", requestPublish);
-  document.getElementById("publish-cancel").addEventListener("click", cancelPublish);
+  el.publishBtn.addEventListener("click", publishButtonClick);
   document.getElementById("export-btn").addEventListener("click", exportConfig);
   el.importInput.addEventListener("change", importConfig);
   document.getElementById("history-btn").addEventListener("click", openHistory);
@@ -1166,9 +1170,9 @@
     const mod = e.ctrlKey || e.metaKey;
     // Échap pendant le décompte = annuler l'envoi.
     if (e.key === "Escape" && publishTimer) { e.preventDefault(); cancelPublish(); return; }
-    // ⌘/Ctrl+Entrée = publier — c'est le raccourci AFFICHÉ sur le bouton (⌘↵).
-    // ⌘S reste accepté (réflexe « enregistrer »). Passe par le garde-fou de 5 s.
-    if (mod && (e.key === "Enter" || e.key.toLowerCase() === "s")) { e.preventDefault(); requestPublish(); return; }
+    // ⌘/Ctrl+Entrée = publier (⌘↵ affiché). ⌘S accepté (réflexe « enregistrer »).
+    // Passe par le garde-fou : arme le décompte, ou envoie tout de suite s'il est déjà armé.
+    if (mod && (e.key === "Enter" || e.key.toLowerCase() === "s")) { e.preventDefault(); publishShortcut(); return; }
     // ⌘K = recherche de la réserve (affiché sur son champ).
     if (mod && e.key.toLowerCase() === "k") { e.preventDefault(); document.getElementById("available-filter")?.focus(); return; }
     // « / » = filtre du plateau (affiché sur son champ) — hors saisie et hors dialogue.

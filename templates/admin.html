@@ -48,7 +48,13 @@
           <span class="pulse" aria-hidden="true"></span>
           <span class="status-text" id="sync-label">Brouillon synchronisé</span>
         </div>
-        <button type="button" id="publish-btn" class="publish-text">Envoyer à l'affichage<kbd>⌘↵</kbd></button>
+        {# Le décompte d'envoi (5 s annulable) est intégré au bouton : la progression le
+           remplit et le libellé devient « Annuler l'envoi ». #}
+        <button type="button" id="publish-btn" class="publish-text">
+          <span class="pub-fill" id="pub-fill" aria-hidden="true"></span>
+          <span class="pub-label" id="pub-label">Envoyer à l'affichage</span>
+          <kbd>⌘↵</kbd>
+        </button>
       </div>
     </header>
 
@@ -465,14 +471,6 @@
     <span id="selection-count">0 sélectionné(s)</span>
     <button type="button" id="selection-delete" class="danger-btn">Supprimer</button>
     <button type="button" id="selection-cancel">Annuler</button>
-  </div>
-
-  {# Garde-fou de publication : envoi différé de 5 s, encore annulable (comme « annuler
-     l'envoi » d'un mail). La barre se remplit pendant le décompte. #}
-  <div id="publish-countdown" class="publish-countdown" role="status" aria-live="polite" hidden>
-    <span class="pc-text" id="pc-text">Envoi à l'affichage…</span>
-    <div class="pc-bar"><div class="pc-fill" id="pc-fill"></div></div>
-    <button type="button" id="publish-cancel">Annuler l'envoi</button>
   </div>
 
   <div class="context-menu" id="context-menu" role="menu">

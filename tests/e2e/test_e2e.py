@@ -34,10 +34,10 @@ def test_setup_create_publish_display(page, live_server):
     page.click("#person-form button[type=submit]")
     page.wait_for_selector(".person .bp:has-text('42')")
 
-    # Envoyer vers l'affichage. Le garde-fou de 5 s se court-circuite au 2e déclenchement
-    # (« envoyer maintenant ») — deux clics = publication immédiate.
+    # Envoyer vers l'affichage. Le clic ARME le décompte de 5 s ; ⌘↵ pendant le décompte
+    # envoie tout de suite (« envoyer maintenant ») — évite d'attendre 5 s dans le test.
     page.click("#publish-btn")
-    page.click("#publish-btn")
+    page.keyboard.press("Control+Enter")
     page.wait_for_selector("text=Envoyé à l'affichage")
 
     # L'écran TV affiche bien le beltpack publié
@@ -124,8 +124,8 @@ def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie",
     page.fill("#person-role", role)
     page.select_option("#person-assign", label=name)
     page.click("#person-form button[type=submit]")
-    page.click("#publish-btn")
-    page.click("#publish-btn")   # 2e = envoyer maintenant (court-circuite le garde-fou 5 s)
+    page.click("#publish-btn")               # arme le décompte
+    page.keyboard.press("Control+Enter")     # envoyer maintenant (court-circuite le garde-fou 5 s)
     page.wait_for_selector("text=Envoyé à l'affichage")
     display = page.context.new_page()
     errors = []
@@ -250,8 +250,8 @@ def test_preview_tracks_published_and_opens_no_sse(page, live_server):
     assert mini.evaluate("document.body.dataset.skin") == "basique"      # ni l'apparence du brouillon
 
     # Après publication, il rattrape l'écran de régie.
-    page.click("#publish-btn")
-    page.click("#publish-btn")   # 2e = envoyer maintenant (court-circuite le garde-fou 5 s)
+    page.click("#publish-btn")               # arme le décompte
+    page.keyboard.press("Control+Enter")     # envoyer maintenant (court-circuite le garde-fou 5 s)
     page.wait_for_selector("text=Envoyé à l'affichage")
     mini = _wait_frame(page, "preview-mini")
     mini.wait_for_selector("#display-grid .block")
