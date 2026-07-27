@@ -169,9 +169,13 @@ dans display.css). Les apparences seront donc plus aérées que les maquettes.
 **console navigateur sans erreur** — collecteur `console`/`pageerror` branché avant le chargement,
 et vérifié non creux sur une page qui échoue volontairement).
 
-⚠️ **Environnement :** `.venv/bin/*` a un shebang mort (`/Users/nathan/Desktop/CODA/COMROSTER/…`,
-chemin d'avant le déplacement dans `INTERCOM/`). `./run-dev.sh` et `.venv/bin/pytest` échouent ;
-passer par `.venv/bin/python -m pytest`. Réparation : `python3.12 -m venv --upgrade .venv`.
+✅ **Environnement — réparé le 2026-07-26.** Le déplacement du projet dans `INTERCOM/` avait laissé
+l'ancien chemin (`/Users/nathan/Desktop/CODA/COMROSTER/…`) figé à deux endroits, un venv n'étant pas
+déplaçable : (1) `activate` + `pyvenv.cfg` → `source .venv/bin/activate` préfixait au PATH un dossier
+inexistant, d'où `./run-dev.sh: exec: python: not found` alors que le prompt affichait bien `(.venv)` ;
+(2) le shebang des 14 scripts console (`pytest`, `pip`, `gunicorn`, `flask`, `playwright`…) → `bad
+interpreter`. Réparation : `python3.12 -m venv .venv` (réécrit les scripts, préserve site-packages)
+**puis** réécriture des shebangs — `venv --upgrade` seul ne les touche pas, c'est le piège.
 
 ### Contraintes à respecter (issues des leçons)
 - [ ] `[hidden]` : ne poser AUCUN `display` inconditionnel sur `#board-subtitle`, `#onboarding`,
