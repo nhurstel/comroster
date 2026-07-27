@@ -177,6 +177,16 @@ inexistant, d'où `./run-dev.sh: exec: python: not found` alors que le prompt af
 interpreter`. Réparation : `python3.12 -m venv .venv` (réécrit les scripts, préserve site-packages)
 **puis** réécriture des shebangs — `venv --upgrade` seul ne les touche pas, c'est le piège.
 
+✅ **Outillage — 2026-07-27.** (1) La CI était rouge sur `main` sans qu'une ligne de code ne change :
+`pip install ruff` sans version + aucune config ruff au dépôt = jeu de règles hérité de la version du
+jour, élargi en 0.16.0. Corrigé à la racine — version épinglée dans `requirements-dev.txt` (source
+unique, la CI installe de là) et `select` explicite dans `pyproject.toml`. (2) Jeu de règles élargi
+délibérément (13 familles, retenues après COMPTAGE : `S` faisait 568 signalements, `PTH` 94 — écartés),
+50 signalements traités dont 25 à la main ; les `except Exception` légitimes portent maintenant leur
+raison. (3) `run-dev.sh` fiabilisé : port vérifié AVANT d'annoncer l'URL, interpréteur appelé par son
+chemin `.venv/bin/python` et non via le PATH — les deux causes exactes de la soirée du 2026-07-26 —
+et le script entre enfin dans le périmètre shellcheck de la CI.
+
 ### Contraintes à respecter (issues des leçons)
 - [ ] `[hidden]` : ne poser AUCUN `display` inconditionnel sur `#board-subtitle`, `#onboarding`,
       `.bp-batt` (leçon 2026-06-21 — le `[hidden]{display:none!important}` de main.css:156 protège,
@@ -184,8 +194,12 @@ interpreter`. Réparation : `python3.12 -m venv .venv` (réécrit les scripts, p
 - [ ] Ne pas casser `height:100vh; overflow:hidden` sur `.display-page` ni `#display-scroll`
       (leçon 2026-06-20 — sinon l'auto-scroll meurt silencieusement)
 - [ ] CSP stricte : aucun `<style>` inline, feuilles servies depuis `self` (leçon 2026-07-07)
-- [ ] **Toutes les feuilles d'apparence chargées d'avance** : le `skin` change en direct par SSE
-      `published` sans rechargement de page → un `<link>` conditionnel côté serveur ne marcherait pas
+- [x] **Toutes les feuilles d'apparence chargées d'avance** : le `skin` change en direct par SSE
+      `published` sans rechargement de page → un `<link>` conditionnel côté serveur ne marcherait pas.
+      Tenu par conception (un seul `skins.css` inconditionnel, `data-skin` sur `<body>` sélectionne)
+      et désormais GARDÉ par `test_display_precharge_toutes_les_apparences` (2026-07-27), qui vérifie
+      aussi que chaque entrée de `SKINS` a des règles : sans ça, ajouter une apparence suffirait à
+      produire un `data-skin` que personne ne style, l'écran retombant en silence sur `basique`.
 - [ ] Validation par **rendu réel** (screenshot + console navigateur), pas par tests DOM
       (leçon 2026-07-07)
 
@@ -328,6 +342,6 @@ Principe : chaque phase est livrable seule, tests verts, sans casser la précéd
 
 ## Vérifications exigées à chaque phase
 
-- 256 unitaires + 13 e2e verts, ruff propre.
+- 297 unitaires + 13 e2e verts, ruff propre (chiffre au 2026-07-27 ; le seuil, c'est « tout vert »).
 - Capture de l'admin + console navigateur vide (leçon 2026-07-07).
 - Contraste mesuré, pas jugé à l'œil, sur les 6 couleurs de groupe (leçon 2026-07-23).

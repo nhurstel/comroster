@@ -1,10 +1,35 @@
+from pathlib import Path
+
 import pytest
+
+from comroster.services import model
+
+SKINS_CSS = Path(__file__).resolve().parent.parent / "static" / "css" / "skins.css"
 
 
 @pytest.fixture
 def auth_client(client):
     client.post("/admin/setup", data={"password": "motdepasse8"})
     return client
+
+
+def test_display_precharge_toutes_les_apparences(client):
+    """Le `skin` change en direct par SSE, SANS rechargement de page.
+
+    Deux conséquences, gardées ici parce que rien d'autre ne les tenait :
+      1. `skins.css` doit être servi inconditionnellement — un `<link>` choisi
+         côté serveur selon l'apparence courante ne serait jamais réévalué.
+      2. Chaque apparence ACCEPTÉE par l'API doit avoir des règles dans ce
+         fichier. Sans ce contrôle, ajouter une entrée à `SKINS` suffirait à
+         produire un `data-skin` que personne ne style : l'écran retomberait en
+         silence sur l'allure de base, sans erreur nulle part.
+    """
+    html = client.get("/display").get_data(as_text=True)
+    assert "css/skins.css" in html
+
+    css = SKINS_CSS.read_text(encoding="utf-8")
+    sans_regles = [s for s in model.SKINS if f'data-skin="{s}"' not in css]
+    assert sans_regles == [], f"apparences déclarées mais non stylées : {sans_regles}"
 
 
 def test_admin_page_renders(auth_client):
