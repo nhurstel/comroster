@@ -45,7 +45,8 @@ def parse_active_ssid(out):
 
 
 def _run(args, timeout=6):
-    proc = subprocess.run(["nmcli", "-t", *args], capture_output=True, text=True, timeout=timeout)
+    proc = subprocess.run(["nmcli", "-t", *args], check=False,
+                          capture_output=True, text=True, timeout=timeout)
     if proc.returncode != 0:
         raise OSError(proc.stderr.strip() or f"nmcli code {proc.returncode}")
     return proc.stdout

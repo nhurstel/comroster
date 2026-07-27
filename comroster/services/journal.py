@@ -33,8 +33,10 @@ class Journal:
             entries.append(entry)
             tmp = self.path + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:
-                for e in entries[-self.MAX_EVENTS:]:
-                    f.write(json.dumps(e, ensure_ascii=False) + "\n")
+                f.writelines(
+                    json.dumps(e, ensure_ascii=False) + "\n"
+                    for e in entries[-self.MAX_EVENTS:]
+                )
             os.replace(tmp, self.path)
         return entry
 

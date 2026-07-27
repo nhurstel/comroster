@@ -13,7 +13,7 @@ def test_last_write_wins_two_admins(auth_client):
     auth_client.patch(f"/api/people/{p['id']}", json={"role": "A"})
     auth_client.patch(f"/api/people/{p['id']}", json={"role": "B"})
     state = auth_client.get("/api/state").get_json()
-    assert [x for x in state["people"] if x["id"] == p["id"]][0]["role"] == "B"
+    assert next(x for x in state["people"] if x["id"] == p["id"])["role"] == "B"
 
 
 def test_duplicate_beltpack_blocked_on_patch(auth_client):

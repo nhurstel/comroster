@@ -2,7 +2,6 @@ import base64
 import hashlib
 import json
 import os
-import socket
 import threading
 import time
 import urllib.error
@@ -78,12 +77,13 @@ class AntennaClient:
                 return False, {"error": "Mot de passe incorrect ou accès refusé", "code": "auth"}
             return False, {"error": f"Erreur antenne (HTTP {e.code})", "code": "http"}
         except urllib.error.URLError as e:
-            if isinstance(e.reason, (socket.timeout, TimeoutError)):
+            if isinstance(e.reason, TimeoutError):   # socket.timeout en est un alias (3.10+)
                 return False, {"error": "Antenne injoignable (délai dépassé)", "code": "timeout"}
             return False, {"error": "Antenne injoignable — vérifiez l'IP et le réseau", "code": "network"}
-        except (socket.timeout, TimeoutError):
+        except TimeoutError:
             return False, {"error": "Antenne injoignable (délai dépassé)", "code": "timeout"}
-        except Exception as e:
+        except Exception as e:   # noqa: BLE001 — dernier filet d'un client HTTP : une panne
+            # imprévue doit devenir une erreur affichable, jamais un 500 côté admin.
             return False, {"error": str(e), "code": "unknown"}
 
     def connect(self, ip, password):
@@ -220,7 +220,8 @@ class AntennaClient:
         if token:
             try:
                 password = self._fernet().decrypt(token.encode()).decode()
-            except Exception:
+            except Exception:  # noqa: BLE001 — fichier de creds non fiable (clé changée,
+                # JSON corrompu, type inattendu) : le boîtier doit démarrer quand même.
                 return  # clé changée / corrompu → on ignore les creds
         with self._lock:
             self._ip = ip

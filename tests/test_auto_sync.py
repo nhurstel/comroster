@@ -57,7 +57,7 @@ def test_publishes_on_roster_change(tmp_path):
     assert draft["people"][0]["role"] == "Nouveau"          # brouillon miroité
     published = app.extensions["storage"].load_published()
     assert published["people"][0]["role"] == "Nouveau"      # publié direct sur l'affichage
-    event, data = q.get_nowait()
+    event, _ = q.get_nowait()
     assert event == "published"
 
 

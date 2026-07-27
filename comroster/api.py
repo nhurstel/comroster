@@ -1,9 +1,9 @@
 import re
 
-from flask import Blueprint, jsonify, current_app, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request
 
-from .security import login_required, exclusive_state, json_body
-from .services import model, wifi, netstatus, health
+from .security import exclusive_state, json_body, login_required
+from .services import health, model, netstatus, wifi
 
 bp = Blueprint("api", __name__)
 
@@ -171,8 +171,9 @@ def _run_privileged(cmd, timeout=10):
     """
     import subprocess
     try:
-        proc = subprocess.run(["sudo", "-n", *cmd],
-                              capture_output=True, text=True, timeout=timeout)
+        proc = subprocess.run(["sudo", "-n", *cmd], check=False,   # code retour inspecté
+                              capture_output=True, text=True,      # plus bas, pas ici
+                              timeout=timeout)
     except subprocess.TimeoutExpired:
         return True, None          # pas de retour = c'est en train de s'appliquer
     except OSError as exc:         # sudo/systemctl absent du PATH

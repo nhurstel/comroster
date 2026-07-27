@@ -26,7 +26,7 @@ class LogBuffer(logging.Handler):
             message = record.getMessage()
             if record.exc_info and record.exc_info[1] is not None:
                 message += f" — {type(record.exc_info[1]).__name__}: {record.exc_info[1]}"
-        except Exception:                          # jamais de crash depuis un handler
+        except Exception:      # noqa: BLE001 — jamais de crash depuis un handler de log
             message = "<message informatable>"
         self.records.append({
             "ts": datetime.fromtimestamp(record.created, timezone.utc)

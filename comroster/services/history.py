@@ -70,7 +70,10 @@ class History:
     @staticmethod
     def _humanize(ts):
         try:
-            dt = datetime.strptime(ts, "%Y%m%dT%H%M%S%fZ")
+            # Le « Z » du format est un littéral : strptime rendrait un datetime naïf.
+            # On rattache UTC explicitement — l'affichage est inchangé, mais la valeur
+            # devient comparable sans piège si elle sert un jour à autre chose.
+            dt = datetime.strptime(ts, "%Y%m%dT%H%M%S%fZ").replace(tzinfo=timezone.utc)
             return dt.strftime("%Y-%m-%d %H:%M:%S")
         except ValueError:
             return ts

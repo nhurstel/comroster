@@ -23,8 +23,8 @@ def parse_scan(output):
     Doublons fusionnés (SSID répété par plusieurs bornes) en gardant le meilleur signal.
     """
     best = {}
-    for line in output.splitlines():
-        line = line.strip()
+    for raw in output.splitlines():
+        line = raw.strip()
         if not line:
             continue
         parts = line.split(":", 2)
@@ -56,6 +56,7 @@ def scan(timeout=8):
     try:
         proc = subprocess.run(
             ["nmcli", "-t", "-f", "SIGNAL,SECURITY,SSID", "dev", "wifi", "list"],
+            check=False,                    # nmcli absent ou refusé = pas une exception
             capture_output=True, text=True, timeout=timeout,
         )
     except (OSError, subprocess.TimeoutExpired):

@@ -40,7 +40,7 @@ def test_delete_group_moves_people_to_pool(auth_client):
     p = auth_client.post("/api/people", json={"name": "Jean", "role": "HF", "beltpack": "12", "group_id": g["id"]}).get_json()
     auth_client.delete(f"/api/groups/{g['id']}")
     state = auth_client.get("/api/state").get_json()
-    person = [x for x in state["people"] if x["id"] == p["id"]][0]
+    person = next(x for x in state["people"] if x["id"] == p["id"])
     assert person["group_id"] is None
 
 
@@ -268,6 +268,7 @@ def test_trigger_reboot_reports_sudo_refusal(monkeypatch):
 def test_trigger_reboot_timeout_is_not_an_error(monkeypatch):
     """Pas de retour = la machine est en train de partir : on ne crie pas à l'erreur."""
     import subprocess
+
     from comroster import api
 
     def run(cmd, **kwargs):
@@ -278,6 +279,7 @@ def test_trigger_reboot_timeout_is_not_an_error(monkeypatch):
 
 def test_trigger_reboot_missing_binary(monkeypatch):
     import subprocess
+
     from comroster import api
 
     def run(cmd, **kwargs):
@@ -291,6 +293,7 @@ def test_trigger_reboot_missing_binary(monkeypatch):
 
 def test_apply_network_restarts_the_network_service(monkeypatch):
     import subprocess
+
     from comroster import api
     seen = {}
 
@@ -310,6 +313,7 @@ def test_apply_network_restarts_the_network_service(monkeypatch):
 
 def test_apply_network_reports_refusal(monkeypatch):
     import subprocess
+
     from comroster import api
 
     class Proc:

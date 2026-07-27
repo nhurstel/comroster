@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 import os
@@ -25,10 +26,8 @@ class Storage:
         with _WRITE_LOCK:
             # Sauvegarde de la dernière version connue-bonne (récupération si corruption)
             if os.path.exists(path):
-                try:
+                with contextlib.suppress(OSError):
                     shutil.copyfile(path, path + ".bak")
-                except OSError:
-                    pass
             fd, tmp = tempfile.mkstemp(dir=directory, suffix=".tmp")
             try:
                 with os.fdopen(fd, "w", encoding="utf-8") as fh:

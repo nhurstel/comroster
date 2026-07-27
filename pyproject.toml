@@ -6,5 +6,32 @@ testpaths = ["tests"]
 # Jeu de règles DÉCLARÉ, jamais hérité. Sans cette section, ruff applique les règles
 # par défaut de la version installée : l'élargissement de ces défauts en 0.16.0 a fait
 # passer `main` au rouge le 2026-07-26 sans qu'une seule ligne de code ne change
-# (50 signalements apparus d'un coup). Ces quatre familles sont les défauts historiques.
-select = ["E4", "E7", "E9", "F"]
+# (50 signalements apparus d'un coup). Élargir ce jeu est donc une décision explicite,
+# jamais l'effet de bord d'une mise à jour.
+select = [
+    "E4", "E7", "E9", "F",  # défauts historiques : erreurs réelles, imports et noms inconnus
+    "I",                    # tri des imports (déterministe, corrigé automatiquement)
+    "UP",                   # modernisation — le projet est 3.12 uniquement, pas de rétro-compat
+    "B",                    # pièges courants (bugbear)
+    "C4",                   # compréhensions inutiles
+    "SIM",                  # simplifications lisibles
+    "RUF",                  # règles propres à ruff
+    "DTZ",                  # datetime naïfs — l'app horodate des affectations
+    "BLE",                  # `except Exception` nu : masque les vraies pannes
+    "FLY", "FURB",          # idiomes (join statique → f-string, écriture en boucle)
+    "PLE", "PLW",           # erreurs et avertissements pylint (dont subprocess sans check=)
+    "S110",                 # try/except/pass muet — le reste de `S` est inexploitable ici
+]
+
+# Base de code francophone : commentaires, docstrings et libellés d'interface sont en
+# français. RUF001-003 traquent les homoglyphes trompeurs dans du code ASCII (`×` pris
+# pour `x`, `е` cyrillique pour `e`) ; sur du texte français assumé ils ne signalent que
+# de la typographie légitime.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+# Les tests de parseurs construisent des sorties nmcli avec `"\n".join([...])` : une
+# ligne de source par ligne de sortie, chacune commentée (« SSID vide → ignoré »,
+# « sécurité vide → réseau ouvert »). Un littéral unique ferait perdre ces commentaires,
+# qui sont l'essentiel du cas de test. FLY002 se trompe de cible ici.
+"tests/*" = ["FLY002"]

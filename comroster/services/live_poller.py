@@ -84,9 +84,13 @@ def start_live_poller(app):
             now = time.monotonic()
             if now - last_roster >= roster_interval:
                 last_roster = now
-                try:
+                # Silence assumé : une antenne injoignable est déjà visible sur
+                # /admin/health, et journaliser toutes les 10 s noierait le tampon.
+                # `try/except` explicite plutôt que `contextlib.suppress` : c'est la
+                # seule forme où l'on peut écrire ici POURQUOI on ne fait rien.
+                try:                            # noqa: SIM105
                     sync_roster_once(app)
-                except Exception:           # noqa: BLE001 — le poller ne meurt jamais
+                except Exception:               # noqa: BLE001, S110 — le poller ne meurt jamais
                     pass
 
     threading.Thread(target=loop, daemon=True, name="antenna-live-poller").start()

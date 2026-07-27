@@ -39,7 +39,7 @@ class ViewerConfig:
         try:
             ipaddress.ip_address(ip)
         except ValueError:
-            raise ValueError("Adresse IP du serveur invalide")
+            raise ValueError("Adresse IP du serveur invalide") from None
         port = cfg.get("server_port", 8080)
         if not (isinstance(port, int) and not isinstance(port, bool) and 1 <= port <= 65535):
             raise ValueError("Port serveur invalide")

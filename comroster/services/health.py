@@ -90,7 +90,8 @@ def _cpu_temp():
 
 def _throttled():
     try:
-        proc = subprocess.run(["vcgencmd", "get_throttled"], capture_output=True, text=True, timeout=3)
+        proc = subprocess.run(["vcgencmd", "get_throttled"], check=False,
+                              capture_output=True, text=True, timeout=3)
     except (OSError, subprocess.SubprocessError):
         return None
     if proc.returncode != 0:
@@ -123,7 +124,7 @@ def snapshot(app):
         try:
             st = antenna.status()
             ant = {"connected": bool(st.get("connected")), "ip": st.get("ip")}
-        except Exception:          # l'état antenne ne doit jamais faire échouer la page santé
+        except Exception:  # noqa: BLE001 — l'état antenne ne doit jamais faire échouer /admin/health
             ant = None
 
     pub = None

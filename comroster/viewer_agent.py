@@ -7,8 +7,9 @@ import urllib.parse
 import segno
 
 from . import viewer_pages
+from .services.netconfig import NetConfig
+from .services.netconfig import validate as validate_network
 from .services.viewer import ViewerConfig, probe_server
-from .services.netconfig import NetConfig, validate as validate_network
 
 
 def make_handler(data_dir):
@@ -53,7 +54,7 @@ def make_handler(data_dir):
                 return self._html(200, viewer_pages.config_html(viewer.load(), netcfg.load()))
             if self.path.startswith("/qr.svg"):
                 buf = io.BytesIO()
-                segno.make("http://%s:8081/config" % self._host_ip(), error="m").save(
+                segno.make(f"http://{self._host_ip()}:8081/config", error="m").save(
                     buf, kind="svg", scale=5, border=2)
                 self.send_response(200)
                 self.send_header("Content-Type", "image/svg+xml")

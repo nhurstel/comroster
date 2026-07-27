@@ -1,5 +1,7 @@
 import json
+
 import pytest
+
 from comroster.services.netconfig import NetConfig, validate
 
 
@@ -70,7 +72,7 @@ def test_validate_wifi_static_ok():
     assert ok and err is None
 
 def test_validate_wifi_rejects_link_local():
-    ok, err = validate(_wifi(mode="link-local"))
+    ok, _ = validate(_wifi(mode="link-local"))
     assert not ok
 
 def test_validate_wifi_requires_ssid():

@@ -1,3 +1,4 @@
+import contextlib
 import queue
 import threading
 
@@ -22,10 +23,10 @@ class Broker:
         with self._lock:
             targets = list(self._subscribers)
         for q in targets:
-            try:
+            # File pleine = abonné trop lent : on lui abandonne l'évènement plutôt que
+            # de bloquer la publication pour tous les autres.
+            with contextlib.suppress(queue.Full):
                 q.put_nowait((event, data))
-            except queue.Full:
-                pass
 
     @property
     def subscriber_count(self):

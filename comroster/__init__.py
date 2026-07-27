@@ -4,23 +4,23 @@ from datetime import timedelta
 from flask import Flask, jsonify, request
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from .antenna import bp as antenna_bp
+from .api import bp as api_bp
+from .auth import bp as auth_bp
 from .config import Config
+from .display import bp as display_bp
 from .security import csrf, limiter
-from .services.storage import Storage
-from .services.secret import SecretStore
-from .services.pubsub import Broker
-from .services.history import History
-from .services.settings import Settings
+from .services import logbuffer
 from .services.antenna import AntennaClient
 from .services.configs import Configs
-from .services.netconfig import NetConfig
+from .services.history import History
 from .services.journal import Journal
-from .services import logbuffer
 from .services.live_poller import start_live_poller
-from .auth import bp as auth_bp
-from .api import bp as api_bp
-from .display import bp as display_bp
-from .antenna import bp as antenna_bp
+from .services.netconfig import NetConfig
+from .services.pubsub import Broker
+from .services.secret import SecretStore
+from .services.settings import Settings
+from .services.storage import Storage
 
 
 def create_app(config_overrides=None):
@@ -35,14 +35,14 @@ def create_app(config_overrides=None):
     if app.config.get("BEHIND_PROXY"):
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-    if not app.config.get("TESTING") and not app.config.get("DEBUG"):
-        if not app.config.get("SECRET_KEY"):
-            raise RuntimeError(
-                "FLASK_SECRET_KEY est obligatoire hors debug/test.\n"
-                "  • Développement local : ./run-dev.sh  (ou FLASK_DEBUG=true python app.py)\n"
-                "  • Production : définir FLASK_SECRET_KEY "
-                "(python -c \"import secrets; print(secrets.token_hex(32))\")"
-            )
+    if (not app.config.get("TESTING") and not app.config.get("DEBUG")
+            and not app.config.get("SECRET_KEY")):
+        raise RuntimeError(
+            "FLASK_SECRET_KEY est obligatoire hors debug/test.\n"
+            "  • Développement local : ./run-dev.sh  (ou FLASK_DEBUG=true python app.py)\n"
+            "  • Production : définir FLASK_SECRET_KEY "
+            "(python -c \"import secrets; print(secrets.token_hex(32))\")"
+        )
     if not app.config.get("SECRET_KEY"):
         app.config["SECRET_KEY"] = "dev-insecure-key"
 

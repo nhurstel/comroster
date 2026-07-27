@@ -27,4 +27,4 @@ class Config:
                 setattr(self, key, value)
 
     def as_dict(self):
-        return {k: v for k, v in self.__dict__.items()}
+        return dict(self.__dict__)
