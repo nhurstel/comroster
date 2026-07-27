@@ -70,6 +70,7 @@ def test_display_template_error_is_not_swallowed(client, monkeypatch):
     # Politique appliance : fail-safe sur les DONNÉES, jamais de masquage des BUGS.
     # Une erreur de template doit remonter (500/exception), pas un faux "OK".
     import pytest
+
     import comroster.display as display_mod
 
     def boom(*args, **kwargs):

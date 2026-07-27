@@ -1,7 +1,8 @@
 import pytest
-from comroster.services.storage import Storage
-from comroster.services.history import History
+
 from comroster.services import model
+from comroster.services.history import History
+from comroster.services.storage import Storage
 
 
 def test_archive_and_list(tmp_path):

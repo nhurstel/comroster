@@ -1,10 +1,10 @@
 import threading
 from functools import wraps
 
-from flask import session, redirect, url_for, jsonify, request
-from flask_wtf.csrf import CSRFProtect
+from flask import jsonify, redirect, request, session, url_for
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import BadRequest
 
 csrf = CSRFProtect()

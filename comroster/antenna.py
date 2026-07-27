@@ -1,8 +1,8 @@
 import ipaddress
 
-from flask import Blueprint, jsonify, current_app
+from flask import Blueprint, current_app, jsonify
 
-from .security import login_required, exclusive_state, json_body, state_lock
+from .security import exclusive_state, json_body, login_required, state_lock
 from .services import model
 from .services.antenna import AntennaError
 

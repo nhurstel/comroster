@@ -1,5 +1,5 @@
-from comroster.services.storage import Storage
 from comroster.services.settings import Settings
+from comroster.services.storage import Storage
 
 
 def test_default_empty(tmp_path):

@@ -1,9 +1,11 @@
 import json
 import threading
-import urllib.request
 import urllib.error
 import urllib.parse
+import urllib.request
+
 import pytest
+
 from comroster.viewer_agent import build_server
 
 

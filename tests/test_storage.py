@@ -1,7 +1,8 @@
 import json
 import os
-from comroster.services.storage import Storage
+
 from comroster.services import model
+from comroster.services.storage import Storage
 
 
 def test_save_and_load_draft(tmp_path):

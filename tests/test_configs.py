@@ -1,7 +1,8 @@
 import pytest
-from comroster.services.storage import Storage
-from comroster.services.configs import Configs
+
 from comroster.services import model
+from comroster.services.configs import Configs
+from comroster.services.storage import Storage
 
 
 def test_save_list_load(tmp_path):

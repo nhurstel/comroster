@@ -3,7 +3,6 @@ import pytest
 
 from comroster.services.journal import Journal
 
-
 # ---------- Service ----------
 
 def test_record_et_entries_plus_recent_d_abord(tmp_path):
@@ -91,8 +90,9 @@ def test_api_logs_capte_un_warning(app, auth_client):
 
 
 def test_logbuffer_borne_et_ordre(tmp_path):
-    from comroster.services.logbuffer import LogBuffer
     import logging
+
+    from comroster.services.logbuffer import LogBuffer
     buf = LogBuffer()
     logger = logging.getLogger("test-borne")
     logger.addHandler(buf)

@@ -3,7 +3,6 @@ import pytest
 
 from comroster.services import wifi
 
-
 # ---------- parse_scan (sortie terse nmcli) ----------
 
 def test_parse_trie_par_signal_et_marque_securite():

@@ -5,7 +5,14 @@ import socket
 import time
 
 import segno
-from flask import Blueprint, Response, current_app, render_template, request, stream_with_context
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    render_template,
+    request,
+    stream_with_context,
+)
 
 from .services import model
 

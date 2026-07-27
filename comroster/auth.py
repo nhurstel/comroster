@@ -1,6 +1,12 @@
 from flask import (
-    Blueprint, request, redirect, url_for,
-    render_template, current_app, flash, jsonify,
+    Blueprint,
+    current_app,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
 )
 
 from .security import limiter, log_in, log_out

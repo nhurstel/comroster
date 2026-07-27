@@ -1,4 +1,5 @@
 import pytest
+
 from comroster.services import model
 
 

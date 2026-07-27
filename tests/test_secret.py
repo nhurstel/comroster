@@ -1,5 +1,7 @@
 import os
+
 import pytest
+
 from comroster.services.secret import SecretStore
 
 

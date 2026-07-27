@@ -1,8 +1,9 @@
 import json
 import os
-import socket
 import urllib.error
+
 import pytest
+
 from comroster.services.antenna import AntennaClient, AntennaError, _battery_percent
 
 
@@ -203,7 +204,7 @@ def test_request_timeout(tmp_path, monkeypatch):
     c = _client_with_ip(tmp_path)
 
     def boom(req, timeout=5):
-        raise urllib.error.URLError(socket.timeout("timed out"))
+        raise urllib.error.URLError(TimeoutError("timed out"))
     monkeypatch.setattr("urllib.request.urlopen", boom)
     ok, data = c._request("GET", "/rest/nodeStatus")
     assert ok is False and data["code"] == "timeout"

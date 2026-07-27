@@ -1,5 +1,5 @@
-from comroster.services.pubsub import Broker
 from comroster.services.live_poller import poll_once
+from comroster.services.pubsub import Broker
 
 
 class FakeClient:

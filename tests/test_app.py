@@ -6,6 +6,7 @@ def test_healthz(client):
 
 def test_prod_requires_secret_key():
     import pytest
+
     from comroster import create_app
     with pytest.raises(RuntimeError):
         create_app({"TESTING": False, "DEBUG": False, "SECRET_KEY": None})
