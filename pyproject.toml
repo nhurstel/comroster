@@ -1,3 +1,10 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff.lint]
+# Jeu de règles DÉCLARÉ, jamais hérité. Sans cette section, ruff applique les règles
+# par défaut de la version installée : l'élargissement de ces défauts en 0.16.0 a fait
+# passer `main` au rouge le 2026-07-26 sans qu'une seule ligne de code ne change
+# (50 signalements apparus d'un coup). Ces quatre familles sont les défauts historiques.
+select = ["E4", "E7", "E9", "F"]

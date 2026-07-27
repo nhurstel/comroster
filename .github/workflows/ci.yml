@@ -18,7 +18,11 @@ jobs:
         # Tout le dépôt, pas seulement le paquet : les tests et scripts étaient hors
         # couverture, et 7 erreurs y sont passées inaperçues jusqu'au 2026-07-21.
         # (ruff respecte .gitignore, les archives locales sont donc exclues.)
-        run: pip install ruff && ruff check .
+        # Installé depuis requirements-dev.txt, qui épingle la version : un `pip install
+        # ruff` libre rend le lint non reproductible (local et CI divergent), et ruff 0.16.0
+        # a cassé `main` le 2026-07-26 en élargissant ses règles par défaut, sans qu'aucune
+        # ligne de code ne change. Le jeu de règles est déclaré dans pyproject.toml.
+        run: pip install -r requirements-dev.txt && ruff check .
       - name: shellcheck (scripts déploiement)
         run: sudo apt-get update -qq && sudo apt-get install -y shellcheck && shellcheck deploy/*.sh
 

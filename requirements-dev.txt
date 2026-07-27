@@ -2,4 +2,6 @@
 pytest>=8
 playwright>=1.61
 pytest-playwright>=0.5
-ruff>=0.6           # lint Python (aussi lancé en CI)
+ruff==0.16.0        # lint Python — version ÉPINGLÉE, source unique (la CI l'installe d'ici).
+                    # Une borne ouverte (>=) rend le lint non reproductible : une nouvelle
+                    # version élargit ses règles et casse `main` sans changement de code.
