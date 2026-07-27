@@ -24,7 +24,10 @@ jobs:
         # ligne de code ne change. Le jeu de règles est déclaré dans pyproject.toml.
         run: pip install -r requirements-dev.txt && ruff check .
       - name: shellcheck (scripts déploiement)
-        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck && shellcheck deploy/*.sh
+        # `run-dev.sh` inclus : il était hors couverture alors que c'est le script que
+        # tout le monde lance en premier — ses deux pièges (bannière avant le bind,
+        # dépendance au `python` du PATH) ont coûté une soirée le 2026-07-26.
+        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck && shellcheck deploy/*.sh run-dev.sh
 
   unit:
     name: Tests unitaires & intégration
