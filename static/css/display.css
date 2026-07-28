@@ -108,12 +108,18 @@ body.display-page[data-theme="day"] .person { background: rgba(23,27,36,0.03); }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .display-page .header-actions { gap: 1.6rem; margin-left: auto; align-items: center; }
-/* Logo ComRoster (glyphe seul) en haut à droite, séparé par un filet des indicateurs. */
+/* Logo en haut à droite, séparé par un filet des indicateurs. Hauteur FIXE, largeur
+   LIBRE bornée : le glyphe ComRoster est carré, mais un logo client est presque toujours
+   un wordmark horizontal, et l'en-tête est déjà dense (titre, stats, horloge, badge). */
 .display-page .brand-mark {
-  width: 1.85rem; height: 1.85rem; flex: 0 0 auto; opacity: 0.9;
+  height: 1.85rem; width: auto; max-width: 9rem; object-fit: contain;
+  flex: 0 0 auto; opacity: 0.9;
   padding-left: 1.2rem; border-left: 1px solid var(--d-line-strong); box-sizing: content-box;
 }
 body.display-page[data-theme="day"] .brand-mark { filter: invert(1); }
+/* Un logo client EN COULEUR ne doit jamais passer dans l'inversion ci-dessus : elle le
+   rendrait en négatif (le bleu vire à l'orange). Spécificité égale, posée après. */
+body.display-page[data-theme="day"] .brand-mark-color { filter: none; }
 
 /* Stats : chiffre typographique + label capitale (Swiss) */
 .stats-container { display: flex; align-items: center; gap: 1.4rem; }

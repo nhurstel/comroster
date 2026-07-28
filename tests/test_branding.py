@@ -155,3 +155,44 @@ def test_la_marque_est_disponible_dans_les_templates(tmp_path):
     with app.test_request_context():
         from flask import render_template_string
         assert render_template_string("{{ brand.name }}") == "Acme Live"
+
+
+# ---------------------------------------------------------------------------
+# Rendu du tableau de régie
+# ---------------------------------------------------------------------------
+
+
+def test_sans_pack_le_display_garde_le_glyphe_comroster(client):
+    """Non-régression : le comportement par défaut ne bouge pas d'un octet."""
+    html = client.get("/display").get_data(as_text=True)
+    assert "comroster-glyph.svg" in html
+    assert "COMROSTER par Nathan Hurstel" in html
+    assert "/branding/logo" not in html
+
+
+def test_avec_pack_le_display_affiche_le_logo_client(tmp_path):
+    html = _client_avec_pack(tmp_path).get("/display").get_data(as_text=True)
+    assert "/branding/logo" in html
+    assert 'alt="Acme Live"' in html
+    assert "comroster-glyph.svg" not in html
+
+
+def test_avec_pack_le_credit_comroster_devient_discret(tmp_path):
+    """Co-branding : la signature reste, elle cède la place d'honneur."""
+    html = _client_avec_pack(tmp_path).get("/display").get_data(as_text=True)
+    assert "Propulsé par ComRoster" in html
+    assert "COMROSTER par Nathan Hurstel" not in html
+
+
+def test_un_logo_couleur_est_protege_de_l_inversion_du_theme_jour(tmp_path):
+    """Le thème jour inverse le glyphe monochrome de ComRoster ; appliqué à un logo
+    couleur, ce filtre le rendrait en négatif."""
+    html = _client_avec_pack(tmp_path).get("/display").get_data(as_text=True)
+    assert "brand-mark-color" in html
+
+
+def test_un_logo_monochrome_reste_inverse_en_theme_jour(tmp_path):
+    html = _client_avec_pack(
+        tmp_path, {"name": "Acme", "logo": "logo.svg", "mono": True}
+    ).get("/display").get_data(as_text=True)
+    assert "brand-mark-color" not in html

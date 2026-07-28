@@ -30,13 +30,19 @@
         <span class="pulse" aria-hidden="true"></span>
         <span class="status-text">En direct</span>
       </div>
-      {# Logo ComRoster en haut à droite (glyphe seul, sans le mot). #}
+      {# Logo en haut à droite : celui du client si un pack de marque est posé sur le
+         boîtier (deploy/set-branding.sh), sinon le glyphe ComRoster. #}
+      {% if brand.active %}
+      <img class="brand-mark{% if not brand.mono %} brand-mark-color{% endif %}"
+           src="{{ url_for('display.brand_logo', v=brand.version) }}" alt="{{ brand.name }}">
+      {% else %}
       <img class="brand-mark" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="ComRoster" width="28" height="28">
+      {% endif %}
     </div>
   </header>
   <main id="display-scroll"><div class="display-grid" id="display-grid"></div></main>
   <footer>
-    <span class="created-by">COMROSTER par Nathan Hurstel</span>
+    <span class="created-by">{% if brand.active %}Propulsé par ComRoster{% else %}COMROSTER par Nathan Hurstel{% endif %}</span>
     <span class="footer-updated">Dernière mise à jour : <time id="updated-at-time">{{ initial_data.updated_at }}</time></span>
   </footer>
 
