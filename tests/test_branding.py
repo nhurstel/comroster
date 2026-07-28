@@ -196,3 +196,32 @@ def test_un_logo_monochrome_reste_inverse_en_theme_jour(tmp_path):
         tmp_path, {"name": "Acme", "logo": "logo.svg", "mono": True}
     ).get("/display").get_data(as_text=True)
     assert "brand-mark-color" not in html
+
+
+# ---------------------------------------------------------------------------
+# Rendu de la feuille imprimable
+# ---------------------------------------------------------------------------
+
+
+def _client_admin_avec_pack(tmp_path):
+    c = _client_avec_pack(tmp_path)
+    c.post("/admin/setup", data={"password": "motdepasse8"})
+    return c
+
+
+def test_sans_pack_la_feuille_garde_le_pied_comroster(auth_client):
+    """Non-régression sur le document papier."""
+    html = auth_client.get("/admin/print").get_data(as_text=True)
+    assert "ComRoster" in html
+    assert "/branding/logo-print" not in html
+
+
+def test_avec_pack_la_feuille_porte_le_logo_client(tmp_path):
+    html = _client_admin_avec_pack(tmp_path).get("/admin/print").get_data(as_text=True)
+    assert "/branding/logo-print" in html
+    assert "Acme Live" in html
+
+
+def test_avec_pack_le_pied_de_la_feuille_est_co_brande(tmp_path):
+    html = _client_admin_avec_pack(tmp_path).get("/admin/print").get_data(as_text=True)
+    assert "Propulsé par ComRoster" in html

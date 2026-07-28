@@ -28,6 +28,12 @@
   </div>
 
   <header class="sheet-head">
+    {# Logo du client, s'il y en a un : la place naturelle d'un logo sur un document.
+       Variante encre noire du pack, à défaut le logo d'écran. #}
+    {% if brand.active %}
+    <img class="sheet-logo" src="{{ url_for('display.brand_logo_print', v=brand.version) }}"
+         alt="{{ brand.name }}">
+    {% endif %}
     <div class="sheet-title">
       <h1>{{ state.production_name or state.title or 'Affectation Intercom' }}</h1>
       {% if state.subtitle %}<p class="sheet-sub">{{ state.subtitle }}</p>{% endif %}
@@ -89,8 +95,10 @@
   </div>
 
   <footer class="sheet-foot">
-    ComRoster · {{ state.title or 'Affectation Intercom' }} ·
-    {% if state.updated_at %}dernière modification {{ state.updated_at }}{% endif %}
+    {% if brand.active %}{{ brand.name }}{% else %}ComRoster{% endif %} ·
+    {{ state.title or 'Affectation Intercom' }}
+    {%- if state.updated_at %} · dernière modification {{ state.updated_at }}{% endif %}
+    {%- if brand.active %} · Propulsé par ComRoster{% endif %}
   </footer>
 
   <script src="{{ url_for('static', filename='js/print.js') }}"></script>

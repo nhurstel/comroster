@@ -67,6 +67,12 @@
   padding: 1.75rem 1.5rem 1rem;
   border-bottom: 2px solid var(--ink);
 }
+
+/* Logo du client. `print.css` est AUTONOME (elle ne charge pas main.css) : dimensions en
+   millimètres, comme le reste de la feuille. Hauteur fixe, largeur libre bornée — un
+   wordmark horizontal comme un logo carré tiennent tous deux dans l'en-tête. */
+.sheet-logo { height: 13mm; width: auto; max-width: 55mm; object-fit: contain; }
+
 .sheet-head h1 { margin: 0; font-size: 19pt; letter-spacing: -0.01em; }
 .sheet-sub { margin: .2rem 0 0; color: var(--ink-soft); }
 .sheet-meta { display: flex; gap: 1.75rem; margin: 0; text-align: right; }
