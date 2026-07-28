@@ -136,6 +136,115 @@ def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie",
     return display, errors
 
 
+# Enregistreur de la transition d'arrivée. Installé AVANT tout script de la page
+# (add_init_script) : une transition déclenchée par le tout premier évènement du flux
+# serait sinon manquée, et le test passerait pour de mauvaises raisons. On observe le
+# document entier parce que #display-grid n'existe pas encore à cet instant.
+_ANIM_RECORDER = """
+window.__anim = [];
+window.__sse = [];
+
+// Journal des évènements SSE REÇUS. Il sert de signal d'attente fiable (« le flux est
+// établi et le premier message est arrivé ») et permet d'attribuer chaque transition à
+// l'évènement qui l'a déclenchée — c'est toute la question ici, `snapshot` étant réémis
+// à chaque reconnexion. Posé AVANT tout le reste : display.js ne doit jamais voir
+// l'EventSource d'origine.
+const OrigES = window.EventSource;
+window.EventSource = function (url) {
+  const es = new OrigES(url);
+  const add = es.addEventListener.bind(es);
+  es.addEventListener = (type, fn) => add(type, (e) => { window.__sse.push(type); fn(e); });
+  return es;
+};
+
+// On observe `document` et non `document.documentElement` : à l'instant où ce script
+// s'exécute, l'élément racine peut ne pas exister encore — l'observer levait alors une
+// exception qui emportait silencieusement tout le reste de l'instrumentation.
+new MutationObserver(() => {
+  const g = document.getElementById('display-grid');
+  if (g) window.__anim.push(g.dataset.anim ?? null);
+}).observe(document, { attributes: true, subtree: true, attributeFilter: ['data-anim'] });
+"""
+
+
+def _open_display_recording(context, base):
+    """Ouvre /display avec l'enregistreur armé et attend le premier message du flux."""
+    display = context.new_page()
+    display.add_init_script(_ANIM_RECORDER)
+    display.goto(base + "/display")
+    display.wait_for_function("() => window.__sse.includes('snapshot')")
+    return display
+
+
+def _add_group_and_publish(page, name="Plateau", beltpack="42", role="Régie"):
+    page.click("#add-block-btn")
+    page.fill("#block-name", name)
+    page.click("#block-form button[type=submit]")
+    page.wait_for_selector(f"#blocks-container >> text={name}")
+    page.click("#add-beltpack-pool")
+    page.fill("#person-beltpack", beltpack)
+    page.fill("#person-role", role)
+    page.select_option("#person-assign", label=name)
+    page.click("#person-form button[type=submit]")
+    page.click("#publish-btn")
+    page.keyboard.press("Control+Enter")
+    page.wait_for_selector("#sync-label:has-text('À jour')")
+
+
+def test_publication_joue_la_transition_darrivee(page, live_server):
+    """L'écran doit passer par le cycle sortie → arrivée → repos, pas remplacer d'un coup.
+
+    L'écran est ouvert AVANT la publication : c'est la seule façon de recevoir un vrai
+    `published`. Les autres e2e l'ouvrent après et ne reçoivent qu'un `snapshot`.
+    """
+    _enter_admin(page, live_server)
+    display = _open_display_recording(page.context, live_server)
+
+    _add_group_and_publish(page)
+
+    display.wait_for_function("() => window.__anim.length >= 3")
+    # `attached` et non `visible` : pendant la sortie la grille est à opacité nulle
+    # (leçon 2026-07-23, re-commise le 2026-07-27).
+    display.wait_for_selector("#display-grid .person", state="attached")
+    assert display.evaluate("() => window.__anim") == ["out", "in", None]
+    # Le rang est bien posé : c'est lui qui décale la cascade.
+    assert display.evaluate(
+        "() => document.querySelector('#display-grid .block').style.getPropertyValue('--anim-i')"
+    ) == "0"
+
+
+def test_mode_performance_supprime_la_transition(page, live_server):
+    """Mode performance : aucun état d'animation, donc aucun délai avant le tableau."""
+    _enter_admin(page, live_server)
+    _open_screen_tab(page)
+    page.check("#meta-perf")
+    _wait_saved(page)
+    page.click('.admin-tabs .tab[data-tab="board"]')
+    page.wait_for_selector("#add-block-btn", state="visible")
+
+    display = _open_display_recording(page.context, live_server)
+    _add_group_and_publish(page)
+
+    display.wait_for_selector("#display-grid .person", state="attached")
+    assert display.get_attribute("body", "data-perf") == "on"
+    assert display.evaluate("() => window.__anim") == []
+
+
+def test_snapshot_nanime_pas(page, live_server):
+    """Le `snapshot` est réémis à CHAQUE ouverture de flux, donc à chaque reconnexion.
+
+    L'animer rejouerait la transition toutes les 4 s quand le réseau tousse, en plein
+    show, sans rien de nouveau à montrer.
+    """
+    _enter_admin(page, live_server)
+    _add_group_and_publish(page)
+
+    display = _open_display_recording(page.context, live_server)
+    display.wait_for_selector("#display-grid .person", state="attached")
+    assert display.evaluate("() => window.__sse") == ["snapshot"]
+    assert display.evaluate("() => window.__anim") == []
+
+
 def test_base_skin_keeps_historic_fit_bounds(page, live_server):
     """Non-régression du contrat d'ajustement (lot 2026-07-15) après le passage des
     bornes de fitDisplayText en variables CSS : `base` doit rester identique."""
@@ -319,8 +428,11 @@ def test_indicator_toggles_persist(page, live_server):
     page.uncheck("#ind-battery")
     _wait_saved(page)                                     # brouillon sauvegardé
     page.reload()
-    page.wait_for_selector("#add-block-btn")
-    _open_screen_tab(page)
+    # L'onglet actif est RESTAURÉ au rechargement : on repart donc dans « Écran ».
+    # Avant, rafraîchir depuis les réglages ramenait sur « Affectations » — signalé à
+    # l'usage, et ce test encodait l'ancien comportement (il attendait #add-block-btn).
+    page.wait_for_selector("#skin-select", state="visible")
+    assert page.get_attribute('.admin-tabs .tab[data-tab="screen"]', "aria-selected") == "true"
     assert page.is_checked("#ind-battery") is False        # préférence persistée
     assert page.is_checked("#ind-online") is True
 
@@ -344,6 +456,157 @@ def test_antenna_dialog_opens_wizard_when_unconfigured(page, live_server):
     page.wait_for_selector("#antenna-wizard:not([hidden])")
     assert page.is_hidden("#antenna-dashboard")
     assert page.is_visible("#wiz-ip")
+
+
+def _seed_table(page, live_server):
+    """Un groupe « Plateau » (10, 20) et deux beltpacks en réserve (30, 40), vue Tableau.
+
+    Le mélange affecté / non affecté est nécessaire pour reproduire le défaut : c'est
+    lui qui faisait exister une même personne à DEUX endroits du document.
+    """
+    _enter_admin(page, live_server)
+    page.click("#add-block-btn")
+    page.fill("#block-name", "Plateau")
+    page.click("#block-form button[type=submit]")
+    page.wait_for_selector("#blocks-container >> text=Plateau")
+    for num, grp in (("10", "Plateau"), ("20", "Plateau"), ("30", None), ("40", None)):
+        page.click("#add-beltpack-pool")
+        page.fill("#person-beltpack", num)
+        if grp:
+            page.select_option("#person-assign", label=grp)
+        page.click("#person-form button[type=submit]")
+        page.wait_for_selector(f".person .bp:has-text('{num}')")
+    page.click('.tb-seg .seg-btn[data-view-mode="table"]')
+    page.click('.bt-head .bt-sort:has-text("BP")')      # 2e clic sur BP → ordre décroissant
+    rows = page.locator("#blocks-table .bt-row")
+    assert [rows.nth(i).locator(".bt-bp").inner_text() for i in range(4)] == ["40", "30", "20", "10"]
+    return rows
+
+
+def test_table_shift_select_follows_visible_order(page, live_server):
+    """MAJ+clic dans la vue Tableau balaie ce qui est À L'ÉCRAN, dans l'ordre affiché.
+
+    Régression corrigée : passer en Tableau ne démonte pas la vue Blocs, seulement
+    masquée. Le balayage interrogeait tout le document, donc chaque personne DEUX fois
+    — carte cachée puis rangée visible — et `indexOf` trouvait d'abord la carte. La
+    plage n'avait plus de rapport avec les rangées visées (« ça saute »).
+    """
+    rows = _seed_table(page, live_server)
+    # On clique la cellule BP, jamais le centre de la rangée : il tombe sur le sélecteur
+    # de groupe, qui arrête la propagation (cf. leçon du 2026-07-23 sur click au centre).
+    rows.nth(0).locator(".bt-bp").click()
+    rows.nth(2).locator(".bt-bp").click(modifiers=["Shift"])
+    sel = page.locator("#blocks-table .bt-row.selected")
+    assert [sel.nth(i).locator(".bt-bp").inner_text() for i in range(sel.count())] == ["40", "30", "20"]
+
+
+def test_table_bulk_assign_moves_whole_selection(page, live_server):
+    """La barre de sélection réaffecte TOUTE la sélection d'un coup.
+
+    Le sélecteur d'une rangée ne pilote que sa rangée : déplacer dix beltpacks
+    demandait dix manipulations.
+    """
+    rows = _seed_table(page, live_server)
+    rows.nth(0).locator(".bt-bp").click()
+    rows.nth(1).locator(".bt-bp").click()
+    page.wait_for_selector("#selection-bar.active")
+    page.select_option("#selection-group", label="Plateau")
+    # `state="attached"` : sans .active la barre est masquée, or wait_for_selector attend
+    # « visible » par défaut — il patienterait pour toujours (leçon 2026-07-23).
+    page.wait_for_selector("#selection-bar:not(.active)", state="attached")
+    groupes = page.eval_on_selector_all(
+        "#blocks-table .bt-assign", "els => els.map((e) => e.selectedOptions[0].textContent)")
+    assert groupes == ["Plateau"] * 4                        # 30 et 40 ont rejoint le groupe
+
+
+def test_select_all_covers_both_views_and_respects_the_filter(page, live_server):
+    """⌘A sélectionne tous les beltpacks de la vue active — y compris la réserve.
+
+    Et un filtre en cours restreint la portée : ce qui est estompé n'est pas cliquable,
+    le balayer sélectionnerait de l'invisible.
+    """
+    _seed_table(page, live_server)
+    page.keyboard.press("Control+a")
+    page.wait_for_selector("#selection-bar.active")
+    assert page.locator("#blocks-table .bt-row.selected").count() == 4
+    # Échap quitte la sélection (le bouton « Annuler » n'est plus le seul moyen).
+    page.keyboard.press("Escape")
+    page.wait_for_selector("#selection-bar:not(.active)", state="attached")
+    assert page.locator("#blocks-table .bt-row.selected").count() == 0
+
+    # Retour en vue Blocs : les affectés (2) ET la réserve (2) sont concernés.
+    page.click('.tb-seg .seg-btn[data-view-mode="blocs"]')
+    page.keyboard.press("Control+a")
+    page.wait_for_selector("#selection-bar.active")
+    assert "4 sélectionné(s)" in page.inner_text("#selection-count")
+    page.click("#selection-cancel")
+
+    # Avec un filtre, seuls les beltpacks correspondants sont pris. On quitte le champ
+    # de filtre avant : dedans, ⌘A reste le « tout sélectionner » du navigateur.
+    page.fill("#board-filter", "10")
+    page.wait_for_selector(".person.view-dim")
+    page.evaluate("document.activeElement.blur()")
+    page.keyboard.press("Control+a")
+    assert "1 sélectionné(s)" in page.inner_text("#selection-count")
+
+
+def test_undo_redo_scoped_to_the_draft(page, live_server):
+    """⌘Z annule une modification du BROUILLON, et rien d'autre.
+
+    La portée est garantie par construction : la configuration du boîtier (réseau, IP,
+    Wi-Fi, antenne) ne transite pas par `state.data`, elle a ses propres endpoints. Ce
+    test le VÉRIFIE plutôt que de le supposer : une IP fixe enregistrée avant l'annulation
+    doit être intacte après.
+    """
+    _enter_admin(page, live_server)
+    page.click("#network-btn")
+    page.wait_for_selector("#network-dialog[open]")
+    page.select_option("#net-mode", "static")
+    page.wait_for_selector("#net-static-fields:not([hidden])")
+    page.fill("#net-address", "192.168.1.50")
+    page.click("#network-form button[type=submit]")
+    page.wait_for_selector("#net-result:not([hidden])")
+    page.click('#network-dialog button[data-close="network-dialog"]')
+    page.wait_for_selector("#network-dialog:not([open])", state="attached")
+
+    for name in ("Plateau", "Lumière"):
+        page.click("#add-block-btn")
+        page.fill("#block-name", name)
+        page.click("#block-form button[type=submit]")
+        page.wait_for_selector(f"#blocks-container >> text={name}")
+
+    page.keyboard.press("Control+z")
+    page.wait_for_selector("#blocks-container >> text=Lumière", state="detached")
+    assert page.locator("#blocks-container .admin-block").count() == 1   # Plateau survit
+
+    page.keyboard.press("Control+Shift+z")
+    page.wait_for_selector("#blocks-container >> text=Lumière")
+
+    # La config du boîtier n'a pas bougé d'un iota au passage.
+    page.click("#network-btn")
+    page.wait_for_selector("#network-dialog[open]")
+    assert page.input_value("#net-address") == "192.168.1.50"
+    assert page.input_value("#net-mode") == "static"
+
+
+def test_undo_ignored_inside_a_text_field(page, live_server):
+    """Dans un champ de saisie, ⌘Z reste l'annulation NATIVE du navigateur.
+
+    Sans cette réserve, corriger une faute de frappe dans le titre effacerait le dernier
+    groupe créé — une surprise coûteuse en régie.
+    """
+    _enter_admin(page, live_server)
+    page.click("#add-block-btn")
+    page.fill("#block-name", "Plateau")
+    page.click("#block-form button[type=submit]")
+    page.wait_for_selector("#blocks-container >> text=Plateau")
+
+    _open_screen_tab(page)
+    page.click("#meta-title")
+    page.keyboard.press("Control+z")
+    page.wait_for_timeout(300)
+    page.click('.admin-tabs .tab[data-tab="board"]')
+    assert page.locator("#blocks-container .admin-block").count() == 1   # le groupe est là
 
 
 def test_display_requests_screen_wake_lock(page, live_server):

@@ -56,7 +56,13 @@ def test_publish_ecrit_un_evenement_au_journal(auth_client):
     assert auth_client.post("/api/publish").status_code == 200
     entries = auth_client.get("/api/journal").get_json()
     assert entries[0]["event"] == "publish"
-    assert "1 groupes" in entries[0]["detail"]
+    # Le détail accorde le pluriel : « 1 groupes » dans une conduite de régie fait
+    # négligé, et c'est le cas le plus fréquent au démarrage d'une production.
+    assert entries[0]["detail"] == "1 groupe · 0 beltpack"
+
+    auth_client.post("/api/groups", json={"name": "Plateau"})
+    assert auth_client.post("/api/publish").status_code == 200
+    assert auth_client.get("/api/journal").get_json()[0]["detail"] == "2 groupes · 0 beltpack"
 
 
 def test_reboot_simule_journalise(auth_client):
@@ -87,6 +93,29 @@ def test_api_logs_capte_un_warning(app, auth_client):
     entries = auth_client.get("/api/logs").get_json()
     assert any("sentinelle-logbuffer 42" in e["message"] for e in entries)
     assert entries[0]["level"] in ("INFO", "WARNING", "ERROR")
+
+
+def test_logbuffer_ecarte_les_acces_http_mais_garde_leurs_erreurs():
+    """Le tampon sert à diagnostiquer le boîtier, pas à compter les requêtes.
+
+    Un seul chargement de page produit des dizaines de lignes d'accès (fichiers
+    statiques compris) : gardées, elles chassaient du tampon les lignes utiles. Une
+    vraie erreur du serveur HTTP, elle, doit rester lisible sans SSH.
+    """
+    import logging
+
+    from comroster.services.logbuffer import LogBuffer
+    buf = LogBuffer()
+    access = logging.getLogger("werkzeug")
+    access.addHandler(buf)
+    access.setLevel(logging.INFO)
+    access.info('127.0.0.1 - - "GET /static/css/admin.css HTTP/1.1" 200 -')
+    access.error("Error on request: connexion perdue")
+    access.removeHandler(buf)
+
+    messages = [e["message"] for e in buf.entries()]
+    assert not any("GET /static" in m for m in messages)      # le bruit est écarté
+    assert any("connexion perdue" in m for m in messages)     # l'erreur, jamais
 
 
 def test_logbuffer_borne_et_ordre(tmp_path):

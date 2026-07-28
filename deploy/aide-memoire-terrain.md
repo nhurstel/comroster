@@ -67,7 +67,12 @@ Accès distant : `ssh pi@comroster.local`
 | Config réseau enregistrée | `cat instance/network.json` (le mot de passe Wi-Fi n'apparaît pas via l'admin, mais il est en clair dans ce fichier — normal) |
 | Revenir au réseau auto en urgence | `sudo nmcli con mod "Wired connection 1" ipv4.method auto && sudo reboot` |
 | **(2 Pi)** Afficheur bloqué sur « Serveur introuvable » | Vérifier `cat instance/viewer.json` et que le serveur répond : `curl http://<ip-serveur>:8080/healthz` |
-| **(2 Pi)** Reconfigurer un afficheur | Rebooter et appuyer sur ⚙ pendant les 5 s, ou ouvrir `http://<ip-afficheur>:8081/config` |
+| **(2 Pi)** Reconfigurer un afficheur | Rebooter et appuyer sur ⚙ pendant les 5 s, ou ouvrir `http://<ip-afficheur>:8081/config`. **Code à 6 caractères affiché sur l'écran de l'afficheur** ; s'il montre déjà le tableau : `journalctl -u comroster-viewer \| grep -i appariement` |
+| Sauvegarder le boîtier avant un show | Admin → **Sauvegarde** → phrase de passe → télécharger. **Noter la phrase avec le fichier** : sans elle, l'archive est irrécupérable |
+| Repartir sur un boîtier neuf | Installer, puis Admin → **Sauvegarde** → choisir le fichier → **Examiner** → **Restaurer**. Plateau, réseau, intercom, configurations et mot de passe reviennent |
+| Sortir la conduite sur papier | Admin → **Feuille imprimable** (état publié ; `?draft=1` pour le brouillon) |
+| Changer le mot de passe admin | Admin → **Mot de passe**. Le code de récupération reste valable |
+| Trouver l'antenne sans connaître son IP | Admin → **Intercom** → « Rechercher ». La saisie manuelle de l'IP reste possible en toutes circonstances |
 | **(2 Pi)** État de l'agent afficheur | `systemctl status comroster-viewer` |
 
 ---

@@ -1,0 +1,175 @@
+/* ============================================================================
+   Feuille d'affectation imprimable.
+
+   Registre volontairement DIFFÉRENT de l'écran de régie : encre noire sur blanc,
+   aucun aplat de couleur (à l'impression un fond mange l'encre, grise le texte et
+   disparaît en noir et blanc), pas d'indicateur temps réel — le papier ne se met pas
+   à jour, prétendre le contraire serait mentir.
+
+   La couleur de groupe survit sous forme de FILET : elle identifie sans coûter d'encre,
+   et reste lisible même sur une imprimante monochrome (le nom la porte de toute façon).
+   ========================================================================== */
+
+:root {
+  --ink: #14181f;
+  --ink-soft: #4a5462;
+  --ink-faint: #8a94a6;
+  --rule: #d5dae2;
+  --paper: #ffffff;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+.print-page {
+  margin: 0;
+  padding: 0 0 3rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 11pt;
+  line-height: 1.45;
+}
+
+/* ---------- Barre d'action : écran seulement ---------- */
+.print-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .75rem 1.5rem;
+  border-bottom: 1px solid var(--rule);
+  background: #f6f8fa;
+  position: sticky;
+  top: 0;
+}
+.print-bar a { color: var(--ink-soft); text-decoration: none; }
+.print-bar a:hover { color: var(--ink); text-decoration: underline; }
+.print-source { font-weight: 600; }
+.print-swap { margin-left: auto; }
+.print-go {
+  padding: .45rem 1.1rem;
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.print-go:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
+
+/* ---------- En-tête de la feuille ---------- */
+.sheet-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.75rem 1.5rem 1rem;
+  border-bottom: 2px solid var(--ink);
+}
+.sheet-head h1 { margin: 0; font-size: 19pt; letter-spacing: -0.01em; }
+.sheet-sub { margin: .2rem 0 0; color: var(--ink-soft); }
+.sheet-meta { display: flex; gap: 1.75rem; margin: 0; text-align: right; }
+.sheet-meta div { margin: 0; }
+.sheet-meta dt {
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-faint);
+}
+.sheet-meta dd { margin: .1rem 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ---------- Groupes ---------- */
+.sheet-groups {
+  padding: 1.25rem 1.5rem 0;
+  /* Deux colonnes à l'écran comme au papier : une conduite tient alors sur une page,
+     ce qui est tout l'intérêt d'une feuille qu'on plie dans une poche. */
+  column-count: 2;
+  column-gap: 2.25rem;
+}
+.sheet-group {
+  /* Un groupe ne doit JAMAIS être coupé entre deux colonnes ou deux pages : lire la
+     moitié d'un groupe au verso est précisément ce qui fait rater une affectation. */
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin: 0 0 1.4rem;
+}
+.sheet-group-name {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 0 0 .35rem;
+  font-size: 12pt;
+}
+.sheet-rule {
+  display: inline-block;
+  width: 4px;
+  height: 1.05em;
+  border-radius: 2px;
+  background: var(--ink-faint);
+  /* Sans cela, la couleur disparaît à l'impression : les navigateurs suppriment les
+     fonds par défaut pour économiser l'encre. Ici le filet EST l'information. */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.sheet-count {
+  margin-left: auto;
+  font-size: 9pt;
+  font-weight: 600;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet-table { width: 100%; border-collapse: collapse; }
+.sheet-table th {
+  text-align: left;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-faint);
+  font-weight: 600;
+  padding: 0 .4rem .15rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.sheet-table td {
+  padding: .22rem .4rem .22rem 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: baseline;
+}
+.c-bp {
+  width: 3.2em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.c-role { width: auto; }
+/* Colonne de visa : une conduite papier se pointe au crayon. */
+.c-sign { width: 3.2em; }
+
+.sheet-none, .sheet-empty { margin: .2rem 0; color: var(--ink-faint); font-style: italic; }
+.sheet-empty { padding: 2rem 1.5rem; }
+
+.sheet-foot {
+  padding: 1rem 1.5rem 0;
+  margin-top: 1rem;
+  border-top: 1px solid var(--rule);
+  font-size: 8.5pt;
+  color: var(--ink-faint);
+}
+
+/* ---------- Impression ---------- */
+@page {
+  size: A4 portrait;
+  margin: 12mm 10mm;
+}
+
+@media print {
+  /* Ce qui n'a de sens qu'à l'écran disparaît : la barre d'action, et les liens
+     « imprimer l'autre version » qui n'ont plus d'objet sur du papier. */
+  .print-bar { display: none; }
+  .print-page { padding: 0; font-size: 10pt; }
+  .sheet-head { padding: 0 0 .6rem; }
+  .sheet-groups { padding: .9rem 0 0; }
+  .sheet-foot { padding: .6rem 0 0; }
+  /* L'en-tête de groupe ne doit pas rester seul en bas de colonne. */
+  .sheet-group-name { break-after: avoid; page-break-after: avoid; }
+}

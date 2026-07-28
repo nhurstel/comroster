@@ -50,8 +50,11 @@ tout. Au redémarrage, l'écran affiche ComRoster automatiquement.
 4. Installe et active le **service serveur** `comroster.service` (`Restart=on-failure`).
 5. Installe le **service kiosk** système `comroster-kiosk.service` qui lance
    `cage -- `[kiosk-run.sh](kiosk-run.sh) sur `tty1` : Chromium plein écran affiche
-   immédiatement le splash « Booting ComRoster », qui bascule sur `/display` dès que
-   le serveur répond. cage donne l'accès écran/entrées via une session logind.
+   immédiatement l'écran de démarrage ([boot-splash.html](boot-splash.html)), qui bascule
+   sur `/display` dès que le serveur répond — au plus tôt après 5 s, pour ne pas se réduire
+   à un clignotement. Le disque du logo y sert de voyant : il dit l'état RÉEL de la sonde
+   (gris pendant le démarrage, ambre au-delà de 12 s, rouge et consigne au-delà de 30 s,
+   vert quand le service répond). cage donne l'accès écran/entrées via une session logind.
 6. Rend le **boot silencieux** ([quiet-boot.sh](quiet-boot.sh)) : écran noir dès
    l'allumage (ni logo Raspberry, ni logs), et démarrage en console (pas de bureau).
 
@@ -125,9 +128,24 @@ du serveur. Si le serveur est injoignable, la page de configuration s'affiche d'
 `http://<ip-afficheur>:8081/config` — ou rebooter et appuyer sur ⚙ pendant les 5 s.
 La saisie est appliquée au redémarrage.
 
-> ⚠️ **Sécurité :** la page de config de l'afficheur (port 8081) n'a **pas de mot de
-> passe** — à réserver à un réseau de régie isolé, même posture que
-> `COMROSTER_INSECURE_COOKIE`. Sur un réseau exposé, ne pas utiliser le mode afficheur en l'état.
+**Code de configuration.** Enregistrer une configuration demande un **code à 6 caractères
+affiché sur l'écran de l'afficheur** (page d'accueil, sous le compte à rebours). Le modèle
+d'autorisation est la **présence physique** : être dans la salle suffit, et rien d'autre ne
+suffit. C'était le trou de l'ancienne version — n'importe quel appareil du réseau pouvait
+repointer l'afficheur vers un serveur arbitraire ou lui casser son adresse, sans mot de
+passe ni confirmation (corrigé à l'audit du 2026-07-28).
+
+- Le code est **stable** : tiré au sort au premier démarrage puis conservé
+  (`viewer_agent.json`, permissions 600) — inutile de relire l'écran à chaque intervention.
+- Si l'afficheur montre déjà le tableau et non sa page d'accueil, le code se relit sans
+  rien redémarrer : `journalctl -u comroster-viewer | grep -i appariement`.
+- Pour l'imposer à l'installation (parc de plusieurs afficheurs) :
+  `COMROSTER_VIEWER_CODE=ABC234` dans l'environnement du service.
+
+> ⚠️ **Ce que le code ne protège pas.** La page reste consultable sans code, et l'agent
+> parle en HTTP clair : c'est une garde contre l'accident et le passant, pas contre un
+> attaquant présent sur le même réseau. La posture reste celle d'un **réseau de régie
+> isolé**, même esprit que `COMROSTER_INSECURE_COOKIE`.
 
 ## Configuration réseau — Filaire ou Wi-Fi
 

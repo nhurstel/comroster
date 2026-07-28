@@ -1,0 +1,12 @@
+{
+  "name": "comroster-dev",
+  "private": true,
+  "type": "commonjs",
+  "description": "Outillage de TEST JavaScript — développement uniquement. Rien de ce paquet n'est installé ni servi sur le boîtier : static/js/*.js reste du JavaScript nu, chargé par de simples <script>. L'engagement du README (« zéro dépendance JS ») porte sur le runtime et il tient.",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "4.1.10"
+  }
+}

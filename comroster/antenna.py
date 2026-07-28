@@ -2,8 +2,14 @@ import ipaddress
 
 from flask import Blueprint, current_app, jsonify
 
-from .security import exclusive_state, json_body, login_required, state_lock
-from .services import model
+from .security import (
+    exclusive_state,
+    json_body,
+    limiter,
+    login_required,
+    state_lock,
+)
+from .services import discovery, model, netstatus
 from .services.antenna import AntennaError
 
 bp = Blueprint("antenna", __name__)
@@ -77,6 +83,40 @@ def put_settings():
     return jsonify(_settings_public())
 
 
+@bp.post("/api/antenna/discover")
+@login_required
+@limiter.limit("6 per minute")
+def antenna_discover():
+    """Antennes Bolero visibles sur le sous-réseau du boîtier.
+
+    ⚠️ N'accepte AUCUNE adresse du client : le périmètre est déduit de l'adresse du
+    boîtier lui-même et borné aux plages privées. La garde anti-SSRF de `connect`
+    (littéral IP uniquement) reste donc entière — cette route ne lui ouvre pas de porte.
+
+    Elle PROPOSE : c'est l'opérateur qui choisit, puis se connecte par le chemin normal,
+    mot de passe compris. La saisie manuelle de l'IP reste disponible en toutes
+    circonstances (antenne hors sous-réseau, VLAN dédié, réseau segmenté).
+
+    Rate-limitée : un balayage mobilise plusieurs dizaines de connexions sortantes.
+    """
+    if current_app.debug or current_app.testing:
+        return jsonify({"available": True, "simulated": True, "antennas": discovery.sample()})
+    base_ip = _local_ipv4()
+    if not base_ip:
+        return jsonify({"available": False, "antennas": [],
+                        "error": "Adresse du boîtier inconnue — saisissez l'IP de l'antenne."})
+    found = discovery.scan(base_ip)
+    return jsonify({"available": True, "antennas": found, "scanned_from": base_ip})
+
+
+def _local_ipv4():
+    """Adresse du boîtier sur le réseau — point de départ du balayage."""
+    cfg = current_app.extensions["netconfig"].load()
+    if cfg.get("mode") == "static" and cfg.get("address"):
+        return cfg["address"]
+    return netstatus.route_lan_ip() or netstatus.enumerate_lan_ip()
+
+
 @bp.post("/api/antenna/connect")
 @login_required
 def antenna_connect():
@@ -132,8 +172,16 @@ def antenna_live():
 
 
 @bp.get("/api/live")
+@limiter.limit("60 per minute")
 def public_live():
-    # Variante publique en lecture seule pour l'affichage TV (pas de session).
+    """Variante publique en lecture seule pour l'affichage TV (pas de session).
+
+    Seule route publique qui expose des données d'exploitation (numéros de beltpack,
+    niveaux de batterie) : c'est le prix à payer pour que l'écran de régie n'ait pas de
+    session. Bornée malgré tout — un écran l'appelle UNE fois au chargement puis reçoit
+    tout par SSE, donc 60/min laisse une marge considérable au cas légitime tout en
+    fermant la boucle serrée. Le cache de 3 s protégeait l'antenne, pas le pool de threads.
+    """
     return jsonify(_client().live_status())
 
 

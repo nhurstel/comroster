@@ -14,7 +14,11 @@
      l'auto-scroll en dépend — cf. leçon 2026-06-20 ;
    - police : Inter, seule linéale auto-hébergée. Le kiosk Pi est hors-ligne, aucun
      appel CDN n'est possible ; changer de caractère = ajouter un woff2 (décision à part) ;
-   - aucune n'utilise `backdrop-filter` → le mode performance y est sans objet.
+   - aucune n'utilise `backdrop-filter` — mais le mode performance n'y est PLUS sans objet
+     depuis la transition d'arrivée à la publication : il la coupe sur les trois apparences.
+     Chacune décline cette transition selon SA structure (voir les jetons `--anim-*`
+     plus bas) : une cascade uniforme serait fausse, un tableau réglé et une mosaïque
+     bord à bord ne peuvent pas arriver comme une carte posée sur un fond.
 */
 
 /* ==========================================================================
@@ -113,6 +117,13 @@ body.display-page[data-skin="lineaire"] {
   --fit-title-min: 13; --fit-title-max: 22;
   --fit-role-min: 14;  --fit-role-max: 26;
   --fit-bpn-ratio: 1.1; --fit-bpn-min: 18; --fit-bpn-max: 26;
+
+  /* Arrivée à la publication : fondu PUR, aucun déplacement. Les cases sont soudées
+     (`gap: 0`, filet droite/bas fermé par la grille) : les faire glisser décalerait les
+     filets les uns par rapport aux autres, et pendant toute l'animation le tableau
+     cesserait d'être un tableau. En fondu seul, il s'imprime case par case — le bon
+     geste pour une feuille de service. */
+  --anim-lift: 0px;
 
   background: var(--l-bg);
   color: var(--l-fg);
@@ -293,6 +304,15 @@ body.display-page[data-skin="grille"] {
   --fit-role-min: 14;  --fit-role-max: 25;
   --fit-bpn-ratio: 1.05; --fit-bpn-min: 17; --fit-bpn-max: 26;
 
+  /* Arrivée à la publication : la tuile est un APLAT bord à bord, séparé du voisin par
+     6 px de fond. Un déplacement ou un `scale` ferait fuir ce fond dans les gouttières,
+     et la mosaïque se disloquerait le temps de l'animation. L'aplat monte donc vite et
+     sur place ; son contenu suit, plus lentement (--anim-content-in ci-dessous). Les
+     couleurs claquent d'abord, le texte se pose ensuite — vocabulaire de la signalétique. */
+  --anim-lift: 0px;
+  --anim-in: 160ms;         /* l'aplat */
+  --anim-content-in: 260ms; /* le titre et les lignes */
+
   background: var(--g-bg);
   color: var(--g-fg);
 }
@@ -375,6 +395,17 @@ body.display-page[data-skin="grille"] .block {
 body.display-page[data-skin="grille"] .block[data-ink="light"] {
   --g-ink: #FFFFFF;
   --g-hair: rgba(255, 255, 255, 0.26);
+}
+
+/* Le contenu de la tuile arrive APRÈS son aplat : l'en-tête et les lignes se fondent sur
+   --anim-content-in, avec le même délai de cascade que la tuile (les propriétés
+   personnalisées, --anim-i comprise, sont héritées du bloc). Réutilise la keyframe
+   `block-in` de display.css : --anim-lift valant 0 sur cette apparence, elle se réduit
+   à un fondu. Le second filet du mode performance vaut ici comme ailleurs. */
+body.display-page[data-skin="grille"]:not([data-perf="on"])
+  .display-grid[data-anim="in"] > .block > * {
+  animation: block-in var(--anim-content-in) ease-out backwards;
+  animation-delay: calc(min(var(--anim-i, 0), var(--anim-cap)) * var(--anim-stagger));
 }
 
 body.display-page[data-skin="grille"] .block-header {

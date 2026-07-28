@@ -4,6 +4,31 @@ from comroster.services.antenna import AntennaError
 from comroster.services.live_poller import sync_roster_once
 
 
+def _drain(q, event=None):
+    """Vide la file en écartant les annonces d'INTENDANCE du broker (`displays`).
+
+    Depuis l'audit 2026-07-28, s'abonner/se désabonner pousse le nombre d'écrans à tout le
+    monde : ces tests ne peuvent donc plus supposer « le premier évènement de la file est
+    le mien ». On saute donc l'intendance — et, si `event` est donné, on va chercher CE
+    type-là plutôt que le premier venu.
+    """
+    import queue as _q
+    while True:
+        try:
+            item = q.get_nowait()
+        except _q.Empty:
+            return None
+        if item[0] == "displays":
+            continue
+        if event is None or item[0] == event:
+            return item
+
+
+def _is_empty(q):
+    """La file ne contient plus que de l'intendance ?"""
+    return _drain(q) is None
+
+
 class FakeAntenna:
     """Antenne factice : renvoie un roster fixe, compte les appels réseau."""
     def __init__(self, items, connected=True):
@@ -57,7 +82,7 @@ def test_publishes_on_roster_change(tmp_path):
     assert draft["people"][0]["role"] == "Nouveau"          # brouillon miroité
     published = app.extensions["storage"].load_published()
     assert published["people"][0]["role"] == "Nouveau"      # publié direct sur l'affichage
-    event, _ = q.get_nowait()
+    event, _ = _drain(q)
     assert event == "published"
 
 
@@ -71,7 +96,7 @@ def test_no_publish_when_roster_unchanged(tmp_path):
     sync_roster_once(app)
 
     assert app.extensions["storage"].load_published() is None   # rien à publier
-    assert q.empty()
+    assert _is_empty(q)
 
 
 def test_antenna_error_is_swallowed(tmp_path):

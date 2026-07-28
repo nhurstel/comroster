@@ -40,11 +40,11 @@
   const PREVIEW_SCROLL = bodyEl.dataset.previewScroll === "on";
 
   const esc = (s) => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
-  const resolveTheme = (v) => (v === "day" ? "day" : "night");
-  // Apparence (direction artistique). Miroir de model.SKINS : une valeur inconnue
-  // retomberait sur une feuille de style inexistante, donc un écran nu.
-  const SKINS = ["basique", "lineaire", "grille"];
-  const resolveSkin = (v) => (SKINS.includes(v) ? v : "basique");
+  // Thème et apparence : allowlists PARTAGÉES avec l'admin (static/js/board.js). Une
+  // valeur inconnue retomberait sur une feuille de style inexistante, donc un écran nu —
+  // et trois copies entretenues à la main finissaient forcément par diverger.
+  const resolveTheme = window.ComRoster.Board.sanitizeTheme;
+  const resolveSkin = window.ComRoster.Board.sanitizeSkin;
 
   /* ---------- Encre lisible sur un aplat de couleur ----------
      Une apparence peut remplir le bloc avec la couleur du groupe, saisie par
@@ -63,6 +63,25 @@
     if (mode === "updated") {
       liveStatusReset = setTimeout(() => setLive("idle"), 2500);
     }
+  }
+
+  /* ---------- Écriture des textes d'en-tête ----------
+     Pendant une transition, seul un élément dont la valeur CHANGE se fond : faire
+     clignoter un titre inchangé serait du bruit. La comparaison vit ici, chez le SEUL
+     écrivain de ces textes — recopiée ailleurs, elle finirait par diverger de ce que
+     render() écrit réellement. */
+  let headerAnim = false;
+  function writeText(el, value) {
+    if (!el) return;
+    const next = value == null ? "" : String(value);
+    if (el.textContent === next) return;
+    el.textContent = next;
+    if (!headerAnim) return;
+    // Rejouer une animation CSS déjà posée impose de la retirer, de forcer un reflow,
+    // puis de la remettre : sinon deux publications rapprochées ne la relanceraient pas.
+    delete el.dataset.animText;
+    void el.offsetWidth;
+    el.dataset.animText = "in";
   }
 
   function beltpackNumber(value) {
@@ -113,13 +132,13 @@
     // Nombre de colonnes de groupes (0 = automatique selon la largeur d'écran)
     if (grid) grid.style.gridTemplateColumns = data.columns > 0 ? `repeat(${data.columns}, minmax(0, 1fr))` : "";
 
-    if (titleEl) titleEl.textContent = data.title || "Affectation Intercom";
+    writeText(titleEl, data.title || "Affectation Intercom");
     if (subtitleEl) {
-      if (data.subtitle) { subtitleEl.textContent = data.subtitle; subtitleEl.hidden = false; }
+      if (data.subtitle) { writeText(subtitleEl, data.subtitle); subtitleEl.hidden = false; }
       else subtitleEl.hidden = true;
     }
     if (centerEl) {
-      if (data.production_name) { centerEl.textContent = data.production_name; centerEl.hidden = false; }
+      if (data.production_name) { writeText(centerEl, data.production_name); centerEl.hidden = false; }
       else centerEl.hidden = true;
     }
     if (updatedAtTime && data.updated_at) {
@@ -129,15 +148,18 @@
 
     const groups = [...(data.groups || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
     const people = data.people || [];
-    if (totalGroupsEl) totalGroupsEl.textContent = groups.length;
-    if (totalPeopleEl) totalPeopleEl.textContent = people.length;
+    writeText(totalGroupsEl, groups.length);
+    writeText(totalPeopleEl, people.length);
 
     grid.innerHTML = "";
-    groups.forEach((group) => {
+    groups.forEach((group, index) => {
       const members = people.filter((p) => p.group_id === group.id);
       const blockEl = document.createElement("section");
       blockEl.className = "block";
       blockEl.style.setProperty("--block-accent", group.color || "var(--primary)");
+      // Rang du bloc : la CSS en déduit son décalage dans la cascade d'arrivée (plafonné
+      // par --anim-cap, sinon un plateau à 20 groupes s'étalerait sur une seconde).
+      blockEl.style.setProperty("--anim-i", index);
       // Apparences où le bloc est REMPLI par la couleur du groupe (cf. inkFor).
       const ink = inkFor(group.color);
       if (ink) blockEl.dataset.ink = ink;
@@ -351,17 +373,78 @@
     } catch { /* refusé (contexte non sécurisé / onglet masqué) — la config OS prend le relais */ }
   }
 
+  /* ---------- Transition d'arrivée à la publication ----------
+     Une nouvelle configuration remplaçait le tableau d'un coup sec. La grille se fond
+     d'abord, le DOM est reconstruit pendant qu'elle est invisible, puis les groupes
+     reviennent en cascade (voir display.css et les déclinaisons de skins.css).
+
+     Branchée sur le SEUL évènement `published` : `snapshot` est réémis à CHAQUE ouverture
+     de flux, donc à chaque reconnexion — toutes les 4 s quand le réseau tousse. Animer
+     depuis render() rejouerait la transition en plein show, sans rien de nouveau à montrer.
+
+     Bénéfice au passage : render() fait stopAutoScroll() + setOffset(0). Si l'écran
+     défilait, il sautait en haut d'un coup ; désormais ce saut a lieu à opacité nulle. */
+  const anim = { timer: null };
+
+  // Durées et bornes lues dans la CSS : chaque apparence a les siennes (skins.css), et
+  // une valeur recopiée ici finirait par contredire la feuille de style.
+  function animRaw(name) { return getComputedStyle(grid).getPropertyValue(name).trim(); }
+  function animMs(name, fallback) {
+    const raw = animRaw(name);
+    const n = parseFloat(raw);
+    if (!Number.isFinite(n)) return fallback;
+    return raw.endsWith("ms") ? n : n * 1000;    // `s` accepté, au cas où
+  }
+  function animNum(name, fallback) {             // valeur SANS unité (--anim-cap)
+    const n = parseFloat(animRaw(name));
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  /* Mode performance et « animations réduites » : on rend directement, comme avant. La
+     garde ne peut PAS vivre seulement en CSS — les timers ci-dessous resteraient armés et
+     l'écran paierait le délai de sortie pour une animation qui ne joue jamais. `perf` est
+     lu dans la donnée QUI ARRIVE : activer le mode performance ne doit pas s'accompagner
+     d'une dernière animation d'adieu. */
+  function animEnabled(data) {
+    return !!grid && !PREVIEW && !REDUCED_MOTION && !data.perf;
+  }
+
+  function cancelTransition() {
+    if (anim.timer) { clearTimeout(anim.timer); anim.timer = null; }
+    if (grid) delete grid.dataset.anim;
+  }
+
+  function runTransition(data) {
+    cancelTransition();          // publications rapprochées : une seule séquence, la dernière gagne
+    grid.dataset.anim = "out";
+    anim.timer = setTimeout(() => {
+      headerAnim = true;
+      try { render(data); } finally { headerAnim = false; }
+      grid.dataset.anim = "in";
+      // Fin de la séquence = le bloc le plus retardé a fini de jouer. Sur `grille`, le
+      // contenu dure plus longtemps que l'aplat : c'est lui qui borne.
+      const longest = Math.max(animMs("--anim-in", 260), animMs("--anim-content-in", 0));
+      const tail = longest + animNum("--anim-cap", 8) * animMs("--anim-stagger", 35);
+      anim.timer = setTimeout(() => { anim.timer = null; delete grid.dataset.anim; }, tail);
+    }, animMs("--anim-out", 160));
+  }
+
   /* ---------- SSE ---------- */
-  function apply(eventData) {
+  function apply(eventData, animate) {
+    let json;
     try {
-      const json = JSON.parse(eventData);
-      state.data = json;
-      render(json);
-      setLive("updated");
+      json = JSON.parse(eventData);
     } catch (err) {
       console.error("SSE parse", err);
       setLive("error");
+      return;
     }
+    state.data = json;
+    if (animate && animEnabled(json)) runTransition(json);
+    // Un rendu direct doit annuler une transition en vol, sinon son timer rétablirait
+    // l'état précédent par-dessus (cas : reconnexion pendant une publication).
+    else { cancelTransition(); render(json); }
+    setLive("updated");
   }
 
   function subscribe() {
@@ -371,8 +454,9 @@
     if (syncHint) syncHint.textContent = "Connexion en cours…";
 
     eventSource = new EventSource("/events");
-    eventSource.addEventListener("snapshot", (e) => { apply(e.data); setLive("idle"); });
-    eventSource.addEventListener("published", (e) => apply(e.data));
+    // `snapshot` n'anime jamais : il est réémis à chaque reconnexion (cf. runTransition).
+    eventSource.addEventListener("snapshot", (e) => { apply(e.data, false); setLive("idle"); });
+    eventSource.addEventListener("published", (e) => apply(e.data, true));
     eventSource.addEventListener("live", (e) => { try { applyLive(JSON.parse(e.data)); } catch { /* ignore */ } });
     eventSource.onopen = () => { setLive("idle"); if (syncHint) syncHint.textContent = "Mises à jour en direct actives"; };
     eventSource.onerror = () => {

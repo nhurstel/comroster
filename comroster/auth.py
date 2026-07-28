@@ -9,7 +9,7 @@ from flask import (
     url_for,
 )
 
-from .security import limiter, log_in, log_out
+from .security import json_body, limiter, log_in, log_out, login_required
 
 bp = Blueprint("auth", __name__)
 
@@ -59,6 +59,34 @@ def login():
 def logout():
     log_out()
     return redirect(url_for("auth.login"))
+
+
+@bp.post("/admin/password")
+@login_required
+@limiter.limit("10 per 5 minutes")
+def change_password():
+    """Rotation du mot de passe depuis l'admin, SANS brûler le code de récupération.
+
+    Jusqu'ici seul `recover` changeait le mot de passe, et il consomme le code : un
+    boîtier prêté d'une production à l'autre n'avait donc aucun moyen de rotation.
+
+    Rate-limitée malgré la session : elle vérifie le mot de passe ACTUEL, c'est donc un
+    oracle de mot de passe pour quiconque a mis la main sur une session ouverte (un poste
+    de régie laissé déverrouillé est le scénario réaliste, pas l'attaque distante).
+    """
+    data = json_body()
+    current = data.get("current") or ""
+    new = data.get("new") or ""
+    if len(new) < MIN_PASSWORD_LENGTH:
+        return jsonify({"error": f"Nouveau mot de passe : {MIN_PASSWORD_LENGTH} caractères minimum."}), 400
+    if new == current:
+        return jsonify({"error": "Le nouveau mot de passe est identique à l'actuel."}), 400
+    try:
+        _secret().change_password(current, new)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 403
+    current_app.extensions["journal"].record("password_change")
+    return jsonify({"ok": True})
 
 
 @bp.route("/admin/recover", methods=["GET", "POST"])

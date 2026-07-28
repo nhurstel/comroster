@@ -41,7 +41,7 @@ Trois niveaux :
 
 Le boot silencieux ([quiet-boot.sh](quiet-boot.sh)) pose aussi `disable_splash=1`
 (config.txt) et `quiet logo.nologo plymouth.enable=0 vt.global_cursor_default=0`
-(cmdline.txt) : écran noir de l'allumage jusqu'au splash « Booting ComRoster ».
+(cmdline.txt) : écran noir de l'allumage jusqu'à l'écran de démarrage ComRoster.
 
 ## Rappel
 

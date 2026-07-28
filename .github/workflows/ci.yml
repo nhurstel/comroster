@@ -4,10 +4,17 @@ on:
   push:
   pull_request:
 
+# Versions des outils NON-Python. Épinglées ici pour la même raison que ruff dans
+# requirements-dev.txt : un linter est une dépendance, pas un outil ambiant. `ubuntu-24.04`
+# plutôt qu'`ubuntu-latest` pour que GitHub ne change pas l'image sous nos pieds.
+# Pour reproduire la CI en local : `deploy/lint-local.sh`.
+env:
+  SHELLCHECK_VERSION: "0.9.0"
+
 jobs:
   lint:
     name: Lint (ruff + shellcheck)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,11 +34,22 @@ jobs:
         # `run-dev.sh` inclus : il était hors couverture alors que c'est le script que
         # tout le monde lance en premier — ses deux pièges (bannière avant le bind,
         # dépendance au `python` du PATH) ont coûté une soirée le 2026-07-26.
-        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck && shellcheck deploy/*.sh run-dev.sh
+        #
+        # Version ÉPINGLÉE (comme ruff). `apt-get install shellcheck` servait la version
+        # de l'image du jour : shellcheck varie beaucoup d'une version à l'autre (SC2015 a
+        # déjà cassé la CI le 2026-07-12), donc une bascule d'`ubuntu-latest` suffisait à
+        # faire rougir `main` sans qu'une ligne ne change — la cause racine exacte de la
+        # panne ruff du 2026-07-26, restée en place ici jusqu'à l'audit 2026-07-28.
+        run: |
+          set -euo pipefail
+          base="https://github.com/koalaman/shellcheck/releases/download"
+          curl -fsSL "$base/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.linux.x86_64.tar.xz" | tar -xJ
+          "shellcheck-v$SHELLCHECK_VERSION/shellcheck" --version
+          "shellcheck-v$SHELLCHECK_VERSION/shellcheck" deploy/*.sh run-dev.sh
 
   unit:
     name: Tests unitaires & intégration
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,12 +58,35 @@ jobs:
           cache: pip
       - name: Dépendances
         run: pip install -r requirements.txt -r requirements-dev.txt
-      - name: pytest
-        run: pytest -q            # le marqueur e2e est exclu par défaut (pytest.ini)
+      - name: pytest + couverture
+        # Le seuil (fail_under) est déclaré dans pyproject.toml : c'est un PLANCHER contre
+        # la dérive silencieuse, pas une cible à négocier lot par lot. `coverage` est
+        # épinglé dans requirements-dev.txt — un seuil mesuré par un outil qui bouge tout
+        # seul ne veut rien dire (même raison que ruff, cf. 2026-07-26).
+        run: |
+          coverage run -m pytest -q     # le marqueur e2e est exclu par défaut (pyproject)
+          coverage report
+
+  js:
+    name: Tests JavaScript (logique pure)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      # `npm ci` installe EXACTEMENT le lockfile : vitest y est épinglé à la version
+      # exacte, comme ruff côté Python.
+      - run: npm ci
+      # Ne teste que la logique PURE partagée par l'admin et l'écran (board, netmask,
+      # ink). Rien de ce que npm installe ne part sur le boîtier : static/js reste du
+      # JavaScript nu chargé par de simples <script>.
+      - run: npm test
 
   e2e:
     name: Tests bout-en-bout (Playwright)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

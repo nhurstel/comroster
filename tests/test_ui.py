@@ -1,10 +1,13 @@
+import re
 from pathlib import Path
 
 import pytest
 
 from comroster.services import model
 
-SKINS_CSS = Path(__file__).resolve().parent.parent / "static" / "css" / "skins.css"
+STATIC_CSS = Path(__file__).resolve().parent.parent / "static" / "css"
+SKINS_CSS = STATIC_CSS / "skins.css"
+DISPLAY_CSS = STATIC_CSS / "display.css"
 
 
 @pytest.fixture
@@ -30,6 +33,49 @@ def test_display_precharge_toutes_les_apparences(client):
     css = SKINS_CSS.read_text(encoding="utf-8")
     sans_regles = [s for s in model.SKINS if f'data-skin="{s}"' not in css]
     assert sans_regles == [], f"apparences déclarées mais non stylées : {sans_regles}"
+
+
+def test_transition_publication_declinee_par_apparence():
+    """Chaque apparence doit DÉCIDER de son geste d'arrivée, aucune ne l'hérite en silence.
+
+    `basique` pose les valeurs de référence dans display.css. Les autres ne peuvent pas
+    reprendre son déplacement vertical : `lineaire` est un tableau réglé (`gap: 0`, un
+    filet par case) qu'un glissement disloque, et `grille` une mosaïque bord à bord dont
+    un déplacement ferait fuir le fond dans les gouttières. Une apparence ajoutée demain
+    hériterait pourtant du lift de `basique` sans que rien ne bronche — c'est exactement
+    le défaut que ce projet répète. On exige donc une redéfinition explicite.
+    """
+    base = DISPLAY_CSS.read_text(encoding="utf-8")
+    for jeton in ("--anim-out", "--anim-in", "--anim-stagger", "--anim-cap", "--anim-lift"):
+        assert f"{jeton}:" in base, f"{jeton} n'est pas défini pour l'apparence de base"
+
+    css = SKINS_CSS.read_text(encoding="utf-8")
+    muettes = [
+        s for s in model.SKINS
+        if s != "basique"
+        and not re.search(rf'\[data-skin="{s}"\][^{{}}]*\{{[^{{}}]*--anim-lift\s*:', css)
+    ]
+    assert muettes == [], (
+        f"apparences qui n'ont pas décidé de leur geste d'arrivée : {muettes} — "
+        "elles héritent du déplacement de `basique`, qui casse leur structure"
+    )
+
+
+def test_transition_publication_toujours_coupee_par_le_mode_performance():
+    """Aucune règle d'animation ne doit échapper à la garde du mode performance.
+
+    La garde principale vit dans display.js (il rend directement, sans timer) ; celle-ci
+    est le second filet, et c'est elle qui tiendra quand on ajoutera une règle plus tard.
+    """
+    sans_garde = []
+    for feuille in (DISPLAY_CSS, SKINS_CSS):
+        for regle in feuille.read_text(encoding="utf-8").split("}"):
+            selecteur = regle.split("{")[0]
+            if "data-anim" in selecteur and ':not([data-perf="on"])' not in selecteur:
+                sans_garde.append(f"{feuille.name}: {' '.join(selecteur.split())}")
+    assert sans_garde == [], (
+        f"règles d'animation actives en mode performance : {sans_garde}"
+    )
 
 
 def test_admin_page_renders(auth_client):

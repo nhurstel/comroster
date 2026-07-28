@@ -1,6 +1,30 @@
 [tool.pytest.ini_options]
+# SOURCE UNIQUE de la configuration pytest. Un `pytest.ini` a coexisté avec cette section :
+# or pytest.ini l'emporte TOUJOURS sur pyproject.toml, celle-ci n'était donc jamais lue —
+# une modification faite ici serait restée sans effet, en silence (audit 2026-07-28).
+# Ne pas recréer pytest.ini / setup.cfg / tox.ini : ils reprendraient la priorité.
 pythonpath = ["."]
 testpaths = ["tests"]
+markers = [
+    "e2e: tests bout-en-bout via navigateur Playwright (exclus par défaut, lancer avec -m e2e)",
+]
+addopts = "-m 'not e2e'"
+
+[tool.coverage.run]
+source = ["comroster"]
+branch = true
+
+[tool.coverage.report]
+# Seuil PLANCHER, pas cible : la couverture mesurée à l'audit du 2026-07-28 était de 90 %.
+# Le poser à ce niveau interdit la dérive silencieuse sans transformer chaque correctif en
+# négociation de pourcentage. À relever quand il devient confortable, jamais à abaisser
+# pour faire passer un lot.
+fail_under = 88
+show_missing = true
+exclude_also = [
+    # Point d'entrée d'un script : exécuté par systemd, jamais par la suite de tests.
+    'if __name__ == .__main__.:',
+]
 
 [tool.ruff.lint]
 # Jeu de règles DÉCLARÉ, jamais hérité. Sans cette section, ruff applique les règles

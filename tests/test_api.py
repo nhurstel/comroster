@@ -134,6 +134,23 @@ def test_preview_renders_published_not_draft(auth_client):
     assert b'data-skin="lineaire"' in auth_client.get("/display").data
 
 
+def test_preview_draft_renders_draft_not_published(auth_client):
+    """`?draft=1` sert l'aperçu de l'onglet « Écran » : il suit le BROUILLON.
+
+    C'est ce qui le distingue du témoin permanent (« Affichage en cours »), qui montre
+    ce qui est réellement à l'antenne. Sans ce mode, régler une apparence ou un nombre
+    de colonnes se faisait à l'aveugle : il fallait publier pour voir le résultat.
+    """
+    auth_client.put("/api/draft", json={"title": "Publié", "skin": "lineaire", "groups": [], "people": []})
+    assert auth_client.post("/api/publish").status_code == 200
+    auth_client.put("/api/draft", json={"title": "Brouillon", "skin": "grille", "groups": [], "people": []})
+
+    preview = auth_client.get("/admin/preview?draft=1").data
+    assert b'data-preview="on"' in preview          # toujours pas d'abonnement SSE
+    assert b'data-skin="grille"' in preview         # le brouillon en cours d'édition
+    assert b'data-skin="lineaire"' not in preview   # et surtout pas l'état publié
+
+
 def test_put_draft_keeps_skin(auth_client):
     payload = {"title": "x", "skin": "lineaire", "groups": [], "people": []}
     assert auth_client.put("/api/draft", json=payload).status_code == 200

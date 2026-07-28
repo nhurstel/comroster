@@ -5,3 +5,5 @@ pytest-playwright>=0.5
 ruff==0.16.0        # lint Python — version ÉPINGLÉE, source unique (la CI l'installe d'ici).
                     # Une borne ouverte (>=) rend le lint non reproductible : une nouvelle
                     # version élargit ses règles et casse `main` sans changement de code.
+coverage==7.15.2    # couverture des tests. Épinglée pour la même raison : un SEUIL de CI
+                    # n'a de sens que si l'outil qui le mesure ne bouge pas tout seul.

@@ -24,6 +24,15 @@ body.display-page {
   --fit-bpn-ratio: 1.3;                        /* n° beltpack = rôle × ratio, borné ci-dessous */
   --fit-bpn-min: 16;   --fit-bpn-max: 22;
 
+  /* Transition d'arrivée à la publication (durées LUES par display.js — source unique
+     ici, le JS n'en redéclare aucune). Valeurs de l'apparence `basique` ; les autres les
+     redéfinissent sous leur propre sélecteur, comme les bornes --fit-* ci-dessus. */
+  --anim-out: 160ms;      /* fondu de sortie de la grille */
+  --anim-in: 260ms;       /* fondu d'arrivée d'un bloc */
+  --anim-stagger: 35ms;   /* pas de la cascade, plafonné par --anim-cap */
+  --anim-cap: 8;          /* au-delà, tous les blocs partagent le même délai */
+  --anim-lift: 6px;       /* déplacement d'arrivée : la carte « arrive » sur son fond */
+
   --display-header-height: 3.6rem; --display-footer-height: 3rem;
   height: 100vh; overflow: hidden;
   /* Fond quasi-noir + aurore turquoise très discrète (donne de la matière au verre) */
@@ -283,3 +292,42 @@ body.display-page footer {
 .display-page[data-perf="on"] header { background: var(--d-bg); }
 .display-page[data-perf="on"] .block,
 .display-page[data-perf="on"] .ob-card { background: var(--d-surface); }
+
+/* ---------- Transition d'arrivée à la publication ----------
+   Une nouvelle configuration remplaçait le tableau d'un coup sec. La grille se fond
+   d'abord (l'ancien contenu disparaît), le DOM est reconstruit pendant qu'elle est
+   invisible, puis les groupes reviennent en cascade.
+
+   Deux contraintes dictent la forme :
+   - JAMAIS de transform sur .display-grid — c'est le canal de l'auto-scroll
+     (`grid.style.transform`, display.js). D'où la sortie en OPACITÉ seule, et l'arrivée
+     portée par les BLOCS, qui sont ses enfants.
+   - JAMAIS display:none ni visibility:hidden — fitDisplayText() mesure scrollWidth et
+     clientWidth juste après le rendu, un conteneur masqué mesurerait 0 (leçon 2026-06-20).
+     L'opacité et le translate laissent les métriques de mise en page intactes.
+
+   Le mode performance coupe tout : la garde vit d'abord dans display.js (qui rend alors
+   directement, sans le moindre timer) ; ce :not() est le second filet. Idem pour
+   prefers-reduced-motion, déjà neutralisé globalement par main.css. */
+.display-page:not([data-perf="on"]) .display-grid[data-anim="out"] {
+  opacity: 0;
+  transition: opacity var(--anim-out) ease-out;
+}
+.display-page:not([data-perf="on"]) .display-grid[data-anim="in"] > .block {
+  animation: block-in var(--anim-in) ease-out backwards;
+  /* `backwards` est indispensable : sans lui, un bloc en attente de son tour resterait
+     à pleine opacité puis sauterait à 0 au démarrage de son animation. */
+  animation-delay: calc(min(var(--anim-i, 0), var(--anim-cap)) * var(--anim-stagger));
+}
+@keyframes block-in {
+  from { opacity: 0; transform: translate3d(0, var(--anim-lift), 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* En-tête : seuls les éléments dont la VALEUR change se fondent (display.js ne pose
+   l'attribut que dans ce cas). L'horloge et le voyant « En direct » en sont exclus —
+   ce sont les deux repères permanents de l'écran, les faire clignoter les ferait mentir. */
+.display-page:not([data-perf="on"]) [data-anim-text] {
+  animation: text-in var(--anim-in) ease-out backwards;
+}
+@keyframes text-in { from { opacity: 0; } to { opacity: 1; } }

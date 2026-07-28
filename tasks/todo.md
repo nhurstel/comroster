@@ -345,3 +345,415 @@ Principe : chaque phase est livrable seule, tests verts, sans casser la précéd
 - 297 unitaires + 13 e2e verts, ruff propre (chiffre au 2026-07-27 ; le seuil, c'est « tout vert »).
 - Capture de l'admin + console navigateur vide (leçon 2026-07-07).
 - Contraste mesuré, pas jugé à l'œil, sur les 6 couleurs de groupe (leçon 2026-07-23).
+
+---
+
+# LOT 2026-07-27 — Header resserré + refonte de l'onglet « Écran »
+
+Demande Nathan : (1) rapprocher les onglets du bouton « Publier » ; (2) l'onglet « Écran »
+est « chiant et ennuyeux », il mérite un travail de design et de mise en page.
+
+**Mesures de l'existant** (1440 px de large) : onglets 545→996, horloge 996→1074,
+état 1074→1256, Publier 1256→1440. Donc **260 px** séparent les onglets de l'action,
+et **216 px de vide** traînent entre le fil d'Ariane et les onglets. L'onglet Écran :
+3 colonnes de champs en haut à gauche, ~80 % de surface vide, `<select>` au chrome
+natif clair (jure avec la DA), et **aucun retour visuel** — changer d'apparence ne
+montre rien tant qu'on n'a pas publié.
+
+## A. Header — les onglets se rapprochent de « Publier »  ✅ FAIT
+
+Arbitrage initial (déplacer horloge + état à gauche) **RÉVOQUÉ par Nathan en cours de
+lot** : « l'horloge et l'indicateur d'état doivent quand même rester entre "Réseau" et
+"Publier" ». L'ordre est donc conservé et c'est leur EMPRISE qu'on réduit.
+
+- [x] A1. Respiration des chips : `padding: 0 12px` → `0 9px` (horloge **78 → 72 px**).
+- [x] A2. Libellé d'état raccourci : « 5 modifications en attente » → « **5 en attente** »,
+      qui était déjà l'intention de la maquette (cf. commentaire d'`admin.js`) ; le détail
+      reste dans la barre d'état (« +2 groupes, +3 beltpacks non publiés »).
+- [x] A3. La largeur figée ne retient plus que les états NOMINAUX. Elle était calée sur
+      « Échec de l'enregistrement », donc réservait en permanence la place d'un cas
+      exceptionnel (chip **182 → 123 px**).
+- [x] A4. MESURÉ à 1440 px : écart onglets↔Publier **260 → 195 px (−25 %)**, sans rien
+      déplacer ni supprimer.
+
+## A bis. Onglet actif persisté  ✅ FAIT (bug signalé à l'usage)
+
+Rafraîchir la page depuis « Écran » ramenait sur « Affectations » : l'onglet n'était pas
+mémorisé (contrairement à la bascule Blocs/Tableau). Clé `comroster.admin.tab`, valeur
+relue confrontée aux panneaux existants (jamais réinjectée dans un sélecteur).
+Gardé par `test_indicator_toggles_persist`, qui encodait justement l'ancien comportement.
+
+## B. Onglet « Écran » — rail de réglages + aperçu live du brouillon
+
+Arbitrage Nathan : **mise en page + aperçu live du brouillon**.
+
+- [ ] B1. Serveur : `/admin/preview?draft=1` rend le **brouillon** (`load_draft()`)
+      au lieu du publié. C'est ce qui distingue cet aperçu du témoin « Affichage en
+      cours » (bas de la latérale), qui montre ce qui est **à l'antenne**. Deux
+      fonctions différentes, donc pas de doublon (leçon 2026-07-25 « un bouton par
+      fonction »). + test unitaire.
+- [ ] B2. Template : `.screen-layout` = rail de cartes (Production / Apparence /
+      Indicateurs) + panneau d'aperçu. **Tous les ids conservés** (`#skin-select`,
+      `#theme-select`, `#meta-columns`…) → `bindSettings`/`syncSettingsInputs` et les
+      e2e ne bougent pas.
+- [ ] B3. CSS : cartes de réglages, `<select>` restylés (`appearance:none` + chevron
+      maison), cases à cocher custom, panneau d'aperçu.
+- [ ] B4. JS : rendu à **1920×1080 puis mis à l'échelle** via le `fitPreview()`
+      existant (leçon 2026-07-23 : un aperçu à une autre résolution est faux par
+      construction, l'écran étant en `auto-fit`). Rechargement à l'activation de
+      l'onglet, après chaque enregistrement du brouillon, et au resize.
+
+## C. Vue Tableau — sélection multiple (bugs signalés à l'usage)  ✅ FAIT
+
+- [x] C1. Libellé « Table » → « **Tableau** ». La VALEUR `table` est conservée : elle est
+      persistée en localStorage, la renommer perdrait la préférence de chacun.
+- [x] C2. **BUG RACINE — « ça saute »** : passer en Tableau ne démonte pas la vue Blocs,
+      elle est seulement `hidden`. `selectRange` interrogeait tout le document, donc
+      voyait CHAQUE personne deux fois (carte masquée + rangée visible), et `indexOf`
+      trouvait d'abord la carte — dans l'ordre des blocs, pas celui du tri. Nouveau
+      `selectableNodes()` : vue active seulement, et exclusion de l'estompé (non
+      cliquable). Prouvé : l'ancien code sélectionnait `[40, 20]` là où l'écran montre
+      `[40, 30, 20]`.
+- [x] C3. **Sélection de texte parasite** : MAJ+clic surlignait les libellés en bleu par
+      dessus la sélection. `user-select: none` sur rangées et cartes, `text` conservé
+      dans les champs d'édition sur place.
+- [x] C4. **Affectation en lot** : barre de sélection « Affecter à », ET le sélecteur de
+      groupe d'une rangée agit sur TOUTE la sélection s'il en fait partie (même règle que
+      le glisser-déposer d'une sélection).
+
+## D. Raccourcis clavier du plateau  ✅ FAIT
+
+- [x] D1. **⌘Z / Ctrl+Z** (⌘⇧Z rétablit). Portée : le BROUILLON seul — groupes, noms,
+      numéros, affectations, réglages d'écran. Réseau / IP / Wi-Fi / antenne / mot de
+      passe sont hors d'atteinte **par construction** (endpoints distincts, jamais dans
+      `state.data`), pas via une liste d'exclusions à maintenir. Vérifié par un test qui
+      enregistre une IP fixe puis annule une édition de roster : l'IP est intacte.
+      Frappes regroupées (700 ms) sinon effacer un mot demanderait dix ⌘Z. Historique
+      remis à zéro quand le brouillon est REMPLACÉ en bloc (import, restauration,
+      resynchro distante).
+- [x] D2. **⌘A** = tout sélectionner dans la vue active (affectés + réserve en Blocs) ;
+      un filtre en cours restreint naturellement la portée.
+- [x] D3. **Échap** = quitter la sélection. Le décompte de publication garde la priorité.
+- [x] D4. Les trois sont neutralisés dans un champ de saisie et dans un dialogue
+      (`onBoard`) : ⌘Z et ⌘A y gardent leur sens NATIF.
+
+## Vérifications de ce lot
+- [x] **298 unitaires + 18 e2e verts, ruff propre.**
+- [x] Captures avant/après + console navigateur vide (leçon 2026-07-07).
+- [x] Géométrie MESURÉE : header 260 → 195 px ; aperçu ratio 1,778 exact, sans débord.
+- [x] **Chaque nouveau test confronté à un cas qui échoue volontairement** (leçon
+      2026-07-23) : restauration d'onglet, balayage de sélection, ⌘Z hors champ,
+      Échap. Les quatre échouent bien sans leur correctif.
+
+---
+
+# LOT 2026-07-27 (soir) — Sortir Journal / Santé / Écran du registre « template »
+
+Demande Nathan : « les sous menu genre Journal, Écran, Santé font très AI slop ».
+
+**Diagnostic mesuré sur captures (1440×900), pas à l'œil :**
+- **Santé** : 6 rectangles arrondis IDENTIQUES, motif « libellé à gauche · valeur à droite »
+  répété 14 fois. « Cœurs : 8 » a le même poids visuel que « stockage à 90 % », seule ligne
+  capable de faire tomber un show. La page s'appelle Santé et **ne dit jamais si le boîtier
+  va bien**. 80 % de surface vide. Sur un poste non-Linux, la moitié des cartes affichent
+  « indisponible » comme si c'était une donnée.
+- **Journal** : un journal qui **n'encode pas le temps** — date complète réimprimée sur
+  chaque ligne au lieu de servir d'axe ; une entrée seule dans une pilule, puis 800 px de
+  vide sans état vide rédigé.
+- **Écran** : trois boîtes arrondies empilées, même motif « carte + libellé capitales ».
+
+**Ancrage** (le sujet, pas un thème plaqué) : ComRoster est un BOÎTIER DE RÉGIE manipulé
+sous pression avant un show. Son vernaculaire est la conduite, le contrôle avant lever de
+rideau, le bandeau d'état — pas la grille de tuiles.
+
+## S. Santé — « verdict d'abord, preuves ensuite » (arbitrage Nathan)
+- [x] S1. Bandeau de tête répondant à « puis-je lancer le show ? » : un mot (Prêt /
+      À surveiller / Attention), la raison en clair, et la ligne de vie (écrans en ligne,
+      dernière publication). C'est l'élément signature — tout le reste reste discipliné.
+- [x] S2. Les mesures deviennent un RELEVÉ dense en une colonne, **trié par criticité**.
+      Réglette uniquement là où un SEUIL existe (stockage, mémoire, température) ; les
+      autres valeurs sont des lignes nues.
+- [x] S3. Hiérarchie typographique inversée : la VALEUR domine (chiffres tabulaires), le
+      libellé s'efface. Aujourd'hui les deux ont le même poids.
+- [x] S4. L'indisponible n'occupe plus une carte : une seule ligne en pied
+      (« non mesuré ici : … »), au lieu de tuiles vides.
+
+## J. Journal — « conduite chronologique » (arbitrage Nathan)
+- [x] J1. L'heure devient une GOUTTIÈRE fixe à gauche, le long d'un filet vertical continu
+      qui matérialise l'écoulement. C'est un vrai axe, pas un ornement.
+- [x] J2. Groupement par jour (« Aujourd'hui — 27 juillet ») : la date cesse d'être
+      réimprimée sur chaque ligne.
+- [x] J3. État vide RÉDIGÉ (invitation à agir), pas une page blanche.
+- [x] J4. Le volet « Technique » garde son registre dense (c'est un `tail`), mais aligné
+      sur la même gouttière de temps.
+
+## E. Écran — aligner sur le même registre
+- [x] E1. Sortir du motif « boîte arrondie + libellé capitales » : sections séparées par
+      des filets dans une seule colonne, comme le relevé de Santé.
+
+## Vérifications exigées
+- [x] Unitaires + e2e verts, ruff propre.
+- [x] Captures avant/après + console navigateur VIDE (leçon 2026-07-07).
+- [x] Tout nouveau test confronté à un cas qui échoue volontairement (leçon 2026-07-23).
+- [x] Contraste des états (Prêt/Surveiller/Attention) MESURÉ, pas jugé à l'œil.
+
+## Retours d'usage sur le lot design (2026-07-28) — FAIT
+
+- [x] **Journal, mise en page** : l'îlot centré à 880 px ne s'accrochait à rien → pleine
+      largeur, alignée sur la barre d'outils. Surtout, le **filet vertical continu a été
+      retiré** : les lignes étant espacées uniformément quel que soit le temps écoulé, il
+      affirmait une échelle proportionnelle qui n'existe pas. La structure temporelle est
+      portée par les ruptures de journée, qui, elles, sont vraies. Entête de journée en un
+      seul libellé (« aujourd'hui » OU la date, plus les deux).
+- [x] **« werkzeug » dans le volet Technique** — CAUSE RACINE : le tampon accroche le
+      logger RACINE, donc capte le journal d'ACCÈS HTTP (une ligne par requête, fichiers
+      statiques compris). 53 lignes après un seul chargement : les 500 entrées du tampon
+      étaient noyées par du bruit, alors qu'il existe pour diagnostiquer sans SSH.
+      `ACCESS_LOGGERS` écarte `werkzeug` et `gunicorn.access` **en dessous de WARNING**
+      seulement — une vraie erreur du serveur reste visible. Le nom de logger affiché
+      devient un nom de composant (`comroster.services.antenna` → `antenna`), complet en
+      infobulle. Gardé par `test_logbuffer_ecarte_les_acces_http_mais_garde_leurs_erreurs`.
+      Corrigé au passage : le message d'écran vide accusait le filtre alors que le tampon
+      était simplement vide (deux causes, deux textes).
+- [x] **Sous-titres enfantins supprimés** (les cinq listés par Nathan) + le séparateur
+      « / » du fil d'Ariane devenu orphelin sur Journal et Santé.
+- [x] **Charge processeur expliquée** : « 3.00 4.64 5.12 » ne se lit qu'en RAPPORT AU
+      NOMBRE DE CŒURS. Devient une mesure à seuil — « 55 % de la capacité », réglette,
+      alerte à 100 %, surveillance à 70 % — avec le détail brut en légende. Virgule
+      décimale française rétablie partout (`toFixed` produisait « 408.1 Go »).
+- [x] **Statistiques temporelles** : nouveau service `Lifetime` (carnet de bord).
+      Persiste première mise en service, cumul de fonctionnement à travers les
+      redémarrages, et nombre de démarrages. Cumul tenu en mémoire sur une origine
+      MONOTONE (un réglage NTP ne doit pas créer d'heures de fonctionnement), écrit sur
+      disque toutes les 5 min seulement — usure de la carte SD, et une coupure ne coûte
+      au pire que l'intervalle. Fail-safe : fichier corrompu → `.bak` + repart à zéro,
+      jamais d'exception. 5 tests dédiés (`tests/test_lifetime.py`).
+      La page distingue trois horizons : allumé depuis / session en cours / cumulé.
+- [x] **Palette des groupes triée** : par famille de teinte (rouge → orange → jaune →
+      vert → turquoise → bleu → violet → magenta), du clair au sombre dans chaque
+      famille, neutres en fin. Les VALEURS sont inchangées, donc les contrastes ≥ 4,5:1
+      validés au banc le restent par construction. Un tri sur la teinte seule faisait
+      sauter la luminosité d'une case à l'autre.
+
+---
+
+# LOT 2026-07-28 (audit) — Défauts, structure, ajouts
+
+Origine : audit complet du projet (tout le code lu, couverture backend mesurée à 90 %,
+304 unitaires + 18 e2e verts, ruff propre au moment de l'audit). Arbitrage Nathan :
+**tout traiter** en section 1 et 2 ; en section 3, les ajouts 1, 3, 4 et 5 — la
+découverte d'antenne **sans retirer** la saisie IP directe.
+
+## A. Défauts relevés (preuve à l'appui)
+
+- [x] **A. L'admin se compte comme afficheur.** `subscribeAdmin()` ouvre `/events`, que
+      `broker.subscribe()` compte sans distinction → « 1 afficheur » sans aucun écran,
+      dans la barre d'état ET dans la ligne de vie de Santé (l'écran censé ne pas mentir).
+      Prouvé sur serveur live : 0 abonné → 1 après un seul flux admin.
+      Correctif : `Broker.subscribe(kind)` + `display_count` distinct, `/events?role=admin`.
+      ⚠️ Le cap `SSE_MAX_CLIENTS` doit rester sur le TOTAL (c'est le pool de threads qui
+      est fini), mais un admin ne doit jamais évincer un écran.
+- [x] **B. L'import `.rost` perd `production_name` et `text_scale`.** `importConfig`
+      reconstruit `state.data` champ par champ et en oublie deux (ajoutés après coup).
+      Récidive du piège déjà noté pour `skin`. Correctif de fond : **ne plus énumérer** —
+      filtrer sur une allowlist partagée, pour qu'un futur champ ne se reperde pas.
+- [x] **C. `.gitignore` incomplet.** 4 fichiers d'état non ignorés (`journal.jsonl`,
+      `lifetime.json`, `network.json`, `viewer.json`) + `.bak`/`.tmp`. `lifetime.json`
+      est DÉJÀ untracked à la racine. Risque : committer un PSK Wi-Fi en clair.
+      Le README affirme le contraire (« Tous listés dans .gitignore ») → à corriger aussi.
+- [x] **D. `pytest.ini` rend `[tool.pytest.ini_options]` inerte.** Valeurs identiques
+      aujourd'hui, donc rien ne casse — mais toute modif du pyproject sera SANS EFFET,
+      en silence. Une seule source.
+- [x] **E. shellcheck non épinglé en CI** (`apt-get install shellcheck` + `ubuntu-latest`) :
+      exactement la cause racine de la panne ruff du 2026-07-26, non encore éliminée ici.
+- [x] **F. `viewer_agent` : reconfiguration réseau sans authentification.** `POST /config`
+      (port 8081) écrit `viewer.json` ET `network.json` sans mot de passe ni CSRF, sur un
+      `HTTPServer` mono-thread (un client lent le bloque entièrement).
+- [x] **G. Pas de changement de mot de passe admin** : seul `recover` change le mot de
+      passe, en brûlant le code de récupération. Aucune rotation possible.
+- [x] **H. Usure carte SD** : chaque `save_draft` (debounce 500 ms) fait une copie `.bak`
+      complète + 2 `fsync`. En tension directe avec le soin porté à `lifetime.py`.
+
+## B. Axes structurels
+
+- [x] **B1. Harnais de test JS.** `admin.js` = 2194 lignes, plus que `api.py` + `model.py`
+      réunis, sans aucun test unitaire. C'est le motif dominant de `lessons.md`.
+      Approche : extraire la logique PURE en modules `static/js/lib/*.js` sur le patron
+      d'`ink.js` (UMD-lite : `window.ComRoster` en navigateur, `module.exports` en Node),
+      puis Vitest. **Aucune dépendance JS au runtime** — l'engagement du README tient.
+- [x] **B2. Découpage d'`admin.js`** : conséquence de B1, pas un but esthétique.
+- [x] **B3. Constantes dupliquées** (`SKINS`, `TEXT_SCALES` en 3 exemplaires) : test de
+      cohérence qui échoue si les listes divergent.
+- [x] **B4. Couverture outillée** : `coverage` épinglé dans requirements-dev + seuil CI.
+- [x] **B5. Rate-limit sur `/api/live`** (public, sans limite).
+
+## C. Ajouts retenus
+
+- [x] **C1. Sauvegarde / restauration complète du boîtier** (ajout n°1). L'export actuel
+      ne couvre que le roster : un boîtier mort emporte réseau, antenne, configs, mot de
+      passe. Archive unique exportable/réinjectable.
+- [x] **C3. Points de repère nommés dans l'historique** (ajout n°3) : nom optionnel à la
+      publication, et épinglage qui protège de la purge 30 j / 50 snapshots.
+- [x] **C4. Feuille d'affectation imprimable** (ajout n°4) : les régisseurs travaillent sur
+      papier, et c'est le filet quand le boîtier tombe.
+- [x] **C5. Découverte automatique de l'antenne** (ajout n°5) — **la saisie IP directe
+      reste**, exigence Nathan. La découverte PROPOSE, elle ne connecte jamais seule :
+      la garde anti-SSRF (littéral IP) doit survivre.
+
+## Vérifications exigées à chaque étape
+- Unitaires + e2e verts, ruff propre, shellcheck propre (version de la CI).
+- Chaque nouveau test confronté à un cas qui échoue volontairement (leçon 2026-07-23).
+- Aucun processus de fond laissé sur un port partagé (leçon 2026-07-26).
+
+## Livré et vérifié (2026-07-28)
+
+**Vérifications, toutes passées :** 407 unitaires · 27 e2e · 30 tests JS (Vitest) ·
+ruff propre · shellcheck **0.9.0 (version exacte de la CI, via Docker)** propre ·
+couverture 88 % branches comprises, seuil CI posé à 88.
+
+**Chaque garde a été confrontée à un cas qui échoue volontairement** (leçon 2026-07-23) :
+- `production_name` retiré de `DRAFT_FIELDS` → le test JS tombe (« champ perdu à l'import ») ;
+- une apparence retirée de `board.js` → la garde de cohérence JS/Python tombe ;
+- un jeton CSS renommé → `test_css_tokens` tombe ;
+- `git check-ignore` discrimine bien (README.md et app.py ressortent « non ignorés »),
+  et les 4 fichiers manquants étaient prouvés absents avant correction ;
+- épingle retirée d'un instantané vieilli de 90 jours → il est bien purgé (assertion miroir).
+
+**Deux défauts trouvés PENDANT le lot, absents de l'audit initial :**
+- **Course brouillon ↔ remplacement en bloc.** Un enregistrement différé parti avec
+  l'ancien contenu revenait après une restauration et l'écrasait, silencieusement.
+  Corrigé par un compteur de génération ; « Sauvegarder » vide en outre la file
+  d'enregistrement avant de lire l'état serveur, comme le fait la publication.
+- **`build_payload` collectait les configurations nommées sans les renvoyer** : elles
+  n'étaient pas sauvegardées. Masqué par une assertion conditionnelle, signalée par ruff.
+
+**Arbitrages assumés :**
+- Le carnet de bord (`lifetime.json`) et `history/` restent HORS sauvegarde — le premier
+  est l'identité du boîtier physique, le second est volumineux et dérivé.
+- L'agent afficheur est protégé par la PRÉSENCE PHYSIQUE (code affiché à l'écran), pas par
+  un compte. La page reste consultable sans code et l'agent parle en HTTP clair : garde
+  contre l'accident et le passant, pas contre un attaquant sur le même réseau — c'est écrit
+  tel quel dans `deploy/raspberry-pi.md`.
+- `POST /api/publish` accepte un `label`, mais l'interface nomme APRÈS COUP (dialogue
+  Historique) : on ne sait pas en publiant que cette version-là sera « la bonne ».
+- Vitest et coverage sont des dépendances de DÉVELOPPEMENT. `static/js/*.js` reste du
+  JavaScript nu chargé par de simples `<script>` : l'engagement « zéro dépendance JS »
+  porte sur le runtime et il tient.
+
+---
+
+# LOT 2026-07-28 (soir) — Transition d'arrivée sur l'écran à la publication
+
+Demande Nathan : « une petite animation sur le display quand une nouvelle config lui est
+envoyée, au lieu de rafraîchir avec une coupure nette », désactivée en mode performance,
+puis « fais-le bien pour les 3 thèmes ».
+
+Spec : [docs/superpowers/specs/2026-07-28-display-transition-publication-design.md](../docs/superpowers/specs/2026-07-28-display-transition-publication-design.md)
+
+- [x] **Déclencheur = l'évènement `published` SEUL.** `snapshot` est réémis à chaque
+      ouverture de flux, donc à chaque reconnexion (toutes les 4 s quand le réseau tousse) :
+      brancher l'animation sur `render()` l'aurait rejouée en plein show, sans rien de neuf
+      à montrer. `apply(eventData, animate)`.
+- [x] **Séquence ~450 ms** : sortie en opacité de la grille (160 ms) → `render()` sur une
+      grille invisible → arrivée des blocs en cascade (260 ms, pas de 35 ms, **plafonné à
+      8 rangs** sinon 20 groupes s'étaleraient sur une seconde).
+- [x] **Trois apparences, trois gestes** — une cascade uniforme aurait été fausse :
+      `basique` = la carte arrive (fondu + 6 px) ; `lineaire` = fondu PUR, un déplacement
+      décalerait les filets et le tableau cesserait d'être un tableau ; `grille` = aplat
+      d'abord (160 ms) puis contenu (260 ms), un déplacement ferait fuir le fond dans les
+      gouttières de 6 px. Réglé par des jetons `--anim-*` redéfinis par apparence, sur le
+      modèle des bornes `--fit-*`.
+- [x] **En-tête** : seuls les éléments dont la valeur CHANGE se fondent, la comparaison
+      vivant chez `writeText()`, seul écrivain de ces textes. Horloge et voyant « En direct »
+      exclus — ce sont les deux repères permanents, les faire clignoter les ferait mentir.
+- [x] **Coupure** : garde en JS d'abord (rendu direct, aucun timer armé — sinon l'écran
+      paierait 160 ms de latence pour une animation qui ne joue pas), CSS
+      `:not([data-perf="on"])` en second filet. Idem `prefers-reduced-motion` via
+      `REDUCED_MOTION`. `perf` est lu dans la donnée QUI ARRIVE : activer le mode
+      performance ne s'accompagne pas d'une dernière animation d'adieu.
+- [x] **Rien côté serveur** : aucun champ, aucun réglage d'admin ajouté.
+
+**Bénéfice non demandé, obtenu gratuitement** : `render()` fait `stopAutoScroll(); setOffset(0)`.
+Si l'écran défilait, il SAUTAIT en haut à chaque publication ; ce saut a désormais lieu à
+opacité nulle.
+
+**Effet de bord favorable** : ce lot annule la réserve notée plus haut (« le mode performance
+devient un no-op sur `lineaire`/`grille` ») — il a maintenant un contenu sur les trois.
+
+**Vérifié :** 409 unitaires · 30 e2e (dont 3 nouveaux) · 30 JS · ruff propre. Captures des
+**3 apparences × 2 thèmes en pleine cascade** + console navigateur vide. Les 4 gardes ont
+été confrontées à un cas qui échoue volontairement (script de mutation, leçon 2026-07-23) :
+retirer la garde perf, animer sur `snapshot`, retirer le geste d'une apparence, retirer le
+`:not([data-perf])` d'une règle → les 4 tests tombent bien.
+
+**Limite assumée de la validation** : pour photographier la cascade, elle a été ralentie en
+CSSOM, `--anim-in` et `--anim-content-in` étant portés à la même valeur — le décalage
+160/260 ms propre à `grille` n'est donc pas visible sur les captures, seulement en mouvement.
+Et la fluidité réelle ne se mesure que sur le Pi 3.
+
+**Défaut repéré au passage, NON corrigé (hors périmètre)** : `display.js` référence
+`#sync-hint` (« Mises à jour en direct actives », « Tentative de reconnexion… ») mais
+l'élément n'existe plus dans `display.html` — `syncHint` est donc toujours `null` et ces
+messages ne s'affichent jamais. À trancher : rétablir l'élément ou retirer le code mort.
+
+---
+
+# LOT 2026-07-29 — Écran de démarrage du boîtier (« voyant de face avant »)
+
+Demande Nathan : « on a une animation de démarrage quand le raspberry boot, je ne l'aime
+pas, propose moi d'autres alternatives dans notre style » → puis « originales, peut-être
+avec le logo ». Quatre directions proposées (voyant de face avant / roster qui se pose /
+la poursuite / le noir de salle) ; **retenue : le voyant de face avant**.
+
+**Ce qui n'allait pas dans l'ancien** (`deploy/boot-splash.html`, faux journal vert) :
+- Les `[ OK ]` étaient **faux** — le commentaire du code l'avouait : « purement esthétique,
+  n'attend rien ». L'écran affirmait un diagnostic qu'il ne faisait pas. Même famille que
+  le filet vertical du Journal (leçon 2026-07-28) : *un ornement qui ressemble à une mesure
+  doit en être une* — ici, à un diagnostic.
+- Registre étranger au projet : vert phosphore, halo, `◤ ComRoster ◢`. Aucune des trois
+  apparences ne parle ce langage.
+- Le seul état réel — le serveur répond-il ? — n'était jamais montré.
+
+**Le nouveau** : le glyphe ComRoster au centre, immobile, sauf son **disque**, qui respire
+comme la LED de veille d'un appareil de scène. Cette respiration EST l'état de la sonde :
+gris (démarrage) → ambre + compteur (> 12 s) → rouge + consigne d'action (> 30 s) → vert
+(prêt). Identité et état sont le même objet, aucun élément ajouté, aucun texte inventé.
+
+- [x] Glyphe **inline** : la page s'ouvre en `file://` avant le serveur, aucune requête
+      n'est possible. Polices lues en relatif sur le disque, repli système si Chromium
+      refuse le `file://`.
+- [x] Jetons de couleur repris du thème nuit de `display.css` → bascule vers `/display`
+      sans changement de fond, aucun flash.
+- [x] Plus l'état est grave, plus le battement est rapide ET **moins il est profond**
+      (`--creux` 0,28 → 0,5 → 0,62) : au creux de 28 %, un rouge sur fond sombre disparaît
+      presque, et une alarme absente la moitié du temps est une mauvaise alarme.
+- [x] **Plancher d'affichage de 5 s** (décision Nathan : sinon un kiosk relancé pendant que
+      le service tourne ferait clignoter la page moins d'une seconde). La différence avec
+      l'ancien `MIN_MS` n'est pas la durée mais ce qu'on montre pendant : dès que `/healthz`
+      répond, le disque passe au vert et la page affiche « prêt » jusqu'à la bascule.
+- [x] Contrat `?next=` / `?health=` **inchangé** → `kiosk-run.sh` non modifié.
+- [x] Doc alignée : `kiosk.md` et `raspberry-pi.md` citaient encore « splash Booting
+      ComRoster », titre qui n'existe plus.
+
+**Vérifié au rendu réel** (Playwright, `file://`, 1920×1080) : les quatre états atteints
+avec leurs **vrais seuils** — veille, lent à 13 s, mort à 32 s avec la consigne — puis
+« prêt » affiché à **0,03 s** et bascule à **5,08 s**. Aucune exception JS ; console vide
+sur le chemin nominal (sur le chemin dégradé, chaque sonde vers un serveur éteint
+journalise un `ERR_CONNECTION_REFUSED` : l'exiger vide là-bas n'aurait rien prouvé).
+
+**Note de sonde — avertissement d'abord SURÉVALUÉ, puis vérifié.** La page étant ouverte
+depuis un fichier, le navigateur lui interdit de LIRE la réponse réseau : elle sait
+seulement « quelqu'un a répondu », jamais quoi. J'en avais tiré un risque de bascule vers
+une page d'erreur — **inexact dans l'installation standard** : `kiosk-run.sh` interroge
+gunicorn en direct sur `127.0.0.1:8080` et un service pas encore démarré ne répond PAS
+(connexion refusée), donc aucune confusion possible. Le cas n'existerait qu'avec un reverse
+proxy devant ComRoster (`deploy/nginx.conf`, optionnel et non installé) sur lequel on
+repointerait le kiosk : le proxy, lui, répond « 502 » avant que gunicorn ne soit levé.
+Recadré en commentaire dans le fichier, avec la condition de déclenchement.
+
+---
+
+**Reste ouvert (non demandé, non fait) :** découpage complet d'`admin.js` — trois modules
+purs en sont sortis (`board.js`, `netmask.js`, + `ink.js` rendu testable), ce qui donne au
+harnais de quoi mordre ; le reste du fichier est du câblage DOM, dont l'extraction
+demanderait un jsdom et une refonte que ce lot ne justifie pas.

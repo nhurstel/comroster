@@ -116,10 +116,13 @@ a.brand:hover { background: #ffffff08; }
 .admin-tabs .tab:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 .admin-tabs .tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
 
-/* Chips : segments plats séparés par des filets (pas de pilules). */
+/* Chips : segments plats séparés par des filets (pas de pilules).
+   Ordre imposé : onglets · horloge · état · Publier. Les témoins restent donc entre le
+   menu et l'action ; pour rapprocher quand même le menu de « Publier », c'est leur
+   EMPRISE qu'on réduit (respiration resserrée + libellé d'état court, cf. setStatus). */
 .top-right { display: flex; align-items: stretch; flex: 0 0 auto; }
 .chip {
-    display: flex; align-items: center; gap: 7px; padding: 0 12px;
+    display: flex; align-items: center; gap: 7px; padding: 0 9px;
     border-left: 1px solid var(--border-soft);
     font-size: calc(var(--ui) - 0.5px); font-weight: 500;
     color: var(--fg-muted); white-space: nowrap;
@@ -132,7 +135,7 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 }
 /* Statut de synchro : même registre de chip, voyant carré. */
 .status-badge {
-    display: flex; align-items: center; gap: 7px; padding: 0 12px;
+    display: flex; align-items: center; gap: 7px; padding: 0 9px;
     border-left: 1px solid var(--border-soft);
     font-size: calc(var(--ui) - 0.5px); font-weight: 500;
     color: var(--fg-muted); white-space: nowrap;
@@ -436,6 +439,12 @@ body:has(#import-dialog[open]) #export-btn {
 .board-table .bt-row:hover { background: var(--surface-2); }
 .board-table .bt-row.selected { background: rgb(217 98 83 / 0.1); box-shadow: inset 0 0 0 2px var(--accent); }
 .board-table .bt-row.view-dim { opacity: 0.22; pointer-events: none; }
+/* MAJ+clic sur une rangée déclenchait la SÉLECTION DE TEXTE du navigateur : les libellés
+   se surlignaient en bleu par-dessus la sélection de beltpacks, les deux gestes se
+   marchant dessus. L'édition sur place reste possible : les champs, eux, gardent la
+   sélection de texte. */
+.board-table .bt-row, .person { user-select: none; -webkit-user-select: none; }
+.board-table .bt-row input, .person input { user-select: text; -webkit-user-select: text; }
 .board-table .bt-bp { font-family: var(--f-mono); font-size: var(--mono); font-weight: 500; color: var(--fg-muted); }
 .board-table .bt-role { font-size: var(--role); font-weight: var(--role-w); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .board-table .bt-grp { display: flex; align-items: center; min-width: 0; }
@@ -490,14 +499,28 @@ body:has(#import-dialog[open]) #export-btn {
 }
 .pool-add:hover:not(:disabled) { background: var(--surface-3); border-color: var(--border-3); }
 
-/* ---------- Onglet Écran : réglages en colonnes ---------- */
-.screen-settings {
-    flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px;
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 320px));
-    gap: 18px 24px; align-content: start;
+/* ---------- Onglet Écran : rail de réglages | aperçu du brouillon ----------
+   Les réglages tenaient dans le coin haut-gauche d'une surface vide aux quatre
+   cinquièmes, et changer d'apparence ne montrait RIEN avant publication. Le rail les
+   regroupe en cartes à gauche ; l'aperçu occupe le reste et répond en direct. */
+.screen-layout {
+    flex: 1; min-height: 0; display: flex; gap: 16px; padding: 14px 16px; overflow: hidden;
 }
-.settings-group { display: flex; flex-direction: column; }
-.settings-group .nav-label { padding: 0 0 6px; }
+.screen-rail {
+    flex: 0 0 344px; min-height: 0; overflow-y: auto; padding-right: 2px;
+    display: flex; flex-direction: column; gap: 12px;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+/* Sections séparées par des FILETS, plus des boîtes arrondies empilées : le motif
+   « carte + libellé capitales » répété trois fois était exactement ce qui faisait
+   template. Même registre que le relevé de la page Santé. */
+.settings-card { padding: 0 0 18px; }
+.settings-card + .settings-card { border-top: 1px solid var(--border-soft); padding-top: 18px; }
+.card-hint { margin: 5px 0 9px; font-size: var(--ui-sm); color: var(--muted); line-height: 1.45; }
+/* Les quatre réglages d'apparence sont de même nature et de même longueur : deux
+   colonnes les lisent d'un coup d'œil là où quatre lignes faisaient liste. */
+.field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+
 .side-field { display: flex; flex-direction: column; gap: 4px; padding: 4px 0 8px; }
 .side-field > span { font-size: var(--ui-sm); color: var(--fg-subtle); font-weight: 500; }
 .side-field input, .side-field select {
@@ -505,13 +528,69 @@ body:has(#import-dialog[open]) #export-btn {
     background: var(--inset); border: 1px solid var(--border); border-radius: var(--rad);
     color: var(--fg); font-size: var(--ui);
 }
-.side-field select { cursor: pointer; }
+.side-field input::placeholder { color: var(--muted); }
+/* Chevron DESSINÉ (deux dégradés) et non image : la CSP est `default-src 'self'`, donc
+   un `data:` URI en background serait bloqué. Le chrome natif des <select> — boîte
+   claire, double flèche système — était le principal corps étranger de cette page. */
+.side-field select {
+    cursor: pointer; appearance: none; -webkit-appearance: none; padding-right: 24px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--fg-subtle) 50%),
+                      linear-gradient(135deg, var(--fg-subtle) 50%, transparent 50%);
+    background-position: calc(100% - 14px) 13px, calc(100% - 10px) 13px;
+    background-size: 5px 5px; background-repeat: no-repeat;
+}
+.side-field select:hover { border-color: var(--border-3); }
 .side-field input:focus, .side-field select:focus { outline: none; border-color: var(--accent); }
+
 .side-check {
     display: flex; align-items: center; gap: 8px; padding: 5px 0;
     font-size: var(--ui); color: var(--fg-muted); cursor: pointer;
 }
-.side-check input { width: 15px; height: 15px; accent-color: var(--accent); flex: 0 0 auto; }
+/* Case dessinée en CSS (même contrainte CSP que le chevron), à la place du widget
+   système : `accent-color` ne reteintait que le remplissage, pas la bordure claire. */
+.side-check input {
+    width: 16px; height: 16px; flex: 0 0 auto; cursor: pointer;
+    appearance: none; -webkit-appearance: none; position: relative;
+    background: var(--inset); border: 1px solid var(--border-3); border-radius: 4px;
+    transition: background 0.12s, border-color 0.12s;
+}
+.side-check:hover input:not(:checked) { border-color: var(--fg-subtle); }
+.side-check input:checked { background: var(--accent); border-color: var(--accent); }
+.side-check input:checked::after {
+    content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+    border: solid var(--on-accent); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+/* Dans les cartes, chaque case porte sa légende : alignement en HAUT, pas au centre. */
+.settings-card .side-check { align-items: flex-start; gap: 9px; padding: 6px 0; }
+.settings-card .side-check input { margin-top: 1px; }
+.check-text { display: flex; flex-direction: column; gap: 2px; }
+.check-text em { font-style: normal; font-size: var(--ui-sm); color: var(--muted); line-height: 1.4; }
+
+/* Aperçu : la VRAIE page display servant le BROUILLON (`?draft=1`), rendue à 1920×1080
+   puis mise à l'échelle par fitPreview(). À toute autre résolution il serait faux par
+   construction — l'écran répartit ses colonnes en `auto-fit` (leçon 2026-07-23). */
+.screen-preview { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.screen-preview-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.screen-preview-meta { font-family: var(--f-mono); font-size: var(--ui-sm); color: var(--muted); }
+/* Une SCÈNE occupant toute la hauteur, dans laquelle le 16/9 est centré. Posé en haut
+   du panneau, l'aperçu laissait ~310 px de vide orphelin dessous — le défaut même qu'on
+   corrige ici. La scène borne aussi la hauteur : plus besoin de deviner l'espace
+   disponible en `calc(100vh - …)`. */
+.screen-preview-stage {
+    flex: 1; min-height: 0; padding: 14px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--inset); border: 1px solid var(--border); border-radius: 8px;
+}
+.screen-preview-frame {
+    position: relative; overflow: hidden;
+    width: 100%; aspect-ratio: 16 / 9; max-height: 100%;
+    background: #000; border-radius: 4px; box-shadow: 0 0 0 1px var(--border-2);
+}
+.screen-preview-frame iframe {
+    position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; border: 0;
+    transform-origin: top left;
+    pointer-events: none;            /* témoin : rien à y cliquer */
+}
 
 /* ---------- Barre d'état (maquette .status) ---------- */
 .admin-status {
@@ -807,29 +886,80 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .range-row input { width: 76px; }
 .range-row .range-del { color: var(--danger); border-color: var(--danger-line); }
 
-/* ---------- Page Santé (/admin/health) : cartes de monitoring ---------- */
-.health-body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--pad); scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
-.health-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--gap); align-content: start; }
-.h-card { background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--rad); padding: 14px 16px; }
-.h-card h2 { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
-.h-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 3px 0; font-size: var(--ui); }
-.h-key { color: var(--fg-subtle); flex: 0 0 auto; }
-.h-val { color: var(--fg-muted); font-family: var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.h-val.ok { color: var(--success); }
-.h-val.warn { color: var(--warning); }
-.h-val.bad { color: var(--danger); }
-.h-val.muted { color: var(--muted); }
-.h-gauge { height: 6px; margin: 6px 0 4px; border-radius: 3px; background: var(--inset); overflow: hidden; }
-.h-gauge-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.3s; }
-.h-gauge-fill.ok { background: var(--success); }
-.h-gauge-fill.warn { background: var(--warning); }
-.h-gauge-fill.bad { background: var(--danger); }
-.h-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.h-flag { padding: 2px 8px; border-radius: 999px; font-size: var(--ui-sm); font-weight: 600; border: 1px solid var(--border); }
-.h-flag.ok { color: var(--success); border-color: rgba(46,204,113,0.4); }
-.h-flag.bad { color: var(--danger); border-color: var(--danger-line); background: var(--danger-bg); }
-.h-flag.muted { color: var(--muted); }
-.h-note { margin-top: 8px; font-size: var(--ui-sm); color: var(--muted); }
+/* ---------- Page Santé (/admin/health) : verdict, puis relevé ----------
+   Le tapis de six cartes équivalentes est parti : il donnait le même poids à « Cœurs : 8 »
+   qu'à « carte SD pleine à 90 % ». Une seule colonne, un seul endroit où la page hausse
+   la voix (le verdict), et des réglettes réservées aux mesures qui ONT un seuil. */
+.health-body {
+    flex: 1; min-height: 0; overflow-y: auto; padding: 26px 0 40px;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+/* Colonne de lecture bornée : au-delà, l'œil perd la ligne entre le libellé et sa valeur. */
+.health-report { width: min(720px, calc(100% - 48px)); margin: 0 auto; }
+
+/* Le verdict : l'élément signature. Filet vertical épais teinté par l'état — un bandeau
+   plein hurlerait, et la page doit rester lisible quand tout va bien. */
+.verdict { border-left: 3px solid var(--muted); padding: 2px 0 2px 18px; margin-bottom: 30px; }
+.verdict-word {
+    font-size: 34px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.05;
+    color: var(--fg);
+}
+.verdict-why { margin-top: 7px; font-size: 15px; line-height: 1.45; color: var(--fg-muted); }
+.verdict-more { margin-top: 4px; font-size: var(--ui); color: var(--muted); }
+.verdict[data-state="ok"] { border-left-color: var(--success); }
+.verdict[data-state="watch"] { border-left-color: var(--warning); }
+.verdict[data-state="alert"] { border-left-color: var(--error); }
+.verdict[data-state="watch"] .verdict-word { color: var(--warning); }
+.verdict[data-state="alert"] .verdict-word { color: var(--error); }
+
+/* Relevé : des lignes séparées par des filets, pas des boîtes. Hiérarchie INVERSÉE par
+   rapport à l'ancienne version — la valeur domine, le libellé s'efface. */
+.readout { border-top: 1px solid var(--border-soft); }
+.meter, .fact {
+    display: grid; align-items: baseline; gap: 0 14px; padding: 11px 0;
+    border-bottom: 1px solid var(--border-soft);
+}
+.meter { grid-template-columns: 140px 1fr 150px 46px; }
+.fact { grid-template-columns: 140px auto 1fr; }
+/* Légende d'une mesure : seconde ligne alignée sous la valeur, jamais sous le libellé —
+   elle explique le CHIFFRE (« 3,04 tâches en attente pour 8 cœurs »), pas l'intitulé. */
+.meter-hint {
+    grid-column: 2 / -1; margin-top: 3px;
+    font-size: var(--ui-sm); color: var(--muted); line-height: 1.45;
+}
+/* Rupture entre familles de mesures. Discrète : la page n'a qu'une voix forte. */
+.readout-heading {
+    padding: 22px 0 7px; border-bottom: 1px solid var(--border-soft);
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted);
+}
+.meter-label, .fact-label { font-size: var(--ui); color: var(--muted); }
+.meter-value, .fact-value {
+    font-family: var(--f-mono); font-variant-numeric: tabular-nums;
+    font-size: 17px; color: var(--fg); white-space: nowrap;
+}
+.fact-value.ok { color: var(--success); }
+.fact-value.warn { color: var(--warning); }
+.fact-value.bad { color: var(--error); }
+.fact-hint { font-size: var(--ui); color: var(--muted); text-align: right; }
+.meter-track { align-self: center; height: 4px; background: var(--inset); border-radius: 2px; overflow: hidden; }
+.meter-track i { display: block; height: 100%; width: 0; background: var(--fg-subtle); transition: width 0.3s; }
+.meter[data-tone="warn"] .meter-track i { background: var(--warning); }
+.meter[data-tone="bad"] .meter-track i { background: var(--error); }
+.meter[data-tone="bad"] .meter-value { color: var(--error); }
+.meter-pct {
+    font-family: var(--f-mono); font-variant-numeric: tabular-nums;
+    font-size: var(--ui); color: var(--muted); text-align: right;
+}
+/* L'indisponible tient en une ligne de pied : il n'a plus droit à une carte vide. */
+.unmeasured { margin-top: 16px; font-size: var(--ui-sm); color: var(--muted); }
+
+@media (max-width: 640px) {
+    .meter { grid-template-columns: 1fr auto; }
+    .meter .meter-track, .meter .meter-pct { display: none; }
+    .fact { grid-template-columns: 1fr auto; }
+    .fact .fact-hint { display: none; }
+}
 
 /* ---------- Page Journal (/admin/journal) : événements + logs techniques ---------- */
 .journal-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -851,14 +981,18 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .level-chips button[data-level="WARNING"][aria-pressed="true"] { color: var(--warning); }
 .level-chips button[data-level="ERROR"][aria-pressed="true"] { color: var(--danger); }
 /* Lignes de log : registre console, mono, message repliable sur plusieurs lignes. */
+/* Pas de boîte arrondie ici non plus : encadré, le tampon technique redevenait une
+   tuile. Il garde en revanche SA propre gouttière — ses horodatages portent la date
+   (le tampon peut couvrir deux journées), que la gouttière courte des événements
+   tronquerait. Densité conservée : c'est un `tail`, il vit de ça. */
 .log-list {
     display: flex; flex-direction: column;
-    border: 1px solid var(--border-soft); border-radius: var(--rad); background: var(--inset);
+    border-top: 1px solid var(--border-soft);
     font-family: var(--f-mono); font-size: 12.5px;
 }
 .log-row {
-    display: grid; grid-template-columns: 128px 64px 150px 1fr;
-    gap: 10px; padding: 5px 10px; align-items: baseline;
+    display: grid; grid-template-columns: 132px 58px 150px 1fr;
+    gap: 0 16px; padding: 5px 24px 5px 8px; align-items: baseline;
 }
 .log-row + .log-row { border-top: 1px solid var(--border-soft); }
 .log-time { color: var(--muted); }
@@ -868,25 +1002,53 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .log-row[data-level="CRITICAL"] .log-level { color: var(--danger); }
 .log-logger { color: var(--fg-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .log-msg { color: var(--fg-muted); white-space: pre-wrap; word-break: break-word; }
-.journal-empty { padding: 20px; text-align: center; color: var(--muted); font-family: var(--f-ui); font-size: var(--ui); }
+/* Vide RÉDIGÉ : il dit ce qui viendra s'inscrire, au lieu de constater l'absence. */
+.journal-empty {
+    display: flex; flex-direction: column; gap: 6px; align-items: center;
+    padding: 64px 24px; text-align: center; font-family: var(--f-ui);
+}
+.journal-empty b { font-size: 15px; font-weight: 600; color: var(--fg-muted); }
+.journal-empty span { font-size: var(--ui); color: var(--muted); max-width: 46ch; line-height: 1.5; }
 
-.journal-list {
-    list-style: none; display: flex; flex-direction: column;
-    border: 1px solid var(--border-soft); border-radius: var(--rad); background: var(--inset);
+/* ---------- Conduite chronologique ----------
+   L'heure vit dans une GOUTTIÈRE fixe, le long d'un filet continu qui matérialise
+   l'écoulement du temps : c'est un axe, pas un ornement. Un cran marque chaque
+   événement. La date ne se répète plus ligne à ligne, elle devient une rupture. */
+/* Pleine largeur, alignée sur la barre d'outils : centré dans une colonne de 880 px,
+   le journal formait un îlot qui ne s'accrochait à rien.
+   Le filet vertical continu a sauté : espacées uniformément quel que soit le temps
+   écoulé entre elles, les lignes ne forment PAS un axe proportionnel — le filet
+   affirmait une échelle qui n'existe pas. La structure temporelle est portée par les
+   ruptures de journée, qui, elles, sont vraies. */
+.journal-list { padding: 0 0 40px; }
+.journal-list .j-day {
+    display: flex; align-items: center; gap: 14px; padding: 24px 24px 9px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--fg-subtle);
 }
-.journal-list li {
-    display: flex; align-items: center; gap: 10px;
-    padding: 0 10px; min-height: var(--row);
-    font-size: var(--ui);
+.journal-list .j-day::after { content: ""; flex: 1; height: 1px; background: var(--border-soft); }
+
+.journal-list .j-entry {
+    display: grid; align-items: baseline;
+    grid-template-columns: 96px minmax(0, max-content) 1fr; gap: 0 22px;
+    padding: 7px 24px;
 }
-.journal-list li + li { border-top: 1px solid var(--border-soft); }
-.journal-list .j-time { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); flex: 0 0 auto; }
-.journal-list .j-label { font-weight: 600; white-space: nowrap; }
+.journal-list .j-entry + .j-entry { border-top: 1px solid var(--border-soft); }
+.journal-list .j-entry:hover { background: var(--surface); }
+.journal-list .j-time {
+    font-family: var(--f-mono); font-variant-numeric: tabular-nums;
+    font-size: 12.5px; color: var(--muted);
+}
+.journal-list .j-label { font-size: 14px; font-weight: 600; color: var(--fg); white-space: nowrap; }
 .journal-list .j-detail {
-    margin-left: auto; color: var(--fg-subtle); font-size: var(--ui-sm);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right;
+    font-size: var(--ui); color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.journal-list .empty-hint { width: 100%; }
+
+@media (max-width: 640px) {
+    .journal-list .j-entry { grid-template-columns: 84px 1fr; row-gap: 2px; }
+    .journal-list .j-detail { grid-column: 2; }
+}
 
 /* ---------- Historique / Configurations / Import ---------- */
 .history-list, .configs-list, .import-summary {
@@ -924,6 +1086,14 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .person.selected {
     background: rgb(0 0 0 / 0.3);
     box-shadow: inset 0 0 0 2px var(--accent);
+}
+/* Fantôme de glissement d'une sélection multiple. Positionné HORS CHAMP et non masqué :
+   le navigateur doit pouvoir le photographier (un élément non rendu donne un fantôme vide). */
+.drag-ghost {
+    position: fixed; top: -1000px; left: -1000px; z-index: -1;
+    padding: 6px 11px; border-radius: var(--rad);
+    background: var(--accent); color: var(--on-accent);
+    font-size: var(--ui); font-weight: 700; letter-spacing: var(--track); white-space: nowrap;
 }
 .selection-bar {
     position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%);
@@ -963,9 +1133,121 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 }
 .selection-bar button:hover:not(:disabled) { border-color: var(--border-3); }
 .selection-bar .danger-btn { background: var(--error); color: var(--fg); border-color: transparent; }
+/* Réaffectation en lot : même chrome que les boutons de la barre, chevron dessiné
+   (pas de `data:` URI — CSP `default-src 'self'`), comme les réglages de l'onglet Écran. */
+.selection-assign { display: flex; align-items: center; gap: 7px; }
+.selection-assign > span { color: var(--fg-subtle); }
+.selection-bar select {
+    height: 26px; padding: 0 24px 0 8px; max-width: 190px;
+    background-color: var(--surface-3); border: 1px solid var(--border); border-radius: var(--rad);
+    font-size: var(--ui); font-weight: 600; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--fg-subtle) 50%),
+                      linear-gradient(135deg, var(--fg-subtle) 50%, transparent 50%);
+    background-position: calc(100% - 14px) 11px, calc(100% - 10px) 11px;
+    background-size: 5px 5px; background-repeat: no-repeat;
+}
+.selection-bar select:hover { border-color: var(--border-3); }
 
 /* ---------- Responsive (fenêtre étroite : réserve sous le plateau) ---------- */
 @media (max-width: 900px) {
     .admin-layout { grid-template-columns: 1fr; }
     .panel-pool { border-left: none; border-top: 1px solid var(--border); }
 }
+
+/* ============================================================================
+   AUDIT 2026-07-28 — sauvegarde, mot de passe, repères d'historique, découverte
+   d'antenne. Registre repris de l'existant (rangées à filets, pas de tuiles) :
+   ces écrans sont des RELEVÉS, pas des galeries.
+   ========================================================================== */
+
+/* ---------- Historique : repères nommés et épinglés ---------- */
+.history-dialog { min-width: 34rem; }
+
+.history-list .hi-row {
+  display: grid;
+  grid-template-columns: 1.6rem auto 1fr auto;
+  align-items: baseline;
+  gap: .55rem;
+  padding: .3rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.hi-pin {
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg-subtle);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.hi-pin:hover { color: var(--fg); }
+.history-list .hi-row.pinned .hi-pin { color: var(--warning); }
+/* Un repère épinglé se lit d'un coup d'œil dans la liste : c'est celui qu'on cherche. */
+.history-list .hi-row.pinned .hi-when { color: var(--fg); }
+
+.hi-when {
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ui);
+}
+.hi-label {
+  color: var(--fg);
+  font-weight: 600;
+  cursor: text;
+  border-radius: 4px;
+  padding: 0 .25rem;
+}
+.hi-label:hover { background: var(--surface-2); }
+.hi-label.empty { color: var(--fg-subtle); font-weight: 400; font-style: italic; }
+.hi-label .inline-edit { min-width: 12rem; }
+
+/* ---------- Sauvegarde du boîtier ---------- */
+.backup-dialog { min-width: 32rem; }
+.bk-block {
+  padding: .9rem 0;
+  border-top: 1px solid var(--border);
+}
+.bk-block:first-of-type { border-top: 0; }
+.bk-block .nav-label { margin-bottom: .5rem; }
+/* La restauration est destructrice : son bouton n'a pas l'allure de l'action neutre. */
+.backup-dialog .danger-btn { margin-top: .6rem; }
+#bk-summary { margin-top: .6rem; }
+
+/* ---------- Découverte d'antenne ----------
+   Même géométrie que la liste Wi-Fi du dialogue réseau : deux listes de « choses
+   trouvées sur le réseau », elles n'ont aucune raison de se ressembler à moitié. */
+.ant-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: .35rem;
+}
+.ant-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 9.5rem;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--rad);
+  background: var(--surface-2);
+}
+.ant-list:empty { display: none; }
+.ant-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: .6rem;
+  padding: .38rem .6rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.ant-row:last-child { border-bottom: 0; }
+.ant-row:hover, .ant-row:focus-visible { background: var(--surface-3); }
+.ant-row.selected { background: var(--surface-3); box-shadow: inset 2px 0 0 var(--primary); }
+.ant-name { color: var(--fg); font-weight: 600; }
+.ant-ip { color: var(--fg-muted); font-variant-numeric: tabular-nums; font-size: var(--ui); }
+.ant-bp { color: var(--fg-subtle); font-size: var(--ui); }

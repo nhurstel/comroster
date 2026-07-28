@@ -63,7 +63,11 @@
 
   {# Bloc de données non exécuté : compatible CSP stricte (pas de script inline). #}
   <script type="application/json" id="initial-data">{{ initial_data|tojson }}</script>
+  {# board.js porte l'allowlist des apparences, partagée avec l'admin : elle vivait en
+     trois exemplaires tenus à la main par des commentaires « miroir de… ». Une valeur
+     oubliée d'un côté = un `data-skin` que personne ne style, donc un écran nu en salle. #}
   <script src="{{ url_for('static', filename='js/ink.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/board.js') }}"></script>
   <script src="{{ url_for('static', filename='js/display.js') }}"></script>
 </body>
 </html>

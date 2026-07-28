@@ -47,6 +47,23 @@ class SecretStore:
             return False
         return check_password_hash(self._read()["password_hash"], password)
 
+    def change_password(self, current_password, new_password):
+        """Rotation du mot de passe par quelqu'un qui connaît l'actuel.
+
+        Le code de récupération est CONSERVÉ, délibérément : c'est toute la différence
+        avec `recover()`. Sans ce chemin, changer de mot de passe imposait de brûler son
+        code de récupération — donc d'en noter un nouveau et de le rediffuser. Un boîtier
+        qui passe d'une production à l'autre n'avait aucun moyen de rotation
+        (audit 2026-07-28).
+        """
+        if not self.is_configured():
+            raise ValueError("Non configuré")
+        data = self._read()
+        if not check_password_hash(data["password_hash"], current_password):
+            raise ValueError("Mot de passe actuel incorrect")
+        data["password_hash"] = generate_password_hash(new_password)
+        self._write(data)
+
     def recover(self, recovery_code, new_password):
         if not self.is_configured():
             raise ValueError("Non configuré")

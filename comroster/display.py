@@ -14,7 +14,8 @@ from flask import (
     stream_with_context,
 )
 
-from .services import model
+from .security import limiter
+from .services import model, netstatus, pubsub
 
 bp = Blueprint("display", __name__)
 
@@ -23,30 +24,6 @@ HEARTBEAT_SECONDS = 15
 
 def format_sse(event, data):
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
-
-
-def _route_lan_ip():
-    """Interface de la route par défaut (échoue sur un réseau sans passerelle)."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("8.8.8.8", 80))   # ne envoie rien ; choisit l'interface sortante
-        return s.getsockname()[0]
-    except OSError:
-        return None
-    finally:
-        s.close()
-
-
-def _enumerate_lan_ip():
-    """Première IPv4 non-loopback liée à l'hôte (link-local incluse)."""
-    try:
-        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
-            ip = info[4][0]
-            if not ip.startswith("127."):
-                return ip
-    except OSError:
-        pass
-    return None
 
 
 def _primary_lan_ip():
@@ -59,7 +36,10 @@ def _primary_lan_ip():
     cfg = current_app.extensions["netconfig"].load()
     if cfg.get("mode") == "static" and cfg.get("address"):
         return cfg["address"]
-    return _route_lan_ip() or _enumerate_lan_ip() or "127.0.0.1"
+    # Les deux sondes vivent dans services/netstatus.py : la découverte d'antenne a
+    # besoin de la même « quelle est mon adresse sur ce réseau ? », et deux copies de
+    # cette logique finiraient par répondre différemment.
+    return netstatus.route_lan_ip() or netstatus.enumerate_lan_ip() or "127.0.0.1"
 
 
 def _admin_urls():
@@ -72,7 +52,11 @@ def _admin_urls():
 
 
 @bp.get("/api/onboarding")
+@limiter.limit("120 per minute")
 def onboarding():
+    # Publique et sondée toutes les 8 s tant que le boîtier n'est pas configuré. Elle
+    # ouvre un socket pour déterminer l'IP joignable : la seule route publique qui coûte
+    # autre chose qu'une lecture mémoire, donc la seule à mériter une borne ici.
     secret = current_app.extensions["secret"]
     published = current_app.extensions["storage"].load_published()
     admin_url, hostname_url = _admin_urls()
@@ -105,14 +89,29 @@ def events():
     broker = current_app.extensions["broker"]
     storage = current_app.extensions["storage"]
 
+    # `?role=admin` : la page d'administration s'abonne au même flux, mais n'affiche rien
+    # en salle. Le type sert à deux choses — ne pas la compter comme un écran de régie, et
+    # l'empêcher d'affamer les vrais écrans (réserve ci-dessous). Allowlist : toute valeur
+    # inconnue retombe sur « écran », le cas le plus prudent.
+    kind = pubsub.sanitize_kind(request.args.get("role"))
+
     # Chaque flux occupe un thread gunicorn : au-delà du cap on répond 503 plutôt
     # que de saturer le pool (le display retente automatiquement 4 s plus tard).
     if broker.subscriber_count >= current_app.config["SSE_MAX_CLIENTS"]:
         return Response("Trop d'écrans connectés", status=503,
                         headers={"Retry-After": "5"})
 
+    # RÉSERVE : les onglets d'administration sont bornés bien en dessous du cap total.
+    # Sans elle, quelques onglets admin laissés ouverts consommeraient les créneaux des
+    # écrans, et c'est la SALLE qui perdrait l'affichage — l'inverse exact de la priorité
+    # voulue. Un admin dégradé se resynchronise au rechargement ; un écran de régie noir,
+    # lui, se voit du fond de la salle.
+    if kind == pubsub.ADMIN and broker.count(pubsub.ADMIN) >= current_app.config["SSE_ADMIN_MAX"]:
+        return Response("Trop d'onglets d'administration ouverts", status=503,
+                        headers={"Retry-After": "10"})
+
     def stream():
-        q = broker.subscribe()
+        q = broker.subscribe(kind)
         try:
             published = storage.load_published() or model.empty_state()
             yield "retry: 3000\n\n"

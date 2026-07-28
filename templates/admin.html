@@ -74,6 +74,19 @@
             <button type="button" id="configs-btn" class="nav-item">Configurations</button>
             <label class="nav-item import-label">Importer<input type="file" id="import-input" accept=".rost,application/json"></label>
             <button type="button" id="export-btn" class="nav-item">Exporter</button>
+            {# La feuille papier est le filet quand le boîtier tombe : une conduite
+               imprimée survit à une panne d'alimentation, pas un écran. #}
+            <a class="nav-item" href="{{ url_for('api.admin_print') }}" target="_blank"
+               rel="noopener" title="Feuille d'affectation à imprimer">Feuille imprimable</a>
+          </nav>
+
+          {# Le boîtier lui-même — ce qui survit à une panne matérielle et ce qui protège
+             l'accès. Distinct de « Données », qui ne concerne que le contenu du plateau. #}
+          <nav class="side-nav">
+            <div class="nav-label">Boîtier</div>
+            <button type="button" id="backup-btn" class="nav-item"
+                    title="Archive complète : plateau, réseau, antenne, configurations, mot de passe">Sauvegarde</button>
+            <button type="button" id="password-btn" class="nav-item">Mot de passe</button>
           </nav>
 
           {# Témoin permanent de l'écran de régie (état publié), dans le fil du menu —
@@ -117,7 +130,9 @@
                 </div>
                 <div class="tb-seg" role="tablist" aria-label="Mode d'affichage">
                   <button type="button" class="seg-btn" data-view-mode="blocs" aria-pressed="true">Blocs</button>
-                  <button type="button" class="seg-btn" data-view-mode="table" aria-pressed="false">Table</button>
+                  {# Le libellé dit « Tableau » ; la VALEUR reste `table` — elle est
+                     persistée en localStorage, la renommer perdrait la préférence. #}
+                  <button type="button" class="seg-btn" data-view-mode="table" aria-pressed="false">Tableau</button>
                 </div>
                 {# UN bouton par fonction : l'ajout de beltpack vit dans la réserve
                    (« + Ajouter un beltpack »), pas en doublon ici. #}
@@ -145,57 +160,91 @@
           </div>
         </section>
 
-        {# Onglet Écran : réglages de l'affichage de régie (mêmes id qu'avant → JS intact). #}
+        {# Onglet Écran : réglages de l'affichage de régie, à GAUCHE en cartes, et à
+           droite un aperçu qui rend le BROUILLON en direct — sans lui, choisir une
+           apparence ou un nombre de colonnes se faisait à l'aveugle.
+           ⚠️ Les id des champs sont ceux d'avant : bindSettings/syncSettingsInputs
+           et les tests e2e continuent de fonctionner sans y toucher. #}
         <section class="tab-panel" data-panel="screen" hidden>
-          <div class="screen-settings">
-            <div class="settings-group">
-              <div class="nav-label">Production</div>
-              {# « Nom de la production » = titre centré de l'écran ; « Titre » + « Sous-titre »
-                 = paire en haut à gauche. #}
-              <label class="side-field"><span>Nom de la production</span>
-                <input type="text" id="meta-production" maxlength="120" autocomplete="off"></label>
-              <label class="side-field"><span>Titre</span>
-                <input type="text" id="meta-title" maxlength="120" autocomplete="off"></label>
-              <label class="side-field"><span>Sous-titre</span>
-                <input type="text" id="meta-subtitle" maxlength="120" autocomplete="off"></label>
+          <div class="screen-layout">
+            <div class="screen-rail">
+              <section class="settings-card">
+                <div class="nav-label">Production</div>
+                {# « Nom de la production » = titre centré de l'écran ; « Titre » + « Sous-titre »
+                   = paire en haut à gauche. #}
+                <label class="side-field"><span>Nom de la production</span>
+                  <input type="text" id="meta-production" maxlength="120" autocomplete="off"
+                         placeholder="au centre de l'écran"></label>
+                <label class="side-field"><span>Titre</span>
+                  <input type="text" id="meta-title" maxlength="120" autocomplete="off"></label>
+                <label class="side-field"><span>Sous-titre</span>
+                  <input type="text" id="meta-subtitle" maxlength="120" autocomplete="off"></label>
+              </section>
+
+              <section class="settings-card">
+                <div class="nav-label">Apparence de l'écran</div>
+                <div class="field-pair">
+                  <label class="side-field"><span>Apparence</span>
+                    <select id="skin-select">
+                      <option value="basique">Basique</option>
+                      <option value="lineaire">Linéaire</option>
+                      <option value="grille">Grille</option>
+                    </select></label>
+                  <label class="side-field"><span>Mode de luminosité</span>
+                    <select id="theme-select">
+                      <option value="night">Sombre</option>
+                      <option value="day">Clair</option>
+                    </select></label>
+                  <label class="side-field"><span>Taille du texte</span>
+                    <select id="meta-text-scale">
+                      <option value="original">Originale</option>
+                      <option value="grand">Grande</option>
+                      <option value="tres-grand">Très grande</option>
+                      <option value="auto">Automatique</option>
+                    </select></label>
+                  <label class="side-field"><span>Nombre de colonnes</span>
+                    <select id="meta-columns">
+                      <option value="0">Automatique</option>
+                      <option value="1">1 colonne</option>
+                      <option value="2">2 colonnes</option>
+                      <option value="3">3 colonnes</option>
+                      <option value="4">4 colonnes</option>
+                      <option value="5">5 colonnes</option>
+                      <option value="6">6 colonnes</option>
+                    </select></label>
+                </div>
+              </section>
+
+              <section class="settings-card">
+                <div class="nav-label">Indicateurs temps réel</div>
+                <label class="side-check"><input type="checkbox" id="ind-online">
+                  <span class="check-text">État Beltpack
+                    <em>voyant vert quand le beltpack est connecté</em></span></label>
+                <label class="side-check"><input type="checkbox" id="ind-battery">
+                  <span class="check-text">Batterie Beltpack
+                    <em>niveau de charge remonté par l'antenne</em></span></label>
+                <label class="side-check"><input type="checkbox" id="meta-perf">
+                  <span class="check-text">Mode performance
+                    <em>allège les effets — utile sur un boîtier lent</em></span></label>
+              </section>
             </div>
-            <div class="settings-group">
-              <div class="nav-label">Apparence de l'écran</div>
-              <label class="side-field"><span>Apparence</span>
-                <select id="skin-select">
-                  <option value="basique">Basique</option>
-                  <option value="lineaire">Linéaire</option>
-                  <option value="grille">Grille</option>
-                </select></label>
-              <label class="side-field"><span>Mode de luminosité</span>
-                <select id="theme-select">
-                  <option value="night">Sombre</option>
-                  <option value="day">Clair</option>
-                </select></label>
-              <label class="side-field"><span>Taille du texte</span>
-                <select id="meta-text-scale">
-                  <option value="original">Originale</option>
-                  <option value="grand">Grande</option>
-                  <option value="tres-grand">Très grande</option>
-                  <option value="auto">Automatique</option>
-                </select></label>
-              <label class="side-field"><span>Nombre de colonnes</span>
-                <select id="meta-columns">
-                  <option value="0">Automatique</option>
-                  <option value="1">1 colonne</option>
-                  <option value="2">2 colonnes</option>
-                  <option value="3">3 colonnes</option>
-                  <option value="4">4 colonnes</option>
-                  <option value="5">5 colonnes</option>
-                  <option value="6">6 colonnes</option>
-                </select></label>
-            </div>
-            <div class="settings-group">
-              <div class="nav-label">Indicateurs temps réel</div>
-              <label class="side-check"><input type="checkbox" id="ind-online"> État Beltpack</label>
-              <label class="side-check"><input type="checkbox" id="ind-battery"> Batterie Beltpack</label>
-              <label class="side-check"><input type="checkbox" id="meta-perf"> Mode performance</label>
-            </div>
+
+            {# Aperçu du BROUILLON (?draft=1), à distinguer du témoin « Affichage en cours »
+               de la latérale, qui montre ce qui est réellement à l'antenne. Rendu à
+               1920×1080 puis mis à l'échelle : en colonnes automatiques, le nombre de
+               colonnes dépend de la largeur en pixels (leçon 2026-07-23). #}
+            <section class="screen-preview" aria-labelledby="screen-preview-title">
+              <div class="screen-preview-head">
+                <span class="nav-label" id="screen-preview-title">Aperçu du brouillon</span>
+                <span class="screen-preview-meta">1920 × 1080</span>
+              </div>
+              <div class="screen-preview-stage">
+                <div class="screen-preview-frame" id="screen-preview-box">
+                  <iframe id="screen-preview" title="Aperçu de l'écran de régie tel qu'il sera publié"
+                          src="about:blank" tabindex="-1"></iframe>
+                </div>
+              </div>
+            </section>
           </div>
         </section>
       </main>
@@ -277,14 +326,82 @@
     </form>
   </dialog>
 
-  <dialog id="history-dialog" class="admin-dialog">
+  <dialog id="history-dialog" class="admin-dialog history-dialog">
     <form method="dialog">
       <h2>Historique des publications</h2>
-      <p class="dialog-hint">Restaurer recharge la publication choisie comme brouillon. Conservation : 30 jours.</p>
+      {# Nommer et épingler : une équipe pense ses publications en « Filage », « Générale »,
+         « Première », pas en horodatages. L'épingle met le repère à l'abri de la purge —
+         sans elle, la configuration de la première ne survit pas à 30 jours de filages. #}
+      <p class="dialog-hint">Restaurer recharge la publication choisie comme brouillon.
+        Conservation : 30 jours — sauf les repères <b>épinglés</b>, conservés indéfiniment.</p>
       <ul id="history-list" class="history-list"></ul>
       <div class="dialog-actions">
         <button type="button" id="history-clear" class="danger">Supprimer l'historique</button>
         <button type="button" id="history-close">Fermer</button>
+      </div>
+    </form>
+  </dialog>
+
+  {# ---- Sauvegarde complète du boîtier ----
+     L'export .rost ne couvre que le plateau : un boîtier mort emporte le réseau,
+     l'antenne, les configurations et le mot de passe. L'archive est TOUJOURS chiffrée,
+     elle contient le mot de passe Wi-Fi en clair. #}
+  <dialog id="backup-dialog" class="admin-dialog backup-dialog">
+    <form method="dialog">
+      <h2>Sauvegarde du boîtier</h2>
+      <p class="dialog-hint">Une archive unique, réinjectable sur un boîtier neuf :
+        plateau, réglages d'écran, réseau, identifiants du réseau intercom,
+        configurations enregistrées et mot de passe d'administration.</p>
+
+      <section class="bk-block">
+        <div class="nav-label">Créer une sauvegarde</div>
+        <label class="field"><span>Phrase de passe <em>(8 caractères minimum)</em></span>
+          <input type="password" id="bk-pass" autocomplete="new-password" minlength="8"></label>
+        <p class="dialog-hint">L'archive contient le mot de passe Wi-Fi et l'empreinte du
+          mot de passe admin : elle est donc chiffrée. <b>Notez cette phrase avec le
+          fichier</b> — sans elle, l'archive est irrécupérable.</p>
+        <button type="button" id="bk-create" class="primary">Télécharger la sauvegarde</button>
+      </section>
+
+      <section class="bk-block">
+        <div class="nav-label">Restaurer</div>
+        <label class="field"><span>Fichier de sauvegarde</span>
+          <input type="file" id="bk-file" accept=".rostbak,application/json"></label>
+        <label class="field"><span>Phrase de passe de cette archive</span>
+          <input type="password" id="bk-restore-pass" autocomplete="off"></label>
+        <button type="button" id="bk-inspect">Examiner le contenu</button>
+        {# On annonce ce qu'on s'apprête à écraser AVANT de le faire : restaurer remplace
+           le réseau et le mot de passe. « Restaurer » ne s'active qu'après l'examen. #}
+        <ul id="bk-summary" class="import-summary" hidden></ul>
+        <p id="bk-error" class="auth-error" hidden></p>
+        <button type="button" id="bk-restore" class="danger-btn" hidden>Restaurer ce contenu</button>
+      </section>
+
+      <div class="dialog-actions">
+        <button type="button" data-close="backup-dialog">Fermer</button>
+      </div>
+    </form>
+  </dialog>
+
+  {# ---- Mot de passe d'administration ----
+     Le code de récupération n'est PAS consommé ici : c'est toute la différence avec la
+     page « mot de passe oublié ». Un boîtier prêté d'une production à l'autre doit
+     pouvoir tourner sa clé sans rediffuser un nouveau code à toute l'équipe. #}
+  <dialog id="password-dialog" class="admin-dialog">
+    <form id="password-form" method="dialog">
+      <h2>Changer le mot de passe</h2>
+      <label class="field"><span>Mot de passe actuel</span>
+        <input type="password" id="pw-current" autocomplete="current-password" required></label>
+      <label class="field"><span>Nouveau mot de passe</span>
+        <input type="password" id="pw-new" autocomplete="new-password" required minlength="4"></label>
+      <label class="field"><span>Confirmer le nouveau mot de passe</span>
+        <input type="password" id="pw-confirm" autocomplete="new-password" required></label>
+      <p class="dialog-hint">Votre code de récupération reste valable : il n'est pas
+        régénéré par ce changement.</p>
+      <p id="pw-error" class="auth-error" hidden></p>
+      <div class="dialog-actions">
+        <button type="submit" class="primary">Changer le mot de passe</button>
+        <button type="button" data-close="password-dialog">Annuler</button>
       </div>
     </form>
   </dialog>
@@ -295,6 +412,17 @@
          ressemblaient à des voyants d'état. #}
       <section class="wiz-step" data-step="1">
         <h2>Connexion au réseau intercom <span class="wiz-count">1/2</span></h2>
+        {# Découverte : elle PROPOSE, elle ne connecte jamais seule. Le champ d'adresse
+           reste le chemin de référence — réseau segmenté, VLAN dédié ou antenne hors
+           sous-réseau, il n'y a que lui qui marche. Cliquer un résultat REMPLIT le champ,
+           il ne le remplace pas. #}
+        <div class="field ant-picker">
+          <div class="ant-picker-head">
+            <span>Antennes détectées sur le réseau</span>
+            <button type="button" id="ant-scan-btn" class="tb-act">Rechercher</button>
+          </div>
+          <ul id="ant-list" class="ant-list" aria-live="polite"></ul>
+        </div>
         <label class="field"><span>Adresse IP</span>
           <input type="text" id="wiz-ip" placeholder="192.168.1.11" autocomplete="off"></label>
         <label class="field"><span>Mot de passe</span>
@@ -468,8 +596,17 @@
     </form>
   </dialog>
 
+  {# Barre de sélection multiple. « Affecter à » agit sur TOUTE la sélection : sans elle,
+     réaffecter dix beltpacks imposait dix manipulations (le sélecteur de la vue Tableau
+     ne pilote que sa propre rangée). #}
   <div id="selection-bar" class="selection-bar">
     <span id="selection-count">0 sélectionné(s)</span>
+    <label class="selection-assign">
+      <span>Affecter à</span>
+      <select id="selection-group" aria-label="Affecter la sélection à un groupe">
+        <option value="">— réserve —</option>
+      </select>
+    </label>
     <button type="button" id="selection-delete" class="danger-btn">Supprimer</button>
     <button type="button" id="selection-cancel">Annuler</button>
   </div>
@@ -482,7 +619,13 @@
 
   {# Bloc de données non exécuté : compatible CSP stricte (pas de script inline). #}
   <script type="application/json" id="initial-data">{{ initial_data|tojson }}</script>
+  {# Modules de logique PURE (sans DOM), chargés avant admin.js. Ils sont importés tels
+     quels par les tests Node (Vitest) : c'est ce qui rend testable la logique qui vivait
+     noyée dans les 2200 lignes d'admin.js. Aucune dépendance JS au RUNTIME — de simples
+     <script>, comme ink.js depuis toujours. #}
   <script src="{{ url_for('static', filename='js/ink.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/board.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/netmask.js') }}"></script>
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>

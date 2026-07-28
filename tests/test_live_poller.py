@@ -2,6 +2,31 @@ from comroster.services.live_poller import poll_once
 from comroster.services.pubsub import Broker
 
 
+def _drain(q, event=None):
+    """Vide la file en écartant les annonces d'INTENDANCE du broker (`displays`).
+
+    Depuis l'audit 2026-07-28, s'abonner/se désabonner pousse le nombre d'écrans à tout le
+    monde : ces tests ne peuvent donc plus supposer « le premier évènement de la file est
+    le mien ». On saute donc l'intendance — et, si `event` est donné, on va chercher CE
+    type-là plutôt que le premier venu.
+    """
+    import queue as _q
+    while True:
+        try:
+            item = q.get_nowait()
+        except _q.Empty:
+            return None
+        if item[0] == "displays":
+            continue
+        if event is None or item[0] == event:
+            return item
+
+
+def _is_empty(q):
+    """La file ne contient plus que de l'intendance ?"""
+    return _drain(q) is None
+
+
 class FakeClient:
     def __init__(self, *states):
         self._states = list(states)
@@ -32,14 +57,14 @@ def test_publishes_live_on_change():
     b = {"connected": True, "beltpacks": {"7": {"online": False}}}
     prev = poll_once(broker, FakeClient(a), None)
     assert prev == a
-    assert q.get_nowait() == ("live", a)
+    assert _drain(q) == ("live", a)
     # même état → aucun nouveau push
     prev = poll_once(broker, FakeClient(a), prev)
-    assert q.empty()
+    assert _is_empty(q)
     # état différent → push
     prev = poll_once(broker, FakeClient(b), prev)
     assert prev == b
-    assert q.get_nowait() == ("live", b)
+    assert _drain(q) == ("live", b)
 
 
 def test_client_error_keeps_previous_state():

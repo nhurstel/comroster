@@ -15,6 +15,7 @@ from .services.antenna import AntennaClient
 from .services.configs import Configs
 from .services.history import History
 from .services.journal import Journal
+from .services.lifetime import Lifetime, start_checkpoints
 from .services.live_poller import start_live_poller
 from .services.netconfig import NetConfig
 from .services.pubsub import Broker
@@ -75,10 +76,15 @@ def create_app(config_overrides=None):
     app.extensions["netconfig"] = NetConfig(app.config["DATA_DIR"])
     app.extensions["journal"] = Journal(app.config["DATA_DIR"])
     logbuffer.install(app)      # volet « Technique » de la page Journal (debug sans SSH)
+    app.extensions["lifetime"] = Lifetime(app.config["DATA_DIR"])
+    app.extensions["lifetime"].register_start()
 
     # Pousse l'état antenne via SSE (au lieu du polling client). Pas sous tests.
     if not app.config.get("TESTING"):
         start_live_poller(app)
+        # Points de reprise du carnet de bord. Hors tests comme le poller : la suite
+        # crée une app par test, autant de fils dormants qui ne serviraient à rien.
+        start_checkpoints(app)
 
     if app.config.get("TESTING"):
         app.config["WTF_CSRF_ENABLED"] = False

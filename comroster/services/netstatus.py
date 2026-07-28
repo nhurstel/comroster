@@ -4,9 +4,34 @@ Complément du scan Wi-Fi : ne modifie rien, donc pas de chemin privilégié. In
 en argv fixe et tolère toute panne (esprit appliance) : nmcli absent / refusé / délai
 dépassé → available:false, jamais d'exception. Les parseurs sont purs (testables sans Pi).
 """
+import socket
 import subprocess
 
 _TYPES = ("ethernet", "wifi")
+
+
+def route_lan_ip():
+    """Interface de la route par défaut (échoue sur un réseau sans passerelle)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))   # n'envoie rien ; choisit l'interface sortante
+        return s.getsockname()[0]
+    except OSError:
+        return None
+    finally:
+        s.close()
+
+
+def enumerate_lan_ip():
+    """Première IPv4 non-loopback liée à l'hôte (link-local incluse)."""
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ip = info[4][0]
+            if not ip.startswith("127."):
+                return ip
+    except OSError:
+        pass
+    return None
 
 
 def _unescape(v):

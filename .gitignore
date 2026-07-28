@@ -3,14 +3,31 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+# Fichiers d'état écrits dans DATA_DIR. Ils atterrissent à la RACINE quand DATA_DIR n'est
+# pas défini (défaut = répertoire courant), d'où cette liste en plus de instance/.
+# CONTRÔLE : tout `os.path.join(data_dir, …)` du code doit avoir sa ligne ici — c'est ce
+# que vérifie test_gitignore_couvre_tous_les_fichiers_detat.
+# `network.json` porte le PSK Wi-Fi EN CLAIR : son absence était le risque le plus concret
+# (audit 2026-07-28 — lifetime.json traînait déjà non suivi à la racine).
 data_draft.json
 data_published.json
 admin_secret.json
 settings.json
 antenna.json
+journal.jsonl
+lifetime.json
+network.json
+viewer.json
 configs/
 history/
 instance/
+
+# Sauvegardes et temporaires de l'écriture atomique (<chemin>.bak / <chemin>.tmp)
+*.bak
+*.tmp
+
+# Outillage de test JS (dev uniquement — rien de tout ceci ne part sur le boîtier)
+node_modules/
 
 # macOS
 .DS_Store
@@ -19,3 +36,7 @@ instance/
 # Archives de référence (itérations précédentes)
 ComRoster archives/
 RIEDEL SOFTS/
+
+# Brouillons de travail des agents (briefs, rapports, paquets de revue) : du scratch,
+# reconstructible depuis le plan et git log.
+.superpowers/

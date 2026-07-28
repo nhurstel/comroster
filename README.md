@@ -35,6 +35,10 @@ python3.12 -m venv .venv
 | `COMROSTER_ANTENNA_TIMEOUT` | Délai (s) des requêtes vers l'antenne Bolero | `5` |
 | `COMROSTER_BIND` | Adresse:port d'écoute gunicorn (mettre `0.0.0.0:8080` en Pi autonome) | `127.0.0.1:8080` |
 | `COMROSTER_INSECURE_COOKIE` | Désactive le flag `Secure` du cookie (LAN fermé sans TLS) — **sans** activer le debug | `false` |
+| `COMROSTER_BEHIND_PROXY` | Fait confiance à `X-Forwarded-For` (rate-limit du login derrière Nginx) | `false` |
+| `COMROSTER_SSE_MAX` | Plafond de flux SSE simultanés. Un tiers est réservé aux onglets d'admin (`?role=admin`) ; les deux tiers restants sont **garantis aux écrans** | `12` |
+| `COMROSTER_VIEWER_PORT` | Port de l'agent afficheur (mode 2 Pi) | `8081` |
+| `COMROSTER_VIEWER_CODE` | Impose le code d'appariement de l'agent afficheur au lieu d'en tirer un au sort | tiré au sort |
 
 Générer une clé : `python -c "import secrets; print(secrets.token_hex(32))"`.
 
@@ -141,7 +145,61 @@ aucun rendu parallèle, donc aucune dérive possible. Ni l'une ni l'autre n'ouvr
   `?scroll=1` rétablit le défilement (grand aperçu seulement — le témoin permanent reste immobile).
   Chaque flux `/events` occupe un thread et un créneau de `COMROSTER_SSE_MAX` (12 par défaut) —
   un aperçu laissé ouvert affamerait les vrais afficheurs.
+- `/admin/print` — feuille d'affectation imprimable (état publié ; `?draft=1` pour le brouillon).
 - `/display` + `/events` — affichage TV public, **lecture seule** (état publié uniquement).
+  L'admin s'abonne au même flux avec `?role=admin` : elle n'est alors pas comptée comme un
+  écran de régie et ne peut pas affamer les vrais écrans (un tiers du plafond lui est
+  concédé, pas davantage).
+- `/api/live` — état temps réel des beltpacks, **public** (l'écran de régie n'a pas de
+  session) et borné à 60 requêtes/minute.
+
+## Découverte du réseau intercom
+
+L'assistant de connexion propose les antennes Bolero visibles sur le sous-réseau du
+boîtier — plus besoin de connaître l'adresse par cœur. Cliquer un résultat **remplit** le
+champ d'adresse ; la connexion reste une action explicite, mot de passe compris.
+
+> **La saisie manuelle de l'IP reste le chemin de référence** : sur un réseau segmenté, un
+> VLAN dédié ou avec une antenne hors sous-réseau, c'est le seul qui fonctionne. Le
+> balayage n'accepte d'ailleurs **aucune adresse du client** — il déduit son périmètre de
+> l'adresse du boîtier et refuse les plages non privées, de sorte que la garde anti-SSRF de
+> `/api/antenna/connect` (littéral IP uniquement) reste entière.
+
+## Sauvegarde du boîtier
+
+`Sauvegarde` (barre latérale, section « Boîtier ») produit une **archive complète** :
+plateau, réglages d'écran, réseau, identifiants du réseau intercom, configurations
+enregistrées, mot de passe d'administration et journal. Réinjectée sur un boîtier neuf,
+elle transforme une panne matérielle en incident de quelques minutes — là où l'export
+`.rost`, qui ne couvre que le plateau, laissait tout le reste à refaire.
+
+> **L'archive est toujours chiffrée** (phrase de passe, 8 caractères minimum ;
+> PBKDF2-HMAC-SHA256). Elle contient le **mot de passe Wi-Fi en clair** et l'empreinte du
+> mot de passe admin : non chiffrée sur une clé USB, elle serait plus dangereuse que le
+> boîtier qu'elle protège. **Notez la phrase de passe avec le fichier** — sans elle
+> l'archive est irrécupérable.
+
+Deux choses ne sont **volontairement pas** sauvegardées : le carnet de bord
+(`lifetime.json`), qui est l'identité du boîtier *physique* — un boîtier neuf ne doit pas
+revendiquer les heures de vol du mort — et `history/`, volumineux et dérivé.
+
+Avant d'écraser quoi que ce soit, « Examiner le contenu » **annonce** ce que l'archive
+porte. Le journal, lui, est **fusionné** et non remplacé : une restauration n'efface pas
+les évènements du boîtier d'accueil.
+
+## Mot de passe d'administration
+
+`Mot de passe` (section « Boîtier ») change le mot de passe **sans consommer le code de
+récupération** — c'est toute la différence avec `/admin/recover`. Un boîtier prêté d'une
+production à l'autre peut ainsi tourner sa clé sans qu'il faille rediffuser un nouveau
+code à toute l'équipe.
+
+## Feuille d'affectation imprimable
+
+`Feuille imprimable` (section « Données ») ouvre `/admin/print` : une conduite papier, en
+deux colonnes, avec une colonne de visa. Les régies travaillent sur papier, et c'est le
+filet quand le boîtier tombe — une feuille imprimée survit à une panne d'alimentation.
+Comme l'aperçu, elle rend l'état **publié** par défaut ; `?draft=1` imprime le brouillon.
 
 ## Réinitialisation totale (A6)
 
@@ -153,9 +211,17 @@ rm /opt/comroster/instance/admin_secret.json
 
 ## Fichiers d'état (non versionnés)
 
-`data_draft.json` (brouillon), `data_published.json` (publié), `admin_secret.json`
-(hash, permissions 600), `history/` (snapshots horodatés des publications). Tous listés
-dans `.gitignore`.
+Tous écrits dans `DATA_DIR` : `data_draft.json` (brouillon), `data_published.json`
+(publié), `admin_secret.json` (empreintes, permissions 600), `settings.json`,
+`antenna.json` (identifiants chiffrés, 600), `network.json` (**contient le mot de passe
+Wi-Fi en clair**, 600), `viewer.json` et `viewer_agent.json` (mode 2 Pi),
+`journal.jsonl` (évènements), `lifetime.json` (carnet de bord), `configs/`
+(configurations nommées) et `history/` (instantanés des publications).
+
+Chacun a sa ligne dans `.gitignore`, ainsi que les `.bak`/`.tmp` de l'écriture atomique —
+et c'est **vérifié par un test** (`test_gitignore_couvre_tous_les_fichiers_detat`), qui
+interroge les services eux-mêmes plutôt qu'une liste écrite à la main. Quatre de ces
+fichiers manquaient jusqu'à l'audit du 2026-07-28, dont `network.json` et son PSK.
 
 ## Tests
 
@@ -176,3 +242,25 @@ Dépendances de dev (hors `requirements.txt`) : voir [requirements-dev.txt](requ
 ```
 Ils démarrent un vrai serveur et valident le parcours complet (configuration → groupe →
 beltpack → publication → affichage TV) dans un vrai navigateur.
+
+**Tests JavaScript** (logique pure : modèle du brouillon, masques de sous-réseau, encre) :
+```bash
+npm ci        # une fois — vitest, épinglé par le lockfile
+npm test
+```
+> Ces paquets sont **de développement uniquement**. `static/js/*.js` reste du JavaScript
+> nu chargé par de simples `<script>` : rien de ce que npm installe n'atteint le boîtier,
+> et l'engagement « zéro dépendance JS » porte sur le runtime.
+
+**Couverture** (seuil plancher déclaré dans `pyproject.toml`, vérifié en CI) :
+```bash
+.venv/bin/coverage run -m pytest -q && .venv/bin/coverage report
+```
+
+**Rejouer le lint de la CI avec les mêmes versions d'outils** :
+```bash
+./deploy/lint-local.sh
+```
+> `ruff` et `shellcheck` sont **épinglés** (respectivement dans `requirements-dev.txt` et
+> `.github/workflows/ci.yml`). Un linter dont la version diffère entre le poste et la CI
+> rend le verdict local sans valeur : ça a déjà coûté deux journées au projet.

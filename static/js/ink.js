@@ -12,7 +12,10 @@
    sur noir et sur blanc s'équivalent. Au-dessus : encre sombre. En dessous :
    encre claire.
 
-   Chargé avant display.js / admin.js, expose `window.ComRoster.inkFor`.
+   Chargé avant display.js / admin.js, expose `window.ComRoster.inkFor`. Exporté aussi en
+   CommonJS pour les tests Node (Vitest) : le seuil 0.179 et la bascule encre claire /
+   encre sombre décident de la lisibilité en salle — ils méritent d'être vérifiés par le
+   calcul plutôt qu'à l'œil sur une capture.
    ========================================================================== */
 (function (global) {
   "use strict";
@@ -32,6 +35,9 @@
     return luminance > 0.179 ? "dark" : "light";
   }
 
-  global.ComRoster = global.ComRoster || {};
-  global.ComRoster.inkFor = inkFor;
-})(window);
+  if (typeof module === "object" && module.exports) module.exports = { inkFor };   // Vitest
+  else {
+    global.ComRoster = global.ComRoster || {};
+    global.ComRoster.inkFor = inkFor;
+  }
+})(typeof globalThis !== "undefined" ? globalThis : this);

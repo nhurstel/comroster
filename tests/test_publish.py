@@ -1,6 +1,31 @@
 import pytest
 
 
+def _drain(q, event=None):
+    """Vide la file en écartant les annonces d'INTENDANCE du broker (`displays`).
+
+    Depuis l'audit 2026-07-28, s'abonner/se désabonner pousse le nombre d'écrans à tout le
+    monde : ces tests ne peuvent donc plus supposer « le premier évènement de la file est
+    le mien ». On saute donc l'intendance — et, si `event` est donné, on va chercher CE
+    type-là plutôt que le premier venu.
+    """
+    import queue as _q
+    while True:
+        try:
+            item = q.get_nowait()
+        except _q.Empty:
+            return None
+        if item[0] == "displays":
+            continue
+        if event is None or item[0] == event:
+            return item
+
+
+def _is_empty(q):
+    """La file ne contient plus que de l'intendance ?"""
+    return _drain(q) is None
+
+
 @pytest.fixture
 def auth_client(client):
     client.post("/admin/setup", data={"password": "motdepasse8"})
@@ -33,7 +58,7 @@ def test_publish_notifies_sse_subscriber(auth_client, app):
     q = broker.subscribe()
     auth_client.post("/api/people", json={"role": "HF", "beltpack": "12"})
     auth_client.post("/api/publish")
-    event, data = q.get_nowait()
+    event, data = _drain(q)
     assert event == "published"
     assert any(p["beltpack"] == "12" for p in data["people"])
 

@@ -13,6 +13,13 @@ import collections
 import logging
 from datetime import datetime, timezone
 
+#: Journaux d'ACCÈS HTTP : une ligne par requête, fichiers statiques compris. Un seul
+#: chargement de page en produit plusieurs dizaines, qui chassent du tampon les lignes
+#: réellement utiles au diagnostic. Savoir qu'un .woff2 a été servi n'a jamais aidé
+#: personne en régie. `werkzeug` est le serveur de développement, `gunicorn.access` son
+#: équivalent en production.
+ACCESS_LOGGERS = ("werkzeug", "gunicorn.access")
+
 
 class LogBuffer(logging.Handler):
     CAPACITY = 500
@@ -22,6 +29,10 @@ class LogBuffer(logging.Handler):
         self.records = collections.deque(maxlen=self.CAPACITY)
 
     def emit(self, record):
+        # Écartés SEULEMENT en dessous de WARNING : une vraie erreur du serveur HTTP
+        # (requête refusée, exception non rattrapée) doit rester visible sans SSH.
+        if record.levelno < logging.WARNING and record.name.startswith(ACCESS_LOGGERS):
+            return
         try:
             message = record.getMessage()
             if record.exc_info and record.exc_info[1] is not None:

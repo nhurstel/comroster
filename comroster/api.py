@@ -1,9 +1,11 @@
+import base64
 import re
+from datetime import datetime, timezone
 
 from flask import Blueprint, current_app, jsonify, render_template, request
 
 from .security import exclusive_state, json_body, login_required
-from .services import health, model, netstatus, wifi
+from .services import backup, health, model, netstatus, wifi
 
 bp = Blueprint("api", __name__)
 
@@ -43,11 +45,17 @@ def admin_page():
 @bp.get("/admin/preview")
 @login_required
 def admin_preview():
-    """Report de l'écran de régie : rend l'état PUBLIÉ, comme /display.
+    """Report de l'écran de régie : rend l'état PUBLIÉ par défaut, comme /display.
 
     C'est un témoin de ce qui est réellement affiché en salle, pas un aperçu du
     brouillon — l'admin travaille sur le brouillon, il a donc surtout besoin de voir
     ce que le public voit pendant qu'il le prépare.
+
+    `?draft=1` rend au contraire le BROUILLON : c'est l'aperçu de l'onglet « Écran »,
+    où régler une apparence, une luminosité ou un nombre de colonnes sans voir le
+    résultat obligeait à publier pour juger. Les deux vues coexistent parce qu'elles
+    répondent à deux questions distinctes — « qu'y a-t-il à l'antenne ? » et « à quoi
+    ressemblera ce que je prépare ? » — ce n'est donc pas un doublon de fonction.
 
     `preview=True` coupe côté client tout ce qui coûte au serveur ou tourne en continu,
     au premier chef l'abonnement SSE : chaque flux /events occupe un thread gthread en
@@ -58,9 +66,49 @@ def admin_preview():
     contenu déborde de l'écran. Réservé au grand aperçu, ouvert à la demande : le témoin
     permanent le laisse coupé (une animation en continu dans un onglet toujours ouvert).
     """
-    published = _storage().load_published() or model.empty_state()
-    return render_template("display.html", initial_data=published, preview=True,
+    if request.args.get("draft") == "1":
+        state = _storage().load_draft()
+    else:
+        state = _storage().load_published() or model.empty_state()
+    return render_template("display.html", initial_data=state, preview=True,
                            preview_scroll=request.args.get("scroll") == "1")
+
+
+@bp.get("/admin/print")
+@login_required
+def admin_print():
+    """Feuille d'affectation imprimable.
+
+    Les régies travaillent sur papier, et c'est le filet quand le boîtier tombe : une
+    conduite imprimée survit à une panne d'alimentation, pas un écran. Comme
+    `/admin/preview`, elle rend l'état PUBLIÉ par défaut — c'est ce que la salle voit —
+    et `?draft=1` rend le brouillon, pour imprimer une version en préparation.
+    """
+    draft = request.args.get("draft") == "1"
+    state = (_storage().load_draft() if draft
+             else _storage().load_published() or model.empty_state())
+    groups = sorted(state.get("groups") or [], key=lambda g: g.get("order") or 0)
+    people = state.get("people") or []
+    by_group = {
+        g["id"]: sorted((p for p in people if p.get("group_id") == g["id"]),
+                        key=lambda p: _beltpack_sort_key(p.get("beltpack")))
+        for g in groups
+    }
+    reserve = sorted((p for p in people if not p.get("group_id")),
+                     key=lambda p: _beltpack_sort_key(p.get("beltpack")))
+    return render_template(
+        "print.html", state=state, groups=groups, by_group=by_group,
+        reserve=reserve, is_draft=draft,
+        printed_at=datetime.now(timezone.utc).astimezone().strftime("%d/%m/%Y à %H:%M"),
+    )
+
+
+def _beltpack_sort_key(value):
+    """Tri NUMÉRIQUE des beltpacks : en tri texte, « 10 » se glisse entre « 1 » et « 2 »,
+    ce qui rend une feuille papier pénible à parcourir. Les numéros non entiers
+    (rarissimes, mais le champ est libre) passent en fin, par ordre alphabétique."""
+    text = str(value or "").strip()
+    return (0, int(text), "") if text.isdigit() else (1, 0, text)
 
 
 @bp.get("/api/state")
@@ -74,8 +122,11 @@ def get_state():
 def get_status():
     """Ce qui est réellement à l'antenne, pour la barre d'état de l'admin.
 
-    - `displays` : nombre d'écrans de régie abonnés au flux SSE (les aperçus de
-      l'admin, eux, n'ouvrent jamais de flux — ils ne comptent donc pas).
+    - `displays` : nombre d'ÉCRANS DE RÉGIE abonnés au flux SSE. Deux exclusions, pour
+      deux raisons distinctes : les aperçus de l'admin n'ouvrent jamais de flux (ils
+      n'apparaissent donc nulle part), et la page d'administration en ouvre bien un mais
+      s'annonce `?role=admin` — sans quoi elle se comptait comme un écran, et l'admin
+      ouvert seul affichait « 1 afficheur » (corrigé à l'audit 2026-07-28).
     - `published` : résumé de l'état PUBLIÉ (groupes, beltpacks, horodatage), pour
       afficher la dernière diffusion et l'écart avec le brouillon en cours. On ne
       renvoie qu'un résumé, pas l'état entier : la barre n'a besoin que des compteurs.
@@ -89,7 +140,7 @@ def get_status():
             "updated_at": published.get("updated_at"),
         }
     return jsonify({
-        "displays": current_app.extensions["broker"].subscriber_count,
+        "displays": current_app.extensions["broker"].display_count,
         "published": summary,
     })
 
@@ -350,14 +401,32 @@ def import_state():
         return _error(exc)
     _storage().save_draft(state)
     _journal().record("import",
-                      f"{len(state['groups'])} groupes · {len(state['people'])} beltpacks")
+                      _counts(state))
     return jsonify(state)
+
+
+def _counts(state):
+    """Résumé chiffré d'un état, au journal. Le pluriel est accordé : « 1 groupes »
+    dans une conduite de régie fait négligé, et c'est le cas le plus fréquent au
+    démarrage d'une production."""
+    g, p = len(state["groups"]), len(state["people"])
+    return f"{g} groupe{'s' if g > 1 else ''} · {p} beltpack{'s' if p > 1 else ''}"
 
 
 @bp.post("/api/publish")
 @login_required
 @exclusive_state
 def publish():
+    """Publie le brouillon. `{"label": "Générale", "pinned": true}` pose un repère.
+
+    Un corps est FACULTATIF : le raccourci clavier et le bouton publient sans rien
+    envoyer, et une publication ordinaire ne doit pas devenir une formalité.
+    """
+    data = request.get_json(force=True, silent=True)
+    data = data if isinstance(data, dict) else {}
+    label = str(data.get("label") or "").strip()
+    pinned = bool(data.get("pinned"))
+
     state = _storage().load_draft()
     try:
         model.validate_state(state)
@@ -365,10 +434,36 @@ def publish():
         # Brouillon invalide : on refuse de publier (409, cf. cahier des charges §10.3).
         return jsonify({"error": str(exc), "code": exc.code}), 409
     from .services.publisher import broadcast_published
-    broadcast_published(current_app, state)
-    _journal().record("publish",
-                      f"{len(state['groups'])} groupes · {len(state['people'])} beltpacks")
-    return jsonify({"ok": True, "updated_at": state["updated_at"]})
+    try:
+        broadcast_published(current_app, state, label=label, pinned=pinned)
+    except ValueError as exc:              # plafond de repères épinglés atteint
+        return jsonify({"error": str(exc), "code": "pinned_full"}), 409
+    _journal().record("publish", f"{_counts(state)}{' · ' + label if label else ''}")
+    return jsonify({"ok": True, "updated_at": state["updated_at"], "label": label})
+
+
+@bp.post("/api/history/<ts>/label")
+@login_required
+def history_label(ts):
+    """Nomme et/ou épingle un instantané après coup.
+
+    On ne sait pas toujours au moment de publier que cette version-là sera celle qui
+    compte : nommer a posteriori est le cas le plus fréquent.
+    """
+    if not re.fullmatch(r"\d{8}T\d{6}\d*Z", ts):     # format des snapshots uniquement
+        return jsonify({"error": "not_found", "code": "not_found"}), 404
+    data = json_body()
+    label = data.get("label")
+    pinned = data.get("pinned")
+    if pinned is not None and not isinstance(pinned, bool):
+        return jsonify({"error": "pinned doit être un booléen"}), 400
+    try:
+        meta = _history().annotate(ts, label=label, pinned=pinned)
+    except KeyError:
+        return jsonify({"error": "not_found", "code": "not_found"}), 404
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "code": "pinned_full"}), 409
+    return jsonify(meta)
 
 
 @bp.get("/admin/journal")
@@ -404,6 +499,74 @@ def journal_list():
 def logs_list():
     """Logs techniques captés en mémoire (volet « Technique » de la page Journal)."""
     return jsonify(current_app.extensions["logbuffer"].entries())
+
+
+# ---------------------------------------------------------------------------
+# Sauvegarde complète du boîtier
+#
+# L'export `.rost` ne couvre que le roster : un boîtier mort emportait avec lui le réseau,
+# l'antenne, les configurations nommées et le mot de passe. Ces trois routes transportent
+# l'archive en base64 dans du JSON plutôt qu'en multipart : la protection CSRF et le
+# `json_body()` du reste de l'API s'appliquent alors sans traitement particulier.
+# ---------------------------------------------------------------------------
+
+@bp.post("/api/backup")
+@login_required
+def backup_create():
+    """Fabrique l'archive chiffrée. La phrase de passe ne quitte jamais cette requête."""
+    data = json_body()
+    try:
+        blob = backup.encrypt(backup.build_payload(current_app), data.get("passphrase") or "")
+    except backup.BackupError as exc:
+        return jsonify({"error": str(exc)}), 400
+    _journal().record("backup_create")
+    stamp = model.now_iso().replace(":", "").replace("-", "")
+    return jsonify({
+        "filename": f"comroster-sauvegarde-{stamp}.rostbak",
+        "content": base64.b64encode(blob).decode(),
+    })
+
+
+def _decode_upload(data):
+    """Contenu d'archive envoyé par le navigateur (base64) → octets."""
+    try:
+        return base64.b64decode(data.get("content") or "", validate=True)
+    except (ValueError, TypeError) as exc:
+        raise backup.BackupError("Fichier illisible.") from exc
+
+
+@bp.post("/api/backup/inspect")
+@login_required
+def backup_inspect():
+    """Ce que l'archive contient, AVANT de l'appliquer.
+
+    Restaurer écrase le réseau et le mot de passe : l'opérateur doit voir ce qu'il
+    s'apprête à remplacer, pas cliquer à l'aveugle sur « Restaurer ».
+    """
+    data = json_body()
+    try:
+        payload = backup.decrypt(_decode_upload(data), data.get("passphrase") or "")
+    except backup.BackupError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(backup.summarize(payload))
+
+
+@bp.post("/api/backup/restore")
+@login_required
+@exclusive_state
+def backup_restore():
+    """Applique l'archive. Sous verrou : on ne restaure pas pendant une édition."""
+    data = json_body()
+    try:
+        payload = backup.decrypt(_decode_upload(data), data.get("passphrase") or "")
+        restored = backup.apply_payload(current_app, payload)
+    except backup.BackupError as exc:
+        return jsonify({"error": str(exc)}), 400
+    _journal().record("backup_restore", ", ".join(restored) or "rien")
+    # `password_changed` prévient le client : si l'archive portait un autre mot de passe,
+    # la session en cours reste ouverte mais la prochaine connexion utilisera celui-là.
+    return jsonify({"ok": True, "restored": restored,
+                    "password_changed": "mot de passe" in restored})
 
 
 @bp.get("/api/history")

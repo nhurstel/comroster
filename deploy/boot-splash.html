@@ -3,74 +3,193 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Booting ComRoster…</title>
+  <title>ComRoster — démarrage</title>
   <style>
-    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
-    * { cursor: none !important; }   /* kiosk : pas de curseur souris */
-    body {
-      display: flex; align-items: center; justify-content: center;
-      font-family: "DejaVu Sans Mono", "Courier New", monospace;
-      color: #33ff66; font-size: 2.2vmin; text-shadow: 0 0 6px rgba(51,255,102,.45);
+    /* ComRoster — écran de démarrage du boîtier.
+       « Voyant de face avant » : le glyphe est posé au centre, immobile, SAUF son disque,
+       qui respire comme la LED de veille d'un appareil de scène. Cette respiration n'est
+       pas un ornement — c'est l'état RÉEL de la sonde /healthz, à chaque instant.
+
+       L'écran précédent affichait un faux journal de démarrage (« [ OK ] Chargement des
+       affectations beltpack ») qui n'attendait rien et n'observait rien : il affirmait un
+       diagnostic qu'il ne faisait pas. Il a sauté.
+
+       En revanche l'écran tient un PLANCHER d'affichage de 5 s (décision Nathan) : sans
+       lui, un kiosk relancé pendant que le service tourne déjà ferait clignoter la page
+       moins d'une seconde, ce qui est laid. La différence avec l'ancien délai n'est pas
+       la durée, c'est ce qu'on montre pendant : dès que /healthz répond, le disque passe
+       au vert et la page affiche « prêt » jusqu'à la bascule. On ne fait pas patienter
+       devant une animation, on affiche un état VRAI jusqu'à son terme.
+
+       Contrainte : cette page est ouverte en file:// AVANT que le serveur ne réponde. Elle
+       ne peut donc rien lui demander — tout est autonome, glyphe compris. Les polices sont
+       lues en relatif sur le disque, avec repli système si Chromium refuse le file://. */
+
+    @font-face {
+      font-family: "Inter"; font-style: normal; font-weight: 400; font-display: swap;
+      src: url("../static/fonts/inter-400.woff2") format("woff2");
     }
-    #term { width: min(80ch, 92vw); white-space: pre-wrap; line-height: 1.5; }
-    .dim { color: #1f9c46; }
-    .ok  { color: #33ff66; }
-    .bang{ color: #ffd23f; }
-    #cursor { display: inline-block; width: .6ch; background: #33ff66; animation: blink 1s steps(1) infinite; }
-    @keyframes blink { 50% { opacity: 0; } }
-    #brand { margin-top: 1.5em; font-size: 3.2vmin; letter-spacing: .25ch; color: #7CFFB2; }
+    @font-face {
+      font-family: "Inter"; font-style: normal; font-weight: 700; font-display: swap;
+      src: url("../static/fonts/inter-700.woff2") format("woff2");
+    }
+
+    :root {
+      /* Jetons repris de l'écran de régie (display.css, thème nuit) : la bascule vers
+         /display se fait donc sans changement de fond, aucun flash. */
+      --bg: #0B0D12;
+      --fg: #EEF1F7;
+      --muted: #8A93A6;
+      --veille: #8A93A6;   /* le service monte */
+      --lent: #E0913A;     /* ça traîne */
+      --mort: #F04D3E;     /* ne répond plus */
+      --pret: #2ECC71;     /* prêt */
+    }
+
+    html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+    * { cursor: none !important; }        /* kiosk : pas de curseur souris */
+
+    body {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3.2vmin;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: var(--fg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #glyphe { width: 9vmin; height: 9vmin; display: block; }
+    #barres { fill: var(--fg); }
+
+    /* Le disque EST le voyant : sa couleur et son rythme portent l'état, rien d'autre
+       ne bouge sur cet écran. Un appareil de scène ne dit pas autre chose. */
+    /* La couleur se fond au lieu de sauter : le passage au vert doit se lire comme
+       « le service est monté », pas comme un changement d'image. */
+    #disque { fill: var(--veille); animation: veille 1800ms ease-in-out infinite;
+              transition: fill 600ms ease-out; }
+    @keyframes veille { 0%, 100% { opacity: 1; } 50% { opacity: var(--creux, 0.28); } }
+
+    /* Plus l'état est grave, plus le battement est rapide ET moins il est profond. Au
+       creux de 28 %, un rouge sur fond sombre disparaît presque : une alarme absente la
+       moitié du temps est une mauvaise alarme. Le rythme porte l'urgence, la présence
+       reste acquise. */
+    body[data-etat="lent"] #disque { fill: var(--lent); animation-duration: 1100ms; --creux: 0.5; }
+    body[data-etat="mort"] #disque { fill: var(--mort); animation-duration: 700ms;  --creux: 0.62; }
+    body[data-etat="pret"] #disque { fill: var(--pret); animation: none; opacity: 1; }
+
+    /* La couleur porte déjà l'état à elle seule : sous « animations réduites » on retire
+       le battement sans rien perdre de l'information. */
+    @media (prefers-reduced-motion: reduce) {
+      #disque { animation: none !important; opacity: 1; }
+    }
+
+    #marque {
+      font-size: 1.5vmin; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.38em;
+      /* L'interlettrage pousse le mot vers la droite : on compense pour qu'il reste
+         optiquement centré sous le glyphe. */
+      text-indent: 0.38em;
+      color: var(--fg);
+    }
+
+    #etat {
+      margin: 0;
+      font-size: 1.35vmin; font-weight: 400; line-height: 1.7;
+      text-align: center; color: var(--muted);
+      max-width: 60vmin;
+      /* Hauteur réservée : la ligne de conduite ne doit pas faire sauter le glyphe
+         quand le message s'allonge. */
+      min-height: 4.6vmin;
+    }
+    #etat b { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--fg); }
+    body[data-etat="lent"] #etat b { color: var(--lent); }
+    body[data-etat="mort"] #etat b { color: var(--mort); }
+    body[data-etat="pret"] #etat { color: var(--pret); }
+    #consigne { display: block; color: var(--muted); }
   </style>
 </head>
-<body>
-  <div id="term"><span id="log"></span><span id="cursor">&nbsp;</span>
-    <div id="brand" hidden>◤ ComRoster ◢</div>
-  </div>
+<body data-etat="veille">
+  <!-- Glyphe ComRoster, copié de static/img/comroster-glyph.svg. Il est INLINE parce que
+       la page s'ouvre avant le serveur : aucune requête n'est possible. Le disque porte
+       le voyant, les deux barres ne bougent jamais. -->
+  <svg id="glyphe" viewBox="0 0 64 64" role="img" aria-label="ComRoster">
+    <circle id="disque" cx="32" cy="16" r="8.5"/>
+    <g id="barres">
+      <rect x="12" y="32" width="40" height="8.5" rx="4.25"/>
+      <rect x="12" y="46" width="27" height="8.5" rx="4.25"/>
+    </g>
+  </svg>
+
+  <div id="marque">ComRoster</div>
+  <p id="etat">démarrage du service</p>
+
   <script>
     const params = new URLSearchParams(location.search);
     const next   = params.get("next")   || "http://127.0.0.1:8080/display";
     const health = params.get("health") || "http://127.0.0.1:8080/healthz";
-    const MIN_MS = 1000;   // durée minimale d'affichage (garde l'effet visible)
 
-    const logEl = document.getElementById("log");
-    const brand = document.getElementById("brand");
+    // Seuils de conduite. Ils ne déclenchent AUCUN abandon : la sonde continue pour
+    // toujours, un boîtier qui met deux minutes à démarrer finit par afficher le tableau.
+    // Ils ne font que dire la vérité à celui qui regarde l'écran en attendant.
+    const LENT = 12000;
+    const MORT = 30000;
+    // Plancher d'affichage : en dessous, la page ne ferait que clignoter. Au vrai boot il
+    // ne mord presque jamais (gunicorn met plusieurs secondes) ; il sert surtout quand le
+    // kiosk redémarre alors que le service tourne déjà.
+    const PLANCHER = 5000;
 
-    // 1) On sonde le serveur IMMÉDIATEMENT, en parallèle de l'animation, pour
-    //    basculer dès qu'il répond — pas d'attente artificielle.
-    let serverReady = false, minElapsed = false;
-    function maybeGo() { if (serverReady && minElapsed) location.href = next; }
-    setTimeout(() => { minElapsed = true; maybeGo(); }, MIN_MS);
-    (function check() {
-      fetch(health, { mode: "no-cors", cache: "no-store" })
-        .then(() => { serverReady = true; maybeGo(); })
-        .catch(() => setTimeout(check, 300));
-    })();
+    const corps = document.body;
+    const etat = document.getElementById("etat");
+    const debut = Date.now();
+    let fini = false;
 
-    // 2) Animation « boot log » (purement esthétique, n'attend rien).
-    const lines = [
-      ["dim", "[ OK ] "], ["ok", "Intercom roster service\n"],
-      ["dim", "[ OK ] "], ["ok", "Chargement des affectations beltpack\n"],
-      ["dim", "[ OK ] "], ["ok", "Interface d'administration\n"],
-      ["dim", "[ .. ] "], ["bang", "Connexion au serveur d'affichage"],
-    ];
-    let i = 0;
-    const dotSpan = document.createElement("span");
-    function type() {
-      if (i < lines.length) {
-        const [cls, txt] = lines[i++];
-        const s = document.createElement("span");
-        s.className = cls; s.textContent = txt;
-        logEl.appendChild(s);
-        setTimeout(type, 220);
-      } else {
-        brand.hidden = false;
-        logEl.appendChild(dotSpan);
-        (function animate() {
-          dotSpan.textContent = ".".repeat((dotSpan.textContent.length + 1) % 4);
-          setTimeout(animate, 350);
-        })();
+    const secondes = () => Math.round((Date.now() - debut) / 1000);
+
+    function peindre() {
+      if (fini) return;
+      const ms = Date.now() - debut;
+      if (ms >= MORT) {
+        corps.dataset.etat = "mort";
+        etat.innerHTML = "le service ne répond pas — <b>" + secondes() + " s</b>"
+          + '<span id="consigne">vérifier l\'alimentation, puis redémarrer le boîtier</span>';
+      } else if (ms >= LENT) {
+        corps.dataset.etat = "lent";
+        etat.innerHTML = "démarrage inhabituellement long — <b>" + secondes() + " s</b>";
       }
     }
-    type();
+    setInterval(peindre, 1000);
+
+    // Le service répond : on le DIT tout de suite (vert + « prêt »), et on bascule au
+    // plus tôt à l'expiration du plancher. Le temps restant n'est donc pas une attente
+    // masquée — c'est l'état réel du boîtier, affiché jusqu'au bout.
+    function pret() {
+      if (fini) return;
+      fini = true;
+      corps.dataset.etat = "pret";
+      etat.textContent = "prêt";
+      const reste = Math.max(0, PLANCHER - (Date.now() - debut));
+      setTimeout(() => { location.href = next; }, reste);
+    }
+
+    // La page est ouverte depuis un FICHIER (file://), pas servie par ComRoster — elle
+    // s'affiche justement avant lui. Un navigateur interdit à une telle page de LIRE une
+    // réponse réseau : `no-cors` est donc obligatoire, et tout ce qu'on apprend ici est
+    // « quelqu'un a répondu », jamais QUOI.
+    //
+    // Sans objet dans l'installation standard : kiosk-run.sh interroge gunicorn en direct
+    // sur 127.0.0.1:8080, et un service pas encore démarré ne répond PAS (connexion
+    // refusée) — la confusion est impossible, on retente.
+    //
+    // ⚠️ En revanche, si tu places un jour un reverse proxy devant ComRoster (cf.
+    // deploy/nginx.conf, optionnel et non installé) et que tu repointes le kiosk dessus
+    // via COMROSTER_HEALTH_URL : le proxy, lui, répond « 502 » tant que gunicorn n'est pas
+    // levé. On compterait cette erreur comme un succès et on basculerait sur une page
+    // d'erreur, où l'écran resterait bloqué. Il faudrait alors autoriser la lecture de la
+    // réponse (en-têtes CORS sur /healthz) pour vérifier le code de retour.
+    (function sonder() {
+      fetch(health, { mode: "no-cors", cache: "no-store" })
+        .then(pret)
+        .catch(() => setTimeout(sonder, 300));
+    })();
   </script>
 </body>
 </html>

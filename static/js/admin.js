@@ -3,8 +3,13 @@
   // Optionnel chaîné : si le meta disparaissait, on n'arrête pas tout le script au
   // chargement (les requêtes échoueraient proprement côté serveur avec un CSRF vide).
   const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || "";
-  const SKINS = ["basique", "lineaire", "grille"];   // miroir de model.SKINS
-  const TEXT_SCALES = ["original", "grand", "tres-grand", "auto"];   // miroir de model.TEXT_SCALES
+  // Logique pure sortie d'ici pour être testable sans navigateur (static/js/board.js,
+  // static/js/netmask.js). Les allowlists n'ont plus de copie locale : elles vivaient en
+  // trois exemplaires, entretenus par des commentaires « miroir de… ».
+  const Board = window.ComRoster.Board;
+  const Netmask = window.ComRoster.Netmask;
+  const SKINS = Board.SKINS;
+  const TEXT_SCALES = Board.TEXT_SCALES;
   const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
   // Données initiales injectées via un bloc <script type="application/json">
@@ -124,26 +129,63 @@
     return data;
   }
 
+  /* Regroupement des écritures du brouillon. Chaque enregistrement est une écriture
+     atomique fsyncée sur la CARTE SD du boîtier : à 500 ms, une saisie soutenue en
+     produisait environ deux par seconde. 900 ms divise ce volume par deux sans que
+     l'enregistrement cesse d'être perçu comme immédiat — et rien n'est jamais perdu, la
+     publication vide d'abord la file (`savePending`). */
+  const SAVE_DEBOUNCE_MS = 900;
   let saveTimer = null;
   let savePending = false;
+
+  /* GÉNÉRATION DU BROUILLON — protège les remplacements EN BLOC des enregistrements
+     différés encore en vol.
+
+     Le scénario, observé au banc : on supprime un groupe (enregistrement programmé à
+     900 ms), puis on restaure une sauvegarde. La restauration réécrit le brouillon côté
+     serveur et `load()` le réaffiche… mais l'enregistrement différé, parti entre-temps
+     avec l'ANCIEN contenu, revient après et réassigne `state.data` — le groupe restauré
+     disparaît de l'écran ET du serveur, sans le moindre message. Même famille que le
+     read-modify-write concurrent corrigé côté serveur le 2026-07-06 : l'atomicité d'une
+     écriture ne dit rien de l'ordre de deux écritures.
+
+     Toute reprise en bloc (restauration de sauvegarde, import, chargement de
+     configuration, resynchro distante) incrémente le compteur ; une réponse
+     d'enregistrement d'une génération périmée est ignorée. */
+  let saveGeneration = 0;
+  function cancelPendingSave() {
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    savePending = false;
+    saveGeneration += 1;
+    return saveGeneration;
+  }
+
   function scheduleSave() {
     savePending = true;
     if (saveTimer) clearTimeout(saveTimer);
     setStatus("Enregistrement…", "syncing");
-    saveTimer = setTimeout(saveDraft, 500);
+    saveTimer = setTimeout(saveDraft, SAVE_DEBOUNCE_MS);
   }
 
   async function saveDraft() {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
     savePending = false;
+    const generation = saveGeneration;
     try {
       const saved = await apiSend("PUT", "/api/draft", state.data);
+      // Un remplacement en bloc est survenu pendant l'aller-retour : cette réponse
+      // décrit un état périmé, l'appliquer annulerait la reprise.
+      if (generation !== saveGeneration) return;
       state.data = saved;
       setStatus("Brouillon enregistré", "idle");
       if (el.lastUpdated) el.lastUpdated.textContent =
         "Dernier enregistrement : " + new Date(saved.updated_at).toLocaleString("fr-FR");
       render();
+      // L'aperçu de l'onglet Écran lit le brouillon CÔTÉ SERVEUR : on ne le rafraîchit
+      // qu'une fois l'enregistrement confirmé, sinon il montrerait l'état d'avant.
+      reloadScreenPreview();
     } catch (err) {
+      if (generation !== saveGeneration) return;
       setStatus("Échec de l'enregistrement", "error");
       if (err.message === "beltpack_conflict") {
         toast("Deux beltpacks ont le même numéro. Corrigez avant d'enregistrer.", true);
@@ -151,11 +193,74 @@
     }
   }
 
-  function markDirty() { setUnpublished(true); scheduleSave(); }
+  /* ---------- Annulation ⌘Z / Ctrl+Z ----------
+     PORTÉE : le brouillon seul — groupes, noms, numéros, affectations, réglages d'écran.
+     Jamais la configuration du boîtier : réseau, IP, Wi-Fi, antenne et mot de passe ne
+     transitent pas par `state.data` (endpoints distincts, écriture immédiate côté
+     serveur). Ils sont donc hors d'atteinte PAR CONSTRUCTION, et non par une liste
+     d'exclusions qu'il faudrait tenir à jour à chaque nouveau réglage.
+     Annuler ne dépublie rien non plus : l'écran en salle ne bouge qu'à la publication.
+
+     Mécanique : `snapshot` garde le brouillon tel qu'il était AVANT la modification en
+     cours. markDirty() étant appelé APRÈS la mutation, c'est exactement ce qu'il faut
+     empiler. Copie par JSON — `state.data` vient de l'API, donc du JSON pur. */
+  const UNDO_MAX = 50;
+  let undoStack = [];
+  let redoStack = [];
+  let snapshot = null;
+  let lastPushAt = 0;
+  function resetUndo() {
+    undoStack = []; redoStack = [];
+    snapshot = JSON.stringify(state.data);
+  }
+  function pushUndo(coalesce) {
+    if (snapshot === null) { snapshot = JSON.stringify(state.data); return; }
+    const now = Date.now();
+    // Une saisie émet un `input` PAR CARACTÈRE : sans regroupement, effacer un mot
+    // demanderait dix ⌘Z. On n'empile pas de nouveau dans le fil d'une frappe continue.
+    if (!(coalesce && now - lastPushAt < 700)) {
+      undoStack.push(snapshot);
+      if (undoStack.length > UNDO_MAX) undoStack.shift();
+      redoStack = [];                       // une nouvelle action clôt la branche défaite
+    }
+    lastPushAt = now;
+    snapshot = JSON.stringify(state.data);
+  }
+  function markDirty(opts) { pushUndo(opts?.coalesce); setUnpublished(true); scheduleSave(); }
+
+  // Restauration : passe par scheduleSave() et NON par markDirty(), sinon annuler
+  // s'empilerait lui-même et l'on tournerait en rond.
+  function applyHistoryState(json) {
+    state.data = JSON.parse(json);
+    snapshot = json;
+    exitSelection();
+    setUnpublished(true); scheduleSave(); render();
+  }
+  function undo() {
+    if (!undoStack.length) { toast("Rien à annuler"); return; }
+    redoStack.push(JSON.stringify(state.data));
+    applyHistoryState(undoStack.pop());
+    toast("Modification annulée");
+  }
+  function redo() {
+    if (!redoStack.length) { toast("Rien à rétablir"); return; }
+    undoStack.push(JSON.stringify(state.data));
+    applyHistoryState(redoStack.pop());
+    toast("Modification rétablie");
+  }
 
   // Recharge l'état du brouillon depuis le serveur et ré-affiche.
   async function load() {
+    // AVANT la requête : tout enregistrement programmé ou déjà en vol devient périmé.
+    // Sans cela, une sauvegarde différée partie avec l'ancien contenu revient après le
+    // rechargement et écrase ce qu'on vient de reprendre (cf. saveGeneration).
+    cancelPendingSave();
     state.data = await apiSend("GET", "/api/state");
+    // L'historique repart de zéro : le brouillon vient d'être REMPLACÉ en bloc (import,
+    // restauration, resynchro d'une publication distante). Annuler par-dessus
+    // ressusciterait un état antérieur à ce remplacement — y compris celui d'un autre
+    // opérateur.
+    resetUndo();
     render();
   }
 
@@ -200,6 +305,7 @@
 
     // Clic = (dé)sélection (MAJ+clic = plage). Le drag déplace la sélection si l'item
     // en fait partie, sinon juste lui. Double-clic = éditer, clic droit = menu.
+    // (setDragGhost est défini plus bas, au même niveau : la déclaration est hoistée.)
     card.classList.add("selectable");
     if (state.selection.has(person.id)) card.classList.add("selected");
     card.addEventListener("click", (e) => selectClick(e, person.id));
@@ -209,6 +315,9 @@
         const ids = [...state.selection];
         state.drag = { multi: true, ids, source, blockId: blockId || null };
         if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", ids.join(",")); } catch (_) { /* IE */ } }
+        // Le fantôme par défaut est la SEULE carte saisie : on croit ne déplacer qu'elle
+        // alors que toute la sélection suit. Au-delà d'un beltpack, on montre le compte.
+        if (ids.length > 1) setDragGhost(e, `${ids.length} beltpacks`);
       } else {
         state.drag = { userId: person.id, source, blockId: blockId || null };
         if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", person.id); } catch (_) { /* IE */ } }
@@ -514,7 +623,19 @@
       if (ink) sel.dataset.ink = ink;
     }
     sel.addEventListener("click", (e) => e.stopPropagation());   // ne pas (dé)sélectionner
-    sel.addEventListener("change", () => assign(p.id, sel.value || null));
+    // Si la rangée appartient à une sélection multiple, son sélecteur vaut pour TOUTE la
+    // sélection — même règle que le glisser-déposer d'une sélection (cf. personCard).
+    // Sans ça, sélectionner dix rangées puis choisir un groupe n'en déplaçait qu'une.
+    sel.addEventListener("change", () => {
+      const target = sel.value || null;
+      if (state.selection.size > 1 && state.selection.has(p.id)) {
+        const n = state.selection.size;
+        assignMany([...state.selection], target);
+        toast(`${n} beltpacks déplacés vers ${target ? groupNameOf(target) : "la réserve"}`);
+      } else {
+        assign(p.id, target);
+      }
+    });
     cell.append(sel);
 
     row.append(bp, role, cell);
@@ -527,6 +648,20 @@
       el.contextMenu.style.top = e.pageY + "px";
     });
     return row;
+  }
+
+  /* Fantôme de glissement d'une sélection multiple : une pastille « N beltpacks ».
+     Le navigateur PHOTOGRAPHIE l'élément au moment de setDragImage — il doit donc être
+     dans le document et rendu (d'où le hors-champ plutôt que `display:none`), et ne peut
+     être retiré qu'au tour de boucle suivant, une fois la capture faite. */
+  function setDragGhost(e, label) {
+    if (!e.dataTransfer?.setDragImage) return;
+    const ghost = document.createElement("div");
+    ghost.className = "drag-ghost";
+    ghost.textContent = label;
+    document.body.append(ghost);
+    e.dataTransfer.setDragImage(ghost, 12, 12);
+    setTimeout(() => ghost.remove(), 0);
   }
 
   function chip(label, onClick, extra) {
@@ -748,13 +883,39 @@
     refreshSelectionClasses();
     updateSelectionBar();
   }
+  /* Nœuds sélectionnables de la vue ACTIVE, dans l'ordre où l'utilisateur les voit.
+     Piège corrigé ici : la vue Blocs n'est pas démontée quand on passe en Tableau, elle
+     est seulement `hidden`. Un `querySelectorAll` global voyait donc CHAQUE personne
+     deux fois — une carte cachée + une rangée visible — et dans l'ordre des blocs, pas
+     celui du tableau trié. MAJ+clic balayait alors une plage qui n'avait aucun rapport
+     avec ce qui est à l'écran (la sélection « sautait »).
+     Les rangées estompées par un filtre ou une vue sont exclues : elles ne sont pas
+     cliquables (`pointer-events: none`), les balayer sélectionnait de l'invisible. */
+  function selectableNodes() {
+    const table = document.getElementById("blocks-table");
+    const scope = table && !table.hidden
+      ? [...table.querySelectorAll(".bt-row[data-user-id]")]
+      : [...document.querySelectorAll("#blocks-container .person[data-user-id], #available-users .person[data-user-id]")];
+    return scope.filter((n) => !n.classList.contains("view-dim"));
+  }
+  // ⌘A : tout ce qui est sélectionnable DANS LA VUE ACTIVE — donc affectés + réserve en
+  // vue Blocs, toutes les rangées en vue Tableau. Un filtre ou une vue en cours restreint
+  // naturellement la portée : `selectableNodes` écarte l'estompé, qui n'est pas cliquable.
+  function selectAll() {
+    const nodes = selectableNodes();
+    if (!nodes.length) return;
+    nodes.forEach((n) => state.selection.add(n.dataset.userId));
+    state.lastSelectedId = nodes[nodes.length - 1].dataset.userId;
+    refreshSelectionClasses();
+    updateSelectionBar();
+  }
   function selectRange(fromId, toId) {
-    const ids = [...document.querySelectorAll(".person[data-user-id], .bt-row[data-user-id]")]
-      .map((c) => c.dataset.userId);
-    let i = ids.indexOf(fromId), j = ids.indexOf(toId);
-    if (i < 0 || j < 0) { state.selection.add(toId); return; }
-    if (i > j) { const t = i; i = j; j = t; }
-    for (let k = i; k <= j; k++) state.selection.add(ids[k]);
+    // L'ordre visuel vient de selectableNodes() (vue active seule) ; le balayage lui-même
+    // est pur et testé sans navigateur (Board.rangeIds).
+    const ids = selectableNodes().map((c) => c.dataset.userId);
+    const swept = Board.rangeIds(ids, fromId, toId);
+    if (!swept.length) { state.selection.add(toId); return; }
+    swept.forEach((id) => state.selection.add(id));
   }
   // Reflète la sélection sans reconstruire le DOM (sinon le double-clic est cassé).
   function refreshSelectionClasses() {
@@ -806,11 +967,17 @@
      #C4544A retenu au banc, illisible à 4.2:1 sur son aplat). Deux rangées vives à encre
      sombre, une pastel, une profonde à encre claire — 24 teintes, toutes vérifiées par
      calcul avant admission (jamais à l'œil). */
+  /* ORDRE : par famille de teinte (rouge → orange → jaune → vert → turquoise → bleu →
+     violet → magenta), et du plus clair au plus sombre dans chaque famille ; les
+     neutres, qui n'ont pas de teinte, ferment la marche. Les VALEURS sont inchangées —
+     seul leur rang bouge, donc les contrastes validés le restent par construction.
+     Un tri sur la teinte seule faisait sauter la luminosité d'une case à l'autre ; le
+     regroupement par famille donne une rampe qui se lit d'un coup d'œil. */
   const GROUP_PALETTE = [
-    "#E1554C", "#E8863B", "#E4B93C", "#8FBF52", "#3FA6B0", "#4F86C6",
-    "#F4A259", "#C9A227", "#6B8E23", "#7FC8D6", "#8B7CC8", "#C062A6",
-    "#C77E6A", "#D98CB3", "#B0B7C0", "#55606E", "#5C6BC0", "#6A4FA3",
-    "#9B2F2F", "#7A5230", "#2E6B34", "#2A6E60", "#2C4C8E", "#8E3B6B",
+    "#C77E6A", "#E1554C", "#9B2F2F", "#F4A259", "#E8863B", "#7A5230",
+    "#E4B93C", "#C9A227", "#8FBF52", "#6B8E23", "#2E6B34", "#7FC8D6",
+    "#3FA6B0", "#2A6E60", "#5C6BC0", "#4F86C6", "#2C4C8E", "#8B7CC8",
+    "#6A4FA3", "#D98CB3", "#C062A6", "#8E3B6B", "#B0B7C0", "#55606E",
   ];
   const colorDialog = document.getElementById("color-dialog");
   const colorGrid = document.getElementById("color-grid");
@@ -930,14 +1097,14 @@
     const production = document.getElementById("meta-production");
     production.addEventListener("input", () => {
       state.data.production_name = production.value;   // titre centré de l'écran
-      markDirty();
+      markDirty({ coalesce: true });
     });
     const title = document.getElementById("meta-title");
     title.addEventListener("input", () => {
       state.data.title = title.value;
       el.title.textContent = title.value.trim() || "Affectation Intercom";
       document.title = "Administration · " + (title.value.trim() || "ComRoster");
-      markDirty();
+      markDirty({ coalesce: true });
     });
     const sub = document.getElementById("meta-subtitle");
     const crumbSep = document.getElementById("crumb-sep");
@@ -947,7 +1114,7 @@
       if (has) { el.subtitle.textContent = sub.value.trim(); }
       el.subtitle.hidden = !has;
       if (crumbSep) crumbSep.hidden = !has;   // le « / » ne s'affiche qu'avec un sous-titre
-      markDirty();
+      markDirty({ coalesce: true });
     });
     document.getElementById("meta-columns").addEventListener("change", (e) => {
       state.data.columns = parseInt(e.target.value, 10) || 0; markDirty();
@@ -1007,9 +1174,13 @@
       label.textContent = t; kbd.style.display = t === PUB_IDLE ? "" : "none";   // ⌘↵ visible au repos seul
     });
     // Chip d'état : figée sur son libellé le plus long → l'horloge ne saute plus.
+    // La liste ne retient que les états NOMINAUX : la figer aussi sur « Échec de
+    // l'enregistrement » réservait en permanence la largeur d'un cas exceptionnel, ce qui
+    // éloignait le menu de « Publier ». Un échec élargit donc la chip d'un cran — c'est
+    // rare, et le sursaut attire justement l'œil dessus.
     if (el.syncStatus && el.syncLabel) {
       fixWidthToLongest(el.syncStatus,
-        ["À jour", "88 modifications en attente", "Échec de l'enregistrement"],
+        ["À jour", "88 en attente", "Enregistrement…"],
         (t, save) => { if (save) { const s = el.syncLabel.textContent; return () => { el.syncLabel.textContent = s; }; } el.syncLabel.textContent = t; });
     }
   }
@@ -1093,36 +1264,71 @@
     document.body.append(a); a.click(); a.remove();
     URL.revokeObjectURL(a.href);
   }
+  /* Reconstruction du brouillon depuis un fichier importé.
+
+     On NE RÉÉNUMÈRE PLUS les champs à la main. L'ancienne version listait les clés une à
+     une, et deux champs ajoutés après coup — `production_name` et `text_scale` — n'y
+     avaient jamais été reportés : importer un fichier exporté la minute d'avant effaçait
+     silencieusement le nom de la production et la taille du texte. Le piège avait déjà
+     été relevé pour `skin` (« ⚠️ sinon perdu ») et il a resservi deux fois.
+
+     Le remède est structurel : `board.js` détient LA liste des champs du brouillon, et le
+     serveur la revalide de toute façon (`build_draft`). Ajouter un champ au modèle ne
+     demande plus de penser à ce chemin-ci. */
   function importConfig(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
+      let json;
       try {
-        const json = JSON.parse(ev.target.result);
-        if (!json || typeof json !== "object") throw new Error("invalide");
-        state.data = {
-          title: json.title || "", subtitle: json.subtitle || "", theme: json.theme || "night",
-          skin: SKINS.includes(json.skin) ? json.skin : "basique",
-          indicators: json.indicators || DEFAULT_IND, columns: json.columns || 0,
-          perf: json.perf === true,
-          groups: json.groups || [], people: json.people || [], beltpack_roles: json.beltpack_roles || {},
-        };
-        markDirty(); render();
-      } catch { toast("Fichier invalide.", true); }
+        json = JSON.parse(ev.target.result);
+      } catch { toast("Fichier illisible : ce n'est pas du JSON.", true); return; }
+      if (!json || typeof json !== "object" || Array.isArray(json)) {
+        toast("Fichier invalide : structure inattendue.", true); return;
+      }
+      state.data = Board.draftFromImport(json);
+      markDirty(); render();
     };
+    reader.onerror = () => toast("Lecture du fichier impossible.", true);
     reader.readAsText(file);
     e.target.value = "";
   }
 
   /* ---------- Historique des publications ---------- */
+  /* Historique : chaque publication peut recevoir un NOM et être ÉPINGLÉE.
+     Une équipe ne pense pas ses publications en horodatages mais en « Filage »,
+     « Générale », « Première » — une liste de dates n'est navigable que si l'on se
+     souvient de l'heure qu'il était, ce qui n'arrive jamais. L'épingle met le repère à
+     l'abri de la purge : sans elle, la configuration de la première ne survit pas à
+     trente jours de filages. */
   async function refreshHistory() {
     let items = [];
     try { items = await apiSend("GET", "/api/history"); } catch { toast("Historique indisponible.", true); return; }
     const list = document.getElementById("history-list");
     list.innerHTML = items.length
-      ? items.map((i) => `<li><span>${esc(i.datetime)}</span><button type="button" data-restore="${i.timestamp}">Restaurer</button></li>`).join("")
+      ? items.map((i) => `<li class="hi-row${i.pinned ? " pinned" : ""}">`
+          + `<button type="button" class="hi-pin" data-pin="${i.timestamp}" aria-pressed="${i.pinned}"`
+          + ` title="${i.pinned ? "Ne plus conserver indéfiniment" : "Conserver indéfiniment (à l'abri de la purge)"}">`
+          + `<span aria-hidden="true">${i.pinned ? "★" : "☆"}</span></button>`
+          + `<span class="hi-when">${esc(i.datetime)}</span>`
+          + `<span class="hi-label${i.label ? "" : " empty"}" data-label="${i.timestamp}"`
+          + ` role="button" tabindex="0" title="Cliquer pour nommer ce repère">`
+          + `${esc(i.label || "nommer…")}</span>`
+          + `<button type="button" class="hi-restore" data-restore="${i.timestamp}">Restaurer</button></li>`).join("")
       : "<li class='empty-hint'>Aucune publication enregistrée.</li>";
+
+    list.querySelectorAll("[data-pin]").forEach((b) => b.addEventListener("click", async () => {
+      const on = b.getAttribute("aria-pressed") !== "true";
+      try { await apiSend("POST", `/api/history/${b.dataset.pin}/label`, { pinned: on }); }
+      catch (e) { toast(e.payload?.error || "Épinglage impossible", true); return; }
+      await refreshHistory();
+    }));
+    list.querySelectorAll("[data-label]").forEach((el) => {
+      const rename = () => startHistoryRename(el);
+      el.addEventListener("click", rename);
+      el.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); rename(); } });
+    });
     list.querySelectorAll("[data-restore]").forEach((b) => b.addEventListener("click", async () => {
       try {
         state.data = await apiSend("POST", `/api/history/${b.dataset.restore}/restore`);
@@ -1136,6 +1342,38 @@
     const clearBtn = document.getElementById("history-clear");
     if (clearBtn) clearBtn.disabled = !items.length;
   }
+  /* Renommage sur place, comme le double-clic d'un beltpack : ouvrir un dialogue
+     par-dessus un dialogue pour trois mots serait disproportionné. */
+  function startHistoryRename(el) {
+    if (el.querySelector("input")) return;
+    const ts = el.dataset.label;
+    const actuel = el.classList.contains("empty") ? "" : el.textContent.trim();
+    const input = document.createElement("input");
+    input.className = "inline-edit";
+    input.value = actuel;
+    input.maxLength = 60;
+    input.placeholder = "Filage, Générale, Première…";
+    el.textContent = "";
+    el.append(input);
+    input.focus(); input.select();
+    let done = false;
+    const commit = async () => {
+      if (done) return; done = true;
+      const v = input.value.trim();
+      if (v === actuel) { await refreshHistory(); return; }
+      try { await apiSend("POST", `/api/history/${ts}/label`, { label: v }); }
+      catch (e) { toast(e.payload?.error || "Renommage impossible", true); }
+      await refreshHistory();
+    };
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation();          // ⌘Z / Échap gardent leur sens NATIF dans un champ
+      if (e.key === "Enter") { e.preventDefault(); commit(); }
+      else if (e.key === "Escape") { e.preventDefault(); done = true; refreshHistory(); }
+    });
+    requestAnimationFrame(() => input.addEventListener("blur", commit));
+    input.addEventListener("click", (e) => e.stopPropagation());
+  }
+
   async function openHistory() {
     await refreshHistory();
     document.getElementById("history-dialog").showModal();
@@ -1208,15 +1446,31 @@
     b.addEventListener("click", () => document.getElementById(b.dataset.close)?.close()));
   window.addEventListener("keydown", (e) => {
     const mod = e.ctrlKey || e.metaKey;
-    // Échap pendant le décompte = annuler l'envoi.
+    const tag = document.activeElement?.tagName || "";
+    // « Sur le plateau » = ni dans un champ de saisie, ni dans un dialogue. Les raccourcis
+    // qui EXISTENT AUSSI nativement (⌘Z, ⌘A) ne s'appliquent que là : ailleurs, défaire
+    // une frappe ou sélectionner du texte doit rester le comportement du navigateur.
+    const onBoard = !/INPUT|TEXTAREA|SELECT/.test(tag) && !document.querySelector("dialog[open]");
+    // Échap pendant le décompte = annuler l'envoi. Il PRIME sur la sortie de sélection :
+    // une publication en cours est l'action la plus conséquente à pouvoir rattraper.
     if (e.key === "Escape" && publishTimer) { e.preventDefault(); cancelPublish(); return; }
+    // Échap = quitter la sélection multiple (le bouton « Annuler » de la barre reste,
+    // mais le réflexe clavier ne doit pas obliger à viser à la souris).
+    if (e.key === "Escape" && state.selection.size && onBoard) { e.preventDefault(); exitSelection(); return; }
+    // ⌘Z = annuler la dernière modification du brouillon, ⌘⇧Z = rétablir.
+    if (mod && e.key.toLowerCase() === "z" && onBoard) {
+      e.preventDefault();
+      if (e.shiftKey) redo(); else undo();
+      return;
+    }
+    // ⌘A = sélectionner tous les beltpacks de la vue active.
+    if (mod && e.key.toLowerCase() === "a" && onBoard) { e.preventDefault(); selectAll(); return; }
     // ⌘/Ctrl+Entrée = publier (⌘↵ affiché). ⌘S accepté (réflexe « enregistrer »).
     // Passe par le garde-fou : arme le décompte, ou envoie tout de suite s'il est déjà armé.
     if (mod && (e.key === "Enter" || e.key.toLowerCase() === "s")) { e.preventDefault(); publishShortcut(); return; }
     // ⌘K = recherche de la réserve (affiché sur son champ).
     if (mod && e.key.toLowerCase() === "k") { e.preventDefault(); document.getElementById("available-filter")?.focus(); return; }
     // « / » = filtre du plateau (affiché sur son champ) — hors saisie et hors dialogue.
-    const tag = document.activeElement?.tagName || "";
     if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(tag) && !document.querySelector("dialog[open]")) {
       e.preventDefault();
       document.getElementById("board-filter")?.focus();
@@ -1370,6 +1624,9 @@
       document.getElementById("wiz-password").value = "";
       document.getElementById("wiz-error").hidden = true;
       wizGo(1);
+      // Boîtier jamais apparié : on cherche d'emblée. C'est le moment où la question
+      // « quelle est l'adresse de l'antenne ? » se pose vraiment.
+      scanAntennas();
     }
     if (!antennaDialog.open) antennaDialog.showModal();
   }
@@ -1480,7 +1737,24 @@
     if (!box || !box.clientWidth || !frame.offsetWidth) return;
     frame.style.transform = `scale(${box.clientWidth / frame.offsetWidth})`;
   }
-  function fitPreviews() { fitPreview(previewMini); fitPreview(previewFrame); }
+  function fitPreviews() { fitPreview(previewMini); fitPreview(previewFrame); fitPreview(screenPreviewFrame()); }
+
+  /* Aperçu de l'onglet « Écran » : MÊME mécanique, mais servi par `?draft=1` — donc le
+     BROUILLON, pas ce qui est à l'antenne. C'est la seule façon de juger une apparence,
+     une luminosité ou un nombre de colonnes sans publier pour voir. Il ne se recharge
+     que lorsque l'onglet est visible : une iframe dans un panneau `hidden` mesure 0, elle
+     ne pourrait pas être mise à l'échelle (et on paierait un rendu pour rien). */
+  const screenPreviewFrame = () => document.getElementById("screen-preview");
+  function screenTabVisible() {
+    const panel = document.querySelector('.tab-panel[data-panel="screen"]');
+    return !!panel && !panel.hidden;
+  }
+  function reloadScreenPreview() {
+    const frame = screenPreviewFrame();
+    if (!frame || !screenTabVisible()) return;
+    frame.src = `/admin/preview?draft=1&t=${Date.now()}`;
+    fitPreview(frame);
+  }
 
   // Un seul horodatage pour les deux : ils montrent forcément le même état publié.
   // `scroll=1` n'est demandé que pour le grand aperçu (cf. commentaire de /admin/preview).
@@ -1605,26 +1879,11 @@
      (c'est lui qu'envoie le formulaire) ; le champ octets n'est qu'une commodité. */
   const prefixEl = document.getElementById("net-prefix");
   const maskEl = document.getElementById("net-mask");
-  function prefixToMask(p) {
-    const o = [0, 0, 0, 0];
-    for (let i = 0; i < p; i++) o[i >> 3] |= 1 << (7 - (i & 7));
-    return o.join(".");
-  }
-  function maskToPrefix(str) {
-    const parts = str.trim().split(".");
-    if (parts.length !== 4) return null;
-    let bits = "";
-    for (const part of parts) {
-      const n = Number(part);
-      if (!Number.isInteger(n) || n < 0 || n > 255) return null;
-      bits += n.toString(2).padStart(8, "0");
-    }
-    if (!/^1*0*$/.test(bits)) return null;        // les 1 doivent être contigus
-    const zero = bits.indexOf("0");
-    return zero === -1 ? 32 : zero;
-  }
+  // Les deux conversions vivent dans static/js/netmask.js : pures, donc testées aux
+  // bornes (/0, /32, masque non contigu type 255.0.255.0) sans passer par le navigateur.
+  const { prefixToMask, maskToPrefix } = Netmask;
   function syncMaskFromPrefix() {
-    let p = parseInt(prefixEl.value, 10);
+    const p = parseInt(prefixEl.value, 10);
     if (!Number.isInteger(p) || p < 1 || p > 32) return;
     maskEl.value = prefixToMask(p);
   }
@@ -1778,6 +2037,22 @@
   function updateSelectionBar() {
     document.getElementById("selection-count").textContent = `${state.selection.size} sélectionné(s)`;
     document.getElementById("selection-bar").classList.toggle("active", state.selection.size > 0);
+    // Les groupes changent (création, renommage, suppression) : la liste se reconstruit à
+    // chaque ouverture de la barre, et repart sur « — » pour ne rien affecter par erreur.
+    const sel = document.getElementById("selection-group");
+    if (!sel) return;
+    sel.innerHTML = "";
+    const none = document.createElement("option");
+    none.value = ""; none.textContent = "— réserve —";
+    const hold = document.createElement("option");
+    hold.value = "__"; hold.textContent = "—";      // état neutre : aucune action
+    sel.append(hold, none);
+    state.data.groups.forEach((g) => {
+      const o = document.createElement("option");
+      o.value = g.id; o.textContent = g.name;
+      sel.append(o);
+    });
+    sel.value = "__";
   }
   function exitSelection() {
     state.selection.clear();
@@ -1786,6 +2061,17 @@
     updateSelectionBar();
   }
   document.getElementById("selection-cancel").addEventListener("click", exitSelection);
+  // Réaffectation en LOT : le sélecteur de la vue Tableau ne pilote que sa rangée, il
+  // fallait donc dix manipulations pour dix beltpacks. `assignMany` vide la sélection
+  // et rend — le nombre traité est annoncé, un lot silencieux laisse douter.
+  document.getElementById("selection-group").addEventListener("change", (e) => {
+    const v = e.target.value;
+    if (v === "__" || !state.selection.size) return;   // « — » = état neutre
+    const n = state.selection.size;
+    const name = v ? (state.data.groups.find((g) => g.id === v)?.name || "ce groupe") : "la réserve";
+    assignMany([...state.selection], v || null);
+    toast(`${n} beltpack${n > 1 ? "s" : ""} déplacé${n > 1 ? "s" : ""} vers ${name}`);
+  });
   document.getElementById("selection-delete").addEventListener("click", async () => {
     if (!state.selection.size) return;
     const n = state.selection.size;
@@ -1838,13 +2124,228 @@
     toast("Configuration sauvegardée");
   });
 
+  /* ---------- Sauvegarde complète du boîtier ----------
+     L'export .rost ne couvre que le plateau. Ici : plateau + réglages + réseau + antenne
+     + configurations + mot de passe, dans une archive CHIFFRÉE (elle contient le mot de
+     passe Wi-Fi en clair). Le fichier transite en base64 dans du JSON : la protection
+     CSRF et le traitement d'erreur du reste de l'API s'appliquent sans cas particulier. */
+  const backupDialog = document.getElementById("backup-dialog");
+  let backupPayloadB64 = null;      // archive examinée, en attente de confirmation
+
+  function bkError(msg) {
+    const p = document.getElementById("bk-error");
+    p.textContent = msg || "";
+    p.hidden = !msg;
+  }
+  function bkResetInspection() {
+    backupPayloadB64 = null;
+    document.getElementById("bk-summary").hidden = true;
+    document.getElementById("bk-restore").hidden = true;
+    bkError("");
+  }
+
+  document.getElementById("backup-btn").addEventListener("click", () => {
+    document.getElementById("bk-pass").value = "";
+    document.getElementById("bk-restore-pass").value = "";
+    document.getElementById("bk-file").value = "";
+    bkResetInspection();
+    backupDialog.showModal();
+  });
+
+  document.getElementById("bk-create").addEventListener("click", async (ev) => {
+    const btn = ev.currentTarget;
+    const passphrase = document.getElementById("bk-pass").value;
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "Chiffrement…";
+    try {
+      // L'archive est bâtie à partir du brouillon CÔTÉ SERVEUR : sans vider d'abord la
+      // file d'enregistrement, une sauvegarde faite juste après une modification aurait
+      // omis cette modification — en silence, et on ne s'en apercevrait qu'en restaurant.
+      // Même garde que la publication (cf. publish()).
+      if (savePending || saveTimer) await saveDraft();
+      const res = await apiSend("POST", "/api/backup", { passphrase });
+      // Base64 → octets → fichier. `atob` suffit : le contenu est de l'ASCII (JSON).
+      const bytes = Uint8Array.from(atob(res.content), (c) => c.charCodeAt(0));
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
+      a.download = res.filename;
+      document.body.append(a); a.click(); a.remove();
+      URL.revokeObjectURL(a.href);
+      toast("Sauvegarde téléchargée — conservez la phrase de passe avec le fichier");
+    } catch (e) {
+      toast(e.payload?.error || "Sauvegarde impossible", true);
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
+  });
+
+  // Changer de fichier ou de phrase invalide l'examen : « Restaurer » ne doit jamais
+  // appliquer un contenu autre que celui qui vient d'être annoncé à l'écran.
+  document.getElementById("bk-file").addEventListener("change", bkResetInspection);
+  document.getElementById("bk-restore-pass").addEventListener("input", bkResetInspection);
+
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(",", 2)[1] || "");
+      reader.onerror = () => reject(new Error("lecture impossible"));
+      reader.readAsDataURL(file);        // rend « data:...;base64,XXXX »
+    });
+  }
+
+  document.getElementById("bk-inspect").addEventListener("click", async (ev) => {
+    const btn = ev.currentTarget;
+    const file = document.getElementById("bk-file").files?.[0];
+    if (!file) { bkError("Choisissez d'abord un fichier de sauvegarde."); return; }
+    const passphrase = document.getElementById("bk-restore-pass").value;
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "Lecture…";
+    bkError("");
+    try {
+      const content = await readFileAsBase64(file);
+      const s = await apiSend("POST", "/api/backup/inspect", { passphrase, content });
+      backupPayloadB64 = content;
+      const box = document.getElementById("bk-summary");
+      box.innerHTML = [
+        `<li><b>${s.groups}</b> groupe${s.groups > 1 ? "s" : ""}, <b>${s.people}</b> beltpack${s.people > 1 ? "s" : ""}</li>`,
+        `<li><b>${s.configs}</b> configuration${s.configs > 1 ? "s" : ""} enregistrée${s.configs > 1 ? "s" : ""}</li>`,
+        s.has_network ? `<li>Configuration réseau (${esc(s.network_link || "?")}) — <b>remplacera celle du boîtier</b></li>` : "<li>Aucune configuration réseau</li>",
+        s.has_antenna ? "<li>Identifiants du réseau intercom</li>" : "<li>Aucun identifiant intercom</li>",
+        s.has_password ? "<li><b>Mot de passe d'administration</b> — remplacera celui du boîtier</li>" : "<li>Aucun mot de passe</li>",
+      ].join("");
+      box.hidden = false;
+      document.getElementById("bk-restore").hidden = false;
+    } catch (e) {
+      bkResetInspection();
+      bkError(e.payload?.error || "Lecture impossible.");
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
+  });
+
+  document.getElementById("bk-restore").addEventListener("click", async (ev) => {
+    const btn = ev.currentTarget;
+    if (!backupPayloadB64) return;
+    if (!await confirmDialog(
+      "Le plateau, le réseau, les identifiants intercom et le mot de passe du boîtier "
+      + "seront remplacés par ceux de la sauvegarde. Action irréversible.",
+      { title: "Restaurer la sauvegarde", okLabel: "Restaurer", danger: true })) return;
+    const passphrase = document.getElementById("bk-restore-pass").value;
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "Restauration…";
+    try {
+      const res = await apiSend("POST", "/api/backup/restore",
+                                { passphrase, content: backupPayloadB64 });
+      backupDialog.close();
+      await load();
+      refreshStatus();
+      refreshAntennaBadge();
+      reloadPreview();
+      toast(res.password_changed
+        ? "Sauvegarde restaurée — la prochaine connexion utilisera le mot de passe de l'archive"
+        : "Sauvegarde restaurée");
+    } catch (e) {
+      bkError(e.payload?.error || "Restauration impossible.");
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
+  });
+
+  /* ---------- Mot de passe d'administration ----------
+     Le code de récupération n'est PAS consommé ici : c'est toute la différence avec
+     « mot de passe oublié ». Un boîtier prêté d'une production à l'autre doit pouvoir
+     tourner sa clé sans rediffuser un nouveau code à toute l'équipe. */
+  const passwordDialog = document.getElementById("password-dialog");
+  document.getElementById("password-btn").addEventListener("click", () => {
+    document.getElementById("password-form").reset();
+    document.getElementById("pw-error").hidden = true;
+    passwordDialog.showModal();
+  });
+  document.getElementById("password-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = document.getElementById("pw-error");
+    const current = document.getElementById("pw-current").value;
+    const nouveau = document.getElementById("pw-new").value;
+    const confirme = document.getElementById("pw-confirm").value;
+    err.hidden = true;
+    // Vérifié ICI plutôt que côté serveur : la confirmation ne regarde que le
+    // navigateur, et une faute de frappe ne mérite pas un aller-retour réseau.
+    if (nouveau !== confirme) {
+      err.textContent = "Les deux nouveaux mots de passe ne correspondent pas.";
+      err.hidden = false; return;
+    }
+    try {
+      await apiSend("POST", "/admin/password", { current, new: nouveau });
+      passwordDialog.close();
+      toast("Mot de passe changé — votre code de récupération reste valable");
+    } catch (ex) {
+      err.textContent = ex.payload?.error || "Changement impossible.";
+      err.hidden = false;
+    }
+  });
+
+  /* ---------- Découverte des antennes ----------
+     Elle PROPOSE : cliquer un résultat remplit le champ d'adresse, sans jamais connecter
+     ni remplacer la saisie manuelle — qui reste le seul chemin qui marche sur un réseau
+     segmenté, un VLAN dédié ou une antenne hors sous-réseau. */
+  const antListEl = document.getElementById("ant-list");
+  function antState(html) { antListEl.innerHTML = `<li class="wifi-note">${html}</li>`; }
+  function renderAntennas(antennas) {
+    if (!antennas.length) {
+      antState("Aucune antenne détectée. Saisissez l'adresse IP ci-dessous.");
+      return;
+    }
+    antListEl.innerHTML = "";
+    antennas.forEach((a) => {
+      const li = document.createElement("li");
+      li.className = "ant-row";
+      li.tabIndex = 0;
+      li.setAttribute("role", "button");
+      const nom = document.createElement("span");
+      nom.className = "ant-name";
+      nom.textContent = a.name || "Antenne Bolero";   // nom non fiable : textContent
+      const ip = document.createElement("span");
+      ip.className = "ant-ip";
+      ip.textContent = a.ip;
+      const bp = document.createElement("span");
+      bp.className = "ant-bp";
+      bp.textContent = a.beltpacks
+        ? `${a.beltpacks} beltpack${a.beltpacks > 1 ? "s" : ""}` : "";
+      li.append(nom, ip, bp);
+      const pick = () => {
+        document.getElementById("wiz-ip").value = a.ip;
+        antListEl.querySelectorAll(".ant-row").forEach((r) => r.classList.remove("selected"));
+        li.classList.add("selected");
+        document.getElementById("wiz-password").focus();
+      };
+      li.addEventListener("click", pick);
+      li.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+      antListEl.append(li);
+    });
+  }
+  async function scanAntennas() {
+    const btn = document.getElementById("ant-scan-btn");
+    btn.disabled = true;
+    antState("Recherche sur le réseau…");
+    try {
+      const res = await apiSend("POST", "/api/antenna/discover");
+      if (!res.available) antState(esc(res.error || "Recherche indisponible — saisissez l'adresse IP."));
+      else renderAntennas(res.antennas || []);
+    } catch { antState("Recherche impossible — saisissez l'adresse IP ci-dessous."); }
+    finally { btn.disabled = false; }
+  }
+  document.getElementById("ant-scan-btn").addEventListener("click", scanAntennas);
+
   /* ---------- Synchro admin (auto-sync / autre poste) ---------- */
   // Si l'auto-sync (ou un autre poste) publie une nouvelle version, on recharge le
   // brouillon — mais SEULEMENT sans édits locaux en attente, pour ne pas écraser
   // un travail en cours dans cet onglet.
   function subscribeAdmin() {
     try {
-      const es = new EventSource("/events");
+      // `?role=admin` : ce flux occupe un thread serveur comme celui d'un écran, mais il
+      // n'affiche rien en salle. Sans ce marqueur, ouvrir l'admin faisait afficher
+      // « 1 afficheur » — ici comme sur la page Santé — sans le moindre écran branché.
+      const es = new EventSource("/events?role=admin");
       es.addEventListener("open", () => setSseHealth(true));
       es.addEventListener("error", () => setSseHealth(false));
       es.addEventListener("published", () => {
@@ -1855,6 +2356,12 @@
       // État live des beltpacks poussé par le serveur (même flux `live` que l'affichage) :
       // remplace l'ancien polling périodique. L'admin restant abonné, le poller publie.
       es.addEventListener("live", (e) => { try { applyLiveData(JSON.parse(e.data)); } catch { /* ignore */ } });
+      // Nombre d'écrans de régie, poussé par le serveur à chaque branchement/débranchement.
+      // Sans cette annonce, la barre d'état restait figée sur le compte du chargement :
+      // brancher un écran ne se voyait qu'à la publication suivante.
+      es.addEventListener("displays", (e) => {
+        try { renderStatusBar(JSON.parse(e.data).displays); } catch { /* ignore */ }
+      });
     } catch { /* SSE indisponible : l'admin reste sur son état courant */ }
   }
 
@@ -1891,22 +2398,10 @@
     // du pied de page dit déjà l'absence de publication : pas de doublon de texte).
     const dg = state.data.groups.length - (publishedSummary ? publishedSummary.groups : 0);
     const dp = state.data.people.length - (publishedSummary ? publishedSummary.people : 0);
-    const draftAhead = publishedSummary
-      ? (state.data.updated_at || "") > (publishedSummary.updated_at || "")   // ISO : ordre lexical
-      : (state.data.groups.length > 0 || state.data.people.length > 0);
-    const unpublished = state.unpublished || draftAhead;
-    if (!unpublished) { pend.textContent = ""; }
-    else {
-      const parts = [];
-      let lastAbs = 1;
-      if (dg) { lastAbs = Math.abs(dg); parts.push((dg > 0 ? "+" : "") + dg + " groupe" + (lastAbs > 1 ? "s" : "")); }
-      if (dp) { lastAbs = Math.abs(dp); parts.push((dp > 0 ? "+" : "") + dp + " beltpack" + (lastAbs > 1 ? "s" : "")); }
-      // « non publié » s'accorde avec le dernier terme énuméré (« +1 groupe non publié »,
-      // « +1 groupe, +2 beltpacks non publiés »).
-      pend.textContent = parts.length
-        ? parts.join(", ") + " non publié" + (lastAbs > 1 ? "s" : "")
-        : "modifications non publiées";
-    }
+    // Calcul de l'écart et accord des pluriels : purs, donc testés sans navigateur
+    // (Board.isDraftAhead / Board.pendingLabel).
+    const unpublished = Board.isDraftAhead(state.data, publishedSummary, state.unpublished);
+    pend.textContent = unpublished ? Board.pendingLabel(dg, dp) : "";
 
     // Chip d'en-tête « N en attente » (maquette) : même vérité que le pied de page, en
     // résumé. Les états transitoires (enregistrement en cours, erreur) restent
@@ -1915,8 +2410,10 @@
     if (chipState === "syncing" || chipState === "error" || chipState === "updated") return;
     if (!unpublished) { setStatus("À jour", "idle"); return; }
     const n = Math.abs(dg) + Math.abs(dp);
-    setStatus(n ? `${n} modification${n > 1 ? "s" : ""} en attente`
-                : "Modifications en attente", "pending");
+    // Libellé COURT (« 5 en attente »), comme prévu à la maquette : le détail vit déjà
+    // dans la barre d'état (« +1 groupe, +2 beltpacks non publiés »), et la version
+    // longue faisait à elle seule 85 px de largeur figée dans l'en-tête.
+    setStatus(n ? `${n} en attente` : "Modifications en attente", "pending");
   }
 
   async function refreshStatus() {
@@ -1929,13 +2426,26 @@
   /* ---------- Onglets ----------
      Affectations / Écran sont des panneaux ; Journal est un lien vers sa page dédiée.
      Antenne et réseau ont leur bouton unique ailleurs (chip d'en-tête, latérale). */
+  const TAB_KEY = "comroster.admin.tab";
   function selectTab(name) {
     document.querySelectorAll(".admin-tabs .tab[data-tab]").forEach((t) =>
       t.setAttribute("aria-selected", String(t.dataset.tab === name)));
     document.querySelectorAll(".tab-panel").forEach((p) => { p.hidden = p.dataset.panel !== name; });
+    try { localStorage.setItem(TAB_KEY, name); } catch { /* mode privé */ }
+    // L'aperçu du brouillon n'est mesurable qu'une fois son panneau affiché.
+    if (name === "screen") reloadScreenPreview();
   }
   document.querySelectorAll(".admin-tabs .tab[data-tab]").forEach((t) =>
     t.addEventListener("click", () => selectTab(t.dataset.tab)));
+  // Onglet restauré au rechargement : rafraîchir la page depuis « Écran » ramenait sur
+  // « Affectations » (signalé à l'usage). Même politique que la bascule Blocs/Table.
+  // La valeur relue est confrontée aux panneaux EXISTANTS, jamais réinjectée telle
+  // quelle dans un sélecteur.
+  try {
+    const saved = localStorage.getItem(TAB_KEY);
+    const panels = [...document.querySelectorAll(".tab-panel")].map((p) => p.dataset.panel);
+    if (saved && saved !== "board" && panels.includes(saved)) selectTab(saved);
+  } catch { /* mode privé */ }
 
   /* ---------- Barre d'outils du plateau ---------- */
   // Recherche grep : estompe en direct les cartes hors correspondance (combiné aux vues).
@@ -1979,6 +2489,7 @@
   setInterval(tickClock, 1000);
 
   /* ---------- Init ---------- */
+  resetUndo();                // référence de départ : rien à annuler avant la 1re édition
   render();
   updateSelectionBar();
   refreshAntennaBadge();
