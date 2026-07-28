@@ -100,3 +100,58 @@ def test_un_manifeste_non_objet_retombe_sur_comroster(tmp_path):
 
 def test_un_dossier_inexistant_retombe_sur_comroster(tmp_path):
     assert Branding(str(tmp_path / "nulle-part")).active is False
+
+
+# ---------------------------------------------------------------------------
+# Routes de service des logos
+# ---------------------------------------------------------------------------
+
+from comroster import create_app  # noqa: E402
+
+
+def _client_avec_pack(tmp_path, manifeste=None, fichiers=("logo.svg",)):
+    chemin = _pack(tmp_path, manifeste or {"name": "Acme Live", "logo": "logo.svg"}, fichiers)
+    app = create_app({
+        "TESTING": True,
+        "DATA_DIR": str(tmp_path),
+        "SECRET_KEY": "test-secret",
+        "BRAND_DIR": chemin,
+    })
+    return app.test_client()
+
+
+def test_sans_pack_la_route_du_logo_repond_404(client):
+    assert client.get("/branding/logo").status_code == 404
+    assert client.get("/branding/logo-print").status_code == 404
+
+
+def test_avec_pack_la_route_sert_le_logo(tmp_path):
+    r = _client_avec_pack(tmp_path).get("/branding/logo")
+    assert r.status_code == 200
+    assert r.mimetype == "image/svg+xml"
+
+
+def test_le_logo_papier_est_servi_sur_sa_propre_route(tmp_path):
+    r = _client_avec_pack(tmp_path).get("/branding/logo-print")
+    assert r.status_code == 200
+
+
+def test_le_logo_est_mis_en_cache(tmp_path):
+    """Un écran de régie tourne des jours d'affilée : retélécharger le logo à chaque
+    rechargement de page serait du gaspillage. L'invalidation passe par `?v=`."""
+    r = _client_avec_pack(tmp_path).get("/branding/logo")
+    assert "max-age" in r.headers["Cache-Control"]
+
+
+def test_la_marque_est_disponible_dans_les_templates(tmp_path):
+    """`brand` est injecté globalement : les templates n'ont pas à se le faire passer."""
+    chemin = _pack(tmp_path, {"name": "Acme Live", "logo": "logo.svg"})
+    app = create_app({
+        "TESTING": True,
+        "DATA_DIR": str(tmp_path),
+        "SECRET_KEY": "test-secret",
+        "BRAND_DIR": chemin,
+    })
+    with app.test_request_context():
+        from flask import render_template_string
+        assert render_template_string("{{ brand.name }}") == "Acme Live"

@@ -8,9 +8,11 @@ import segno
 from flask import (
     Blueprint,
     Response,
+    abort,
     current_app,
     render_template,
     request,
+    send_file,
     stream_with_context,
 )
 
@@ -76,6 +78,33 @@ def qr_svg():
     qr.save(buf, kind="svg", scale=6, border=2, dark="#0c111d", light=None)
     return Response(buf.getvalue(), mimetype="image/svg+xml",
                     headers={"Cache-Control": "no-store"})
+
+
+#: Une semaine. Le pack ne bouge qu'au redémarrage du service ; l'invalidation passe par
+#: le `?v=<version>` que les templates ajoutent, comme le cache-buster des URLs static.
+BRAND_CACHE_SECONDS = 604800
+
+
+def _servir_logo(attribut):
+    brand = current_app.extensions["branding"]
+    if not brand.active:
+        abort(404)
+    reponse = send_file(getattr(brand, attribut), conditional=True)
+    reponse.headers["Cache-Control"] = f"public, max-age={BRAND_CACHE_SECONDS}"
+    return reponse
+
+
+@bp.get("/branding/logo")
+def brand_logo():
+    """Logo de marque affiché en régie. 404 s'il n'y a pas de pack : les templates ne
+    référencent alors pas cette route, mais elle reste honnête."""
+    return _servir_logo("logo_path")
+
+
+@bp.get("/branding/logo-print")
+def brand_logo_print():
+    """Variante encre noire, pour la feuille imprimable."""
+    return _servir_logo("print_logo_path")
 
 
 @bp.get("/display")

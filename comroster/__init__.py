@@ -12,6 +12,7 @@ from .display import bp as display_bp
 from .security import csrf, limiter
 from .services import logbuffer
 from .services.antenna import AntennaClient
+from .services.branding import Branding
 from .services.configs import Configs
 from .services.history import History
 from .services.journal import Journal
@@ -66,6 +67,8 @@ def create_app(config_overrides=None):
     # l'absence de cycle, et donc d'imports internes différés. L'ordre ci-dessous est
     # celui des dépendances : storage d'abord, puis ceux qui le consomment.
     app.extensions["storage"] = Storage(app.config["DATA_DIR"])
+    # Marque du boîtier : lue une fois, jamais écrite. Ne dépend d'aucun autre service.
+    app.extensions["branding"] = Branding(app.config["BRAND_DIR"])
     app.extensions["secret"] = SecretStore(app.config["DATA_DIR"])
     app.extensions["broker"] = Broker()
     app.extensions["history"] = History(app.extensions["storage"])
@@ -109,6 +112,12 @@ def create_app(config_overrides=None):
                 values["v"] = int(os.stat(fpath).st_mtime)
             except OSError:
                 pass
+
+    @app.context_processor
+    def _injecter_marque():
+        # Injection globale plutôt qu'un argument à chaque `render_template` : quatre
+        # appels aujourd'hui, et tous ceux à venir.
+        return {"brand": app.extensions["branding"]}
 
     return app
 
