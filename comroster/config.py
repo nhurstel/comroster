@@ -5,6 +5,10 @@ class Config:
     def __init__(self, overrides=None):
         self.SECRET_KEY = os.environ.get("FLASK_SECRET_KEY")
         self.DATA_DIR = os.environ.get("DATA_DIR", os.getcwd())
+        # Marque du boîtier : dossier du pack client (brand.json + logos), posé à la
+        # fabrication HORS de DATA_DIR — donc hors de portée de l'administration et des
+        # sauvegardes. Vide = ComRoster. Voir deploy/set-branding.sh.
+        self.BRAND_DIR = os.environ.get("COMROSTER_BRAND_DIR", "")
         self.PORT = int(os.environ.get("PORT", "8080"))
         self.DEBUG = os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
         # LAN fermé sans TLS : désactive le flag Secure du cookie sans activer le debug.
@@ -25,6 +29,14 @@ class Config:
         if overrides:
             for key, value in overrides.items():
                 setattr(self, key, value)
+        # Part du cap réservée aux onglets d'administration (`/events?role=admin`). Ils
+        # occupent un thread comme les autres mais n'affichent rien en salle : sans
+        # plafond propre, quelques onglets oubliés évinceraient les écrans de régie.
+        # Un tiers, au moins 1 — les deux tiers restants sont garantis aux écrans.
+        # DÉRIVÉE APRÈS les surcharges : abaisser SSE_MAX_CLIENTS (test, petit boîtier)
+        # doit faire suivre la réserve, sinon elle resterait calée sur le défaut de 12.
+        if not (overrides and "SSE_ADMIN_MAX" in overrides):
+            self.SSE_ADMIN_MAX = max(1, self.SSE_MAX_CLIENTS // 3)
 
     def as_dict(self):
         return dict(self.__dict__)
