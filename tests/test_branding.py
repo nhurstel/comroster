@@ -68,6 +68,9 @@ def test_le_drapeau_mono_est_lu(tmp_path):
     [
         ({"logo": "logo.svg"}, ("logo.svg",)),                       # name absent
         ({"name": "  ", "logo": "logo.svg"}, ("logo.svg",)),         # name vide
+        # name d'un mauvais type (int) : JSON valide, faute de fabrication plausible —
+        # doit retomber sur ComRoster comme les autres fautes, jamais planter en AttributeError.
+        ({"name": 123, "logo": "logo.svg"}, ("logo.svg",)),          # name mal typé
         ({"name": "Acme"}, ("logo.svg",)),                           # logo absent
         ({"name": "Acme", "logo": "absent.svg"}, ("logo.svg",)),     # fichier introuvable
         ({"name": "Acme", "logo": "logo.jpg"}, ("logo.jpg",)),       # extension interdite

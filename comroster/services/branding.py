@@ -55,7 +55,12 @@ class Branding:
         if not isinstance(manifeste, dict):
             raise ValueError("racine du manifeste non-objet")
 
-        nom = (manifeste.get("name") or "").strip()
+        nom_brut = manifeste.get("name")
+        if not isinstance(nom_brut, str):
+            # Un JSON valide autorise un « name » numérique ou booléen — la faute de
+            # fabrication la plus bête ne doit jamais tourner en AttributeError.
+            raise ValueError("champ « name » doit être une chaîne")
+        nom = nom_brut.strip()
         if not nom:
             raise ValueError("champ « name » absent ou vide")
 
