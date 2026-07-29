@@ -128,6 +128,14 @@ def _premiere_ligne(path):
             return fichier.readline().strip()
     except OSError:
         return ""
+    except ValueError:
+        # `UnicodeDecodeError` hérite de `ValueError` : une carte SD corrompue peut
+        # écrire des octets non-UTF-8 dans `.git/HEAD` ou `.git/refs/heads/<branche>`.
+        # Même défaut que `_charger()` (corrigé au commit 9179703), jamais reporté ici —
+        # sans ce filet, la garde de fraîcheur seule ferait échouer tout `Version()`,
+        # donc `create_app()`, donc le démarrage du boîtier.
+        log.warning("Référence git illisible (%s) — fraîcheur non vérifiable", path)
+        return ""
 
 
 def _reference_compactee(git_dir, reference):
@@ -142,4 +150,8 @@ def _reference_compactee(git_dir, reference):
                     return morceaux[0]
     except OSError:
         pass
+    except ValueError:
+        # Même filet que `_premiere_ligne()` : des octets non-UTF-8 dans packed-refs
+        # ne doivent pas faire lever `Version()`.
+        log.warning("packed-refs illisible (%s) — fraîcheur non vérifiable", git_dir)
     return ""

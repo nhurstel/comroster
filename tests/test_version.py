@@ -131,6 +131,35 @@ def test_reference_compactee_resolue(tmp_path):
     assert v.stale is False
 
 
+def test_head_corrompu_ne_leve_pas(tmp_path):
+    """Octets non-UTF-8 dans `.git/HEAD` (carte SD corrompue par une coupure de courant) :
+    `UnicodeDecodeError` hérite de `ValueError`, exactement le défaut corrigé pour
+    `_charger()` au commit 9179703 mais jamais reporté sur `_premiere_ligne()`. Sans le
+    correctif, `Version()` lève, donc `create_app()` lève, donc gunicorn ne démarre pas."""
+    paquet = tmp_path / "comroster"
+    paquet.mkdir()
+    (paquet / "VERSION").write_text("v1.4.0 9f3c1a2 2026-07-29\n", encoding="utf-8")
+    git = tmp_path / ".git"
+    git.mkdir()
+    (git / "HEAD").write_bytes(b"\xff")
+    v = Version(str(paquet), repo_dir=str(tmp_path))
+    assert v.stale is False
+
+
+def test_packed_refs_corrompu_ne_leve_pas(tmp_path):
+    """Même défaut, sur le second lecteur : `.git/packed-refs` corrompu ne doit pas
+    davantage faire lever `Version()`."""
+    paquet = tmp_path / "comroster"
+    paquet.mkdir()
+    (paquet / "VERSION").write_text("v1.4.0 9f3c1a2 2026-07-29\n", encoding="utf-8")
+    git = tmp_path / ".git"
+    git.mkdir()
+    (git / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+    (git / "packed-refs").write_bytes(b"\xff")
+    v = Version(str(paquet), repo_dir=str(tmp_path))
+    assert v.stale is False
+
+
 def test_sans_depot_git_aucun_soupcon(tmp_path):
     """Cas d'un boîtier installé par copie d'image : on ne peut pas savoir, donc on
     n'invente pas un doute."""
