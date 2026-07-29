@@ -573,15 +573,25 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 Ajouter à la fin de `tests/test_version.py` :
 
-```python
-# ---------- Gravure au déploiement ----------
+D'abord, compléter l'**en-tête** de `tests/test_version.py` — les imports vivent en tête de fichier, sinon `ruff` lève `E402` (le dépôt est linté, cf. `deploy/lint-local.sh`) :
 
+```python
+"""Version du logiciel : lecture du fichier gravé, et ce qu'on en montre au client."""
 import os
 import re
 import subprocess
 
-RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+import pytest
 
+from comroster.services.version import Version
+
+RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+```
+
+Puis ajouter à la fin du fichier :
+
+```python
+# ---------- Gravure au déploiement ----------
 
 def _setup_pi():
     with open(os.path.join(RACINE, "deploy", "setup-pi.sh"), encoding="utf-8") as fichier:
@@ -609,11 +619,14 @@ def test_le_deploiement_interroge_git_sous_l_utilisateur_cible():
     assert re.search(r'sudo -u "\$TARGET_USER" git', _setup_pi())
 
 
+@pytest.mark.skipif(not os.path.isdir(os.path.join(RACINE, ".git")), reason="hors dépôt git")
 def test_le_fichier_de_version_est_ignore_par_git():
     """C'est un artefact GÉNÉRÉ. Committé, il se figerait à la valeur du poste qui l'a
-    produit et mentirait sur tous les autres."""
-    if not os.path.isdir(os.path.join(RACINE, ".git")):
-        return
+    produit et mentirait sur tous les autres.
+
+    `skipif` et non un `return` muet : c'est la convention de tests/test_gitignore.py, et
+    un test qui se termine sans assertion se compte comme réussi — il mentirait sur sa
+    propre couverture."""
     code = subprocess.run(["git", "check-ignore", "-q", "comroster/VERSION"],
                           cwd=RACINE, check=False).returncode
     assert code == 0, "comroster/VERSION n'est pas couvert par .gitignore"
