@@ -11,13 +11,21 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # réponde : il ne peut rien demander à personne, la version doit lui arriver par l'URL —
 # comme `next` et `health`.
 #
-# `+` DOIT être encodé : dans une chaîne de requête il se décode en espace, et
-# « v1.4.0+7 » s'afficherait « v1.4.0 7 ». sed et non substitution bash : on est en sh.
+# `+`, `&` et `#` DOIVENT être encodés : dans une chaîne de requête `+` se décode en
+# espace (« v1.4.0+7 » s'afficherait « v1.4.0 7 »), et `&`/`#` sont légaux dans un nom
+# de tag git mais couperaient le paramètre d'URL (nouveau paramètre / fragment) —
+# tronquant la version affichée. sed et non substitution bash : on est en sh.
 ver=""
 VERSION_FILE="$SCRIPT_DIR/../comroster/VERSION"
 if [ -r "$VERSION_FILE" ]; then
-  read -r ver _ < "$VERSION_FILE" || ver=""
-  ver=$(printf '%s' "$ver" | sed 's/+/%2B/g')
+  # Piège POSIX n°1 : `read` renvoie un code d'échec quand la DERNIÈRE ligne du
+  # fichier n'a pas de saut de ligne final — mais `ver` est quand même correctement
+  # assignée avant ce code d'échec. `|| ver=""` écraserait donc une valeur pourtant
+  # bonne ; `|| true` se contente d'avaler le code de sortie sans toucher `ver`.
+  # Piège POSIX n°2 : sous `set -eu`, un `read` qui échoue SANS ce `|| true` termine
+  # le script — le kiosk n'ouvrirait rien du tout, écran noir en régie.
+  read -r ver _ < "$VERSION_FILE" || true
+  ver=$(printf '%s' "$ver" | sed 's/+/%2B/g; s/&/%26/g; s/#/%23/g')
 fi
 
 if [ "$ROLE" = "viewer" ]; then

@@ -413,6 +413,26 @@ def test_le_kiosk_encode_le_plus_dans_l_url():
     assert "%2B" in _fichier_deploy("kiosk-run.sh")
 
 
+def test_le_kiosk_encode_esperluette_et_diese_dans_l_url():
+    """`&` et `#` sont légaux dans un nom de tag git (donc dans le label de version) :
+    non encodés dans une chaîne de requête, ils tronqueraient le paramètre `v=`
+    (nouveau paramètre pour `&`, fragment pour `#`)."""
+    source = _fichier_deploy("kiosk-run.sh")
+    assert "%26" in source
+    assert "%23" in source
+
+
+def test_le_kiosk_ne_perd_pas_une_version_lue_sans_saut_de_ligne_final():
+    """`read` échoue (code de sortie non nul) quand la dernière ligne d'un fichier n'a
+    pas de saut de ligne final — MAIS la variable est quand même correctement assignée
+    (comportement POSIX). `|| ver=""` écraserait donc une valeur pourtant bonne ;
+    `|| true` avale seulement le code d'échec. Sous `set -eu`, l'absence de CE `||`
+    terminerait aussi le script au premier échec de `read` — écran noir en régie."""
+    source = _fichier_deploy("kiosk-run.sh")
+    assert 'read -r ver _ < "$VERSION_FILE" || true' in source
+    assert 'read -r ver _ < "$VERSION_FILE" || ver=""' not in source
+
+
 def test_le_splash_affiche_la_version_sans_injection():
     """Le paramètre d'URL est une entrée non fiable : textContent, jamais innerHTML."""
     source = _fichier_deploy("boot-splash.html")
