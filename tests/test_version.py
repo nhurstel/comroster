@@ -408,6 +408,24 @@ def test_le_demarrage_est_journalise_avec_la_version(app):
     assert demarrages[0]["detail"]          # jamais vide : « version inconnue » à défaut
 
 
+def test_un_redemarrage_sans_changement_de_version_n_ajoute_rien(tmp_path):
+    """Avec `Restart=on-failure`/`RestartSec=3`, un worker qui meurt en boucle (manque de
+    mémoire sur un Pi) écrirait une vingtaine d'entrées « startup » identiques par
+    minute — en dix minutes, l'anneau de 200 lignes ne contiendrait plus qu'elles,
+    noyant tout ce qui a précédé l'incident (publications, réseau, antenne). Deux
+    constructions d'application successives sur le MÊME répertoire de données ne
+    doivent produire qu'une seule entrée « startup »."""
+    from comroster import create_app
+
+    config = {"TESTING": True, "DATA_DIR": str(tmp_path), "SECRET_KEY": "test-secret"}
+    premiere = create_app(config)
+    seconde = create_app(config)
+
+    demarrages = [e for e in seconde.extensions["journal"].entries() if e["event"] == "startup"]
+    assert len(demarrages) == 1
+    assert premiere.extensions["version"].label == seconde.extensions["version"].label
+
+
 def test_le_libelle_du_demarrage_existe_cote_navigateur():
     """Sans entrée dans EVENT_LABELS, la page Journal afficherait la clé technique
     « startup » à l'utilisateur."""

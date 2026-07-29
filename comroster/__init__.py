@@ -89,10 +89,19 @@ def create_app(config_overrides=None):
 
     # Le journal tient déjà les redémarrages ; y inscrire la version en fait
     # l'historique des MISES À JOUR du boîtier — « depuis quand tourne-t-il là-dessus,
-    # et qu'y avait-il avant ? » n'a aucune autre source.
-    app.extensions["journal"].record(
-        "startup", app.extensions["version"].label or "version inconnue"
+    # et qu'y avait-il avant ? » n'a aucune autre source. Mais SEULEMENT quand le label
+    # change : avec Restart=on-failure/RestartSec=3, un worker qui meurt en boucle
+    # écrirait une vingtaine d'entrées « startup » par minute et noierait, en dix
+    # minutes, tout ce que l'anneau de 200 lignes contient — publications, changements
+    # réseau, connexions antenne — sous des redémarrages identiques. Ça sert aussi
+    # l'intention déclarée : l'historique des MISES À JOUR, pas des redémarrages.
+    label_actuel = app.extensions["version"].label or "version inconnue"
+    dernier_demarrage = next(
+        (e["detail"] for e in app.extensions["journal"].entries() if e["event"] == "startup"),
+        None,
     )
+    if label_actuel != dernier_demarrage:
+        app.extensions["journal"].record("startup", label_actuel)
 
     # Pousse l'état antenne via SSE (au lieu du polling client). Pas sous tests.
     if not app.config.get("TESTING"):
