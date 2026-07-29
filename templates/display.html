@@ -42,7 +42,7 @@
   </header>
   <main id="display-scroll"><div class="display-grid" id="display-grid"></div></main>
   <footer>
-    <span class="created-by">{% if brand.active %}Propulsé par ComRoster{% else %}COMROSTER par Nathan Hurstel{% endif %}</span>
+    <span class="created-by">{% if brand.active %}Propulsé par ComRoster{% if appversion.public %} {{ appversion.public }}{% endif %}{% else %}COMROSTER par Nathan Hurstel{% if appversion.public %} · {{ appversion.public }}{% endif %}{% endif %}</span>
     <span class="footer-updated">Dernière mise à jour : <time id="updated-at-time">{{ initial_data.updated_at }}</time></span>
   </footer>
 

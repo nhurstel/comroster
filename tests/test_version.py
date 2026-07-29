@@ -237,3 +237,21 @@ def test_le_fichier_de_version_est_ignore_par_git():
     code = subprocess.run(["git", "check-ignore", "-q", "comroster/VERSION"],
                           cwd=RACINE, check=False).returncode
     assert code == 0, "comroster/VERSION n'est pas couvert par .gitignore"
+
+
+# ---------- Pied de l'écran de régie ----------
+
+def test_le_pied_du_display_porte_la_version_publique(app, monkeypatch):
+    monkeypatch.setattr(app.extensions["version"], "public", "v1.4")
+    html = app.test_client().get("/display").get_data(as_text=True)
+    assert "v1.4" in html
+    assert "9f3c1a2" not in html         # jamais de commit devant un client
+
+
+def test_sans_version_publique_le_pied_est_inchange(app, monkeypatch):
+    """Aucun tag posé : le pied doit retrouver mot pour mot ce qu'il était avant ce lot.
+    Un séparateur orphelin (« Nathan Hurstel · ») trahirait une valeur manquante."""
+    monkeypatch.setattr(app.extensions["version"], "public", "")
+    html = app.test_client().get("/display").get_data(as_text=True)
+    assert "COMROSTER par Nathan Hurstel" in html
+    assert "Nathan Hurstel ·" not in html
