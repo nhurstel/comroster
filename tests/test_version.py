@@ -317,3 +317,21 @@ def test_le_splash_affiche_la_version_sans_injection():
     source = _fichier_deploy("boot-splash.html")
     assert 'params.get("v")' in source
     assert 'getElementById("version").textContent' in source
+
+
+# ---------- Journal ----------
+
+def test_le_demarrage_est_journalise_avec_la_version(app):
+    """Le journal devient l'historique des mises à jour du boîtier : « depuis quand
+    tourne-t-il sur cette version ? » n'a aucune autre source."""
+    evenements = app.extensions["journal"].entries()
+    demarrages = [e for e in evenements if e["event"] == "startup"]
+    assert len(demarrages) == 1
+    assert demarrages[0]["detail"]          # jamais vide : « version inconnue » à défaut
+
+
+def test_le_libelle_du_demarrage_existe_cote_navigateur():
+    """Sans entrée dans EVENT_LABELS, la page Journal afficherait la clé technique
+    « startup » à l'utilisateur."""
+    with open(os.path.join(RACINE, "static", "js", "journal.js"), encoding="utf-8") as f:
+        assert "startup:" in f.read()

@@ -5,6 +5,7 @@
   "use strict";
 
   const EVENT_LABELS = {
+    startup: "Démarrage de l'application",
     publish: "Publication envoyée",
     import: "Fichier importé",
     restore: "Publication restaurée",

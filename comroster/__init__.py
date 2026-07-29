@@ -87,6 +87,13 @@ def create_app(config_overrides=None):
     app.extensions["lifetime"] = Lifetime(app.config["DATA_DIR"])
     app.extensions["lifetime"].register_start()
 
+    # Le journal tient déjà les redémarrages ; y inscrire la version en fait
+    # l'historique des MISES À JOUR du boîtier — « depuis quand tourne-t-il là-dessus,
+    # et qu'y avait-il avant ? » n'a aucune autre source.
+    app.extensions["journal"].record(
+        "startup", app.extensions["version"].label or "version inconnue"
+    )
+
     # Pousse l'état antenne via SSE (au lieu du polling client). Pas sous tests.
     if not app.config.get("TESTING"):
         start_live_poller(app)
