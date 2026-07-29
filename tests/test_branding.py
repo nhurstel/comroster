@@ -210,9 +210,17 @@ def _client_admin_avec_pack(tmp_path):
 
 
 def test_sans_pack_la_feuille_garde_le_pied_comroster(auth_client):
-    """Non-régression sur le document papier."""
+    """Non-régression sur le document papier.
+
+    Chercher « ComRoster » dans la page ENTIÈRE ne prouve rien : le <title> de
+    print.html le porte déjà, indépendamment du pied — on pourrait vider le pied
+    entièrement, l'assertion resterait vraie. On isole donc le contenu du pied
+    lui-même pour que le test échoue si CE texte-là change.
+    """
     html = auth_client.get("/admin/print").get_data(as_text=True)
-    assert "ComRoster" in html
+    pied = html.split('class="sheet-foot"', 1)[1].split("</footer>", 1)[0]
+    assert "ComRoster" in pied
+    assert "Propulsé par" not in pied, "sans pack, pas de co-branding dans le pied"
     assert "/branding/logo-print" not in html
 
 
@@ -225,3 +233,47 @@ def test_avec_pack_la_feuille_porte_le_logo_client(tmp_path):
 def test_avec_pack_le_pied_de_la_feuille_est_co_brande(tmp_path):
     html = _client_admin_avec_pack(tmp_path).get("/admin/print").get_data(as_text=True)
     assert "Propulsé par ComRoster" in html
+
+
+# ---------------------------------------------------------------------------
+# L'invariant central : le pack vit HORS de DATA_DIR, hors de portée des sauvegardes
+# ---------------------------------------------------------------------------
+
+
+def test_le_pack_de_marque_est_hors_de_portee_des_sauvegardes(tmp_path):
+    """Toute la promesse du produit tient à un seul fait : le pack de marque vit HORS
+    de DATA_DIR, donc hors de portée de l'administration ET des sauvegardes — c'est ce
+    qui verrouille la marque sans le moindre mot de passe. `backup.build_payload` ne
+    parcourt jamais le disque : il additionne une liste blanche d'extensions connues.
+    Ce test la fait sonner si, un jour, cette liste blanche est remplacée par un
+    parcours récursif de DATA_DIR qui engloberait aussi la marque.
+
+    Important : le pack est posé ICI dans un répertoire DISTINCT de DATA_DIR — pas
+    dans `tmp_path / "branding"` comme le font les assistantes `_pack()` /
+    `_client_avec_pack()` de ce fichier (qui, elles, posent le pack DANS `tmp_path`
+    alors que `DATA_DIR=tmp_path`). Réutiliser ces assistantes ici prouverait le
+    contraire de ce qu'on veut garantir.
+    """
+    brand_dir = tmp_path / "hors-de-data-dir" / "branding"
+    brand_dir.mkdir(parents=True)
+    (brand_dir / "logo.svg").write_bytes(SVG)
+    (brand_dir / "brand.json").write_text(
+        json.dumps({"name": "Acme Live", "logo": "logo.svg"}), encoding="utf-8"
+    )
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+
+    app = create_app({
+        "TESTING": True,
+        "DATA_DIR": str(data_dir),
+        "SECRET_KEY": "test-secret",
+        "BRAND_DIR": str(brand_dir),
+    })
+    assert app.extensions["branding"].active is True, "pack mal posé : le test ne prouverait rien"
+
+    from comroster.services import backup
+
+    archive = json.dumps(backup.build_payload(app), ensure_ascii=False)
+    assert "brand.json" not in archive
+    assert "Acme Live" not in archive

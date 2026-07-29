@@ -73,7 +73,7 @@ depuis l'application vers la marque.
 acme-live/
 ├── brand.json
 ├── logo.svg          ← affiché en régie
-└── logo-noir.svg     ← optionnel, pour le papier
+└── logo-noir.svg     ← nécessaire si le logo écran est monochrome (voir `mono` ci-dessous)
 ```
 
 ```json
@@ -89,7 +89,7 @@ acme-live/
 |---|---|
 | `name` | Nom affiché en `alt` et porté par la feuille imprimée. |
 | `logo` | Logo d'écran. Simple nom de fichier, `.svg` ou `.png`. |
-| `logo_print` | Variante encre noire. Absent → on réutilise `logo`. |
+| `logo_print` | Variante encre noire. Absent → on réutilise `logo`. **Nécessaire dès que `mono` vaut `true`** : un logo monochrome est par construction un logo clair, prévu pour le fond sombre du tableau — sans variante encre noire, c'est ce logo clair qui part tel quel sur la feuille imprimée, blanc sur blanc, illisible. |
 | `mono` | `true` pour un logo monochrome (il sera inversé en thème jour, comme le glyphe ComRoster) ; `false` pour un logo couleur (aucun filtre). |
 
 Un logo horizontal est préférable : l'en-tête du tableau est dense, la largeur est bornée.

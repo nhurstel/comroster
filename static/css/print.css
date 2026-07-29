@@ -73,6 +73,12 @@
    wordmark horizontal comme un logo carré tiennent tous deux dans l'en-tête. */
 .sheet-logo { height: 13mm; width: auto; max-width: 55mm; object-fit: contain; }
 
+/* Avec un logo actif, `.sheet-head` passe de 2 enfants à 3 (logo, titre, méta) : sous
+   `justify-content: space-between`, le titre dériverait au centre de l'espace libre au
+   lieu de rester accolé au logo, à gauche. `margin-right: auto` absorbe cet espace côté
+   titre — sans effet quand il n'y a que 2 enfants (sans pack), donc non-régressif. */
+.sheet-title { margin-right: auto; }
+
 .sheet-head h1 { margin: 0; font-size: 19pt; letter-spacing: -0.01em; }
 .sheet-sub { margin: .2rem 0 0; color: var(--ink-soft); }
 .sheet-meta { display: flex; gap: 1.75rem; margin: 0; text-align: right; }
