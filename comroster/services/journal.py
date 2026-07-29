@@ -7,12 +7,20 @@ changements réseau, redémarrages — pour répondre à « que s'est-il passé 
 Fichier JSONL borné dans DATA_DIR, réécrit atomiquement à chaque événement
 (≤ MAX_EVENTS lignes : le coût est négligeable et la taille ne dérive jamais —
 garde-fou carte SD). Écrit sous verrou : les requêtes arrivent de plusieurs
-threads. Fail-safe appliance : une ligne corrompue est ignorée, jamais levée.
+threads. Fail-safe appliance : une ligne corrompue est ignorée, jamais levée —
+et l'ÉCRITURE l'est tout autant. `record()` est appelé depuis `create_app()`
+(événement `startup`) : une exception ici ne casserait plus une seule requête,
+elle empêcherait le boîtier de démarrer. Perdre une ligne de journal est
+acceptable ; empêcher l'allumage avant un spectacle ne l'est pas.
 """
+import contextlib
 import json
+import logging
 import os
 import threading
 from datetime import datetime, timezone
+
+log = logging.getLogger(__name__)
 
 
 class Journal:
@@ -32,12 +40,20 @@ class Journal:
             entries = self._read()
             entries.append(entry)
             tmp = self.path + ".tmp"
-            with open(tmp, "w", encoding="utf-8") as f:
-                f.writelines(
-                    json.dumps(e, ensure_ascii=False) + "\n"
-                    for e in entries[-self.MAX_EVENTS:]
-                )
-            os.replace(tmp, self.path)
+            try:
+                with open(tmp, "w", encoding="utf-8") as f:
+                    f.writelines(
+                        json.dumps(e, ensure_ascii=False) + "\n"
+                        for e in entries[-self.MAX_EVENTS:]
+                    )
+                os.replace(tmp, self.path)          # remplacement atomique
+            except OSError as exc:
+                # DATA_DIR non inscriptible, disque plein… : `record()` est appelé
+                # depuis create_app() (événement `startup`), donc une exception ici
+                # empêcherait le boîtier de démarrer — bien pire que perdre une ligne.
+                log.warning("Journal non enregistré : %s", exc)
+                with contextlib.suppress(OSError):
+                    os.remove(tmp)          # ne laisse pas de fichier partiel derrière
         return entry
 
     def entries(self):

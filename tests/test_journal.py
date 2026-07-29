@@ -1,4 +1,6 @@
 """Journal d'événements : le service (borné, fail-safe) et son exposition API."""
+import os
+
 import pytest
 
 from comroster.services.journal import Journal
@@ -36,6 +38,58 @@ def test_ligne_corrompue_ignoree_sans_erreur(tmp_path):
 
 def test_journal_absent_donne_liste_vide(tmp_path):
     assert Journal(str(tmp_path)).entries() == []
+
+
+def test_ecriture_impossible_ne_leve_pas(tmp_path):
+    """Carte SD passée en lecture seule, disque plein… : `record()` est désormais
+    appelé au démarrage de l'application (événement `startup`, comroster/__init__.py) —
+    une exception ici empêcherait le boîtier de démarrer, bien pire que perdre une
+    ligne de journal.
+
+    `chmod` ne protège rien pour root (les permissions Unix ne s'appliquent pas à
+    lui) : dans ce cas on simule l'échec autrement, avec un répertoire jamais créé
+    plutôt qu'avec des droits retirés."""
+    root = os.geteuid() == 0
+    if root:
+        dossier = str(tmp_path / "inexistant" / "profond")   # jamais créé : l'ouverture échoue
+    else:
+        dossier = str(tmp_path)
+        os.chmod(dossier, 0o500)                              # lecture seule : écriture refusée
+
+    j = Journal(dossier)
+    try:
+        entry = j.record("startup", "v1.4.0+7")
+    finally:
+        if not root:
+            os.chmod(dossier, 0o700)      # restaure les droits : le nettoyage de tmp_path en dépend
+
+    # L'appelant reçoit toujours l'entrée construite, même si elle n'a pas pu être
+    # persistée : Lifetime._write suit le même contrat côté carnet de bord.
+    assert entry["event"] == "startup"
+    assert entry["detail"] == "v1.4.0+7"
+
+
+def test_create_app_demarre_meme_si_le_journal_ne_peut_pas_ecrire(tmp_path):
+    """La garantie qui compte vraiment : le boîtier DÉMARRE quoi qu'il arrive, même si
+    l'écriture de l'événement `startup` échoue. Le test précédent isole le service ;
+    celui-ci prouve la chaîne complète — c'est `create_app()` que le brief a rendu
+    vulnérable, pas seulement `Journal.record()`.
+
+    Un `DATA_DIR` entièrement en lecture seule casserait aussi `History`, qui crée son
+    propre sous-répertoire au démarrage (constaté à l'essai : `chmod 0o500` sur tout
+    `DATA_DIR` fait échouer `History.__init__`, avant même d'atteindre le journal — un
+    défaut différent, hors du périmètre de cette tâche). Pour isoler UNIQUEMENT
+    l'écriture du journal, un DOSSIER posé exactement là où `Journal.record()` attend
+    d'ouvrir son fichier temporaire fait échouer `open(..., "w")` avec
+    `IsADirectoryError` — quels que soient les droits, y compris pour root, qu'aucun
+    `chmod` n'aurait arrêté. Le reste de `DATA_DIR` reste pleinement inscriptible :
+    c'est bien l'écriture du journal, et elle seule, qui est mise en défaut ici."""
+    from comroster import create_app
+
+    (tmp_path / "journal.jsonl.tmp").mkdir()
+
+    app = create_app({"TESTING": True, "DATA_DIR": str(tmp_path), "SECRET_KEY": "test-secret"})
+    assert app is not None
 
 
 # ---------- API ----------
