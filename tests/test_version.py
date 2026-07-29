@@ -153,3 +153,29 @@ def test_version_inconnue_n_est_jamais_perimee(tmp_path):
     (git / "HEAD").write_text(SHA + "\n", encoding="utf-8")
     v = Version(str(paquet), repo_dir=str(tmp_path))
     assert v.known is False and v.stale is False
+
+
+# ---------- Câblage de l'application ----------
+
+def test_healthz_porte_la_version(client):
+    """C'est le point qu'on interroge à distance, sans ouvrir de session : « quel code
+    tourne sur cette machine ? » doit avoir une réponse en un curl."""
+    corps = client.get("/healthz").get_json()
+    assert corps["status"] == "ok"
+    assert "version" in corps          # None hors déploiement : la clé, elle, est due
+
+
+def test_la_sante_expose_la_version(app):
+    from comroster.services import health
+    snap = health.snapshot(app)
+    assert "version" in snap
+    assert set(snap["version"]) == {"known", "label", "commit", "date", "public", "stale"}
+
+
+def test_la_version_est_injectee_dans_les_gabarits(app):
+    """Le pied de /display la lit sous le nom `appversion`. « version » tout court est
+    déjà pris par le numéro de révision d'une publication (services/model.py)."""
+    from flask import render_template_string
+    with app.test_request_context("/"):
+        rendu = render_template_string("{{ appversion.known }}|{{ appversion.public }}")
+    assert rendu.startswith(("True|", "False|"))

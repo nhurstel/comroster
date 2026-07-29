@@ -1,7 +1,11 @@
 def test_healthz(client):
     resp = client.get("/healthz")
     assert resp.status_code == 200
-    assert resp.get_json() == {"status": "ok"}
+    # La clé « version » est due même hors déploiement (elle vaut alors None) — voir
+    # tests/test_version.py pour le contrat complet, gardé dans un seul fichier.
+    corps = resp.get_json()
+    assert corps["status"] == "ok"
+    assert "version" in corps
 
 
 def test_prod_requires_secret_key():

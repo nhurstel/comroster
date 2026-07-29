@@ -23,6 +23,7 @@ from .services.pubsub import Broker
 from .services.secret import SecretStore
 from .services.settings import Settings
 from .services.storage import Storage
+from .services.version import Version
 
 
 def create_app(config_overrides=None):
@@ -60,7 +61,10 @@ def create_app(config_overrides=None):
 
     @app.get("/healthz")
     def healthz():
-        return jsonify({"status": "ok"})
+        # La version voyage avec le battement de cœur : c'est le seul point qu'on peut
+        # interroger sans ouvrir de session, et « quel code tourne ici ? » est la
+        # première question du dépannage. Fuite d'information assumée — LAN de régie.
+        return jsonify({"status": "ok", "version": app.extensions["version"].label or None})
 
     # Services partagés. Injection de dépendances : chaque service reçoit ce dont il a
     # besoin en argument (DATA_DIR, storage…) et n'importe jamais l'app en retour — d'où
@@ -69,6 +73,7 @@ def create_app(config_overrides=None):
     app.extensions["storage"] = Storage(app.config["DATA_DIR"])
     # Marque du boîtier : lue une fois, jamais écrite. Ne dépend d'aucun autre service.
     app.extensions["branding"] = Branding(app.config["BRAND_DIR"])
+    app.extensions["version"] = Version()
     app.extensions["secret"] = SecretStore(app.config["DATA_DIR"])
     app.extensions["broker"] = Broker()
     app.extensions["history"] = History(app.extensions["storage"])
@@ -114,10 +119,13 @@ def create_app(config_overrides=None):
                 pass
 
     @app.context_processor
-    def _injecter_marque():
-        # Injection globale plutôt qu'un argument à chaque `render_template` : quatre
-        # appels aujourd'hui, et tous ceux à venir.
-        return {"brand": app.extensions["branding"]}
+    def _injecter_contexte_global():
+        # `appversion` et non `version` : le modèle a déjà un champ `version` (le numéro
+        # de révision d'une publication) et la confusion serait garantie à la relecture.
+        return {
+            "brand": app.extensions["branding"],
+            "appversion": app.extensions["version"],
+        }
 
     return app
 

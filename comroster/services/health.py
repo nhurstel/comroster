@@ -159,4 +159,7 @@ def snapshot(app):
         # Carnet de bord : ce que /proc/uptime ne sait pas dire (première mise en
         # service, cumul à travers les redémarrages, nombre de démarrages).
         "lifetime": app.extensions["lifetime"].snapshot(),
+        # Carte d'identité du logiciel. « Quel code tourne sur cette machine ? » n'avait
+        # jusqu'ici de réponse qu'en SSH.
+        "version": app.extensions["version"].snapshot(),
     }
