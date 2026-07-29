@@ -493,3 +493,12 @@ def test_la_sante_rend_la_carte_d_identite():
     assert "d.version" in source
     assert "version du logiciel" in source
     assert "ver.stale" in source
+
+
+def test_la_sante_n_affirme_pas_une_cause_qu_elle_ne_connait_pas():
+    """`known` vaut faux aussi bien fichier ABSENT (jamais déployé) que fichier PRÉSENT
+    mais corrompu ou mal formé — services/version.py ne distingue pas ces cas. La légende
+    ne doit donc pas affirmer une cause précise qu'elle ne connaît pas."""
+    with open(os.path.join(RACINE, "static", "js", "health.js"), encoding="utf-8") as f:
+        source = f.read()
+    assert "n'a pas été déployé par" not in source

@@ -152,9 +152,13 @@
           : `${ver.commit} · ${ver.date}`,
       });
     } else {
+      // « known » vaut faux aussi bien quand le fichier est ABSENT (boîtier non
+      // déployé par deploy/setup-pi.sh) que quand il est PRÉSENT mais vide, tronqué ou
+      // corrompu (carte SD, coupure de courant) : services/version.py ne distingue pas
+      // ces cas. Affirmer une cause précise ici serait affirmer plus que ce qu'on sait.
       facts.push({
         label: "version", value: "inconnue",
-        hint: "aucun fichier de version — ce boîtier n'a pas été déployé par deploy/setup-pi.sh",
+        hint: "fichier de version absent, vide ou mal formé",
       });
     }
 
