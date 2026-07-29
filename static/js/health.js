@@ -136,6 +136,28 @@
       if (level) flags.push({ level, why: `le processeur est chargé à ${p} % de sa capacité` });
     }
 
+    /* Carte d'identité du logiciel. Elle précède les durées : « quel code tourne ici ? »
+       vient avant « depuis combien de temps ». C'est le SEUL endroit qui montre le
+       commit et l'éventuelle péremption — le pied de l'écran de régie, lui, est vu par
+       le client. */
+    const ver = d.version || {};
+    facts.push({ heading: "version du logiciel" });
+    if (ver.known) {
+      facts.push({
+        label: "version",
+        value: ver.label,
+        tone: ver.stale ? "warn" : "",
+        hint: ver.stale
+          ? `${ver.commit} · ${ver.date} — incertaine : le dépôt a changé depuis le déploiement`
+          : `${ver.commit} · ${ver.date}`,
+      });
+    } else {
+      facts.push({
+        label: "version", value: "inconnue",
+        hint: "aucun fichier de version — ce boîtier n'a pas été déployé par deploy/setup-pi.sh",
+      });
+    }
+
     /* Temps : trois horizons distincts, et c'est la distinction qui porte l'information
        — depuis le dernier allumage, depuis le dernier démarrage de l'application, et
        depuis la toute première mise en service. */

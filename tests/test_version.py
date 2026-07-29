@@ -335,3 +335,16 @@ def test_le_libelle_du_demarrage_existe_cote_navigateur():
     « startup » à l'utilisateur."""
     with open(os.path.join(RACINE, "static", "js", "journal.js"), encoding="utf-8") as f:
         assert "startup:" in f.read()
+
+
+# ---------- Onglet Santé ----------
+
+def test_la_sante_rend_la_carte_d_identite():
+    """`health.js` est une IIFE non exportable : on le lit comme du texte, à la manière
+    de tests/test_js_constants.py. C'est peu, mais ça attrape la clé mal orthographiée
+    qui produirait un « undefined » à l'écran."""
+    with open(os.path.join(RACINE, "static", "js", "health.js"), encoding="utf-8") as f:
+        source = f.read()
+    assert "d.version" in source
+    assert "version du logiciel" in source
+    assert "ver.stale" in source
