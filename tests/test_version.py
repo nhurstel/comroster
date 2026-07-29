@@ -363,7 +363,10 @@ def test_sans_version_publique_le_pied_est_inchange(app, monkeypatch):
 # ci-dessus ne couvrent que `brand.active = False` ; ceux-ci couvrent l'autre moitié —
 # c'est le seul endroit où le client final voit la marque ComRoster, sur un écran de
 # régie de deux mètres où une espace en trop ou un point médian incongru se verrait.
-from test_branding import _client_avec_pack  # noqa: E402
+#
+# `client_avec_pack` est une fixture de tests/conftest.py (promue depuis
+# tests/test_branding.py, même précédent qu'`auth_client`) : aucun import n'est
+# nécessaire, pytest l'injecte par le nom du paramètre.
 
 
 def _pied(html):
@@ -372,20 +375,20 @@ def _pied(html):
     return html.split('class="created-by">', 1)[1].split("</span>", 1)[0]
 
 
-def test_le_pied_avec_marque_active_porte_la_version_publique(tmp_path, monkeypatch):
+def test_le_pied_avec_marque_active_porte_la_version_publique(client_avec_pack, monkeypatch):
     """Marque cliente active : le crédit ComRoster cède la place d'honneur mais reste le
     seul endroit qualifiant la version — séparateur en simple espace (le numéro qualifie
     le produit « ComRoster », pas un nom d'auteur distinct comme dans l'autre branche)."""
-    client = _client_avec_pack(tmp_path)
+    client = client_avec_pack()
     monkeypatch.setattr(client.application.extensions["version"], "public", "v1.4")
     html = client.get("/display").get_data(as_text=True)
     assert _pied(html) == "Propulsé par ComRoster v1.4"
 
 
-def test_le_pied_avec_marque_active_et_sans_version_est_inchange(tmp_path, monkeypatch):
+def test_le_pied_avec_marque_active_et_sans_version_est_inchange(client_avec_pack, monkeypatch):
     """Même garde que sans marque cliente : aucune version connue ne doit laisser une
     espace orpheline derrière « ComRoster »."""
-    client = _client_avec_pack(tmp_path)
+    client = client_avec_pack()
     monkeypatch.setattr(client.application.extensions["version"], "public", "")
     html = client.get("/display").get_data(as_text=True)
     assert _pied(html) == "Propulsé par ComRoster"

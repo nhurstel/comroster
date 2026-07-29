@@ -109,37 +109,26 @@ def test_un_dossier_inexistant_retombe_sur_comroster(tmp_path):
 from comroster import create_app  # noqa: E402
 
 
-def _client_avec_pack(tmp_path, manifeste=None, fichiers=("logo.svg",)):
-    chemin = _pack(tmp_path, manifeste or {"name": "Acme Live", "logo": "logo.svg"}, fichiers)
-    app = create_app({
-        "TESTING": True,
-        "DATA_DIR": str(tmp_path),
-        "SECRET_KEY": "test-secret",
-        "BRAND_DIR": chemin,
-    })
-    return app.test_client()
-
-
 def test_sans_pack_la_route_du_logo_repond_404(client):
     assert client.get("/branding/logo").status_code == 404
     assert client.get("/branding/logo-print").status_code == 404
 
 
-def test_avec_pack_la_route_sert_le_logo(tmp_path):
-    r = _client_avec_pack(tmp_path).get("/branding/logo")
+def test_avec_pack_la_route_sert_le_logo(client_avec_pack):
+    r = client_avec_pack().get("/branding/logo")
     assert r.status_code == 200
     assert r.mimetype == "image/svg+xml"
 
 
-def test_le_logo_papier_est_servi_sur_sa_propre_route(tmp_path):
-    r = _client_avec_pack(tmp_path).get("/branding/logo-print")
+def test_le_logo_papier_est_servi_sur_sa_propre_route(client_avec_pack):
+    r = client_avec_pack().get("/branding/logo-print")
     assert r.status_code == 200
 
 
-def test_le_logo_est_mis_en_cache(tmp_path):
+def test_le_logo_est_mis_en_cache(client_avec_pack):
     """Un écran de régie tourne des jours d'affilée : retélécharger le logo à chaque
     rechargement de page serait du gaspillage. L'invalidation passe par `?v=`."""
-    r = _client_avec_pack(tmp_path).get("/branding/logo")
+    r = client_avec_pack().get("/branding/logo")
     assert "max-age" in r.headers["Cache-Control"]
 
 
@@ -170,30 +159,30 @@ def test_sans_pack_le_display_garde_le_glyphe_comroster(client):
     assert "/branding/logo" not in html
 
 
-def test_avec_pack_le_display_affiche_le_logo_client(tmp_path):
-    html = _client_avec_pack(tmp_path).get("/display").get_data(as_text=True)
+def test_avec_pack_le_display_affiche_le_logo_client(client_avec_pack):
+    html = client_avec_pack().get("/display").get_data(as_text=True)
     assert "/branding/logo" in html
     assert 'alt="Acme Live"' in html
     assert "comroster-glyph.svg" not in html
 
 
-def test_avec_pack_le_credit_comroster_devient_discret(tmp_path):
+def test_avec_pack_le_credit_comroster_devient_discret(client_avec_pack):
     """Co-branding : la signature reste, elle cède la place d'honneur."""
-    html = _client_avec_pack(tmp_path).get("/display").get_data(as_text=True)
+    html = client_avec_pack().get("/display").get_data(as_text=True)
     assert "Propulsé par ComRoster" in html
     assert "COMROSTER par Nathan Hurstel" not in html
 
 
-def test_un_logo_couleur_est_protege_de_l_inversion_du_theme_jour(tmp_path):
+def test_un_logo_couleur_est_protege_de_l_inversion_du_theme_jour(client_avec_pack):
     """Le thème jour inverse le glyphe monochrome de ComRoster ; appliqué à un logo
     couleur, ce filtre le rendrait en négatif."""
-    html = _client_avec_pack(tmp_path).get("/display").get_data(as_text=True)
+    html = client_avec_pack().get("/display").get_data(as_text=True)
     assert "brand-mark-color" in html
 
 
-def test_un_logo_monochrome_reste_inverse_en_theme_jour(tmp_path):
-    html = _client_avec_pack(
-        tmp_path, {"name": "Acme", "logo": "logo.svg", "mono": True}
+def test_un_logo_monochrome_reste_inverse_en_theme_jour(client_avec_pack):
+    html = client_avec_pack(
+        {"name": "Acme", "logo": "logo.svg", "mono": True}
     ).get("/display").get_data(as_text=True)
     assert "brand-mark-color" not in html
 
@@ -203,8 +192,8 @@ def test_un_logo_monochrome_reste_inverse_en_theme_jour(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def _client_admin_avec_pack(tmp_path):
-    c = _client_avec_pack(tmp_path)
+def _client_admin_avec_pack(client_avec_pack):
+    c = client_avec_pack()
     c.post("/admin/setup", data={"password": "motdepasse8"})
     return c
 
@@ -224,14 +213,14 @@ def test_sans_pack_la_feuille_garde_le_pied_comroster(auth_client):
     assert "/branding/logo-print" not in html
 
 
-def test_avec_pack_la_feuille_porte_le_logo_client(tmp_path):
-    html = _client_admin_avec_pack(tmp_path).get("/admin/print").get_data(as_text=True)
+def test_avec_pack_la_feuille_porte_le_logo_client(client_avec_pack):
+    html = _client_admin_avec_pack(client_avec_pack).get("/admin/print").get_data(as_text=True)
     assert "/branding/logo-print" in html
     assert "Acme Live" in html
 
 
-def test_avec_pack_le_pied_de_la_feuille_est_co_brande(tmp_path):
-    html = _client_admin_avec_pack(tmp_path).get("/admin/print").get_data(as_text=True)
+def test_avec_pack_le_pied_de_la_feuille_est_co_brande(client_avec_pack):
+    html = _client_admin_avec_pack(client_avec_pack).get("/admin/print").get_data(as_text=True)
     assert "Propulsé par ComRoster" in html
 
 
@@ -249,10 +238,10 @@ def test_le_pack_de_marque_est_hors_de_portee_des_sauvegardes(tmp_path):
     parcours récursif de DATA_DIR qui engloberait aussi la marque.
 
     Important : le pack est posé ICI dans un répertoire DISTINCT de DATA_DIR — pas
-    dans `tmp_path / "branding"` comme le font les assistantes `_pack()` /
-    `_client_avec_pack()` de ce fichier (qui, elles, posent le pack DANS `tmp_path`
-    alors que `DATA_DIR=tmp_path`). Réutiliser ces assistantes ici prouverait le
-    contraire de ce qu'on veut garantir.
+    dans `tmp_path / "branding"` comme le font l'assistante `_pack()` et la fixture
+    `client_avec_pack` de ce fichier (qui, elles, posent le pack DANS `tmp_path` alors
+    que `DATA_DIR=tmp_path`). Les réutiliser ici prouverait le contraire de ce qu'on
+    veut garantir.
     """
     brand_dir = tmp_path / "hors-de-data-dir" / "branding"
     brand_dir.mkdir(parents=True)
