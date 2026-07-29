@@ -56,7 +56,7 @@ class Version:
         self.label, self.commit, self.date = self._charger()
         self.known = bool(self.label)
         self.public = _version_publique(self.label)
-        self.stale = False
+        self.stale = self._est_perimee()
 
     def _charger(self):
         try:
@@ -79,6 +79,37 @@ class Version:
             return "", "", ""
         return champs[0], champs[1], champs[2]
 
+    # ---------- garde de fraîcheur ----------
+    def _est_perimee(self):
+        """Le code déployé correspond-il encore à ce que dit le dépôt ?
+
+        Comparaison de VALEURS, pas de dates. Comparer le `mtime` de `.git/index` serait
+        plus court et FAUX : `git status` réécrit l'index dès qu'un horodatage de fichier
+        de travail a changé, sans qu'une ligne de code ait bougé. La garde crierait au
+        loup, et une garde qui crie au loup finit ignorée.
+
+        Aucune commande git n'est lancée : que de la lecture de fichiers. Sur un boîtier,
+        l'exécutable git peut ne pas être installé du tout.
+
+        Tout ce qu'on ne sait pas lire ⇒ False. On n'invente pas un doute.
+        """
+        if not self.commit:
+            return False
+        tete = self._sha_de_la_tete()
+        return bool(tete) and not tete.startswith(self.commit)
+
+    def _sha_de_la_tete(self):
+        git = os.path.join(self.repo_dir, ".git")
+        # Un `.git` FICHIER (worktree git) pointe ailleurs : on renonce sans erreur.
+        if not os.path.isdir(git):
+            return ""
+        tete = _premiere_ligne(os.path.join(git, "HEAD"))
+        if not tete.startswith("ref:"):
+            return tete                     # tête détachée : le SHA est écrit directement
+        reference = tete[len("ref:"):].strip()
+        return (_premiere_ligne(os.path.join(git, reference))
+                or _reference_compactee(git, reference))
+
     def snapshot(self):
         """Ce que l'onglet Santé reçoit via /api/health."""
         return {
@@ -89,3 +120,26 @@ class Version:
             "public": self.public,
             "stale": self.stale,
         }
+
+
+def _premiere_ligne(path):
+    try:
+        with open(path, encoding="utf-8") as fichier:
+            return fichier.readline().strip()
+    except OSError:
+        return ""
+
+
+def _reference_compactee(git_dir, reference):
+    """`git gc` déplace les références dans `.git/packed-refs` et supprime les fichiers
+    individuels. Sans ce repli, la garde s'éteindrait silencieusement sur tout dépôt
+    ayant subi un ramasse-miettes."""
+    try:
+        with open(os.path.join(git_dir, "packed-refs"), encoding="utf-8") as fichier:
+            for ligne in fichier:
+                morceaux = ligne.split()
+                if len(morceaux) == 2 and morceaux[1] == reference:
+                    return morceaux[0]
+    except OSError:
+        pass
+    return ""

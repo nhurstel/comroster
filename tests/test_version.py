@@ -69,3 +69,87 @@ def test_snapshot_porte_toutes_les_cles_attendues(tmp_path):
     « undefined » silencieux à l'écran."""
     snap = _graver(tmp_path, "v1.4.0+7 9f3c1a2 2026-07-29\n").snapshot()
     assert set(snap) == {"known", "label", "commit", "date", "public", "stale"}
+
+
+# ---------- Garde de fraîcheur ----------
+
+SHA = "9f3c1a2b8e4d5f6a7c8b9d0e1f2a3b4c5d6e7f80"
+
+
+def _depot(tmp_path, head, refs=None, packed=None):
+    """Un faux dépôt : juste les fichiers que la garde sait lire, rien de plus.
+
+    On ne lance jamais git — ni ici, ni en production. Sur un boîtier, l'exécutable peut
+    très bien ne pas être installé.
+    """
+    paquet = tmp_path / "comroster"
+    paquet.mkdir()
+    (paquet / "VERSION").write_text("v1.4.0 9f3c1a2 2026-07-29\n", encoding="utf-8")
+    git = tmp_path / ".git"
+    git.mkdir()
+    (git / "HEAD").write_text(head, encoding="utf-8")
+    for nom, sha in (refs or {}).items():
+        cible = git / nom
+        cible.parent.mkdir(parents=True, exist_ok=True)
+        cible.write_text(sha + "\n", encoding="utf-8")
+    if packed is not None:
+        (git / "packed-refs").write_text(packed, encoding="utf-8")
+    return Version(str(paquet), repo_dir=str(tmp_path))
+
+
+def test_code_a_jour_n_est_pas_signale(tmp_path):
+    v = _depot(tmp_path, "ref: refs/heads/main\n", refs={"refs/heads/main": SHA})
+    assert v.stale is False
+
+
+def test_code_modifie_depuis_le_deploiement_est_signale(tmp_path):
+    """Le cas qu'on veut attraper : `git pull` sans relancer deploy/setup-pi.sh."""
+    autre = "0000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    v = _depot(tmp_path, "ref: refs/heads/main\n", refs={"refs/heads/main": autre})
+    assert v.stale is True
+
+
+def test_tete_detachee_resolue(tmp_path):
+    """`.git/HEAD` porte alors le SHA directement, sans passer par une référence."""
+    assert _depot(tmp_path, SHA + "\n").stale is False
+
+
+def test_reference_compactee_resolue(tmp_path):
+    """`git gc` déplace les références dans packed-refs et supprime le fichier
+    refs/heads/main. Sans ce repli, la garde s'éteindrait en silence sur tout dépôt
+    un peu ancien — une garde éteinte sans le dire est pire qu'une garde absente."""
+    v = _depot(tmp_path, "ref: refs/heads/main\n",
+               packed=f"# pack-refs with: peeled fully-peeled sorted \n{SHA} refs/heads/main\n")
+    assert v.stale is False
+
+
+def test_sans_depot_git_aucun_soupcon(tmp_path):
+    """Cas d'un boîtier installé par copie d'image : on ne peut pas savoir, donc on
+    n'invente pas un doute."""
+    paquet = tmp_path / "comroster"
+    paquet.mkdir()
+    (paquet / "VERSION").write_text("v1.4.0 9f3c1a2 2026-07-29\n", encoding="utf-8")
+    assert Version(str(paquet), repo_dir=str(tmp_path)).stale is False
+
+
+def test_git_en_fichier_worktree_aucun_soupcon(tmp_path):
+    """Dans un worktree git, `.git` est un FICHIER qui pointe ailleurs. Configuration
+    inexistante sur un boîtier, courante sur un poste de développement : elle ne doit
+    pas produire d'erreur."""
+    paquet = tmp_path / "comroster"
+    paquet.mkdir()
+    (paquet / "VERSION").write_text("v1.4.0 9f3c1a2 2026-07-29\n", encoding="utf-8")
+    (tmp_path / ".git").write_text("gitdir: /ailleurs/.git/worktrees/x\n", encoding="utf-8")
+    assert Version(str(paquet), repo_dir=str(tmp_path)).stale is False
+
+
+def test_version_inconnue_n_est_jamais_perimee(tmp_path):
+    """Sans commit gravé, il n'y a rien à comparer : « inconnue » se suffit, l'affubler
+    d'un « incertaine » n'ajouterait que du bruit."""
+    paquet = tmp_path / "comroster"
+    paquet.mkdir()
+    git = tmp_path / ".git"
+    git.mkdir()
+    (git / "HEAD").write_text(SHA + "\n", encoding="utf-8")
+    v = Version(str(paquet), repo_dir=str(tmp_path))
+    assert v.known is False and v.stale is False
