@@ -66,6 +66,11 @@ class Version:
             # Le cas normal en développement : pas un incident, d'où `info`.
             log.info("Aucun fichier de version (%s) — version inconnue", exc)
             return "", "", ""
+        except ValueError as exc:
+            # Fichier illisible : encoding incorrect, corruption (ex. coupure de courant
+            # sur la gravure). Mieux vaut « inconnue » qu'une exception qui casserait l'écran.
+            log.warning("Fichier de version illisible (%s) — version inconnue", exc)
+            return "", "", ""
         if len(champs) != 3:
             log.warning(
                 "Fichier de version mal formé (%d champ(s) au lieu de 3) — version inconnue",

@@ -31,6 +31,17 @@ def test_fichier_vide_ou_tronque_donne_une_version_inconnue(tmp_path):
         assert _graver(tmp_path, ligne).known is False
 
 
+def test_fichier_corrompu_donne_une_version_inconnue(tmp_path):
+    """Cas de la carte SD qui se corrompt lors d'une coupure de courant : des octets
+    non-UTF-8 dans le fichier VERSION levaient UnicodeDecodeError, cassant le constructeur.
+    Avec la politique fail-safe, aucune exception ne doit remonter."""
+    (tmp_path / "VERSION").write_bytes(b"v1.4.0+7 \xff\xfe 2026-07-29\n")
+    v = Version(str(tmp_path))
+    assert v.known is False
+    assert v.label == "" and v.commit == "" and v.date == ""
+    assert v.public == ""
+
+
 def test_champs_surnumeraires_refuses(tmp_path):
     """Un quatrième champ signale un format qu'on ne comprend pas : on ne devine pas."""
     assert _graver(tmp_path, "v1.4.0 9f3c1a2 2026-07-29 extra\n").known is False
