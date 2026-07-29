@@ -427,7 +427,7 @@ def _reference_compactee(git_dir, reference):
 - [ ] **Étape 4 : lancer les tests pour vérifier qu'ils passent**
 
 Lancer : `python -m pytest tests/test_version.py -v`
-Attendu : SUCCÈS, 14 tests passés.
+Attendu : SUCCÈS, 15 tests passés (8 de la tâche 1 + 7 nouveaux).
 
 - [ ] **Étape 5 : committer**
 
