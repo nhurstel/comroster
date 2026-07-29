@@ -132,6 +132,22 @@ sudo systemctl restart comroster
 sudo reboot                      # ou: sudo systemctl restart comroster-kiosk
 ```
 
+> **Poser le tag AVANT de déployer.** La version affichée est dérivée de `git describe` :
+> déployer un commit non taggé fait apparaître `v1.4.0+7` au lieu de `v1.4.0`, sur les
+> trois écrans. Le numéro reste exact — il dit simplement « sept commits après le tag ».
+>
+> ```bash
+> git tag -a v1.4.0 -m "Ce que cette version apporte"
+> git push origin v1.4.0
+> ```
+>
+> Le message du tag annoté tient lieu de journal des versions : il n'y a pas de
+> `CHANGELOG.md`, et il ne doit pas y en avoir — ce serait un deuxième endroit à tenir à
+> jour, donc un deuxième endroit qui peut mentir.
+>
+> Relancer `sudo deploy/setup-pi.sh` après **chaque** `git pull` : c'est lui qui grave
+> `comroster/VERSION`. Sans cela l'onglet Santé signale « incertaine ».
+
 ## Désinstallation
 
 Pour retirer ComRoster d'un Pi (inverse de `setup-pi.sh`) :

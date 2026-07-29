@@ -92,6 +92,20 @@ hors-ligne), auto-scroll en `transform` **composé GPU** (pas de repaint CPU con
 Flags utiles en appliance : `COMROSTER_BIND` (défaut `127.0.0.1:8080`) et
 `COMROSTER_INSECURE_COOKIE` (désactive le cookie `Secure` pour un LAN fermé sans TLS).
 
+### Versions
+
+Le numéro affiché (onglet Santé, pied de l'écran de régie, écran de démarrage) n'est
+jamais saisi : `deploy/setup-pi.sh` le dérive de `git describe` et le grave dans
+`comroster/VERSION`, fichier généré et non suivi par git.
+
+- **MAJEUR** — la mise à jour exige une action humaine ; concrètement, quand
+  `backup.VERSION` change et qu'une archive ancienne ne se restaure plus.
+- **MINEUR** — une fonction visible en plus.
+- **CORRECTIF** — une correction, rien de neuf.
+
+L'onglet Santé affiche le détail complet (`v1.4.0+7 · 9f3c1a2 · 2026-07-29`) ; l'écran de
+régie, vu par le client, n'affiche que `v1.4`.
+
 ## Premier démarrage
 
 1. Ouvrir `/admin/setup` → définir le mot de passe admin (4 caractères min.).
