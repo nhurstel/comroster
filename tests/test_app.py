@@ -1,11 +1,15 @@
 def test_healthz(client):
     resp = client.get("/healthz")
     assert resp.status_code == 200
-    # La clé « version » est due même hors déploiement (elle vaut alors None) — voir
-    # tests/test_version.py pour le contrat complet, gardé dans un seul fichier.
     corps = resp.get_json()
+    # La forme est figée (exactement ces deux clés, jamais une de plus) : c'est la seule
+    # garantie que ce test peut donner sans dépendre de la machine. La VALEUR de
+    # « version » ne l'est pas : elle dépend d'un fichier comroster/VERSION gravé au
+    # déploiement (tâches 5/8 de ce lot), absent en CI mais parfois présent sur un poste
+    # qui vient de vérifier un rendu à l'écran — la figer ferait échouer ce test-là pour
+    # de mauvaises raisons.
+    assert set(corps) == {"status", "version"}
     assert corps["status"] == "ok"
-    assert "version" in corps
 
 
 def test_prod_requires_secret_key():
