@@ -6,6 +6,20 @@ set -eu
 
 ROLE="${COMROSTER_ROLE:-autonomous}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Version gravée au déploiement. Le splash s'ouvre en file:// AVANT que le serveur
+# réponde : il ne peut rien demander à personne, la version doit lui arriver par l'URL —
+# comme `next` et `health`.
+#
+# `+` DOIT être encodé : dans une chaîne de requête il se décode en espace, et
+# « v1.4.0+7 » s'afficherait « v1.4.0 7 ». sed et non substitution bash : on est en sh.
+ver=""
+VERSION_FILE="$SCRIPT_DIR/../comroster/VERSION"
+if [ -r "$VERSION_FILE" ]; then
+  read -r ver _ < "$VERSION_FILE" || ver=""
+  ver=$(printf '%s' "$ver" | sed 's/+/%2B/g')
+fi
+
 if [ "$ROLE" = "viewer" ]; then
   # Afficheur : le kiosk ouvre l'agent local, qui teste le serveur distant et
   # bascule (display distant ou page de config). Attente de l'agent, pas du serveur.
@@ -18,7 +32,7 @@ else
   # bureau ni de page d'erreur pendant que gunicorn démarre.
   TARGET="${COMROSTER_KIOSK_URL:-http://127.0.0.1:8080/display}"
   HEALTH="${COMROSTER_HEALTH_URL:-http://127.0.0.1:8080/healthz}"
-  URL="file://$SCRIPT_DIR/boot-splash.html?next=$TARGET&health=$HEALTH"
+  URL="file://$SCRIPT_DIR/boot-splash.html?next=$TARGET&health=$HEALTH&v=$ver"
   WAIT_SERVER=0
 fi
 PROFILE="${HOME}/.comroster-kiosk"

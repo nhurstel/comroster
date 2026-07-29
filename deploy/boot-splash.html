@@ -91,6 +91,20 @@
       color: var(--fg);
     }
 
+    /* Marque et version forment UN bloc : sans ce conteneur, le `gap` du body les
+       séparerait autant que les autres éléments et la version flotterait. */
+    #identite {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 0.9vmin;
+    }
+
+    #version {
+      font-size: 1.05vmin; font-weight: 400;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
     #etat {
       margin: 0;
       font-size: 1.35vmin; font-weight: 400; line-height: 1.7;
@@ -119,13 +133,20 @@
     </g>
   </svg>
 
-  <div id="marque">ComRoster</div>
+  <div id="identite">
+    <div id="marque">ComRoster</div>
+    <div id="version"></div>
+  </div>
   <p id="etat">démarrage du service</p>
 
   <script>
     const params = new URLSearchParams(location.search);
     const next   = params.get("next")   || "http://127.0.0.1:8080/display";
     const health = params.get("health") || "http://127.0.0.1:8080/healthz";
+
+    // textContent et non innerHTML : un paramètre d'URL est une entrée non fiable.
+    const version = params.get("v") || "";
+    if (version) document.getElementById("version").textContent = version;
 
     // Seuils de conduite. Ils ne déclenchent AUCUN abandon : la sonde continue pour
     // toujours, un boîtier qui met deux minutes à démarrer finit par afficher le tableau.

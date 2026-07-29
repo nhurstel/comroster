@@ -288,3 +288,32 @@ def test_le_pied_avec_marque_active_et_sans_version_est_inchange(tmp_path, monke
     monkeypatch.setattr(client.application.extensions["version"], "public", "")
     html = client.get("/display").get_data(as_text=True)
     assert _pied(html) == "Propulsé par ComRoster"
+
+
+# ---------- Écran de démarrage ----------
+
+def _fichier_deploy(nom):
+    with open(os.path.join(RACINE, "deploy", nom), encoding="utf-8") as fichier:
+        return fichier.read()
+
+
+def test_le_kiosk_transmet_la_version_au_splash():
+    """Le splash s'ouvre en file:// AVANT que le serveur réponde : il ne peut rien
+    demander à personne. La version doit lui arriver par l'URL, comme `next` et
+    `health`."""
+    source = _fichier_deploy("kiosk-run.sh")
+    assert "comroster/VERSION" in source
+    assert "&v=$" in source
+
+
+def test_le_kiosk_encode_le_plus_dans_l_url():
+    """Dans une chaîne de requête, « + » se décode en ESPACE : sans encodage,
+    « v1.4.0+7 » s'afficherait « v1.4.0 7 » à l'écran de démarrage."""
+    assert "%2B" in _fichier_deploy("kiosk-run.sh")
+
+
+def test_le_splash_affiche_la_version_sans_injection():
+    """Le paramètre d'URL est une entrée non fiable : textContent, jamais innerHTML."""
+    source = _fichier_deploy("boot-splash.html")
+    assert 'params.get("v")' in source
+    assert 'getElementById("version").textContent' in source
