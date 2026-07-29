@@ -1,4 +1,5 @@
 """Version du logiciel : lecture du fichier gravé, et ce qu'on en montre au client."""
+import functools
 import os
 import re
 import subprocess
@@ -216,6 +217,54 @@ def test_la_version_est_injectee_dans_les_gabarits(app):
     with app.test_request_context("/"):
         rendu = render_template_string("{{ appversion.known }}|{{ appversion.public }}")
     assert rendu.startswith(("True|", "False|"))
+
+
+# ---------- Invariant central : une seule source ----------
+
+def _app_avec_version_gravee(tmp_path, monkeypatch, ligne):
+    """Construit une VRAIE application dont `Version` lit un fichier VERSION connu.
+
+    `create_app()` instancie `Version()` sans argument : le `package_dir` par défaut est
+    lié au dépôt réel dès la définition de la classe (valeur par défaut figée à
+    l'import), donc monkeypatcher `version.PAQUET` ensuite n'aurait aucun effet sur cet
+    appel. On substitue plutôt le nom `Version` du module `comroster` par un
+    `functools.partial` qui fixe `package_dir` sur ce test — le VRAI constructeur
+    tourne toujours, sur un VRAI fichier écrit sur disque. Rien n'est monkeypatché sur
+    l'objet `Version` lui-même : le test traverse la chaîne réelle, du fichier à
+    l'affichage.
+    """
+    paquet = tmp_path / "comroster"
+    paquet.mkdir()
+    (paquet / "VERSION").write_text(ligne, encoding="utf-8")
+    monkeypatch.setattr("comroster.Version", functools.partial(Version, package_dir=str(paquet)))
+
+    from comroster import create_app
+    return create_app({
+        "TESTING": True,
+        "DATA_DIR": str(tmp_path / "data"),
+        "SECRET_KEY": "test-secret",
+    })
+
+
+def test_l_invariant_une_seule_chaine_pour_le_meme_code(tmp_path, monkeypatch):
+    """La thèse du lot : une seule source, jamais deux chaînes pour un même code.
+
+    Rien ne le vérifiait avant ce test : remplacer `.label` par `.public` dans
+    `/healthz`, dans `health.snapshot()` ou dans l'appel `journal.record` laissait les
+    482 tests existants verts, et en production le `curl` de dépannage aurait annoncé
+    « v1.4 » pendant que l'onglet Santé annonçait « v1.4.0+7 »."""
+    app = _app_avec_version_gravee(tmp_path, monkeypatch, "v1.4.0+7 9f3c1a2 2026-07-29\n")
+    label = "v1.4.0+7"
+
+    corps = app.test_client().get("/healthz").get_json()
+    assert corps["version"] == label
+
+    from comroster.services import health
+    assert health.snapshot(app)["version"]["label"] == label
+
+    demarrages = [e for e in app.extensions["journal"].entries() if e["event"] == "startup"]
+    assert len(demarrages) == 1
+    assert demarrages[0]["detail"] == label
 
 
 # ---------- Gravure au déploiement ----------
