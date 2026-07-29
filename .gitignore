@@ -3,6 +3,11 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+# Données de tool.coverage.run (pyproject.toml) : jamais commitées, comme le reste des
+# artefacts de test. Manquait à cette liste alors que la section coverage existe déjà.
+.coverage
+.coverage.*
+htmlcov/
 # Fichiers d'état écrits dans DATA_DIR. Ils atterrissent à la RACINE quand DATA_DIR n'est
 # pas défini (défaut = répertoire courant), d'où cette liste en plus de instance/.
 # CONTRÔLE : tout `os.path.join(data_dir, …)` du code doit avoir sa ligne ici — c'est ce
