@@ -60,6 +60,61 @@ tout. Au redémarrage, l'écran affiche ComRoster automatiquement.
 
 Le script est **idempotent** : on peut le relancer après une mise à jour du code.
 
+## Marque client
+
+Le logo d'un client peut remplacer celui de ComRoster sur `/display` et sur la feuille
+imprimable. C'est une propriété du **boîtier**, pas un réglage : elle se pose à la
+fabrication et l'administration n'y a aucun accès — il n'existe aucun chemin d'écriture
+depuis l'application vers la marque.
+
+### Composer un pack
+
+```
+acme-live/
+├── brand.json
+├── logo.svg          ← affiché en régie
+└── logo-noir.svg     ← optionnel, pour le papier
+```
+
+```json
+{
+  "name": "Acme Live",
+  "logo": "logo.svg",
+  "logo_print": "logo-noir.svg",
+  "mono": false
+}
+```
+
+| Champ | Rôle |
+|---|---|
+| `name` | Nom affiché en `alt` et porté par la feuille imprimée. |
+| `logo` | Logo d'écran. Simple nom de fichier, `.svg` ou `.png`. |
+| `logo_print` | Variante encre noire. Absent → on réutilise `logo`. |
+| `mono` | `true` pour un logo monochrome (il sera inversé en thème jour, comme le glyphe ComRoster) ; `false` pour un logo couleur (aucun filtre). |
+
+Un logo horizontal est préférable : l'en-tête du tableau est dense, la largeur est bornée.
+Le JPEG est refusé — sans transparence, un logo rend mal sur le fond sombre.
+
+### Poser la marque
+
+```bash
+sudo deploy/set-branding.sh ~/packs/acme-live/
+sudo deploy/set-branding.sh --reset      # revenir à ComRoster
+```
+
+Le script valide le pack avant de toucher au système, le copie dans
+`/etc/comroster/branding`, complète l'unité systemd et redémarre le service.
+
+⚠️ **À faire AVANT d'activer l'overlay lecture seule** (`deploy/readonly-fs.sh`). Sous
+overlay, `/etc` est volatile : la marque serait perdue au redémarrage. Le script détecte ce
+cas et refuse. Corollaire utile : sur un boîtier livré overlay actif, la marque devient
+inaltérable — même un accès root ne la change pas durablement.
+
+### Co-branding
+
+Un pack actif ne fait pas disparaître ComRoster : le pied du tableau affiche « Propulsé par
+ComRoster » et celui de la feuille imprimée porte le nom du client suivi de la même mention.
+
 ## Utilisation
 
 - **Affichage** : automatique sur l'écran du Pi.
