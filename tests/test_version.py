@@ -269,15 +269,17 @@ def test_l_invariant_une_seule_chaine_pour_le_meme_code(tmp_path, monkeypatch):
 
 # ---------- Gravure au déploiement ----------
 
-def _setup_pi():
-    with open(os.path.join(RACINE, "deploy", "setup-pi.sh"), encoding="utf-8") as fichier:
+def _fichier_deploy(nom):
+    """Le contenu d'un script de deploy/, lu comme du texte — ces tests-là ne les
+    exécutent jamais (git peut être absent de la machine de test, comme d'un boîtier)."""
+    with open(os.path.join(RACINE, "deploy", nom), encoding="utf-8") as fichier:
         return fichier.read()
 
 
 def test_le_deploiement_grave_la_version():
     """Sans cette écriture, tout le reste de la chaîne affiche « inconnue » : c'est le
     seul endroit où le numéro est produit."""
-    source = _setup_pi()
+    source = _fichier_deploy("setup-pi.sh")
     assert "comroster/VERSION" in source
     assert "describe --tags --always" in source
 
@@ -294,14 +296,14 @@ def test_le_deploiement_n_utilise_pas_dirty():
     wrapper `git_cible()` (`sudo -u "$TARGET_USER" git …`) — un motif ancré sur `git `
     strict ne verrait jamais `git_cible describe`, la commande réellement exécutée, et
     la garde serait un théâtre qui ne mord rien."""
-    assert not re.search(r'git\w*\s+describe[^\n]*--dirty', _setup_pi())
+    assert not re.search(r'git\w*\s+describe[^\n]*--dirty', _fichier_deploy("setup-pi.sh"))
 
 
 def test_le_deploiement_interroge_git_sous_l_utilisateur_cible():
     """Le script tourne en root, le dépôt appartient à l'utilisateur : sans `sudo -u`,
     git refuse le dépôt (« dubious ownership ») et la version resterait inconnue sur
     tous les boîtiers, en silence."""
-    assert re.search(r'sudo -u "\$TARGET_USER" git', _setup_pi())
+    assert re.search(r'sudo -u "\$TARGET_USER" git', _fichier_deploy("setup-pi.sh"))
 
 
 def test_l_echec_de_git_est_diagnostique():
@@ -309,7 +311,7 @@ def test_l_echec_de_git_est_diagnostique():
     éviter un échec silencieux (« dubious ownership »), jeter la sortie qui le
     diagnostiquerait annulerait la moitié du bénéfice. Le diagnostic doit être capturé
     ET affiché dans la branche d'échec, pas seulement collecté sans être lu."""
-    source = _setup_pi()
+    source = _fichier_deploy("setup-pi.sh")
     assert "2>/dev/null; }" not in source, "git_cible ne doit plus rediriger stderr vers /dev/null"
     assert "ver_diag" in source
     bloc_echec = source[source.rindex("else", 0, source.index("git n'a pas répondu")):]
@@ -322,7 +324,7 @@ def test_l_echec_de_git_efface_une_version_perimee():
     de fraîcheur, elle, resterait muette (rien à comparer sans commit connu). Le
     commentaire du bloc affirme que « l'absence de fichier est un état parfaitement
     géré » : ce test rend cette absence vraie même quand un fichier préexistait."""
-    source = _setup_pi()
+    source = _fichier_deploy("setup-pi.sh")
     bloc_echec = source[source.rindex("else", 0, source.index("git n'a pas répondu")):]
     assert 'rm -f "$VERSION_FILE.tmp" "$VERSION_FILE"' in bloc_echec
 
@@ -344,6 +346,10 @@ def test_le_fichier_de_version_est_ignore_par_git():
 
 def test_le_pied_du_display_porte_la_version_publique(app, monkeypatch):
     monkeypatch.setattr(app.extensions["version"], "public", "v1.4")
+    # `commit` reçoit une VRAIE valeur : en environnement de test il vaut "" par
+    # défaut (pas de VERSION gravé), donc `assert "9f3c1a2" not in html` ne prouvait
+    # rien — un gabarit imprimant {{ appversion.commit }} serait passé quand même.
+    monkeypatch.setattr(app.extensions["version"], "commit", "9f3c1a2")
     html = app.test_client().get("/display").get_data(as_text=True)
     assert "v1.4" in html
     assert "9f3c1a2" not in html         # jamais de commit devant un client
@@ -395,11 +401,8 @@ def test_le_pied_avec_marque_active_et_sans_version_est_inchange(client_avec_pac
 
 
 # ---------- Écran de démarrage ----------
-
-def _fichier_deploy(nom):
-    with open(os.path.join(RACINE, "deploy", nom), encoding="utf-8") as fichier:
-        return fichier.read()
-
+# `_fichier_deploy()` est définie plus haut (section « Gravure au déploiement ») : même
+# besoin — lire un script de deploy/ comme du texte, sans jamais l'exécuter.
 
 def test_le_kiosk_transmet_la_version_au_splash():
     """Le splash s'ouvre en file:// AVANT que le serveur réponde : il ne peut rien
