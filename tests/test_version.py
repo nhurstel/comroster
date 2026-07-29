@@ -1,5 +1,13 @@
 """Version du logiciel : lecture du fichier gravé, et ce qu'on en montre au client."""
+import os
+import re
+import subprocess
+
+import pytest
+
 from comroster.services.version import Version
+
+RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def _graver(tmp_path, ligne):
@@ -179,3 +187,44 @@ def test_la_version_est_injectee_dans_les_gabarits(app):
     with app.test_request_context("/"):
         rendu = render_template_string("{{ appversion.known }}|{{ appversion.public }}")
     assert rendu.startswith(("True|", "False|"))
+
+
+# ---------- Gravure au déploiement ----------
+
+def _setup_pi():
+    with open(os.path.join(RACINE, "deploy", "setup-pi.sh"), encoding="utf-8") as fichier:
+        return fichier.read()
+
+
+def test_le_deploiement_grave_la_version():
+    """Sans cette écriture, tout le reste de la chaîne affiche « inconnue » : c'est le
+    seul endroit où le numéro est produit."""
+    source = _setup_pi()
+    assert "comroster/VERSION" in source
+    assert "describe --tags --always" in source
+
+
+def test_le_deploiement_n_utilise_pas_dirty():
+    """`--dirty` force un rafraîchissement de l'index, qu'une racine montée en lecture
+    seule (deploy/readonly-fs.sh) refuse."""
+    assert "--dirty" not in _setup_pi()
+
+
+def test_le_deploiement_interroge_git_sous_l_utilisateur_cible():
+    """Le script tourne en root, le dépôt appartient à l'utilisateur : sans `sudo -u`,
+    git refuse le dépôt (« dubious ownership ») et la version resterait inconnue sur
+    tous les boîtiers, en silence."""
+    assert re.search(r'sudo -u "\$TARGET_USER" git', _setup_pi())
+
+
+@pytest.mark.skipif(not os.path.isdir(os.path.join(RACINE, ".git")), reason="hors dépôt git")
+def test_le_fichier_de_version_est_ignore_par_git():
+    """C'est un artefact GÉNÉRÉ. Committé, il se figerait à la valeur du poste qui l'a
+    produit et mentirait sur tous les autres.
+
+    `skipif` et non un `return` muet : c'est la convention de tests/test_gitignore.py, et
+    un test qui se termine sans assertion se compte comme réussi — il mentirait sur sa
+    propre couverture."""
+    code = subprocess.run(["git", "check-ignore", "-q", "comroster/VERSION"],
+                          cwd=RACINE, check=False).returncode
+    assert code == 0, "comroster/VERSION n'est pas couvert par .gitignore"

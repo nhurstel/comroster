@@ -67,6 +67,46 @@ sudo -u "$TARGET_USER" "$VENV/bin/pip" install -q --upgrade pip
 sudo -u "$TARGET_USER" "$VENV/bin/pip" install -q -r "$APP_DIR/requirements.txt"
 install -d -o "$TARGET_USER" -g "$TARGET_USER" "$DATA_DIR"
 
+# --- Version du logiciel --------------------------------------------------
+# Gravée ICI, une fois, à partir de git — jamais saisie à la main : un numéro saisi
+# mentirait dès le premier `git pull` intermédiaire.
+#
+# Le fichier a DEUX lecteurs — comroster/services/version.py et deploy/kiosk-run.sh —
+# d'où une ligne de texte nu plutôt que du JSON, qui imposerait `jq` au shell.
+# Le label est normalisé UNE SEULE FOIS, ici : si Python le renormalisait de son côté,
+# l'écran de démarrage et l'onglet Santé pourraient afficher deux chaînes pour un même
+# code.
+#
+# `sudo -u` est indispensable : ce script tourne en root, le dépôt appartient à
+# l'utilisateur, et git refuse depuis 2.35.2 un dépôt appartenant à un autre
+# (« dubious ownership »). Sans cela la version resterait inconnue partout, en silence.
+echo "▶ Version du logiciel…"
+VERSION_FILE="$APP_DIR/comroster/VERSION"
+git_cible() { sudo -u "$TARGET_USER" git -C "$APP_DIR" "$@" 2>/dev/null; }
+
+ver_label=""; ver_commit=""; ver_date=""
+if git_cible rev-parse --git-dir >/dev/null; then
+  # `--always` retombe sur l'identifiant du commit quand aucun tag n'existe.
+  # Le marqueur d'arbre modifié n'est volontairement pas demandé : il rafraîchirait
+  # l'index, ce qu'une racine montée en lecture seule refuse.
+  ver_label=$(git_cible describe --tags --always | sed -E 's/-([0-9]+)-g[0-9a-f]+$/+\1/') || true
+  ver_commit=$(git_cible rev-parse --short HEAD) || true
+  ver_date=$(git_cible log -1 --format=%cs) || true
+fi
+
+if [ -n "$ver_label" ] && [ -n "$ver_commit" ] && [ -n "$ver_date" ]; then
+  # Écriture atomique : un fichier à moitié écrit serait lu comme « mal formé ».
+  printf '%s %s %s\n' "$ver_label" "$ver_commit" "$ver_date" > "$VERSION_FILE.tmp"
+  mv "$VERSION_FILE.tmp" "$VERSION_FILE"
+  chown "$TARGET_USER:$TARGET_USER" "$VERSION_FILE"
+  echo "  $ver_label · $ver_commit · $ver_date"
+else
+  # On ne grave RIEN plutôt qu'un numéro faux : l'absence de fichier est un état
+  # parfaitement géré en aval (« version inconnue »).
+  rm -f "$VERSION_FILE.tmp"
+  echo "  ⚠ git n'a pas répondu — version laissée inconnue (rien n'a été gravé)"
+fi
+
 # --- 3. Fichier d'environnement (secret + options appliance) --------------
 if [ ! -f "$ENV_FILE" ]; then
   echo "▶ Génération de la clé de session et de $ENV_FILE…"

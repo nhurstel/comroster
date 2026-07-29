@@ -26,6 +26,10 @@ instance/
 *.bak
 *.tmp
 
+# Version gravée au déploiement par deploy/setup-pi.sh. Artefact GÉNÉRÉ : committé, il
+# se figerait à la valeur du poste qui l'a produit et mentirait sur tous les autres.
+comroster/VERSION
+
 # Outillage de test JS (dev uniquement — rien de tout ceci ne part sur le boîtier)
 node_modules/
 
