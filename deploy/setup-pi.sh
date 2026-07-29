@@ -87,8 +87,8 @@ git_cible() { sudo -u "$TARGET_USER" git -C "$APP_DIR" "$@" 2>/dev/null; }
 ver_label=""; ver_commit=""; ver_date=""
 if git_cible rev-parse --git-dir >/dev/null; then
   # `--always` retombe sur l'identifiant du commit quand aucun tag n'existe.
-  # Le marqueur d'arbre modifié n'est volontairement pas demandé : il rafraîchirait
-  # l'index, ce qu'une racine montée en lecture seule refuse.
+  # `--dirty` n'est jamais demandée : elle rafraîchirait l'index, ce qu'une racine
+  # montée en lecture seule refuse.
   ver_label=$(git_cible describe --tags --always | sed -E 's/-([0-9]+)-g[0-9a-f]+$/+\1/') || true
   ver_commit=$(git_cible rev-parse --short HEAD) || true
   ver_date=$(git_cible log -1 --format=%cs) || true

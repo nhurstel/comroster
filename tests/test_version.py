@@ -205,9 +205,18 @@ def test_le_deploiement_grave_la_version():
 
 
 def test_le_deploiement_n_utilise_pas_dirty():
-    """`--dirty` force un rafraîchissement de l'index, qu'une racine montée en lecture
-    seule (deploy/readonly-fs.sh) refuse."""
-    assert "--dirty" not in _setup_pi()
+    """La garantie visée est étroite : aucune COMMANDE `git describe` ne doit porter
+    `--dirty` (l'option rafraîchit l'index, qu'une racine montée en lecture seule
+    refuse). Sa mention dans un commentaire expliquant pourquoi elle est proscrite
+    reste, elle, souhaitable — un `assert "--dirty" not in source` l'interdirait aussi
+    et finirait contourné par une périphrase, laissant le prochain lecteur sans
+    explication.
+
+    `git\\w*` et non `git` seul : le script n'appelle jamais `git` nu, il passe par le
+    wrapper `git_cible()` (`sudo -u "$TARGET_USER" git …`) — un motif ancré sur `git `
+    strict ne verrait jamais `git_cible describe`, la commande réellement exécutée, et
+    la garde serait un théâtre qui ne mord rien."""
+    assert not re.search(r'git\w*\s+describe[^\n]*--dirty', _setup_pi())
 
 
 def test_le_deploiement_interroge_git_sous_l_utilisateur_cible():
