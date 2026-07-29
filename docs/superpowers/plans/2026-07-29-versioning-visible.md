@@ -203,6 +203,15 @@ class Version:
             # Le cas normal en développement : pas un incident, d'où `info`.
             log.info("Aucun fichier de version (%s) — version inconnue", exc)
             return "", "", ""
+        except ValueError as exc:
+            # `UnicodeDecodeError` dérive de ValueError, PAS d'OSError : une carte SD
+            # corrompue par une coupure de courant produit des octets non-UTF-8, et
+            # `except OSError` seul les laisserait remonter — une page cesserait de
+            # s'afficher. Même exigence que services/lifetime.py, qui intercepte
+            # `(OSError, ValueError)`. Deux blocs distincts ici, pour deux niveaux de
+            # journalisation : absent n'est pas un incident, corrompu si.
+            log.warning("Fichier de version illisible (%s) — version inconnue", exc)
+            return "", "", ""
         if len(champs) != 3:
             log.warning(
                 "Fichier de version mal formé (%d champ(s) au lieu de 3) — version inconnue",
