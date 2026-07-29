@@ -304,6 +304,29 @@ def test_le_deploiement_interroge_git_sous_l_utilisateur_cible():
     assert re.search(r'sudo -u "\$TARGET_USER" git', _setup_pi())
 
 
+def test_l_echec_de_git_est_diagnostique():
+    """`git_cible()` ne doit plus jeter stderr : `sudo -u` a précisément été ajouté pour
+    éviter un échec silencieux (« dubious ownership »), jeter la sortie qui le
+    diagnostiquerait annulerait la moitié du bénéfice. Le diagnostic doit être capturé
+    ET affiché dans la branche d'échec, pas seulement collecté sans être lu."""
+    source = _setup_pi()
+    assert "2>/dev/null; }" not in source, "git_cible ne doit plus rediriger stderr vers /dev/null"
+    assert "ver_diag" in source
+    bloc_echec = source[source.rindex("else", 0, source.index("git n'a pas répondu")):]
+    assert "ver_diag" in bloc_echec, "le diagnostic doit être affiché dans la branche d'échec"
+
+
+def test_l_echec_de_git_efface_une_version_perimee():
+    """Sans ce nettoyage, un `comroster/VERSION` gravé par un déploiement PRÉCÉDENT
+    continuerait d'afficher son ancien numéro avec aplomb après un échec git — la garde
+    de fraîcheur, elle, resterait muette (rien à comparer sans commit connu). Le
+    commentaire du bloc affirme que « l'absence de fichier est un état parfaitement
+    géré » : ce test rend cette absence vraie même quand un fichier préexistait."""
+    source = _setup_pi()
+    bloc_echec = source[source.rindex("else", 0, source.index("git n'a pas répondu")):]
+    assert 'rm -f "$VERSION_FILE.tmp" "$VERSION_FILE"' in bloc_echec
+
+
 @pytest.mark.skipif(not os.path.isdir(os.path.join(RACINE, ".git")), reason="hors dépôt git")
 def test_le_fichier_de_version_est_ignore_par_git():
     """C'est un artefact GÉNÉRÉ. Committé, il se figerait à la valeur du poste qui l'a

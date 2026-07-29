@@ -82,16 +82,23 @@ install -d -o "$TARGET_USER" -g "$TARGET_USER" "$DATA_DIR"
 # (« dubious ownership »). Sans cela la version resterait inconnue partout, en silence.
 echo "▶ Version du logiciel…"
 VERSION_FILE="$APP_DIR/comroster/VERSION"
-git_cible() { sudo -u "$TARGET_USER" git -C "$APP_DIR" "$@" 2>/dev/null; }
+# Ne jette PLUS stderr : `sudo -u` a justement été ajouté pour éviter un échec
+# silencieux (« dubious ownership »), et jeter la sortie qui le diagnostiquerait
+# annulerait la moitié du bénéfice.
+git_cible() { sudo -u "$TARGET_USER" git -C "$APP_DIR" "$@"; }
 
-ver_label=""; ver_commit=""; ver_date=""
-if git_cible rev-parse --git-dir >/dev/null; then
+ver_label=""; ver_commit=""; ver_date=""; ver_diag=""
+# Capture le stderr du contrôle d'accès SANS perdre le code de sortie testé par `if` :
+# `2>&1 >/dev/null` échange les flux (stderr vers la capture, stdout vers /dev/null) —
+# c'est le diagnostic d'échec, pas le chemin du .git, qui intéresse la branche `else`.
+if ver_diag=$(git_cible rev-parse --git-dir 2>&1 >/dev/null); then
   # `--always` retombe sur l'identifiant du commit quand aucun tag n'existe.
   # `--dirty` n'est jamais demandée : elle rafraîchirait l'index, ce qu'une racine
   # montée en lecture seule refuse.
-  ver_label=$(git_cible describe --tags --always | sed -E 's/-([0-9]+)-g[0-9a-f]+$/+\1/') || true
-  ver_commit=$(git_cible rev-parse --short HEAD) || true
-  ver_date=$(git_cible log -1 --format=%cs) || true
+  ver_label=$(git_cible describe --tags --always 2>/dev/null \
+    | sed -E 's/-([0-9]+)-g[0-9a-f]+$/+\1/') || true
+  ver_commit=$(git_cible rev-parse --short HEAD 2>/dev/null) || true
+  ver_date=$(git_cible log -1 --format=%cs 2>/dev/null) || true
 fi
 
 if [ -n "$ver_label" ] && [ -n "$ver_commit" ] && [ -n "$ver_date" ]; then
@@ -101,10 +108,13 @@ if [ -n "$ver_label" ] && [ -n "$ver_commit" ] && [ -n "$ver_date" ]; then
   chown "$TARGET_USER:$TARGET_USER" "$VERSION_FILE"
   echo "  $ver_label · $ver_commit · $ver_date"
 else
-  # On ne grave RIEN plutôt qu'un numéro faux : l'absence de fichier est un état
-  # parfaitement géré en aval (« version inconnue »).
-  rm -f "$VERSION_FILE.tmp"
+  # On ne grave RIEN plutôt qu'un numéro faux — et on efface un fichier gravé par un
+  # déploiement PRÉCÉDENT : sinon le boîtier continuerait d'afficher cette ancienne
+  # version avec aplomb, garde de fraîcheur muette (rien à comparer sans commit connu).
+  # L'absence de fichier est un état parfaitement géré en aval (« version inconnue »).
+  rm -f "$VERSION_FILE.tmp" "$VERSION_FILE"
   echo "  ⚠ git n'a pas répondu — version laissée inconnue (rien n'a été gravé)"
+  [ -n "$ver_diag" ] && echo "    $ver_diag"
 fi
 
 # --- 3. Fichier d'environnement (secret + options appliance) --------------
