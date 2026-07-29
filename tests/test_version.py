@@ -342,6 +342,13 @@ def test_le_fichier_de_version_est_ignore_par_git():
     assert code == 0, "comroster/VERSION n'est pas couvert par .gitignore"
 
 
+def test_la_desinstallation_efface_la_version():
+    """Artefact GÉNÉRÉ par setup-pi.sh, comroster/VERSION doit partir avec le reste :
+    sinon un dépôt réutilisé (le script le conserve par défaut) garderait une version
+    gravée périmée, avec les mêmes conséquences que le déploiement précédent (constat 4)."""
+    assert 'rm -f "$APP_DIR/comroster/VERSION"' in _fichier_deploy("uninstall-pi.sh")
+
+
 # ---------- Pied de l'écran de régie ----------
 
 def test_le_pied_du_display_porte_la_version_publique(app, monkeypatch):

@@ -53,6 +53,10 @@ rm -rf "$TARGET_HOME/.comroster-kiosk"
 # JAMAIS survivre à la désinstallation, sinon on laisse un privilège root orphelin.
 rm -f /etc/sudoers.d/comroster-reboot
 
+# comroster/VERSION est un artefact GÉNÉRÉ par setup-pi.sh, pas une donnée : il part
+# avec le reste, que le dépôt (conservé par défaut) reste ou non sur la machine.
+rm -f "$APP_DIR/comroster/VERSION"
+
 # --- 3. Restauration du boot (annule quiet-boot.sh) + watchdog -----------
 echo "▶ Restauration du boot (config.txt / cmdline.txt) et watchdog…"
 rm -f /etc/systemd/system.conf.d/comroster-watchdog.conf

@@ -106,6 +106,11 @@ jamais saisi : `deploy/setup-pi.sh` le dérive de `git describe` et le grave dan
 L'onglet Santé affiche le détail complet (`v1.4.0+7 · 9f3c1a2 · 2026-07-29`) ; l'écran de
 régie, vu par le client, n'affiche que `v1.4`.
 
+⚠️ Sous l'overlay racine en lecture seule (`deploy/readonly-fs.sh`), cette gravure est
+volatile — `comroster/VERSION` vit sur la racine, pas dans `instance/`. Détail et
+procédure de mise à jour : [deploy/raspberry-pi.md](deploy/raspberry-pi.md), section
+« Mise à jour ».
+
 ## Premier démarrage
 
 1. Ouvrir `/admin/setup` → définir le mot de passe admin (4 caractères min.).

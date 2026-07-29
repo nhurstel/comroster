@@ -147,6 +147,18 @@ sudo reboot                      # ou: sudo systemctl restart comroster-kiosk
 >
 > Relancer `sudo deploy/setup-pi.sh` après **chaque** `git pull` : c'est lui qui grave
 > `comroster/VERSION`. Sans cela l'onglet Santé signale « incertaine ».
+>
+> ⚠️ **Sous l'overlay lecture seule, cette gravure est volatile** — même piège que la
+> marque client (voir plus haut). `comroster/VERSION` vit dans le dépôt, sur la racine
+> du système de fichiers, pas dans `instance/` (seul répertoire rendu persistant par
+> `deploy/readonly-fs.sh`). Overlay actif, l'écriture de `setup-pi.sh` part en mémoire
+> et disparaît au redémarrage suivant : l'onglet Santé retomberait sur « inconnue ».
+> Désactiver l'overlay avant de mettre à jour, le réactiver après :
+> ```bash
+> sudo deploy/readonly-fs.sh off && sudo reboot
+> cd ~/comroster && git pull && sudo deploy/setup-pi.sh
+> sudo deploy/readonly-fs.sh && sudo reboot
+> ```
 
 ## Désinstallation
 
