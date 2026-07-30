@@ -98,9 +98,36 @@ def admin_print():
                      key=lambda p: _beltpack_sort_key(p.get("beltpack")))
     return render_template(
         "print.html", state=state, groups=groups, by_group=by_group,
-        reserve=reserve, is_draft=draft,
+        reserve=reserve, is_draft=draft, seuil_long=SEUIL_GROUPE_LONG,
+        updated_fr=_date_fr(state.get("updated_at")),
         printed_at=datetime.now(timezone.utc).astimezone().strftime("%d/%m/%Y à %H:%M"),
     )
+
+
+#: Au-delà de ce nombre de membres, un groupe a le droit d'être coupé entre deux colonnes
+#: ou deux pages. En deçà, il reste insécable : lire la moitié d'un groupe au verso est
+#: précisément ce qui fait rater une affectation. Le seuil vit ici et non dans le CSS,
+#: qui ne sait pas compter des lignes.
+SEUIL_GROUPE_LONG = 12
+
+
+def _date_fr(iso):
+    """« 30/07/2026 à 15:13 » à partir de l'horodatage ISO UTC du modèle, en heure locale.
+
+    Fail-safe : `updated_at` est lu dans un fichier d'état, donc une donnée EXTERNE.
+    Absent, mal typé ou illisible, il ne doit pas empêcher d'imprimer la conduite —
+    on rend une chaîne vide et le template omet la mention. Le `or ""` habituel ne
+    suffirait pas : il protège du None, pas d'un int (leçon 2026-07-29 n°68).
+    """
+    if not isinstance(iso, str):
+        return ""
+    try:
+        # `%z` accepte le « Z » littéral et rend un datetime CONSCIENT du fuseau :
+        # un `replace(tzinfo=...)` après coup laisserait passer un naïf entre-temps.
+        horodatage = datetime.strptime(iso, "%Y-%m-%dT%H:%M:%S%z")
+    except ValueError:
+        return ""
+    return horodatage.astimezone().strftime("%d/%m/%Y à %H:%M")
 
 
 def _beltpack_sort_key(value):

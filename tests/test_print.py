@@ -4,9 +4,11 @@ Les régies travaillent sur papier, et une conduite imprimée survit à une pann
 Comme `/admin/preview`, la feuille rend l'état PUBLIÉ par défaut — ce que la salle voit —
 et `?draft=1` la version en préparation.
 """
+import re
+
 import pytest
 
-from comroster.api import _beltpack_sort_key
+from comroster.api import SEUIL_GROUPE_LONG, _beltpack_sort_key, _date_fr
 
 
 @pytest.fixture
@@ -93,3 +95,53 @@ def test_le_titre_de_la_page_porte_le_nouveau_nom(plateau):
     titre = html.split("<title>", 1)[1].split("</title>", 1)[0]
     assert titre.startswith("Impression")
     assert "Feuille d'affectation" not in titre
+
+
+def test_la_colonne_annonce_le_role_et_non_le_nom(plateau):
+    """Une personne, c'est {id, role, beltpack, group_id} : le champ nom n'existe plus.
+    L'en-tête « NOM » affichait donc le rôle — récidive de la leçon 2026-07-23 n°32."""
+    html = plateau.get("/admin/print").get_data(as_text=True)
+    assert ">Rôle<" in html
+    assert ">Nom<" not in html
+
+
+def test_le_pied_date_en_francais_et_jamais_en_iso(plateau):
+    """« 2026-07-30T13:13:59Z » dans une interface francophone (leçon n°56).
+
+    On cherche le MOTIF ISO, pas la lettre « Z » : un nom de production ou de marque
+    peut légitimement en contenir une, et le test se mettrait à mentir au premier
+    client dont le nom porte un Z."""
+    html = plateau.get("/admin/print").get_data(as_text=True)
+    pied = html.split('class="sheet-foot"', 1)[1].split("</footer>", 1)[0]
+    assert not re.search(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}", pied), "horodatage ISO au pied"
+    assert re.search(r"\d{2}/\d{2}/\d{4} à \d{2}:\d{2}", pied), "date française attendue"
+
+
+def test_date_fr_convertit_l_horodatage_du_modele():
+    assert _date_fr("2026-07-30T13:13:59Z").startswith("30/07/2026 à ")
+
+
+@pytest.mark.parametrize("valeur", [None, 123, "", "pas une date", {"a": 1}])
+def test_date_fr_ne_leve_jamais_sur_une_donnee_externe(valeur):
+    """`updated_at` vient d'un fichier d'état : une valeur absente ou mal typée ne doit
+    pas empêcher d'imprimer la conduite. Le `or ""` protège du None, pas du int
+    (leçon 2026-07-29 n°68)."""
+    assert _date_fr(valeur) == ""
+
+
+def test_un_groupe_long_devient_coupable_et_un_groupe_court_non(auth_client):
+    """`break-inside: avoid` sur TOUS les groupes est ce qui creuse une demi-colonne
+    de vide. Le CSS ne sait pas compter des lignes : le seuil vit côté serveur."""
+    court = auth_client.post("/api/groups", json={"name": "Court"}).get_json()["id"]
+    long_ = auth_client.post("/api/groups", json={"name": "Long"}).get_json()["id"]
+    for i in range(SEUIL_GROUPE_LONG):
+        auth_client.post("/api/people", json={"beltpack": f"1{i:02d}", "group_id": court})
+    for i in range(SEUIL_GROUPE_LONG + 1):
+        auth_client.post("/api/people", json={"beltpack": f"2{i:02d}", "group_id": long_})
+    auth_client.post("/api/publish")
+
+    html = auth_client.get("/admin/print").get_data(as_text=True)
+    bloc_court = html.split("Court", 1)[0].rsplit("<section", 1)[1]
+    bloc_long = html.split("Long", 1)[0].rsplit("<section", 1)[1]
+    assert "sheet-group-long" not in bloc_court, "un groupe au seuil reste insécable"
+    assert "sheet-group-long" in bloc_long, "au-delà du seuil, le groupe doit pouvoir se couper"

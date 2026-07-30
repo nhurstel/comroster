@@ -41,6 +41,7 @@
     <dl class="sheet-meta">
       <div><dt>Édité le</dt><dd>{{ printed_at }}</dd></div>
       <div><dt>Source</dt><dd>{% if is_draft %}Brouillon{% else %}Publié{% endif %}</dd></div>
+      <div><dt>Groupes</dt><dd>{{ groups|length }}</dd></div>
       <div><dt>Total</dt><dd>{{ state.people|length }} beltpack{{ 's' if state.people|length > 1 }}</dd></div>
     </dl>
   </header>
@@ -52,7 +53,7 @@
   <div class="sheet-groups">
     {% for group in groups %}
       {% set membres = by_group[group.id] %}
-      <section class="sheet-group">
+      <section class="sheet-group{% if membres|length > seuil_long %} sheet-group-long{% endif %}">
         {# Un filet de la couleur du groupe plutôt qu'un aplat : à l'impression, un fond
            coloré consomme l'encre, grise le texte et disparaît en noir et blanc. #}
         <h2 class="sheet-group-name">
@@ -62,7 +63,7 @@
         </h2>
         {% if membres %}
           <table class="sheet-table">
-            <thead><tr><th class="c-bp">N°</th><th class="c-role">Nom</th><th class="c-sign">Visa</th></tr></thead>
+            <thead><tr><th class="c-bp">N°</th><th class="c-role">Rôle</th><th class="c-sign">Visa</th></tr></thead>
             <tbody>
               {% for p in membres %}
                 <tr><td class="c-bp">{{ p.beltpack }}</td><td class="c-role">{{ p.role or '—' }}</td><td class="c-sign"></td></tr>
@@ -83,7 +84,7 @@
           <span class="sheet-count">{{ reserve|length }}</span>
         </h2>
         <table class="sheet-table">
-          <thead><tr><th class="c-bp">N°</th><th class="c-role">Nom</th><th class="c-sign">Visa</th></tr></thead>
+          <thead><tr><th class="c-bp">N°</th><th class="c-role">Rôle</th><th class="c-sign">Visa</th></tr></thead>
           <tbody>
             {% for p in reserve %}
               <tr><td class="c-bp">{{ p.beltpack }}</td><td class="c-role">{{ p.role or '—' }}</td><td class="c-sign"></td></tr>
@@ -97,7 +98,7 @@
   <footer class="sheet-foot">
     {% if brand.active %}{{ brand.name }}{% else %}ComRoster{% endif %} ·
     {{ state.title or 'Affectation Intercom' }}
-    {%- if state.updated_at %} · dernière modification {{ state.updated_at }}{% endif %}
+    {%- if updated_fr %} · dernière modification {{ updated_fr }}{% endif %}
     {%- if brand.active %} · Propulsé par ComRoster{% endif %}
   </footer>
 
