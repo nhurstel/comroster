@@ -164,7 +164,7 @@ aucun rendu parallèle, donc aucune dérive possible. Ni l'une ni l'autre n'ouvr
   `?scroll=1` rétablit le défilement (grand aperçu seulement — le témoin permanent reste immobile).
   Chaque flux `/events` occupe un thread et un créneau de `COMROSTER_SSE_MAX` (12 par défaut) —
   un aperçu laissé ouvert affamerait les vrais afficheurs.
-- `/admin/print` — feuille d'affectation imprimable (état publié ; `?draft=1` pour le brouillon).
+- `/admin/print` — impression de la feuille d'affectation (état publié ; `?draft=1` pour le brouillon).
 - `/display` + `/events` — affichage TV public, **lecture seule** (état publié uniquement).
   L'admin s'abonne au même flux avec `?role=admin` : elle n'est alors pas comptée comme un
   écran de régie et ne peut pas affamer les vrais écrans (un tiers du plafond lui est
@@ -213,12 +213,32 @@ récupération** — c'est toute la différence avec `/admin/recover`. Un boîti
 production à l'autre peut ainsi tourner sa clé sans qu'il faille rediffuser un nouveau
 code à toute l'équipe.
 
-## Feuille d'affectation imprimable
+## Impression
 
-`Impression` (section « Données ») ouvre `/admin/print` : une conduite papier, en
-deux colonnes, avec une colonne de visa. Les régies travaillent sur papier, et c'est le
-filet quand le boîtier tombe — une feuille imprimée survit à une panne d'alimentation.
-Comme l'aperçu, elle rend l'état **publié** par défaut ; `?draft=1` imprime le brouillon.
+`Impression` (section « Données ») ouvre `/admin/print` : une conduite papier au format
+**A3 portrait sur trois colonnes** par défaut, avec une colonne de visa. Les régies
+travaillent sur papier, et c'est le filet quand le boîtier tombe — une feuille imprimée
+survit à une panne d'alimentation. Comme l'aperçu, elle rend l'état **publié** par
+défaut ; `?draft=1` imprime le brouillon.
+
+Une barre de réglages, à l'écran seulement, pilote six choix **mémorisés** d'une
+impression à l'autre :
+
+| Réglage | Valeurs | Défaut |
+|---|---|---|
+| Format | A3 portrait · A3 paysage · A4 portrait · A4 paysage · A5 portrait | A3 portrait |
+| Colonnes | 1 · 2 · 3 | 3 |
+| Visa | colonne de signature (28 mm) | activée |
+| Cases | case « Remis » à cocher | désactivée |
+| Non affectés | inclure la réserve | activée |
+| Un groupe par page | un saut de page par groupe (impose la colonne unique) | désactivée |
+
+Trois détails qui se voient sur le papier et nulle part ailleurs : un groupe de plus de
+douze membres peut être coupé entre deux colonnes et se **réidentifie** alors en tête de
+colonne ; un bandeau d'identification est répété au pied de **chaque** page, pour qu'une
+conduite qui se sépare reste lisible feuille par feuille ; et le numéro de page est posé
+en boîte de marge CSS — une spécificité **Chromium**, sur Firefox et Safari c'est le pied
+natif du navigateur qui le fournit.
 
 ## Réinitialisation totale (A6)
 

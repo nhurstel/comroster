@@ -816,3 +816,59 @@ Atténuation identifiée et NON faite (point d'alerte sur le menu quand le verdi
 **Arbitrage assumé :** le menu vit dans `admin.html` seul. `journal.html` et `health.html`
 n'embarquent ni les dialogues ni `admin.js` ; y porter le menu voudrait dire les dupliquer.
 Ces deux pages restent des culs-de-sac avec leur lien de retour.
+
+---
+
+## Lot « Impression » — 2026-07-30
+
+Demande de Nathan : renommer « Feuille imprimable » en « Impression » ; « le menu Impression
+est pas très complet et le format d'impression est un peu moche ». Cadrage obtenu en une
+salve : usage = **filet quand le boîtier tombe, tiré en A3 la plupart du temps**, menu dans
+la barre de la page, quatre familles de réglages, direction « document de production ».
+
+**Point de départ, capturé et non supposé.** Trois défauts que la lecture du CSS ne montrait
+pas, révélés en rendant la feuille en média `print` puis en PDF :
+- [x] l'en-tête de colonne disait « Nom » et affichait le RÔLE — le champ nom n'existe plus
+      dans le modèle ; deuxième occurrence de ce fantôme après le README (leçon 32) ;
+- [x] le pied crachait `2026-07-30T13:13:59Z`, de l'ISO UTC dans une interface francophone,
+      alors que la route formatait déjà `printed_at` en français ;
+- [x] colonne de visa à 3,2 em (~32 px), où l'on ne peut rien signer, et une demi-colonne
+      de vide creusée par `break-inside: avoid` posé sans exception.
+
+**Quatre capacités sondées avant d'être promises** (Chromium 148, PDF relu par pdftotext) :
+boîtes de marge CSS **OUI**, `position: fixed` répété **OUI**, `@page size` honoré **OUI**,
+`insertRule('@page …')` à chaud **OUI**. J'allais écarter le numéro de page en le croyant
+impossible ; et la dernière mesure a rendu inutile tout le mécanisme de rechargement prévu.
+
+**Livré :**
+- [x] Renommage complet, URL `/admin/print` conservée (l'aide-mémoire terrain la diffuse).
+- [x] A3 portrait / 3 colonnes par défaut, en-tête posé, visa à 28 mm, grille aérée.
+- [x] Barre de six réglages **mémorisés** — sans persistance, l'A3 serait à re-choisir à
+      chaque impression, soit le reproche de départ reconduit.
+- [x] Bandeau d'identification répété par page, numéro de page, zébrure en colonne unique.
+- [x] Huit tests e2e qui lisent un **vrai PDF**, seuls à prouver quelque chose sur du papier.
+
+**Décision structurelle du lot : le défaut est l'ABSENCE d'attribut.** `print.css` porte
+A3 / 3 colonnes / visa dans ses règles de base ; chaque `data-*` n'est qu'un dépassement.
+Une seule source pour le défaut, rien à recopier entre Python, JS et CSS, aucun scintillement
+au chargement — et le script bloquant en `<head>` que prévoyait la spec devient inutile. Une
+garde structurelle relie les deux : chaque valeur de l'allowlist JS doit avoir son sélecteur
+dans `print.css`, sinon le réglage serait cliquable sans effet.
+
+**Trois défauts trouvés en regardant le PDF, qu'aucun test sur le DOM n'aurait vus :**
+- deux pieds disant la même chose, dont un flottant au milieu du vide ;
+- un groupe coupé qui ne se réidentifiait pas — défaut que j'avais introduit moi-même en
+  rendant les groupes longs coupables, invisible sur ma première capture à 27 beltpacks
+  où aucun groupe n'atteignait le seuil ;
+- ce nom, une fois posé, sortait en petites capitales grises : `.sheet-table th` a la même
+  spécificité et vient plus bas. Récidive exacte de la leçon 29.
+
+**Défaut de MON exécution :** `perl -0pi` avec un caractère large (☐) a doublement encodé
+tout `print.html`. Restauré par `git checkout`, refait à l'outil d'édition, contrôlé.
+
+**Vérifié :** 504 unitaires · 44 e2e (dont 8 nouveaux) · 40 JS · ruff propre. PDF A3 mesuré
+à 841,92 × 1191,12 pt, console vide, chaque garde confrontée à une mutation qui la fait
+tomber.
+
+**Reste à faire — le seul point qui demande Nathan :** juger le rendu final à l'œil sur un
+aperçu d'impression réel. Aucun test ne le fait à ma place.
