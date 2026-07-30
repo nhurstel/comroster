@@ -872,3 +872,100 @@ tomber.
 
 **Reste à faire — le seul point qui demande Nathan :** juger le rendu final à l'œil sur un
 aperçu d'impression réel. Aucun test ne le fait à ma place.
+
+---
+
+## Lot « Panneaux Journal · Santé · Impression » — 2026-07-30
+
+Demande de Nathan : « les onglets admin journal et santé et impression doivent être intégrés
+et pas ouvrir une nouvelle page, il faudrait que ça fasse comme affectations et écran, que le
+header reste en place ». Cadrage obtenu en une question : **points d'entrée inchangés** —
+Santé et Journal restent dans le menu « Réglages », Impression reste dans la latérale
+« Données » ; seul le COMPORTEMENT change (bascule de panneau, plus de navigation).
+
+### Ce qui est en jeu
+`selectTab` d'admin.js pilote déjà `.tab-panel[data-panel]`. Trois panneaux à y brancher.
+Le point dur n'est pas la bascule, ce sont les effets de bord d'une fusion de documents :
+identifiants qui se marchent dessus, sélecteurs à portée document, sondages qui tournent
+en permanence, et une feuille d'impression dont le PAPIER est verrouillé par huit tests e2e.
+
+### Plan
+- [x] 1. **Collision `.tb-seg .seg-btn`** — admin.js lie la bascule Blocs/Table à TOUS les
+      `.seg-btn` du document. Les boutons Événements/Technique du journal en portent la
+      classe : fusionnés, ils appelleraient `setViewMode(undefined)`. Sélecteur à borner
+      à `.board-toolbar` AVANT d'introduire le panneau (sinon on introduit le défaut).
+- [x] 2. **`selectTab` généralisé** : toute entrée `[data-tab]`, où qu'elle vive (onglet,
+      item de menu, rangée de latérale), bascule son panneau. Une entrée nichée dans un
+      `.tab-menu` allume l'onglet qui porte ce menu — sinon, sur Journal, aucun repère
+      dans l'en-tête ne dit où l'on est. Relation LUE DANS LE DOM, pas déclarée deux fois.
+- [x] 3. **Événement `panneau-affiche`** émis sur le panneau montré. Remplace le
+      `if (name === "screen") reloadScreenPreview()` : un seul mécanisme, et journal.js,
+      health.js, la trame d'impression s'y branchent sans qu'admin.js les connaisse.
+- [x] 4. **Sondage borné au panneau visible.** journal.js (5 s) et health.js (4 s) tournent
+      aujourd'hui parce que leur page ne montre qu'eux. Sur l'admin ils tourneraient en
+      permanence pendant qu'on travaille sur le plateau. Condition : panneau affiché.
+- [x] 5. **`status-info` renommé** (`journal-status`, `health-status`) et logé dans la barre
+      d'outils du panneau : l'identifiant existait dans DEUX documents et le pied de
+      l'admin est déjà pris. Le panneau Santé gagne la barre d'outils qu'il n'avait pas —
+      le fil d'Ariane ne dit plus « Santé du boîtier », il faut que le panneau le dise.
+- [x] 6. **Impression = trame (`<iframe>`) sur `/admin/print?embed=1`.** Le document
+      imprimé reste INTACT : les huit tests e2e qui lisent un vrai PDF continuent de
+      porter sur lui. `embed=1` retire le lien « ← Administration », qui n'a pas de sens
+      dans une trame. Rechargée à CHAQUE affichage (imprimer une conduite périmée est
+      précisément le défaut que cette feuille existe pour éviter), en conservant la
+      source choisie (publié / brouillon) relue dans l'URL de la trame.
+- [x] 7. **Routes `/admin/journal` et `/admin/health` → redirection** vers
+      `/admin?panneau=…`. Les signets survivent, les templates dupliqués partent.
+      `?panneau=` est lu au chargement puis effacé de l'URL (`replaceState`).
+- [x] 8. **Suppression de `journal.html` et `health.html`** : leur contenu vit désormais
+      dans les panneaux. Deux documents qui divergent, c'est le défaut de départ.
+- [x] 9. **Tests** — garde structurelle (`data-tab` ⇄ `data-panel`, et les identifiants
+      qu'attendent journal.js/health.js présents dans admin.html), redirections, `embed`,
+      et e2e : l'en-tête RESTE en place et l'admin reste vivante sur chaque panneau.
+
+### Ce que je ne fais pas
+Promouvoir ces trois entrées en onglets de plein droit (écarté par Nathan).
+Toucher au rendu papier : il est verrouillé et hors sujet.
+
+### Livré et vérifié
+
+**Cadrage tenu :** points d'entrée inchangés (choix de Nathan). Santé et Journal restent
+dans le menu « Réglages », Impression dans la latérale « Données » — mais l'onglet
+« Réglages » s'allume quand on est sur l'un de ses panneaux, et la rangée « Impression »
+se surligne : sans ce repère, on aurait été sur un panneau sans que rien dans l'en-tête
+ne dise où.
+
+**En-tête mesuré à 53 px sur les cinq panneaux** — le même jeton `--top-h` qu'avant le lot,
+donc il n'a pas bougé d'un pixel. Aucun débordement horizontal à 1440×900, console vide.
+
+**Deux défauts trouvés dans l'ANCIEN code, pas dans le nouveau :**
+- `admin.js` liait la bascule Blocs/Table à tous les `.tb-seg .seg-btn` du document. Le
+  panneau Journal en apporte deux : cliquer « Technique » aurait appelé
+  `setViewMode(undefined)` et fait disparaître les deux vues du plateau. Borné AVANT
+  d'ajouter le panneau — sinon j'introduisais le défaut moi-même.
+- `status-info` existait à l'identique dans `journal.html` et `health.html` ; réunis, l'un
+  des deux devenait introuvable et son panneau serait resté muet sur « serveur injoignable ».
+
+**Une hypothèse porteuse sondée, pas supposée :** dans une trame, « Imprimer » imprime-t-il
+la feuille ou l'administration ? Mesuré par les événements `beforeprint` — seule la trame
+le reçoit, la fenêtre hôte rien. C'est ce qui autorise à garder la feuille intacte dans son
+propre document, et donc à ne pas remettre en jeu les huit tests qui lisent un vrai PDF.
+
+**Un défaut vu seulement à l'écran :** la barre du Journal affichait « 2 événements » puis,
+deux centimètres à droite, « 2 événements · 0 ligne technique en mémoire ». Traversé la
+conception, l'écriture et 570 tests verts — une redondance est une propriété de la
+composition, aucune assertion ne la porte. Corrigé : un seul témoin, qui répond à la seule
+question qu'on lui pose (« est-ce à jour ? ») et récupère « hors ligne ».
+
+**Vérifié :** 517 unitaires (+10 gardes structurelles) · 53 e2e (dont 9 nouveaux) · 40 JS ·
+ruff propre · trois captures 1440×900 relues. Chaque garde confrontée à une mutation qui la
+fait tomber : sélecteur redevenu global → l'e2e du volet Technique tombe ; trame chargée une
+seule fois → l'e2e « feuille refaite » tombe ; condition de panneau retirée → l'e2e qui
+compte les requêtes tombe ; entrée du menu redevenue un lien → le témoin de non-navigation
+tombe.
+
+**Coût assumé :** `admin.html` passe de 640 à ~710 lignes et l'admin charge deux scripts de
+plus au démarrage (~21 Ko). En échange, deux documents et leurs deux en-têtes disparaissent.
+
+**Reste à faire — le seul point qui demande Nathan :** juger les trois panneaux à l'œil sur
+le boîtier. Les captures disent que rien ne déborde ; elles ne disent pas si ça lui plaît.

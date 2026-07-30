@@ -2,7 +2,15 @@ import base64
 import re
 from datetime import datetime, timezone
 
-from flask import Blueprint, current_app, jsonify, render_template, request
+from flask import (
+    Blueprint,
+    current_app,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from .security import exclusive_state, json_body, login_required
 from .services import backup, health, model, netstatus, wifi
@@ -99,6 +107,7 @@ def admin_print():
     return render_template(
         "print.html", state=state, groups=groups, by_group=by_group,
         reserve=reserve, is_draft=draft, seuil_long=SEUIL_GROUPE_LONG,
+        embed=request.args.get("embed") == "1",
         updated_fr=_date_fr(state.get("updated_at")),
         printed_at=datetime.now(timezone.utc).astimezone().strftime("%d/%m/%Y à %H:%M"),
     )
@@ -496,15 +505,22 @@ def history_label(ts):
 @bp.get("/admin/journal")
 @login_required
 def journal_page():
-    """Page Journal : événements applicatifs + logs techniques (debug sans SSH)."""
-    return render_template("journal.html")
+    """Ancienne page Journal : redirigée vers le panneau du même nom.
+
+    Le Journal (événements applicatifs + logs techniques, pour déboguer sans SSH) est
+    devenu un panneau de l'administration : on ne quitte plus l'admin pour le consulter,
+    l'en-tête et la latérale restent en place. L'adresse survit pour les signets et pour
+    les procédures qui la citent — elle mène désormais au panneau, pas à un document
+    jumeau qu'il faudrait maintenir en double.
+    """
+    return redirect(url_for("api.admin_page", panneau="journal"))
 
 
 @bp.get("/admin/health")
 @login_required
 def health_page():
-    """Page de monitoring : santé du boîtier (température, disque, RAM, uptime…)."""
-    return render_template("health.html")
+    """Ancienne page Santé : redirigée vers le panneau du même nom (cf. journal_page)."""
+    return redirect(url_for("api.admin_page", panneau="health"))
 
 
 @bp.get("/api/health")

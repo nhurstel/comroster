@@ -86,7 +86,9 @@ def test_l_admin_nomme_la_fonction_impression(auth_client):
     """« Feuille imprimable » décrivait l'objet produit ; « Impression » décrit ce que
     l'utilisateur vient faire. Nommer par la fonction, pas par l'artefact (leçon 37)."""
     html = auth_client.get("/admin").get_data(as_text=True)
-    assert ">Impression</a>" in html
+    # L'entrée est devenue un <button> qui bascule un panneau (elle n'ouvre plus de page) :
+    # c'est le LIBELLÉ que cette garde protège, pas la balise qui le porte.
+    assert ">Impression</button>" in html
     assert "Feuille imprimable" not in html
 
 

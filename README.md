@@ -164,7 +164,12 @@ aucun rendu parallèle, donc aucune dérive possible. Ni l'une ni l'autre n'ouvr
   `?scroll=1` rétablit le défilement (grand aperçu seulement — le témoin permanent reste immobile).
   Chaque flux `/events` occupe un thread et un créneau de `COMROSTER_SSE_MAX` (12 par défaut) —
   un aperçu laissé ouvert affamerait les vrais afficheurs.
-- `/admin/print` — impression de la feuille d'affectation (état publié ; `?draft=1` pour le brouillon).
+- `/admin/print` — feuille d'affectation à imprimer (état publié ; `?draft=1` pour le brouillon).
+  Chargée en trame dans le panneau « Impression » de l'admin, avec `?embed=1` — qui retire
+  seulement son lien de retour. L'adresse reste utilisable seule (aide-mémoire terrain).
+- `/admin/journal`, `/admin/health` — **redirections** vers `/admin?panneau=journal|health`.
+  Journal et Santé sont des panneaux de l'administration, plus des pages : on ne quitte
+  plus l'admin pour les consulter. Les adresses survivent pour les signets.
 - `/display` + `/events` — affichage TV public, **lecture seule** (état publié uniquement).
   L'admin s'abonne au même flux avec `?role=admin` : elle n'est alors pas comptée comme un
   écran de régie et ne peut pas affamer les vrais écrans (un tiers du plafond lui est
@@ -215,7 +220,8 @@ code à toute l'équipe.
 
 ## Impression
 
-`Impression` (section « Données ») ouvre `/admin/print` : une conduite papier au format
+`Impression` (section « Données ») ouvre un **panneau** de l'administration — l'en-tête et
+la latérale restent en place — qui charge `/admin/print` en trame : une conduite papier au format
 **A3 portrait sur trois colonnes** par défaut, avec une colonne de visa. Les régies
 travaillent sur papier, et c'est le filet quand le boîtier tombe — une feuille imprimée
 survit à une panne d'alimentation. Comme l'aperçu, elle rend l'état **publié** par

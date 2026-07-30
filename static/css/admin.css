@@ -115,6 +115,10 @@ a.brand:hover { background: #ffffff08; }
 }
 .admin-tabs .tab:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 .admin-tabs .tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+/* Panneau ouvert depuis un MENU (Journal, Santé) : l'onglet qui porte ce menu s'allume.
+   Sans ce repère, on serait sur un panneau sans que rien dans l'en-tête ne le dise —
+   c'est le seul point où « comme Affectations et Écran » demandait plus qu'une bascule. */
+.admin-tabs .tab[data-active] { color: var(--fg); border-bottom-color: var(--accent); }
 
 /* Menu « Réglages » : tout ce qui concerne le BOÎTIER sous une entrée unique.
    Le panneau est piloté par l'attribut [hidden] — la règle d'affichage cible donc
@@ -251,6 +255,13 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 }
 .logout-link:hover { background: var(--danger-bg); }
 
+/* Rangée surlignée tant que SON panneau est affiché — même repère de contexte que
+   ci-dessous pour les dialogues, appliqué aux entrées qui ouvrent un panneau
+   (Impression dans la latérale, Santé et Journal dans le menu « Réglages »). */
+.nav-item[aria-current="page"], .menu-item[aria-current="page"] {
+    background: var(--surface-3); color: var(--fg); box-shadow: inset 2px 0 0 var(--accent);
+}
+
 /* Rangée surlignée tant que son dialogue est ouvert (repère de contexte). */
 body:has(#antenna-dialog[open]) #antenna-btn,
 body:has(#network-dialog[open]) #network-btn,
@@ -264,6 +275,10 @@ body:has(#import-dialog[open]) #export-btn {
 /* ---------- Espace de travail : onglets ---------- */
 .admin-main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .tab-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* Trame de la feuille d'impression : elle occupe tout le panneau. Fond blanc posé ICI —
+   la feuille met un instant à arriver, et un rectangle noir puis blanc clignoterait. */
+.print-frame { flex: 1; min-height: 0; width: 100%; border: 0; background: #ffffff; }
 .admin-layout { display: grid; grid-template-columns: 1fr var(--pool-w); flex: 1; min-height: 0; }
 .panel-board { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 
@@ -298,6 +313,16 @@ body:has(#import-dialog[open]) #export-btn {
     color: var(--fg-muted); border-bottom: 1px solid transparent; white-space: nowrap;
 }
 .tb-act:hover:not(:disabled) { color: var(--fg); border-bottom-color: var(--border-3); }
+/* Nom du panneau, quand il n'a pas de bascule pour le dire (Santé). Le fil d'Ariane de
+   l'en-tête porte le titre du PLATEAU : sans ça, le panneau serait anonyme. */
+.tb-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); white-space: nowrap;
+}
+/* Phrase d'état d'un panneau qui se relève tout seul (heure de relève, « serveur
+   injoignable »). Elle vivait dans le pied des pages Journal et Santé ; ces pages
+   n'existent plus, et le pied de l'admin dit ce qui est à l'antenne — autre sujet. */
+.tb-note { font-size: var(--ui); color: var(--muted); white-space: nowrap; }
 
 /* ---------- Plan de travail (maquette .board/.grid) ---------- */
 #blocks-container {

@@ -1,8 +1,15 @@
-/* Page Journal : événements applicatifs (persistants) + logs techniques (mémoire).
-   Deux volets, un filtre texte commun, un filtre par niveau côté Technique, export
-   texte du volet affiché, actualisation automatique (suspendue onglet caché). */
+/* Panneau Journal de l'administration : événements applicatifs (persistants) + logs
+   techniques (mémoire). Deux volets, un filtre texte commun, un filtre par niveau côté
+   Technique, export texte du volet affiché, actualisation automatique — suspendue quand
+   l'onglet du navigateur est caché OU que le panneau n'est pas celui qui est affiché. */
 (() => {
   "use strict";
+
+  // Le panneau est le porteur de TOUT ce que ce fichier touche : s'il n'est pas là, ce
+  // script n'a rien à faire dans la page. Sortir ici plutôt que laisser une cascade de
+  // `getElementById(...)` nulles casser le premier `addEventListener` venu.
+  const panneau = document.querySelector('.tab-panel[data-panel="journal"]');
+  if (!panneau) return;
 
   const EVENT_LABELS = {
     startup: "Démarrage de l'application",
@@ -140,16 +147,15 @@
       ]);
       state.events = ev;
       state.logs = lg;
+      // UN seul témoin, qui répond à la seule question qu'on lui pose : « ce que je lis
+      // est-il à jour ? ». Le décompte des totaux qui vivait ici en doublait un autre —
+      // le compteur de la barre affichait déjà le même nombre, deux centimètres à gauche.
       document.getElementById("journal-updated").textContent =
         new Date().toLocaleTimeString("fr-FR");
-      const n = state.events.length;
-      const l = state.logs.length;
-      document.getElementById("status-info").textContent =
-        `${n} événement${n > 1 ? "s" : ""} · ${l} ligne${l > 1 ? "s" : ""} technique${l > 1 ? "s" : ""} en mémoire`;
       render();
     } catch {
-      document.getElementById("status-info").textContent =
-        "serveur injoignable — nouvelle tentative dans 5 s";
+      document.getElementById("journal-updated").textContent =
+        "hors ligne — nouvelle tentative dans 5 s";
     }
   }
 
@@ -180,9 +186,20 @@
   document.getElementById("refresh-btn").addEventListener("click", refresh);
   document.getElementById("download-btn").addEventListener("click", download);
 
-  // Auto-actualisation, suspendue quand l'onglet n'est pas visible (rien à repeindre,
-  // et pas de requêtes en tâche de fond depuis un poste de régie).
-  setInterval(() => { if (!document.hidden) refresh(); }, 5000);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
-  refresh();
+  // Auto-actualisation, suspendue quand rien ne la regarde. DEUX conditions, pas une :
+  // l'onglet du navigateur doit être au premier plan (condition d'origine, du temps où
+  // le journal avait sa page à lui), et le panneau doit être celui qui est affiché.
+  // Sans la seconde, le journal battrait toutes les 5 s — deux requêtes par battement —
+  // pendant qu'on travaille sur le plateau, pour une liste que personne ne voit.
+  const regarde = () => !document.hidden && !panneau.hidden;
+  setInterval(() => { if (regarde()) refresh(); }, 5000);
+  document.addEventListener("visibilitychange", () => { if (regarde()) refresh(); });
+  // Ouvrir le panneau relève TOUT DE SUITE : sans ça, on lirait pendant 5 s l'état du
+  // dernier passage — ou, au premier, une liste vide.
+  panneau.addEventListener("panneau-affiche", refresh);
+  // Relève initiale seulement si le panneau est DÉJÀ ouvert. Au chargement de l'admin il
+  // ne l'est pas encore (admin.js rétablit le dernier panneau après nous) : le signal
+  // « panneau-affiche » s'en chargera, et ouvrir l'admin sur le plateau ne coûte alors
+  // aucune requête de journal.
+  if (regarde()) refresh();
 })();

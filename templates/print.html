@@ -15,15 +15,23 @@
      Tout est visible d'un coup — replier ces options dans un menu déroulant irait
      contre la demande, qui était justement que le menu n'était pas assez complet. #}
   <div class="print-bar">
-    <a class="print-back" href="{{ url_for('api.admin_page') }}">← Administration</a>
+    {# `embed` = la feuille est chargée en TRAME dans le panneau « Impression » de l'admin,
+       qu'on n'a donc jamais quittée : un lien de retour y pointerait sur elle-même, à
+       l'intérieur de la trame. Il ne subsiste que pour l'adresse /admin/print ouverte
+       directement, qui reste diffusée par l'aide-mémoire terrain. #}
+    {% if not embed %}
+      <a class="print-back" href="{{ url_for('api.admin_page') }}">← Administration</a>
+    {% endif %}
     <span class="print-source">
       {% if is_draft %}Brouillon en préparation{% else %}État publié — ce que la salle voit{% endif %}
     </span>
     <span class="print-swap">
+      {# La bascule REPORTE `embed` : sans ça, changer de source à l'intérieur du panneau
+         y ferait réapparaître le lien de retour. #}
       {% if is_draft %}
-        <a href="{{ url_for('api.admin_print') }}">Imprimer l'état publié</a>
+        <a href="{{ url_for('api.admin_print', embed=1 if embed else None) }}">Imprimer l'état publié</a>
       {% else %}
-        <a href="{{ url_for('api.admin_print', draft=1) }}">Imprimer le brouillon</a>
+        <a href="{{ url_for('api.admin_print', draft=1, embed=1 if embed else None) }}">Imprimer le brouillon</a>
       {% endif %}
     </span>
 

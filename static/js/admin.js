@@ -2481,27 +2481,96 @@
   }
 
   /* ---------- Onglets ----------
-     Affectations / Écran sont des panneaux ; Journal est un lien vers sa page dédiée.
-     Antenne et réseau ont leur bouton unique ailleurs (chip d'en-tête, latérale). */
+     Les CINQ sections de l'admin — Affectations, Écran, Journal, Santé, Impression —
+     sont des panneaux d'un même document : l'en-tête, la latérale et la barre d'état
+     ne bougent jamais. Leurs points d'entrée, eux, vivent là où leur fonction les a
+     rangés (onglet de l'en-tête, item du menu « Réglages », rangée de la latérale) :
+     ce code ne connaît que l'attribut `data-tab`, jamais l'endroit où il est posé.
+     Antenne et réseau, eux, ne sont pas des panneaux — ils ouvrent un dialogue. */
   const TAB_KEY = "comroster.admin.tab";
+  const tabEntries = () => document.querySelectorAll("[data-tab]");
   function selectTab(name) {
-    document.querySelectorAll(".admin-tabs .tab[data-tab]").forEach((t) =>
-      t.setAttribute("aria-selected", String(t.dataset.tab === name)));
-    document.querySelectorAll(".tab-panel").forEach((p) => { p.hidden = p.dataset.panel !== name; });
+    tabEntries().forEach((el) => {
+      const actif = el.dataset.tab === name;
+      // Un onglet se DÉSIGNE (`aria-selected`) ; une rangée de menu ou de latérale
+      // indique où l'on se trouve (`aria-current`). Deux registres, deux attributs.
+      if (el.classList.contains("tab")) el.setAttribute("aria-selected", String(actif));
+      else el.setAttribute("aria-current", actif ? "page" : "false");
+    });
+    // Une entrée nichée dans un menu allume l'onglet qui PORTE ce menu : sans ça, sur
+    // Journal ou Santé, rien dans l'en-tête ne dirait où l'on est. La relation est lue
+    // dans le DOM (l'entrée est-elle dans ce `.tab-menu` ?), jamais déclarée à côté.
+    document.querySelectorAll(".tab-menu").forEach((menu) => {
+      const dedans = !!menu.querySelector(`[data-tab="${CSS.escape(name)}"]`);
+      menu.querySelector(".tab")?.toggleAttribute("data-active", dedans);
+    });
+    let montre = null;
+    document.querySelectorAll(".tab-panel").forEach((p) => {
+      p.hidden = p.dataset.panel !== name;
+      if (!p.hidden) montre = p;
+    });
     try { localStorage.setItem(TAB_KEY, name); } catch { /* mode privé */ }
-    // L'aperçu du brouillon n'est mesurable qu'une fois son panneau affiché.
-    if (name === "screen") reloadScreenPreview();
+    // Un panneau caché n'est ni mesurable ni à jour : l'aperçu du brouillon a besoin de
+    // sa largeur, la feuille d'impression d'être refaite, le journal et la santé d'une
+    // relève. UN seul signal pour les quatre — chacun s'y branche sans qu'on ait à
+    // rallonger ici une liste de cas particuliers.
+    montre?.dispatchEvent(new CustomEvent("panneau-affiche"));
   }
-  document.querySelectorAll(".admin-tabs .tab[data-tab]").forEach((t) =>
-    t.addEventListener("click", () => selectTab(t.dataset.tab)));
+  tabEntries().forEach((el) =>
+    el.addEventListener("click", () => selectTab(el.dataset.tab)));
+
+  // L'aperçu du brouillon n'est mesurable qu'une fois son panneau affiché (il est rendu
+  // à 1920×1080 puis mis à l'échelle sur la largeur réelle).
+  document.querySelector('.tab-panel[data-panel="screen"]')
+    ?.addEventListener("panneau-affiche", reloadScreenPreview);
+
+  /* ---------- Panneau Impression ----------
+     La feuille reste SON propre document, chargé en trame : c'est lui qui porte les
+     règles `@page`, les six réglages mémorisés et le rendu papier verrouillé par les
+     tests — le recopier dans l'admin le remettrait en jeu pour rien. `embed=1` retire
+     seulement son lien de retour, qui n'a pas de sens dans une trame.
+     Rechargée à CHAQUE affichage : la feuille est rendue par le serveur, donc figée à
+     l'instant du chargement. Imprimer une conduite périmée est précisément l'accident
+     contre lequel cette feuille existe. La source choisie (publié / brouillon) est
+     relue dans l'URL de la trame pour survivre à l'aller-retour. */
+  const printPanel = document.querySelector('.tab-panel[data-panel="print"]');
+  const printFrame = document.getElementById("print-frame");
+  if (printPanel && printFrame) {
+    let printQuery = "?embed=1";
+    printFrame.addEventListener("load", () => {
+      try {
+        const s = printFrame.contentWindow.location.search;
+        if (s.includes("embed=1")) printQuery = s;
+      } catch { /* trame non lisible : on garde la dernière adresse connue */ }
+    });
+    printPanel.addEventListener("panneau-affiche", () => {
+      printFrame.src = printFrame.dataset.src + printQuery;
+    });
+  }
+
   // Onglet restauré au rechargement : rafraîchir la page depuis « Écran » ramenait sur
   // « Affectations » (signalé à l'usage). Même politique que la bascule Blocs/Table.
-  // La valeur relue est confrontée aux panneaux EXISTANTS, jamais réinjectée telle
-  // quelle dans un sélecteur.
+  // `?panneau=` PRIME sur la mémoire : c'est une destination demandée à l'instant (les
+  // anciennes adresses /admin/journal et /admin/health y redirigent). Elle est effacée
+  // de la barre d'adresse aussitôt appliquée, sinon l'URL mentirait dès le clic suivant.
+  // Les deux valeurs sont confrontées aux panneaux EXISTANTS, jamais réinjectées telles
+  // quelles dans un sélecteur.
+  // ⚠️ Cette restauration vient APRÈS tous les branchements sur « panneau-affiche » :
+  // elle en émet un, et un panneau rétabli au chargement doit être servi comme un
+  // panneau ouvert à la main (journal.js et health.js sont chargés avant admin.js
+  // pour la même raison).
   try {
-    const saved = localStorage.getItem(TAB_KEY);
     const panels = [...document.querySelectorAll(".tab-panel")].map((p) => p.dataset.panel);
-    if (saved && saved !== "board" && panels.includes(saved)) selectTab(saved);
+    const demande = new URLSearchParams(location.search).get("panneau");
+    if (demande && panels.includes(demande)) {
+      selectTab(demande);
+      const url = new URL(location.href);
+      url.searchParams.delete("panneau");
+      history.replaceState(null, "", url);
+    } else {
+      const saved = localStorage.getItem(TAB_KEY);
+      if (saved && saved !== "board" && panels.includes(saved)) selectTab(saved);
+    }
   } catch { /* mode privé */ }
 
   /* ---------- Barre d'outils du plateau ---------- */
@@ -2510,9 +2579,14 @@
   boardFilter?.addEventListener("input", () => { state.boardQuery = boardFilter.value; applyView(); });
 
   // Bascule Blocs / Table — persistée : un rafraîchissement ne ramène pas aux Blocs.
+  // Sélecteur BORNÉ à la barre du plateau : le panneau Journal porte lui aussi des
+  // `.tb-seg .seg-btn` (Événements / Technique). À portée document, ce code les lierait
+  // et un clic sur « Technique » appellerait setViewMode(undefined) — les deux vues du
+  // plateau disparaîtraient d'un coup, depuis un autre panneau.
   const VIEWMODE_KEY = "comroster.admin.viewmode";
+  const boardSegs = () => document.querySelectorAll(".board-toolbar .tb-seg .seg-btn");
   function setViewMode(mode) {
-    document.querySelectorAll(".tb-seg .seg-btn").forEach((b) =>
+    boardSegs().forEach((b) =>
       b.setAttribute("aria-pressed", String(b.dataset.viewMode === mode)));
     document.getElementById("blocks-container").hidden = mode !== "blocs";
     const table = document.getElementById("blocks-table");
@@ -2520,7 +2594,7 @@
     if (mode === "table") renderTable();
     try { localStorage.setItem(VIEWMODE_KEY, mode); } catch { /* mode privé */ }
   }
-  document.querySelectorAll(".tb-seg .seg-btn").forEach((b) =>
+  boardSegs().forEach((b) =>
     b.addEventListener("click", () => setViewMode(b.dataset.viewMode)));
   try { if (localStorage.getItem(VIEWMODE_KEY) === "table") setViewMode("table"); } catch { /* mode privé */ }
 

@@ -46,8 +46,29 @@ def auth_client(client):
     return client
 
 
-def test_health_page_requiert_session(client):
-    assert client.get("/admin/health").status_code in (302, 401, 403)
+def test_health_ancienne_adresse_exige_une_session(client):
+    """Sans session, la destination est l'identification — pas le panneau.
+
+    /admin/health redirige désormais : le seul code 302 ne distingue plus « refusé »
+    de « déplacé » (même raisonnement que pour /admin/journal).
+    """
+    r = client.get("/admin/health")
+    assert r.status_code in (302, 401, 403)
+    if r.status_code == 302:
+        assert "panneau=health" not in r.headers["Location"]
+
+
+def test_health_ancienne_adresse_mene_au_panneau(auth_client):
+    r = auth_client.get("/admin/health")
+    assert r.status_code == 302
+    assert r.headers["Location"].endswith("/admin?panneau=health")
+
+
+def test_health_vit_dans_le_panneau_de_l_admin(auth_client):
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert "js/health.js" in html
+    assert 'data-panel="health"' in html
+    assert 'id="health-report"' in html
 
 
 def test_api_health_requiert_session(client):

@@ -1,5 +1,5 @@
-/* Page Santé : contrôle avant show, pas tableau de mesures.
-   La page répond D'ABORD à la seule question qu'on se pose devant un boîtier de régie —
+/* Panneau Santé de l'administration : contrôle avant show, pas tableau de mesures.
+   Il répond D'ABORD à la seule question qu'on se pose devant un boîtier de régie —
    « est-ce que je peux lancer ? » — puis produit ses preuves. L'ancienne version alignait
    six cartes équivalentes où « Cœurs : 8 » pesait autant que « carte SD pleine à 90 % »,
    seule ligne capable de faire tomber le show.
@@ -7,6 +7,10 @@
    carte vide, il est relégué à une ligne de pied. */
 (() => {
   "use strict";
+
+  // Même garde que journal.js : sans son panneau, ce script n'a rien à peindre.
+  const panneau = document.querySelector('.tab-panel[data-panel="health"]');
+  if (!panneau) return;
 
   const esc = (s) => String(s).replace(/[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -251,13 +255,20 @@
       const d = await fetch("/api/health").then((r) => (r.ok ? r.json() : Promise.reject(r.status)));
       render(d);
       document.getElementById("health-updated").textContent = new Date().toLocaleTimeString("fr-FR");
-      document.getElementById("status-info").textContent = "boîtier surveillé en direct";
+      document.getElementById("health-status").textContent = "boîtier surveillé en direct";
     } catch {
-      document.getElementById("status-info").textContent = "serveur injoignable — nouvelle tentative dans 4 s";
+      document.getElementById("health-status").textContent = "serveur injoignable — nouvelle tentative dans 4 s";
     }
   }
 
-  setInterval(() => { if (!document.hidden) refresh(); }, 4000);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
-  refresh();
+  // Deux conditions pour battre : onglet du navigateur au premier plan ET panneau
+  // affiché. Sondées ensemble, sinon la santé interrogerait le boîtier toutes les 4 s
+  // pendant qu'on travaille sur le plateau — sur un Raspberry Pi, ce n'est pas gratuit.
+  const regarde = () => !document.hidden && !panneau.hidden;
+  setInterval(() => { if (regarde()) refresh(); }, 4000);
+  document.addEventListener("visibilitychange", () => { if (regarde()) refresh(); });
+  // Santé est un contrôle AVANT SHOW : à l'ouverture du panneau, la mesure doit être
+  // celle de maintenant, pas celle du dernier passage.
+  panneau.addEventListener("panneau-affiche", refresh);
+  if (regarde()) refresh();
 })();

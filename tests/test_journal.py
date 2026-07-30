@@ -125,16 +125,36 @@ def test_reboot_simule_journalise(auth_client):
     assert "reboot" in events
 
 
-# ---------- Page Journal + logs techniques ----------
+# ---------- Panneau Journal + logs techniques ----------
 
-def test_journal_page_requiert_session(client):
+def test_journal_ancienne_adresse_exige_une_session(client):
+    """Sans session, on part vers l'IDENTIFICATION — pas vers l'admin.
+
+    Depuis que /admin/journal redirige, un simple `status_code == 302` ne prouverait
+    plus rien : la route répond 302 dans les deux cas. C'est la DESTINATION qui
+    distingue « refusé » de « déplacé », donc c'est elle qu'on vérifie.
+    """
     r = client.get("/admin/journal")
     assert r.status_code in (302, 401, 403)
+    if r.status_code == 302:
+        assert "panneau=journal" not in r.headers["Location"]
 
 
-def test_journal_page_rendue(auth_client):
-    html = auth_client.get("/admin/journal").get_data(as_text=True)
-    assert "journal.js" in html
+def test_journal_ancienne_adresse_mene_au_panneau(auth_client):
+    """Le Journal n'est plus une page : l'adresse historique mène à son panneau.
+
+    Les signets et les procédures qui citent /admin/journal continuent de fonctionner,
+    et il n'existe plus qu'UN document à maintenir.
+    """
+    r = auth_client.get("/admin/journal")
+    assert r.status_code == 302
+    assert r.headers["Location"].endswith("/admin?panneau=journal")
+
+
+def test_journal_vit_dans_le_panneau_de_l_admin(auth_client):
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert "js/journal.js" in html
+    assert 'data-panel="journal"' in html
     assert "Technique" in html          # volet logs présent
 
 

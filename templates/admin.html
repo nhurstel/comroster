@@ -41,12 +41,15 @@
         <div class="tab-menu">
           <button type="button" class="tab" id="settings-btn" aria-haspopup="true"
                   aria-expanded="false" aria-controls="settings-menu">Réglages<span class="tab-chev" aria-hidden="true">▾</span></button>
-          {# Deux blocs : on consulte (pages), puis on configure (dialogues). Les ids sont
+          {# Deux blocs : on consulte (panneaux), puis on configure (dialogues). Les ids sont
              ceux d'avant le déplacement — les addEventListener d'admin.js, branchés par id,
-             n'ont donc rien eu à changer. #}
+             n'ont donc rien eu à changer.
+             Santé et Journal étaient des LIENS vers des pages : on quittait l'admin, l'en-tête
+             et la latérale disparaissaient, et il fallait revenir. Ce sont désormais des
+             panneaux du même document, comme Affectations et Écran — d'où des `data-tab`. #}
           <div class="menu-pop" id="settings-menu" role="menu" hidden>
-            <a class="menu-item" role="menuitem" href="{{ url_for('api.health_page') }}">Santé</a>
-            <a class="menu-item" role="menuitem" href="{{ url_for('api.journal_page') }}">Journal</a>
+            <button type="button" class="menu-item" role="menuitem" data-tab="health">Santé</button>
+            <button type="button" class="menu-item" role="menuitem" data-tab="journal">Journal</button>
             <div class="menu-sep" role="separator"></div>
             <button type="button" class="menu-item" role="menuitem" id="network-btn"
                     title="Configuration réseau du boîtier">Réseau</button>
@@ -91,9 +94,11 @@
             <label class="nav-item import-label">Importer<input type="file" id="import-input" accept=".rost,application/json"></label>
             <button type="button" id="export-btn" class="nav-item">Exporter</button>
             {# La feuille papier est le filet quand le boîtier tombe : une conduite
-               imprimée survit à une panne d'alimentation, pas un écran. #}
-            <a class="nav-item" href="{{ url_for('api.admin_print') }}" target="_blank"
-               rel="noopener" title="Ouvrir la feuille d'affectation à imprimer">Impression</a>
+               imprimée survit à une panne d'alimentation, pas un écran.
+               Elle s'ouvrait dans un onglet du NAVIGATEUR, où l'on perdait l'admin de vue ;
+               elle vit maintenant dans un panneau, chargée en trame (cf. panneau « print »). #}
+            <button type="button" class="nav-item" data-tab="print"
+                    title="Feuille d'affectation à imprimer">Impression</button>
           </nav>
 
           {# Témoin permanent de l'écran de régie (état publié), dans le fil du menu —
@@ -255,6 +260,73 @@
               </div>
             </section>
           </div>
+        </section>
+
+        {# Onglet Journal : deux volets — les ÉVÉNEMENTS (ce que l'opérateur a fait, journal
+           persistant) et le TECHNIQUE (ce que le système raconte, logs en mémoire, pour le
+           debug). Contenu repris tel quel de l'ancienne page dédiée ; ce qui vivait dans SON
+           en-tête et SON pied (heure de relève, phrase d'état) est descendu dans la barre
+           d'outils du panneau — l'en-tête et le pied appartiennent maintenant à l'admin. #}
+        <section class="tab-panel" data-panel="journal" hidden>
+          <div class="journal-body">
+            <div class="journal-toolbar">
+              <div class="tb-seg" role="tablist" aria-label="Volets du journal">
+                <button type="button" class="seg-btn" data-jtab="events" aria-pressed="true">Événements</button>
+                <button type="button" class="seg-btn" data-jtab="logs" aria-pressed="false">Technique</button>
+              </div>
+              <div class="tb-filter">
+                <span class="tb-grep">Filtrer</span>
+                <input type="search" id="journal-filter" placeholder="texte…" autocomplete="off">
+              </div>
+              <div class="level-chips" id="level-chips" hidden>
+                <button type="button" data-level="INFO" aria-pressed="true">info</button>
+                <button type="button" data-level="WARNING" aria-pressed="true">avert.</button>
+                <button type="button" data-level="ERROR" aria-pressed="true">erreurs</button>
+              </div>
+              <div class="tb-right">
+                {# UN seul témoin d'état. La phrase de l'ancien pied (« 2 événements · 0 ligne
+                   technique en mémoire ») a sauté : à côté du compteur, elle affichait deux
+                   fois le même nombre — défaut vu à la capture, pas dans le code. Ce qu'elle
+                   portait d'irremplaçable, « serveur injoignable », est passé ici. #}
+                <span class="tb-count" id="journal-count"></span>
+                <span class="tb-note" id="journal-updated" title="Dernière actualisation · toutes les 5 s">—</span>
+                <button type="button" class="tb-act" id="refresh-btn">Actualiser</button>
+                <button type="button" class="tb-act" id="download-btn">Télécharger</button>
+              </div>
+            </div>
+            <div class="journal-scroll">
+              <ul class="journal-list" id="events-list"></ul>
+              <div class="log-list" id="log-list" hidden></div>
+            </div>
+          </div>
+        </section>
+
+        {# Onglet Santé : verdict, puis relevé. La barre d'outils est NOUVELLE — sur sa page
+           dédiée, le fil d'Ariane disait « Santé du boîtier » ; ici le fil d'Ariane porte le
+           titre du plateau, donc le panneau doit se nommer lui-même. #}
+        <section class="tab-panel" data-panel="health" hidden>
+          <div class="journal-toolbar">
+            <span class="tb-title">Santé du boîtier</span>
+            <div class="tb-right">
+              <span class="tb-note" id="health-status">chargement…</span>
+              <span class="tb-note" id="health-updated" title="Dernière actualisation · toutes les 4 s">—</span>
+            </div>
+          </div>
+          <div class="health-body">
+            <div class="health-report" id="health-report"></div>
+          </div>
+        </section>
+
+        {# Onglet Impression : la feuille reste SON propre document, chargé en trame. Elle
+           porte ses règles `@page`, ses six réglages mémorisés et son rendu papier — tout
+           cela verrouillé par des tests qui lisent un vrai PDF, et qu'un recopiage dans
+           l'admin remettrait en jeu sans rien gagner. `data-src` (et non `src`) : la trame
+           est chargée par admin.js à l'affichage du panneau, et RECHARGÉE à chaque fois —
+           la feuille est rendue par le serveur, elle serait sinon figée au premier passage.
+           `embed=1` retire de la feuille son lien de retour, qui n'a aucun sens en trame. #}
+        <section class="tab-panel" data-panel="print" hidden>
+          <iframe class="print-frame" id="print-frame" title="Feuille d'affectation à imprimer"
+                  data-src="{{ url_for('api.admin_print') }}" src="about:blank"></iframe>
         </section>
       </main>
     </div>
@@ -635,6 +707,11 @@
   <script src="{{ url_for('static', filename='js/ink.js') }}"></script>
   <script src="{{ url_for('static', filename='js/board.js') }}"></script>
   <script src="{{ url_for('static', filename='js/netmask.js') }}"></script>
+  {# Journal et Santé AVANT admin.js : ils se branchent sur « panneau-affiche », et c'est
+     admin.js qui émet le premier — celui du panneau rétabli au chargement. Chargés après,
+     ils rateraient ce signal et un rechargement sur leur panneau l'afficherait vide. #}
+  <script src="{{ url_for('static', filename='js/journal.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/health.js') }}"></script>
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>

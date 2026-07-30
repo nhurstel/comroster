@@ -94,7 +94,8 @@ def test_admin_page_renders(auth_client):
 def test_admin_un_bouton_par_fonction(auth_client):
     """Chaque fonction a UN accès : pas de lanceurs en doublon (revue 2026-07-25)."""
     html = auth_client.get("/admin").get_data(as_text=True)
-    assert 'href="/admin/journal"' in html          # Journal = page dédiée (lien d'onglet)
+    assert 'data-tab="journal"' in html             # Journal = panneau (entrée du menu)
+    assert 'href="/admin/journal"' not in html      # …et plus une page qu'on va ouvrir
     assert "journal-dialog" not in html             # plus de dialogue Journal
     assert "data-launch" not in html                # aucun onglet-lanceur en doublon
     assert 'id="add-beltpack-btn"' not in html      # ajout beltpack = réserve seule
