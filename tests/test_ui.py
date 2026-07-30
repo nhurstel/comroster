@@ -196,9 +196,13 @@ def test_reglages_regroupe_les_fonctions_boitier(auth_client):
 
     menu = _fragment(html, 'id="settings-menu"', "</nav>")
     for cible in ('id="network-btn"', 'id="backup-btn"',
-                  'id="password-btn"', 'id="reboot-btn"', ">Santé<", ">Journal<"):
+                  'id="password-btn"', ">Santé<", ">Journal<"):
         assert cible in menu, f"{cible} absent du menu Réglages"
         assert html.count(cible) == 1, f"{cible} a {html.count(cible)} accès, il en faut 1"
+    # Redémarrer, lui, RESTE au pied de la latérale (choix Nathan) : il voisine l'autre
+    # action de sortie, et une action destructrice ne traîne pas dans un menu qu'on parcourt.
+    assert 'id="reboot-btn"' not in menu
+    assert html.count('id="reboot-btn"') == 1
 
     # Le déclencheur annonce son panneau, et le panneau part fermé.
     assert 'id="settings-btn"' in html
@@ -210,5 +214,5 @@ def test_reglages_regroupe_les_fonctions_boitier(auth_client):
     # pied ne garde que la déconnexion.
     assert "Boîtier" not in html
     pied = _fragment(html, 'class="side-foot"', "</aside>")
-    assert "reboot-btn" not in pied
     assert "logout-link" in pied
+    assert "reboot-btn" in pied

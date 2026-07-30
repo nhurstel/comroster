@@ -1474,6 +1474,22 @@
   document.addEventListener("click", (ev) => {
     if (settingsOpen() && !ev.target.closest(".tab-menu")) closeSettings();
   });
+  // ↓ depuis le déclencheur ouvre et entre dans le menu ; Entrée et Espace n'ont besoin
+  // de rien, ce sont des <button> et des <a> — le navigateur les active nativement.
+  settingsBtn.addEventListener("keydown", (ev) => {
+    if (ev.key !== "ArrowDown") return;
+    ev.preventDefault();
+    setSettings(true);
+    settingsMenu.querySelector(".menu-item")?.focus();
+  });
+  settingsMenu.addEventListener("keydown", (ev) => {
+    if (ev.key !== "ArrowDown" && ev.key !== "ArrowUp") return;
+    ev.preventDefault();
+    const items = [...settingsMenu.querySelectorAll(".menu-item")];
+    const i = items.indexOf(document.activeElement);
+    const suivant = (ev.key === "ArrowDown" ? i + 1 : i - 1 + items.length) % items.length;
+    items[suivant].focus();
+  });
 
   window.addEventListener("keydown", (e) => {
     const mod = e.ctrlKey || e.metaKey;
@@ -1481,10 +1497,20 @@
     // « Sur le plateau » = ni dans un champ de saisie, ni dans un dialogue. Les raccourcis
     // qui EXISTENT AUSSI nativement (⌘Z, ⌘A) ne s'appliquent que là : ailleurs, défaire
     // une frappe ou sélectionner du texte doit rester le comportement du navigateur.
-    const onBoard = !/INPUT|TEXTAREA|SELECT/.test(tag) && !document.querySelector("dialog[open]");
+    // Un menu ouvert compte comme « pas sur le plateau » : la condition vit ICI, dans le
+    // seul prédicat partagé, jamais recopiée dans les branches — une liste d'exclusions
+    // dupliquée se périme au premier raccourci ajouté (leçon 2026-07-27).
+    const onBoard = !/INPUT|TEXTAREA|SELECT/.test(tag) && !document.querySelector("dialog[open]")
+      && !settingsOpen();
     // Échap pendant le décompte = annuler l'envoi. Il PRIME sur la sortie de sélection :
     // une publication en cours est l'action la plus conséquente à pouvoir rattraper.
     if (e.key === "Escape" && publishTimer) { e.preventDefault(); cancelPublish(); return; }
+    // Échap ferme le menu « Réglages ». Le rang QUI COMPTE est celui-ci : APRÈS le décompte
+    // de publication, qui reste l'action la plus conséquente à pouvoir rattraper (rang
+    // décidé le 2026-07-27) et qui, lui, ne dépend pas d'`onBoard`. Face à la sortie de
+    // sélection en dessous, l'ordre est redondant — `onBoard` exclut déjà le menu ouvert,
+    // donc la sélection survit de toute façon ; on garde cet ordre pour la lecture.
+    if (e.key === "Escape" && closeSettings({ focus: true })) { e.preventDefault(); return; }
     // Échap = quitter la sélection multiple (le bouton « Annuler » de la barre reste,
     // mais le réflexe clavier ne doit pas obliger à viser à la souris).
     if (e.key === "Escape" && state.selection.size && onBoard) { e.preventDefault(); exitSelection(); return; }

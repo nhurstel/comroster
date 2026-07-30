@@ -243,6 +243,7 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 
 .side-foot { flex: 0 0 auto; border-top: 1px solid var(--border-soft); padding-top: 6px; margin-top: 6px; }
 .side-foot-row { display: flex; align-items: stretch; }
+.side-foot-row .nav-item { width: auto; flex: 0 0 auto; padding: 0 var(--pad); }
 .logout-link {
     display: flex; align-items: center; flex: 1; min-width: 0;
     height: calc(var(--row) - 3px); padding: 0 var(--pad) 0 calc(var(--pad) + 12px);

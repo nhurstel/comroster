@@ -52,9 +52,6 @@
             <button type="button" class="menu-item" role="menuitem" id="backup-btn"
                     title="Archive complète : plateau, réseau, antenne, configurations, mot de passe">Sauvegarde</button>
             <button type="button" class="menu-item" role="menuitem" id="password-btn">Mot de passe</button>
-            <div class="menu-sep" role="separator"></div>
-            <button type="button" class="menu-item nav-danger" role="menuitem" id="reboot-btn"
-                    title="Redémarre le Raspberry Pi (écran et admin indisponibles ~1 min)">Redémarrer</button>
           </div>
         </div>
       </nav>
@@ -116,8 +113,10 @@
         </div>
         <div class="side-foot">
           <div class="side-foot-row">
-            {# Redémarrer a rejoint « Réglages » : le pied ne garde que la déconnexion. #}
+            {# Redémarrer reste ici (choix Nathan) : il voisine l'autre action de SORTIE,
+               et une action destructrice n'a pas à traîner dans un menu qu'on parcourt. #}
             <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
+            <button type="button" id="reboot-btn" class="nav-item nav-danger" title="Redémarre le Raspberry Pi (écran et admin indisponibles ~1 min)">Redémarrer</button>
           </div>
           <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
