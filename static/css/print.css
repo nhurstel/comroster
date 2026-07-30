@@ -1,13 +1,24 @@
 /* ============================================================================
-   Feuille d'affectation imprimable.
+   Feuille d'affectation à imprimer.
 
-   Registre volontairement DIFFÉRENT de l'écran de régie : encre noire sur blanc,
-   aucun aplat de couleur (à l'impression un fond mange l'encre, grise le texte et
-   disparaît en noir et blanc), pas d'indicateur temps réel — le papier ne se met pas
-   à jour, prétendre le contraire serait mentir.
+   Registre volontairement DIFFÉRENT de l'écran de régie : encre noire sur blanc et
+   pas d'indicateur temps réel — le papier ne se met pas à jour, prétendre le
+   contraire serait mentir.
 
-   La couleur de groupe survit sous forme de FILET : elle identifie sans coûter d'encre,
-   et reste lisible même sur une imprimante monochrome (le nom la porte de toute façon).
+   Défaut : A3 portrait sur trois colonnes, parce que c'est ainsi que la conduite est
+   tirée en pratique. Ce défaut vit UNIQUEMENT ici, dans les règles de base : chaque
+   `data-*` posé par printopts.js n'est qu'un DÉPASSEMENT. Rien à recopier côté
+   serveur, et rien qui scintille au chargement.
+
+   La couleur de groupe survit sous forme de FILET : elle identifie sans coûter
+   d'encre, et reste lisible même sur une imprimante monochrome (le nom la porte de
+   toute façon).
+
+   ÉCART ASSUMÉ au principe « aucun aplat de couleur » qui figurait ici : la zébrure
+   est rétablie EN COLONNE UNIQUE seulement. Sur 27 cm de large l'œil dérive d'une
+   ligne à l'autre et elle sert ; en trois colonnes les lignes sont courtes et elle ne
+   coûterait que de l'encre. Elle n'est donc pas un réglage — elle découle du nombre
+   de colonnes.
    ========================================================================== */
 
 :root {
@@ -16,14 +27,18 @@
   --ink-faint: #8a94a6;
   --rule: #d5dae2;
   --paper: #ffffff;
+  --zebre: #f4f6f8;
 }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
+/* La marge horizontale vit ICI et nulle part ailleurs : les sections en héritent au
+   lieu de la redéclarer chacune. À l'impression c'est `@page` qui la fournit, donc
+   elle tombe à zéro — sans quoi la marge serait comptée deux fois. */
 .print-page {
   margin: 0;
-  padding: 0 0 3rem;
+  padding: 0 1.5rem 3rem;
   background: var(--paper);
   color: var(--ink);
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -36,6 +51,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  margin: 0 -1.5rem;
   padding: .75rem 1.5rem;
   border-bottom: 1px solid var(--rule);
   background: #f6f8fa;
@@ -63,8 +79,8 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 2rem;
-  padding: 1.75rem 1.5rem 1rem;
+  gap: 12mm;
+  padding: 6mm 0 4mm;
   border-bottom: 2px solid var(--ink);
 }
 
@@ -79,9 +95,9 @@
    titre — sans effet quand il n'y a que 2 enfants (sans pack), donc non-régressif. */
 .sheet-title { margin-right: auto; }
 
-.sheet-head h1 { margin: 0; font-size: 19pt; letter-spacing: -0.01em; }
+.sheet-head h1 { margin: 0; font-size: 22pt; letter-spacing: -0.015em; }
 .sheet-sub { margin: .2rem 0 0; color: var(--ink-soft); }
-.sheet-meta { display: flex; gap: 1.75rem; margin: 0; text-align: right; }
+.sheet-meta { display: flex; gap: 8mm; margin: 0; text-align: right; }
 .sheet-meta div { margin: 0; }
 .sheet-meta dt {
   font-size: 8pt;
@@ -92,20 +108,28 @@
 .sheet-meta dd { margin: .1rem 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* ---------- Groupes ---------- */
+/* Trois colonnes par défaut : c'est le format A3, celui sous lequel la conduite est
+   tirée en pratique. Les règles `[data-cols]` ne sont que des dépassements. */
 .sheet-groups {
-  padding: 1.25rem 1.5rem 0;
-  /* Deux colonnes à l'écran comme au papier : une conduite tient alors sur une page,
-     ce qui est tout l'intérêt d'une feuille qu'on plie dans une poche. */
-  column-count: 2;
-  column-gap: 2.25rem;
+  padding: 5mm 0 0;
+  column-count: 3;
+  column-gap: 8mm;
 }
+[data-cols="1"] .sheet-groups { column-count: 1; }
+[data-cols="2"] .sheet-groups { column-count: 2; }
+
 .sheet-group {
-  /* Un groupe ne doit JAMAIS être coupé entre deux colonnes ou deux pages : lire la
-     moitié d'un groupe au verso est précisément ce qui fait rater une affectation. */
+  /* Un groupe court ne doit JAMAIS être coupé entre deux colonnes ou deux pages : lire
+     la moitié d'un groupe au verso est précisément ce qui fait rater une affectation.
+     Mais l'imposer à TOUS creusait une demi-colonne de vide en bas de page — au-delà du
+     seuil serveur (SEUIL_GROUPE_LONG), le groupe se coupe, en répétant son en-tête. */
   break-inside: avoid;
   page-break-inside: avoid;
-  margin: 0 0 1.4rem;
+  margin: 0 0 6mm;
 }
+.sheet-group-long { break-inside: auto; page-break-inside: auto; }
+.sheet-group-long .sheet-table thead { display: table-header-group; }
+
 .sheet-group-name {
   display: flex;
   align-items: center;
@@ -132,6 +156,7 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- Tableau ---------- */
 .sheet-table { width: 100%; border-collapse: collapse; }
 .sheet-table th {
   text-align: left;
@@ -144,7 +169,7 @@
   border-bottom: 1px solid var(--rule);
 }
 .sheet-table td {
-  padding: .22rem .4rem .22rem 0;
+  padding: 1.4mm .4rem 1.4mm 0;
   border-bottom: 1px solid var(--rule);
   vertical-align: baseline;
 }
@@ -154,34 +179,95 @@
   font-weight: 700;
 }
 .c-role { width: auto; }
-/* Colonne de visa : une conduite papier se pointe au crayon. */
-.c-sign { width: 3.2em; }
+
+/* Colonne de visa : une conduite papier se signe. 28 mm — à 3,2 em on ne pouvait rien
+   y écrire, ce qui rendait la colonne décorative. */
+.c-sign { width: 28mm; }
+[data-visa="non"] .c-sign { display: none; }
+
+/* Case « Remis », à cocher au crayon pendant la distribution des beltpacks. */
+.c-remis { display: none; width: 12mm; text-align: center; }
+[data-cases="oui"] .c-remis { display: table-cell; }
+
+/* Zébrure : en colonne unique SEULEMENT, où la ligne fait près de 27 cm et où l'œil
+   dérive d'une ligne à l'autre. En trois colonnes elle ne coûterait que de l'encre. */
+[data-cols="1"] .sheet-table tbody tr:nth-child(even) td {
+  background: var(--zebre);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+[data-reserve="non"] .sheet-reserve { display: none; }
+
+/* Un groupe par page. `printopts.effectif()` force déjà `data-cols="1"` : un saut de
+   page à l'intérieur d'un conteneur multi-colonnes est mal supporté. */
+[data-par-page="oui"] .sheet-group { break-before: page; page-break-before: always; }
+[data-par-page="oui"] .sheet-group:first-child { break-before: auto; page-break-before: auto; }
+
+/* Formats. `printopts.js` insère la règle @page correspondante en CSSOM (une @page ne
+   peut pas être conditionnée par un sélecteur) ; ces règles-ci pilotent ce qui, dans le
+   CORPS, dépend du format — l'échelle typographique sur une surface plus petite. */
+[data-format="a3-paysage"] .print-page { font-size: 10.5pt; }
+[data-format="a4-portrait"] .print-page { font-size: 9.5pt; }
+[data-format="a4-paysage"] .print-page { font-size: 9.5pt; }
+[data-format="a5-portrait"] .print-page { font-size: 8.5pt; }
 
 .sheet-none, .sheet-empty { margin: .2rem 0; color: var(--ink-faint); font-style: italic; }
-.sheet-empty { padding: 2rem 1.5rem; }
+.sheet-empty { padding: 2rem 0; }
 
 .sheet-foot {
-  padding: 1rem 1.5rem 0;
-  margin-top: 1rem;
+  padding: 4mm 0 0;
+  margin-top: 4mm;
   border-top: 1px solid var(--rule);
   font-size: 8.5pt;
   color: var(--ink-faint);
 }
 
+/* Bandeau d'identification, répété au pied de CHAQUE page à l'impression (mesuré :
+   Chromium répète les éléments `position: fixed`). Une conduite qui se sépare garde
+   son identité feuille par feuille — c'est tout l'objet d'un document « filet ».
+   Invisible à l'écran, où le pied ordinaire dit déjà la même chose. */
+.sheet-band { display: none; }
+
 /* ---------- Impression ---------- */
 @page {
-  size: A4 portrait;
-  margin: 12mm 10mm;
+  size: A3 portrait;
+  /* Marge basse plus généreuse : elle loge le bandeau répété et le numéro de page. */
+  margin: 12mm 10mm 16mm;
+}
+
+/* Numéro de page en boîte de marge. Mesuré supporté par Chromium (le boîtier en est
+   un) ; Firefox et Safari l'ignorent en silence et leur pied natif le fournit. */
+@page {
+  @bottom-right {
+    content: "page " counter(page) " / " counter(pages);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 8pt;
+    color: #8a94a6;
+  }
 }
 
 @media print {
-  /* Ce qui n'a de sens qu'à l'écran disparaît : la barre d'action, et les liens
-     « imprimer l'autre version » qui n'ont plus d'objet sur du papier. */
+  /* Ce qui n'a de sens qu'à l'écran disparaît : la barre d'action et ses réglages, et
+     les liens « imprimer l'autre version » qui n'ont plus d'objet sur du papier. */
   .print-bar { display: none; }
-  .print-page { padding: 0; font-size: 10pt; }
-  .sheet-head { padding: 0 0 .6rem; }
-  .sheet-groups { padding: .9rem 0 0; }
-  .sheet-foot { padding: .6rem 0 0; }
+  /* La marge horizontale vient de `@page` : la conserver ici la compterait deux fois. */
+  .print-page { padding: 0; }
+  .sheet-head { padding: 0 0 4mm; }
+  .sheet-groups { padding: 4mm 0 0; }
+  .sheet-foot { padding: 3mm 0 0; }
   /* L'en-tête de groupe ne doit pas rester seul en bas de colonne. */
   .sheet-group-name { break-after: avoid; page-break-after: avoid; }
+
+  .sheet-band {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding-top: 1.5mm;
+    border-top: 1px solid var(--rule);
+    font-size: 7.5pt;
+    color: var(--ink-faint);
+  }
 }

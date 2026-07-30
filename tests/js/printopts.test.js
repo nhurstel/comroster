@@ -78,8 +78,7 @@ describe("persistance", () => {
 });
 
 describe("garde structurelle", () => {
-  // Réactivé en Task 4, une fois les sélecteurs écrits dans print.css.
-  it.skip("chaque valeur non-défaut a un sélecteur correspondant dans print.css", () => {
+  it("chaque valeur non-défaut a un sélecteur correspondant dans print.css", () => {
     /* Sans cette garde, ajouter une valeur à l'allowlist donnerait un réglage
        cliquable SANS effet — un contrôle qui ne fait rien ment. Même famille que
        le test des jetons CSS (leçon n°62) : on vérifie l'inclusion. */
