@@ -757,3 +757,62 @@ Recadré en commentaire dans le fichier, avec la condition de déclenchement.
 purs en sont sortis (`board.js`, `netmask.js`, + `ink.js` rendu testable), ce qui donne au
 harnais de quoi mordre ; le reste du fichier est du câblage DOM, dont l'extraction
 demanderait un jsdom et une refonte que ce lot ne justifie pas.
+
+---
+
+# LOT 2026-07-30 — Menu « Réglages »
+
+Spec : [docs/superpowers/specs/2026-07-30-menu-reglages-design.md](../docs/superpowers/specs/2026-07-30-menu-reglages-design.md)
+Plan : [docs/superpowers/plans/2026-07-30-menu-reglages.md](../docs/superpowers/plans/2026-07-30-menu-reglages.md)
+
+Demande Nathan : regrouper Réseau, Sauvegarde, Mot de passe, Journal et Santé dans un menu
+à part. Nom retenu **Réglages** (mes réserves — Journal et Santé ne se règlent pas ;
+« Système » avait déjà été supprimé le 2026-07-25 — consignées dans la spec puis tranchées),
+libellé texte plutôt qu'engrenage.
+
+- [x] Les cinq fonctions vivaient dans DEUX zones (barre d'onglets pour Réseau/Journal/Santé,
+      section « Boîtier » de la latérale pour Sauvegarde/Mot de passe). L'en-tête passe de six
+      entrées à quatre, et la latérale ne garde plus que du contenu de plateau.
+- [x] **Ids conservés** (`#network-btn`, `#backup-btn`, `#password-btn`, `#reboot-btn`) : les
+      quatre `addEventListener` d'`admin.js` n'ont pas changé. Le lot est structurel.
+- [x] **Sept clics e2e** visaient ces ids en direct et auraient expiré dans un menu fermé
+      (Playwright attend `visible`) — repéré AVANT d'écrire le code. Helper unique
+      `tests/e2e/helpers.py::open_reglages`.
+- [x] Clavier : Échap ferme et rend le focus, ↑↓ parcourent en boucle, et la condition
+      « menu ouvert » entre dans le seul prédicat `onBoard` (⌘Z/⌘A gardent leur sens natif).
+- [~] **Redémarrer : d'abord mis dans le menu, RAMENÉ au pied de la latérale en cours de lot**
+      (« il y sera mieux à côté de Déconnexion »). Se défend mieux que mon choix initial : une
+      action destructrice ne traîne pas dans un menu qu'on parcourt, et elle voisine l'autre
+      action de sortie. La règle `.side-foot-row .nav-item`, supprimée puis rétablie, et les
+      deux tests qui encodaient l'emplacement intermédiaire ont suivi.
+
+**Quatre défauts de MON plan, trouvés à l'exécution :**
+- `from .helpers import` échouait : `tests/e2e` n'est pas un package (aucun `__init__.py`),
+  pytest insère le dossier dans `sys.path` → import absolu obligatoire.
+- `pytest tests/e2e -q` renvoyait « 30 deselected » : le marqueur `e2e` est exclu par défaut,
+  il faut `-m e2e`. Un vert qui ne prouvait rien, exactement le piège du 2026-07-28.
+- `npx vitest run --dir tests/js` affichait « PASS (0) FAIL (0) » — zéro test exécuté, code
+  retour 0. La commande du projet est `npm test` (30 tests, 3 fichiers). Même faux signal.
+- Mon test « Échap ferme le menu AVANT de quitter la sélection » **passait dans les deux
+  ordres** : `onBoard` excluant déjà le menu ouvert, la sélection est protégée quel que soit
+  le rang des branches. Le seul rang qui décide est celui face au décompte de publication,
+  qui ne dépend pas d'`onBoard` — le test a été refait là-dessus et il tombe bien sous
+  mutation. Le commentaire du code affirmait la même chose fausse, rectifié.
+
+**Vérifié :** 493 unitaires · 36 e2e (dont 6 nouveaux) · 30 JS · ruff propre. Capture 1440×900 du
+menu ouvert, console navigateur vide (collecteur prouvé armé par une sonde), hauteur d'en-tête
+**mesurée à 53 px exactement** (jeton `--top-h`) et panneau contenu dans la fenêtre (bord droit
+1059 sur 1440) — mesuré, pas jugé à l'œil.
+
+**Chaque garde confrontée à un cas qui échoue volontairement :** retirer un item du menu fait
+tomber la garde d'unicité d'accès ; faire passer la branche Échap du menu devant le décompte
+de publication fait tomber le test de rang ; le test de ⌘Z porte un témoin positif (hors menu,
+le même ⌘Z annule bien) sans quoi son assertion négative ne prouverait rien.
+
+**Coût assumé :** Santé passe d'un clic à deux, alors que c'est le contrôle d'avant-show.
+Atténuation identifiée et NON faite (point d'alerte sur le menu quand le verdict n'est pas
+« Prêt ») : elle demanderait de sonder la santé depuis l'admin, ce qui n'existe pas.
+
+**Arbitrage assumé :** le menu vit dans `admin.html` seul. `journal.html` et `health.html`
+n'embarquent ni les dialogues ni `admin.js` ; y porter le menu voudrait dire les dupliquer.
+Ces deux pages restent des culs-de-sac avec leur lien de retour.

@@ -637,10 +637,15 @@ Ces deux pages restent des culs-de-sac avec leur lien de retour.
 
 ```bash
 .venv/bin/pytest tests/ -q --ignore=tests/e2e
-.venv/bin/pytest tests/e2e -q
+.venv/bin/pytest tests/e2e -m e2e -q
 .venv/bin/ruff check .
-npx vitest run --dir tests/js
+npm test
 ```
+
+⚠️ `-m e2e` est OBLIGATOIRE : sans lui, pytest répond « 30 deselected » et rend 0, ce qui
+ressemble à un succès. De même, `npx vitest run --dir tests/js` n'exécute AUCUN test
+(« PASS (0) FAIL (0) ») — la commande du projet est `npm test`. Se lire sur le NOMBRE de
+tests exécutés, jamais sur le code retour seul.
 
 Attendu : tout vert. (Les tests JS ne touchent pas ce lot — ils portent sur la logique pure — mais la suite complète est le seuil du projet.)
 
