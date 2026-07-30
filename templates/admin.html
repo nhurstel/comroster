@@ -28,18 +28,35 @@
       </div>
 
       <nav class="admin-tabs" role="tablist" aria-label="Sections de l'administration">
-        {# Affectations et Écran sont des panneaux ; Journal est une PAGE dédiée
-           (événements + logs techniques). UN bouton par fonction : l'antenne passe
-           par sa chip d'état (à droite), le réseau par la barre latérale (Boîtier). #}
+        {# Affectations et Écran sont des panneaux. UN accès par fonction : l'antenne
+           passe par son onglet-voyant, et TOUT ce qui concerne le boîtier lui-même
+           (consultation, configuration, redémarrage) passe par « Réglages ». #}
         <button type="button" class="tab" data-tab="board" role="tab" aria-selected="true">Affectations</button>
         <button type="button" class="tab" data-tab="screen" role="tab" aria-selected="false">Écran</button>
-        <a class="tab" href="{{ url_for('api.journal_page') }}">Journal</a>
-        <a class="tab" href="{{ url_for('api.health_page') }}">Santé</a>
-        {# Intercom (avec son voyant d'état) et Réseau : même allure que les autres
-           onglets — ils ouvrent leur dialogue au lieu de changer de panneau. #}
+        {# Intercom garde son accès direct : il PORTE le voyant d'état en direct, et un
+           voyant enfermé dans un menu fermé n'informe de rien. #}
         <button type="button" class="tab" id="antenna-btn" title="Connexion au réseau intercom">
           <span class="dot off" id="antenna-dot"></span>Intercom</button>
-        <button type="button" class="tab" id="network-btn" title="Configuration réseau du boîtier">Réseau</button>
+        <div class="tab-menu">
+          <button type="button" class="tab" id="settings-btn" aria-haspopup="true"
+                  aria-expanded="false" aria-controls="settings-menu">Réglages<span class="tab-chev" aria-hidden="true">▾</span></button>
+          {# Trois blocs : on consulte, puis on configure, puis on redémarre. L'ordre va
+             du inoffensif au destructeur, et les ids sont ceux d'avant le déplacement —
+             les quatre addEventListener d'admin.js n'ont donc rien à changer. #}
+          <div class="menu-pop" id="settings-menu" role="menu" hidden>
+            <a class="menu-item" role="menuitem" href="{{ url_for('api.health_page') }}">Santé</a>
+            <a class="menu-item" role="menuitem" href="{{ url_for('api.journal_page') }}">Journal</a>
+            <div class="menu-sep" role="separator"></div>
+            <button type="button" class="menu-item" role="menuitem" id="network-btn"
+                    title="Configuration réseau du boîtier">Réseau</button>
+            <button type="button" class="menu-item" role="menuitem" id="backup-btn"
+                    title="Archive complète : plateau, réseau, antenne, configurations, mot de passe">Sauvegarde</button>
+            <button type="button" class="menu-item" role="menuitem" id="password-btn">Mot de passe</button>
+            <div class="menu-sep" role="separator"></div>
+            <button type="button" class="menu-item nav-danger" role="menuitem" id="reboot-btn"
+                    title="Redémarre le Raspberry Pi (écran et admin indisponibles ~1 min)">Redémarrer</button>
+          </div>
+        </div>
       </nav>
 
       <div class="top-right">
@@ -60,14 +77,15 @@
     </header>
 
     <div class="admin-body">
-      {# Barre latérale : inventaire des groupes (rendu par le JS) + actions matériel /
-         données / boîtier. L'inventaire dynamique arrive à l'étape C3. #}
+      {# Barre latérale : inventaire des groupes (rendu par le JS) + actions sur les
+         données du plateau + témoin de l'écran de régie. #}
       <aside class="admin-side">
         <div class="side-scroll">
           <nav class="side-nav" id="group-inventory"></nav>
 
-          {# Rangées textuelles pures (registre maquette). Données = ce qu'on manipule ;
-             Boîtier = la machine elle-même (réseau, redémarrage). #}
+          {# Rangées textuelles pures (registre maquette). Il ne reste ici que « Données »,
+             c'est-à-dire le CONTENU du plateau : tout ce qui touche à la machine est parti
+             dans le menu « Réglages » de l'en-tête. #}
           <nav class="side-nav">
             <div class="nav-label">Données</div>
             <button type="button" id="history-btn" class="nav-item" title="Restaurer une publication passée">Historique</button>
@@ -78,15 +96,6 @@
                imprimée survit à une panne d'alimentation, pas un écran. #}
             <a class="nav-item" href="{{ url_for('api.admin_print') }}" target="_blank"
                rel="noopener" title="Feuille d'affectation à imprimer">Feuille imprimable</a>
-          </nav>
-
-          {# Le boîtier lui-même — ce qui survit à une panne matérielle et ce qui protège
-             l'accès. Distinct de « Données », qui ne concerne que le contenu du plateau. #}
-          <nav class="side-nav">
-            <div class="nav-label">Boîtier</div>
-            <button type="button" id="backup-btn" class="nav-item"
-                    title="Archive complète : plateau, réseau, antenne, configurations, mot de passe">Sauvegarde</button>
-            <button type="button" id="password-btn" class="nav-item">Mot de passe</button>
           </nav>
 
           {# Témoin permanent de l'écran de régie (état publié), dans le fil du menu —
@@ -107,8 +116,8 @@
         </div>
         <div class="side-foot">
           <div class="side-foot-row">
+            {# Redémarrer a rejoint « Réglages » : le pied ne garde que la déconnexion. #}
             <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
-            <button type="button" id="reboot-btn" class="nav-item nav-danger" title="Redémarre le Raspberry Pi (écran et admin indisponibles ~1 min)">Redémarrer</button>
           </div>
           <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

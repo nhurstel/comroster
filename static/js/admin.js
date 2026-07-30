@@ -1444,6 +1444,37 @@
   document.getElementById("history-close").addEventListener("click", () => document.getElementById("history-dialog").close());
   document.querySelectorAll("button[data-close]").forEach((b) =>
     b.addEventListener("click", () => document.getElementById(b.dataset.close)?.close()));
+  // ---------- Menu « Réglages » (fonctions du boîtier) ----------
+  // Ce n'est PAS un <dialog> : il ne prend pas le focus à l'ouverture et ne bloque pas
+  // la page. Déclaré AVANT le handler clavier global, qui s'en sert dès la ligne suivante.
+  const settingsBtn = document.getElementById("settings-btn");
+  const settingsMenu = document.getElementById("settings-menu");
+  const settingsOpen = () => !settingsMenu.hidden;
+  function setSettings(open) {
+    settingsMenu.hidden = !open;
+    settingsBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  function closeSettings({ focus = false } = {}) {
+    if (!settingsOpen()) return false;
+    setSettings(false);
+    if (focus) settingsBtn.focus();
+    return true;
+  }
+  settingsBtn.addEventListener("click", (ev) => {
+    // Sans stopPropagation, l'écouteur « clic extérieur » ci-dessous refermerait
+    // aussitôt ce que ce clic vient d'ouvrir.
+    ev.stopPropagation();
+    setSettings(!settingsOpen());
+  });
+  // Choisir un item referme : les trois dialogues et le redémarrage laisseraient sinon
+  // le menu ouvert DERRIÈRE eux, et les deux liens quittent la page de toute façon.
+  settingsMenu.addEventListener("click", (ev) => {
+    if (ev.target.closest(".menu-item")) closeSettings();
+  });
+  document.addEventListener("click", (ev) => {
+    if (settingsOpen() && !ev.target.closest(".tab-menu")) closeSettings();
+  });
+
   window.addEventListener("keydown", (e) => {
     const mod = e.ctrlKey || e.metaKey;
     const tag = document.activeElement?.tagName || "";

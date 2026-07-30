@@ -172,3 +172,43 @@ def test_display_reflects_perf_mode(app, client):
 def test_display_perf_off_by_default(client):
     html = client.get("/display").data.decode()
     assert 'data-perf="off"' in html
+
+
+def _fragment(html, debut, fin):
+    """Découpe le fragment de `html` entre deux marqueurs.
+
+    On borne sur des balises FERMANTES de conteneur (`</nav>`, `</aside>`) et non sur
+    `</div>`, qui serait ambigu : le panneau contient lui-même des `<div>` séparateurs.
+    """
+    i = html.index(debut)
+    return html[i:html.index(fin, i)]
+
+
+def test_reglages_regroupe_les_fonctions_boitier(auth_client):
+    """Les six fonctions du boîtier vivent dans le menu, et NULLE PART AILLEURS.
+
+    Le comptage à 1 est le cœur du test : il échoue aussi bien si une fonction est
+    perdue (0) que si un ancien accès survit ou revient (2). C'est exactement le
+    défaut relevé à la revue du 2026-07-25 (« Système » ouvrait le dialogue de
+    « Réseau », l'aperçu était accessible à deux endroits).
+    """
+    html = auth_client.get("/admin").get_data(as_text=True)
+
+    menu = _fragment(html, 'id="settings-menu"', "</nav>")
+    for cible in ('id="network-btn"', 'id="backup-btn"',
+                  'id="password-btn"', 'id="reboot-btn"', ">Santé<", ">Journal<"):
+        assert cible in menu, f"{cible} absent du menu Réglages"
+        assert html.count(cible) == 1, f"{cible} a {html.count(cible)} accès, il en faut 1"
+
+    # Le déclencheur annonce son panneau, et le panneau part fermé.
+    assert 'id="settings-btn"' in html
+    assert 'aria-expanded="false"' in html
+    assert 'aria-controls="settings-menu"' in html
+    assert 'id="settings-menu" role="menu" hidden' in html
+
+    # Anciens emplacements : la section « Boîtier » de la latérale n'existe plus, et le
+    # pied ne garde que la déconnexion.
+    assert "Boîtier" not in html
+    pied = _fragment(html, 'class="side-foot"', "</aside>")
+    assert "reboot-btn" not in pied
+    assert "logout-link" in pied

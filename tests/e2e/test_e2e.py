@@ -5,6 +5,10 @@ Exclus par défaut (marqueur `e2e`). Lancer :
 """
 import pytest
 
+# `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
+# pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
+from helpers import open_reglages
+
 pytestmark = pytest.mark.e2e
 
 
@@ -439,6 +443,7 @@ def test_indicator_toggles_persist(page, live_server):
 
 def test_network_dialog_sets_static_ip(page, live_server):
     _enter_admin(page, live_server)
+    open_reglages(page)
     page.click("#network-btn")
     page.wait_for_selector("#network-dialog[open]")
     page.select_option("#net-mode", "static")
@@ -559,6 +564,7 @@ def test_undo_redo_scoped_to_the_draft(page, live_server):
     doit être intacte après.
     """
     _enter_admin(page, live_server)
+    open_reglages(page)
     page.click("#network-btn")
     page.wait_for_selector("#network-dialog[open]")
     page.select_option("#net-mode", "static")
@@ -583,6 +589,7 @@ def test_undo_redo_scoped_to_the_draft(page, live_server):
     page.wait_for_selector("#blocks-container >> text=Lumière")
 
     # La config du boîtier n'a pas bougé d'un iota au passage.
+    open_reglages(page)
     page.click("#network-btn")
     page.wait_for_selector("#network-dialog[open]")
     assert page.input_value("#net-address") == "192.168.1.50"

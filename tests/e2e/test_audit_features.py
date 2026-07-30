@@ -9,6 +9,10 @@ import re
 
 import pytest
 
+# `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
+# pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
+from helpers import open_reglages
+
 pytestmark = pytest.mark.e2e
 
 
@@ -88,6 +92,7 @@ def test_l_import_conserve_le_nom_de_production_et_la_taille_du_texte(page, live
 def test_changer_le_mot_de_passe_depuis_l_admin(page, live_server):
     erreurs, _ = _collect_console(page)
     _enter_admin(page, live_server)
+    open_reglages(page)
     page.click("#password-btn")
     page.wait_for_selector("#password-dialog[open]")
     page.fill("#pw-current", "motdepasse8")
@@ -118,6 +123,7 @@ def test_sauvegarder_puis_restaurer_le_boitier(page, live_server):
     page.click("#block-form button[type=submit]")
     page.wait_for_selector("#blocks-container >> text=Lumière")
 
+    open_reglages(page)
     page.click("#backup-btn")
     page.wait_for_selector("#backup-dialog[open]")
     page.fill("#bk-pass", "phrase-de-passe")
@@ -133,6 +139,7 @@ def test_sauvegarder_puis_restaurer_le_boitier(page, live_server):
     page.click("#confirm-ok")
     page.wait_for_selector(".admin-block", state="detached")
 
+    open_reglages(page)
     page.click("#backup-btn")
     page.wait_for_selector("#backup-dialog[open]")
     page.set_input_files("#bk-file", chemin)
@@ -159,6 +166,7 @@ def test_sauvegarder_puis_restaurer_le_boitier(page, live_server):
 
 def test_une_mauvaise_phrase_de_passe_le_dit_et_ne_restaure_rien(page, live_server):
     _enter_admin(page, live_server)
+    open_reglages(page)
     page.click("#backup-btn")
     page.fill("#bk-pass", "phrase-de-passe")
     with page.expect_download() as dl:
