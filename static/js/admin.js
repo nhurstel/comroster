@@ -1466,8 +1466,8 @@
     ev.stopPropagation();
     setSettings(!settingsOpen());
   });
-  // Choisir un item referme : les trois dialogues et le redémarrage laisseraient sinon
-  // le menu ouvert DERRIÈRE eux, et les deux liens quittent la page de toute façon.
+  // Choisir un item referme : les trois dialogues laisseraient sinon le menu ouvert
+  // DERRIÈRE eux, et les deux liens quittent la page de toute façon.
   settingsMenu.addEventListener("click", (ev) => {
     if (ev.target.closest(".menu-item")) closeSettings();
   });

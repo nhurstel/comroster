@@ -2,8 +2,15 @@
 
 **Date :** 2026-07-30
 **Demande Nathan :** « déplacer Réseau, Sauvegarde, Mot de passe, Journal et Santé dans un
-nouveau menu à part ». Nom retenu : **Réglages**. Contenu retenu : les cinq **+ Redémarrer**,
-en **menu déroulant**.
+nouveau menu à part ». Nom retenu : **Réglages**, en **menu déroulant**.
+
+> ⚠️ **Révisé en cours d'implémentation.** Le contenu retenu au moment d'écrire cette spec
+> était « les cinq + Redémarrer ». Nathan a tranché autrement une fois le menu à l'écran :
+> « on va rebouger le bouton redémarrer à côté du "déconnexion", il y sera mieux ».
+> **Redémarrer reste donc au pied de la barre latérale** et le menu compte cinq items avec
+> un seul filet séparateur. Les mentions de Redémarrer aux §3, §4 et §7 ci-dessous décrivent
+> l'intention initiale, pas le résultat livré ; l'état réel est consigné dans
+> [tasks/todo.md](../../../tasks/todo.md), section « LOT 2026-07-30 ».
 
 ---
 

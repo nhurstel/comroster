@@ -28,9 +28,10 @@
       </div>
 
       <nav class="admin-tabs" role="tablist" aria-label="Sections de l'administration">
-        {# Affectations et Écran sont des panneaux. UN accès par fonction : l'antenne
-           passe par son onglet-voyant, et TOUT ce qui concerne le boîtier lui-même
-           (consultation, configuration, redémarrage) passe par « Réglages ». #}
+        {# Affectations et Écran sont des panneaux. UN accès par fonction : l'antenne passe
+           par son onglet-voyant, et ce qui concerne le boîtier lui-même — consultation
+           (Santé, Journal) et configuration (Réseau, Sauvegarde, Mot de passe) — passe par
+           « Réglages ». Redémarrer, lui, vit au pied de la latérale, avec Déconnexion. #}
         <button type="button" class="tab" data-tab="board" role="tab" aria-selected="true">Affectations</button>
         <button type="button" class="tab" data-tab="screen" role="tab" aria-selected="false">Écran</button>
         {# Intercom garde son accès direct : il PORTE le voyant d'état en direct, et un
@@ -40,9 +41,9 @@
         <div class="tab-menu">
           <button type="button" class="tab" id="settings-btn" aria-haspopup="true"
                   aria-expanded="false" aria-controls="settings-menu">Réglages<span class="tab-chev" aria-hidden="true">▾</span></button>
-          {# Trois blocs : on consulte, puis on configure, puis on redémarre. L'ordre va
-             du inoffensif au destructeur, et les ids sont ceux d'avant le déplacement —
-             les quatre addEventListener d'admin.js n'ont donc rien à changer. #}
+          {# Deux blocs : on consulte (pages), puis on configure (dialogues). Les ids sont
+             ceux d'avant le déplacement — les addEventListener d'admin.js, branchés par id,
+             n'ont donc rien eu à changer. #}
           <div class="menu-pop" id="settings-menu" role="menu" hidden>
             <a class="menu-item" role="menuitem" href="{{ url_for('api.health_page') }}">Santé</a>
             <a class="menu-item" role="menuitem" href="{{ url_for('api.journal_page') }}">Journal</a>
