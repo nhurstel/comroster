@@ -61,7 +61,25 @@
 .print-bar a { color: var(--ink-soft); text-decoration: none; }
 .print-bar a:hover { color: var(--ink); text-decoration: underline; }
 .print-source { font-weight: 600; }
-.print-swap { margin-left: auto; }
+/* Les réglages portent désormais le `margin-left: auto` : c'est eux qui doivent être
+   poussés à droite, le lien de bascule restant accolé à la source qu'il commente. */
+.print-swap { margin-left: 0; }
+
+/* ---------- Réglages : écran seulement ---------- */
+.print-opts { display: flex; align-items: center; gap: 1rem; margin-left: auto; font-size: 9pt; }
+.opt { display: flex; align-items: center; gap: .35rem; color: var(--ink-soft); }
+.opt select { font: inherit; padding: .15rem .3rem; }
+.opt-seg span[role="group"] { display: inline-flex; }
+.opt-seg button {
+  font: inherit;
+  padding: .15rem .5rem;
+  cursor: pointer;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink-soft);
+}
+.opt-seg button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.opt-seg button:disabled { opacity: .45; cursor: not-allowed; }
 .print-go {
   padding: .45rem 1.1rem;
   border: 1px solid var(--ink);
@@ -129,6 +147,29 @@
 }
 .sheet-group-long { break-inside: auto; page-break-inside: auto; }
 .sheet-group-long .sheet-table thead { display: table-header-group; }
+
+/* Réidentification d'un groupe coupé. Le `<thead>` est le seul élément que le navigateur
+   répète en haut de chaque colonne ou page : le nom du groupe y vit donc, et n'est montré
+   que pour les groupes coupables — les autres portent déjà leur `<h2>`, qui serait alors
+   dit deux fois. Sans cela, la suite d'un groupe n'est qu'une liste de numéros orpheline. */
+.sheet-thead-name { display: none; }
+.sheet-group-long .sheet-thead-name { display: table-row; }
+.sheet-group-long > .sheet-group-name { display: none; }
+/* `.sheet-table th` a la MÊME spécificité (0,1,1) et vient plus bas dans le fichier :
+   une classe seule ne suffit donc jamais à surcharger une règle générique posée sur un
+   élément, il faut qualifier (leçon 2026-07-23 n°29). Vérifié au rendu, pas à l'œil sur
+   le code : sans cette qualification le nom sortait en petites capitales grises. */
+.sheet-table .sheet-thead-name th {
+  padding: 0 0 .35rem;
+  border-bottom: none;
+  font-size: 12pt;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--ink);
+}
+/* Le filet reprend l'alignement qu'il a dans un `<h2>`, où il est posé en flex. */
+.sheet-thead-name .sheet-rule { vertical-align: -.12em; margin-right: .4rem; }
 
 .sheet-group-name {
   display: flex;
@@ -255,7 +296,11 @@
   .print-page { padding: 0; }
   .sheet-head { padding: 0 0 4mm; }
   .sheet-groups { padding: 4mm 0 0; }
-  .sheet-foot { padding: 3mm 0 0; }
+  /* Le pied ordinaire DISPARAÎT au profit du bandeau, qui dit la même chose sur
+     CHAQUE page. Le garder posait une ligne orpheline au milieu du vide dès que le
+     contenu ne remplissait pas la feuille, et répétait l'information deux fois. Le
+     bandeau porte donc la marque et le co-branding. */
+  .sheet-foot { display: none; }
   /* L'en-tête de groupe ne doit pas rester seul en bas de colonne. */
   .sheet-group-name { break-after: avoid; page-break-after: avoid; }
 

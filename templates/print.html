@@ -11,7 +11,9 @@
 </head>
 <body class="print-page">
 
-  {# Barre d'action : à l'écran seulement, `@media print` la retire. #}
+  {# Barre d'action et de réglages : à l'écran seulement, `@media print` la retire.
+     Tout est visible d'un coup — replier ces options dans un menu déroulant irait
+     contre la demande, qui était justement que le menu n'était pas assez complet. #}
   <div class="print-bar">
     <a class="print-back" href="{{ url_for('api.admin_page') }}">← Administration</a>
     <span class="print-source">
@@ -24,6 +26,30 @@
         <a href="{{ url_for('api.admin_print', draft=1) }}">Imprimer le brouillon</a>
       {% endif %}
     </span>
+
+    <div class="print-opts">
+      <label class="opt"><span>Format</span>
+        <select id="opt-format">
+          <option value="a3-portrait">A3 portrait</option>
+          <option value="a3-paysage">A3 paysage</option>
+          <option value="a4-portrait">A4 portrait</option>
+          <option value="a4-paysage">A4 paysage</option>
+          <option value="a5-portrait">A5 portrait</option>
+        </select>
+      </label>
+      <span class="opt opt-seg"><span>Colonnes</span>
+        <span id="opt-cols" role="group" aria-label="Nombre de colonnes">
+          <button type="button" data-valeur="1">1</button>
+          <button type="button" data-valeur="2">2</button>
+          <button type="button" data-valeur="3">3</button>
+        </span>
+      </span>
+      <label class="opt"><input type="checkbox" id="opt-visa"> Visa</label>
+      <label class="opt"><input type="checkbox" id="opt-cases"> Cases</label>
+      <label class="opt"><input type="checkbox" id="opt-reserve"> Non affectés</label>
+      <label class="opt"><input type="checkbox" id="opt-par-page"> 1 groupe/page</label>
+    </div>
+
     <button type="button" id="print-now" class="print-go">Imprimer</button>
   </div>
 
@@ -63,10 +89,21 @@
         </h2>
         {% if membres %}
           <table class="sheet-table">
-            <thead><tr><th class="c-bp">N°</th><th class="c-role">Rôle</th><th class="c-sign">Visa</th></tr></thead>
+            <thead>
+              {# Un groupe coupable doit se RÉIDENTIFIER en haut de chaque colonne où il
+                 reprend : sans ça, la suite n'est qu'une liste de numéros orpheline —
+                 précisément ce qui fait rater une affectation. Le `<thead>` étant le seul
+                 élément que le navigateur répète, le nom vit ici. Masqué par CSS pour les
+                 groupes courts, qui portent déjà leur `<h2>`. #}
+              <tr class="sheet-thead-name"><th colspan="4">
+                <span class="sheet-rule" data-color="{{ group.color or '#555555' }}"></span>
+                {{ group.name }}
+              </th></tr>
+              <tr><th class="c-bp">N°</th><th class="c-role">Rôle</th><th class="c-remis">Remis</th><th class="c-sign">Visa</th></tr>
+            </thead>
             <tbody>
               {% for p in membres %}
-                <tr><td class="c-bp">{{ p.beltpack }}</td><td class="c-role">{{ p.role or '—' }}</td><td class="c-sign"></td></tr>
+                <tr><td class="c-bp">{{ p.beltpack }}</td><td class="c-role">{{ p.role or '—' }}</td><td class="c-remis">☐</td><td class="c-sign"></td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -84,15 +121,25 @@
           <span class="sheet-count">{{ reserve|length }}</span>
         </h2>
         <table class="sheet-table">
-          <thead><tr><th class="c-bp">N°</th><th class="c-role">Rôle</th><th class="c-sign">Visa</th></tr></thead>
+          <thead><tr><th class="c-bp">N°</th><th class="c-role">Rôle</th><th class="c-remis">Remis</th><th class="c-sign">Visa</th></tr></thead>
           <tbody>
             {% for p in reserve %}
-              <tr><td class="c-bp">{{ p.beltpack }}</td><td class="c-role">{{ p.role or '—' }}</td><td class="c-sign"></td></tr>
+              <tr><td class="c-bp">{{ p.beltpack }}</td><td class="c-role">{{ p.role or '—' }}</td><td class="c-remis">☐</td><td class="c-sign"></td></tr>
             {% endfor %}
           </tbody>
         </table>
       </section>
     {% endif %}
+  </div>
+
+  {# Répété au pied de CHAQUE page à l'impression : une conduite qui se sépare doit
+     rester identifiable feuille par feuille. #}
+  <div class="sheet-band">
+    {{ state.production_name or state.title or 'Affectation Intercom' }} ·
+    {% if is_draft %}Brouillon{% else %}Publié{% endif %} · édité le {{ printed_at }}
+    {#- Le bandeau REMPLACE le pied à l'impression : il porte donc la marque, sinon le
+        co-branding disparaîtrait du papier. #}
+    · {% if brand.active %}{{ brand.name }} · Propulsé par ComRoster{% else %}ComRoster{% endif %}
   </div>
 
   <footer class="sheet-foot">
@@ -102,6 +149,6 @@
     {%- if brand.active %} · Propulsé par ComRoster{% endif %}
   </footer>
 
-  <script src="{{ url_for('static', filename='js/print.js') }}"></script>
+  <script type="module" src="{{ url_for('static', filename='js/print.js') }}"></script>
 </body>
 </html>
