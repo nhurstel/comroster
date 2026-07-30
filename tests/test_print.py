@@ -78,3 +78,18 @@ def test_le_pluriel_des_beltpacks_est_accorde(auth_client):
     auth_client.post("/api/publish")
     html = auth_client.get("/admin/print").get_data(as_text=True)
     assert "1 beltpack" in html and "1 beltpacks" not in html
+
+
+def test_l_admin_nomme_la_fonction_impression(auth_client):
+    """« Feuille imprimable » décrivait l'objet produit ; « Impression » décrit ce que
+    l'utilisateur vient faire. Nommer par la fonction, pas par l'artefact (leçon 37)."""
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert ">Impression</a>" in html
+    assert "Feuille imprimable" not in html
+
+
+def test_le_titre_de_la_page_porte_le_nouveau_nom(plateau):
+    html = plateau.get("/admin/print").get_data(as_text=True)
+    titre = html.split("<title>", 1)[1].split("</title>", 1)[0]
+    assert titre.startswith("Impression")
+    assert "Feuille d'affectation" not in titre

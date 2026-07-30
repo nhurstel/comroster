@@ -103,7 +103,7 @@ def brand_logo():
 
 @bp.get("/branding/logo-print")
 def brand_logo_print():
-    """Variante encre noire, pour la feuille imprimable."""
+    """Variante encre noire, pour la feuille à imprimer."""
     return _servir_logo("print_logo_path")
 
 

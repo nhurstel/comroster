@@ -1,7 +1,7 @@
 """Bout-en-bout des correctifs et ajouts de l'audit 2026-07-28.
 
 Ces fonctions vivent dans le navigateur : compteur d'afficheurs, dialogues de sauvegarde
-et de mot de passe, repères d'historique, découverte d'antenne, feuille imprimable. Les
+et de mot de passe, repères d'historique, découverte d'antenne, impression. Les
 valider en DOM seul ne prouverait rien (leçon 2026-07-07) — on passe donc par un vrai
 navigateur, et on vérifie la console à chaque fois.
 """
@@ -208,7 +208,7 @@ def test_nommer_et_epingler_une_publication(page, live_server):
     page.wait_for_selector(".hi-row.pinned .hi-label:has-text('Générale')")
 
 
-# ---------- C4. Feuille imprimable ----------
+# ---------- C4. Impression ----------
 
 def test_la_feuille_imprimable_s_ouvre_et_liste_les_affectations(page, live_server):
     _enter_admin(page, live_server)

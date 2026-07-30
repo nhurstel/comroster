@@ -188,7 +188,7 @@ def test_un_logo_monochrome_reste_inverse_en_theme_jour(client_avec_pack):
 
 
 # ---------------------------------------------------------------------------
-# Rendu de la feuille imprimable
+# Rendu de la feuille à imprimer
 # ---------------------------------------------------------------------------
 
 

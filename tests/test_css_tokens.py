@@ -25,7 +25,7 @@ GROUPES = {
     "écran de régie": ["main.css", "display.css", "skins.css"],
     "administration": ["admin.css"],
     "connexion": ["main.css", "auth.css"],
-    "feuille imprimable": ["print.css"],
+    "impression": ["print.css"],
 }
 
 DEFINITION = re.compile(r"(--[a-zA-Z0-9_-]+)\s*:")

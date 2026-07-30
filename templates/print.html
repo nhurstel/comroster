@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Feuille d'affectation · {{ state.title or 'ComRoster' }}</title>
+  <title>Impression · {{ state.production_name or state.title or 'ComRoster' }}</title>
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/comroster-badge.svg') }}">
   {# Feuille dédiée : la conduite papier n'a rien à voir avec l'écran de régie (encre
      noire sur blanc, pas de couleur d'aplat à imprimer, pas d'indicateur temps réel). #}

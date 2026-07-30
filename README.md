@@ -215,7 +215,7 @@ code à toute l'équipe.
 
 ## Feuille d'affectation imprimable
 
-`Feuille imprimable` (section « Données ») ouvre `/admin/print` : une conduite papier, en
+`Impression` (section « Données ») ouvre `/admin/print` : une conduite papier, en
 deux colonnes, avec une colonne de visa. Les régies travaillent sur papier, et c'est le
 filet quand le boîtier tombe — une feuille imprimée survit à une panne d'alimentation.
 Comme l'aperçu, elle rend l'état **publié** par défaut ; `?draft=1` imprime le brouillon.

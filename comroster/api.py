@@ -77,7 +77,7 @@ def admin_preview():
 @bp.get("/admin/print")
 @login_required
 def admin_print():
-    """Feuille d'affectation imprimable.
+    """Feuille d'affectation à imprimer (fonction « Impression » de l'admin).
 
     Les régies travaillent sur papier, et c'est le filet quand le boîtier tombe : une
     conduite imprimée survit à une panne d'alimentation, pas un écran. Comme
