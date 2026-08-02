@@ -78,6 +78,9 @@ def test_l_import_conserve_le_nom_de_production_et_la_taille_du_texte(page, live
     exporte = page.evaluate("async () => JSON.stringify(await (await fetch('/api/state')).json())")
     page.set_input_files("#import-input", files=[{
         "name": "essai.rost", "mimeType": "application/json", "buffer": exporte.encode()}])
+    # L'import remplace TOUT le plateau : il demande maintenant confirmation.
+    page.wait_for_selector("#confirm-dialog[open]")
+    page.click("#confirm-ok")
     page.wait_for_selector("#sync-status:not([data-state='syncing'])", state="attached")
     page.reload()
     # L'onglet actif est PERSISTÉ : on revient sur « Écran », donc le bouton du panneau

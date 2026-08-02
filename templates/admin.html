@@ -90,9 +90,10 @@
           <nav class="side-nav">
             <div class="nav-label">Données</div>
             <button type="button" id="history-btn" class="nav-item" title="Restaurer une publication passée">Historique</button>
+            {# Importer / Exporter vivaient ici, en rangées voisines. Ils manipulent le
+               MÊME objet que « Configurations » — l'état du plateau — seule la destination
+               change (le boîtier ou un fichier) : ils sont passés dans son dialogue. #}
             <button type="button" id="configs-btn" class="nav-item">Configurations</button>
-            <label class="nav-item import-label">Importer<input type="file" id="import-input" accept=".rost,application/json"></label>
-            <button type="button" id="export-btn" class="nav-item">Exporter</button>
             {# La feuille papier est le filet quand le boîtier tombe : une conduite
                imprimée survit à une panne d'alimentation, pas un écran.
                Elle s'ouvrait dans un onglet du NAVIGATEUR, où l'on perdait l'admin de vue ;
@@ -659,6 +660,18 @@
         <button type="button" id="config-save-btn" class="primary">Sauvegarder</button>
       </div>
       <ul id="configs-list" class="configs-list"></ul>
+      {# Le même plateau, mais rangé DEHORS : un fichier .rost sur une clé se transporte
+         d'un boîtier à l'autre, une configuration enregistrée non. L'étiquette « Exporter
+         le plateau » nomme sa source — sans elle, deux boutons « Exporter » se répondent
+         dans le même dialogue (celui-ci et celui de chaque rangée) sans qu'on sache
+         lequel prend quoi. L'input reste un input : c'est le seul moyen d'ouvrir le
+         sélecteur de fichiers, mais c'est le bouton qui porte l'apparence. #}
+      <div class="cfg-file">
+        <span class="cfg-file-label">Fichier</span>
+        <button type="button" id="import-btn">Importer…</button>
+        <button type="button" id="export-btn">Exporter le plateau</button>
+        <input type="file" id="import-input" accept=".rost,application/json" hidden>
+      </div>
       <div class="dialog-actions"><button type="button" data-close="configs-dialog">Fermer</button></div>
     </form>
   </dialog>

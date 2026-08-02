@@ -251,6 +251,25 @@ def load_config(name):
     return jsonify({"ok": True})
 
 
+@bp.get("/api/configs/<name>/export")
+@login_required
+def export_config(name):
+    """Contenu d'une configuration, SANS effet de bord.
+
+    `/load` est l'autre accès à ce contenu, mais il écrase le brouillon et déconnecte
+    l'antenne : impossible d'y câbler un bouton « Exporter » sans détruire le plan de
+    travail en cours. Pas d'`@exclusive_state` (rien n'est écrit) et rien au journal —
+    c'est une lecture, comme `/api/state`.
+    """
+    try:
+        data = _configs().read(name)
+    except KeyError:
+        return jsonify({"error": "not_found"}), 404
+    return jsonify({"name": data.get("name", name),
+                    "slug": _configs().slug(name),
+                    "state": data["state"]})
+
+
 @bp.delete("/api/configs/<name>")
 @login_required
 def delete_config(name):

@@ -266,8 +266,7 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 body:has(#antenna-dialog[open]) #antenna-btn,
 body:has(#network-dialog[open]) #network-btn,
 body:has(#history-dialog[open]) #history-btn,
-body:has(#configs-dialog[open]) #configs-btn,
-body:has(#import-dialog[open]) #export-btn {
+body:has(#configs-dialog[open]) #configs-btn {
     background: rgb(217 98 83 / 0.14); color: var(--fg);
     box-shadow: inset 2px 0 0 var(--accent);
 }
@@ -1114,6 +1113,14 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .configs-list .cfg-actions { display: flex; gap: 5px; }
 .save-row { display: flex; gap: 8px; }
 .save-row input { flex: 1; }
+/* Pied « Fichier » du dialogue Configurations : l'autre destination du même plateau.
+   Le filet le sépare de la liste — au-dessus ce qui vit dans le boîtier, en dessous ce
+   qui en sort. Les boutons prennent le style de `.admin-dialog button`, rien à surcharger. */
+.cfg-file {
+    display: flex; align-items: center; gap: 8px;
+    padding-top: 11px; border-top: 1px solid var(--border-soft);
+}
+.cfg-file-label { color: var(--fg-muted); font-size: var(--ui); font-weight: 600; margin-right: auto; }
 
 /* ---------- Menu contextuel ---------- */
 .context-menu {

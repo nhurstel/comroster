@@ -969,3 +969,61 @@ plus au démarrage (~21 Ko). En échange, deux documents et leurs deux en-têtes
 
 **Reste à faire — le seul point qui demande Nathan :** juger les trois panneaux à l'œil sur
 le boîtier. Les captures disent que rien ne déborde ; elles ne disent pas si ça lui plaît.
+
+---
+
+## Lot « Configurations : le plateau et ses fichiers » — 2026-07-31
+
+**Demande de Nathan :** « déplacer Importer et Exporter directement dans Configurations,
+c'est plus logique non ? », puis « sur chaque config enregistrée j'aimerai qu'on puisse
+cliquer sur exporter » et « oui, demander confirmation » pour l'import.
+
+**Pourquoi c'est juste :** les trois manipulent le MÊME objet — l'état du plateau. Seule
+la destination change : le boîtier (configuration nommée) ou un fichier `.rost`
+transportable. La latérale « Données » retombe à trois rangées : Historique,
+Configurations, Impression.
+
+### Livré
+- [x] **Route `GET /api/configs/<name>/export`** — lecture pure. `/load` était le seul
+      autre accès au contenu d'une config, mais il écrase le brouillon ET déconnecte
+      l'antenne : y câbler « Exporter » aurait détruit le plan de travail pour un simple
+      téléchargement. Pas d'`@exclusive_state` (rien n'est écrit), rien au journal.
+- [x] **`Configs.read()` / `Configs.slug()`** — `load()` délègue désormais à `read()`
+      (contrat inchangé). Durcissement au passage : un enregistrement sans clé `state`
+      lève `KeyError` comme un fichier absent, au lieu de faire remonter un KeyError de
+      dictionnaire que le handler n'attrape pas (→ 500).
+- [x] **Dialogue élargi** : `[Charger] [Exporter] [Supprimer]` par rangée, et un pied
+      « Fichier » séparé par un filet — `[Importer…] [Exporter le plateau]`.
+- [x] **`downloadRost(data, nom)`** remplace `exportConfig()` : une seule fabrique de
+      fichier pour deux sources — l'écran (brouillon compris) et le disque, relu par
+      l'API. Le fichier d'une config porte son nom (`comroster-jour-2.rost`).
+- [x] **Confirmation d'import**, après lecture et validation du JSON (le sélecteur de
+      fichiers du système s'ouvre en premier ; faire confirmer un fichier illisible
+      n'apporterait rien). Le nom du fichier est rappelé dans la question.
+
+### Vérifié
+521 unitaires (+4) · 56 e2e (+3) · 40 JS · ruff propre · dialogue rendu et mesuré à
+1440×900 (aucun débordement, console vide).
+
+**Trois gardes confrontées à leur mutation**, chacune vue tomber :
+confirmation retirée → l'e2e « annuler laisse le plateau intact » tombe ; export de
+rangée lisant `state.data` au lieu de l'API → l'assertion de CONTENU tombe (mutation
+affinée exprès pour ne pas se contenter du nom de fichier) ; `#export-btn` remis dans la
+latérale → la garde structurelle tombe (elle teste l'APPARTENANCE au dialogue, pas la
+présence dans la page).
+
+### Trouvé en chemin, hors demande
+- **Vestige CSS faux** : `body:has(#import-dialog[open]) #export-btn` surlignait
+  « Exporter » quand s'ouvrait le récap d'import des BELTPACKS depuis l'antenne — deux
+  choses sans rapport, qui partagent un mot. Supprimé avec le bouton.
+- **Collision de noms pytest préexistante** : `tests/test_panneaux.py` et
+  `tests/e2e/test_panneaux.py`. Elle interrompait la collecte de la suite ENTIÈRE dès que
+  les `__pycache__` étaient nettoyés. E2e renommé `test_panneaux_navigation.py`.
+- **`_wait_saved` promue** dans `tests/e2e/helpers.py` (sous le nom `wait_saved`) : tout
+  test qui fait relire le brouillon PAR LE SERVEUR doit l'attendre.
+
+### Signalé, pas corrigé (décision de Nathan)
+« Supprimer » ne se distingue pas visuellement dans la liste : il porte bien
+`class="chip-btn danger"`, mais la règle rouge est `.admin-dialog .dialog-actions .danger`
+et ne couvre pas la liste. Défaut préexistant, rendu plus sensible par le troisième
+bouton de la rangée.

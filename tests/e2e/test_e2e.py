@@ -7,7 +7,7 @@ import pytest
 
 # `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
 # pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
-from helpers import open_reglages
+from helpers import open_reglages, wait_saved
 
 pytestmark = pytest.mark.e2e
 
@@ -80,19 +80,6 @@ def _open_screen_tab(page):
     page.wait_for_selector("#skin-select", state="visible")
 
 
-def _wait_saved(page):
-    """Attend la FIN du cycle d'enregistrement du brouillon.
-
-    Depuis la revue « un bouton par fonction », la chip d'état n'affiche plus un libellé
-    figé « Brouillon enregistré » : sitôt la sauvegarde finie elle retourne à sa vérité
-    (« N en attente » / « À jour »), qui dépend de l'écart publié. Le signal fiable est
-    donc le CYCLE : « Enregistrement… » (data-state=syncing, tenu ≥ 500 ms par le
-    debounce — immanquable si on appelle ce helper juste après l'édition) puis sa sortie.
-    """
-    page.wait_for_selector("#sync-status[data-state='syncing']")
-    page.wait_for_selector("#sync-status:not([data-state='syncing'])")
-
-
 def _wait_frame(page, name, timeout_ms=6000):
     """Attend l'iframe portant ce `name`. Deux aperçus coexistent (le témoin de la barre
     latérale et le grand), donc on ne peut plus les distinguer par leur URL."""
@@ -115,7 +102,7 @@ def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie",
     if skin:
         _open_screen_tab(page)
         page.select_option("#skin-select", skin)
-        _wait_saved(page)                                  # brouillon écrit
+        wait_saved(page)                                  # brouillon écrit
         # Retour à l'onglet Affectations : le bouton « + Groupe » y vit.
         page.click('.admin-tabs .tab[data-tab="board"]')
         page.wait_for_selector("#add-block-btn", state="visible")
@@ -222,7 +209,7 @@ def test_mode_performance_supprime_la_transition(page, live_server):
     _enter_admin(page, live_server)
     _open_screen_tab(page)
     page.check("#meta-perf")
-    _wait_saved(page)
+    wait_saved(page)
     page.click('.admin-tabs .tab[data-tab="board"]')
     page.wait_for_selector("#add-block-btn", state="visible")
 
@@ -353,7 +340,7 @@ def test_preview_tracks_published_and_opens_no_sse(page, live_server):
     page.click("#add-block-btn")
     page.fill("#block-name", "Régie")
     page.click("#block-form button[type=submit]")
-    _wait_saved(page)                                     # brouillon écrit, jamais publié
+    wait_saved(page)                                     # brouillon écrit, jamais publié
 
     # Le témoin est chargé sans qu'on ait rien ouvert, et reste VIDE : rien n'est publié.
     mini = _wait_frame(page, "preview-mini")
@@ -430,7 +417,7 @@ def test_indicator_toggles_persist(page, live_server):
     # Réglages dans l'onglet « Écran » (plus de dialog) : décocher enregistre en direct.
     _open_screen_tab(page)
     page.uncheck("#ind-battery")
-    _wait_saved(page)                                     # brouillon sauvegardé
+    wait_saved(page)                                     # brouillon sauvegardé
     page.reload()
     # L'onglet actif est RESTAURÉ au rechargement : on repart donc dans « Écran ».
     # Avant, rafraîchir depuis les réglages ramenait sur « Affectations » — signalé à

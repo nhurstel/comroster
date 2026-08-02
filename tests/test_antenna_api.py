@@ -187,6 +187,44 @@ def test_configs_save_load_disconnects(auth_client, app, monkeypatch):
     assert app.extensions["antenna"].connected is False
 
 
+def test_config_export_lit_sans_rien_changer(auth_client, app, monkeypatch):
+    """Exporter une configuration enregistrée ne doit RIEN toucher.
+
+    C'est toute la raison d'être de cette route : `/load` est le seul autre accès au
+    contenu d'une config, et il écrase le brouillon ET déconnecte l'antenne. Un bouton
+    « Exporter » câblé dessus téléchargerait le fichier en détruisant le plan de travail
+    en cours — d'où des assertions sur les effets de bord ABSENTS autant que sur le corps.
+    """
+    monkeypatch.setattr(app.extensions["antenna"], "_request", _fake_three)
+    auth_client.post("/api/antenna/connect", json={"ip": "1.1.1.1", "password": ""})
+    auth_client.post("/api/antenna/import/apply")
+    auth_client.post("/api/configs", json={"name": "Jour 2"})
+    enregistre = [p["beltpack"] for p in auth_client.get("/api/state").get_json()["people"]]
+
+    r = auth_client.get("/api/configs/Jour 2/export")
+    assert r.status_code == 200
+    corps = r.get_json()
+    assert corps["name"] == "Jour 2"
+    # Le slug nomme le fichier téléchargé (« comroster-jour-2.rost ») : sans lui le
+    # navigateur reçoit un horodatage, illisible dès qu'on en range trois côte à côte.
+    assert corps["slug"] == "jour-2"
+    assert [p["beltpack"] for p in corps["state"]["people"]] == enregistre
+
+    # Effets de bord : aucun. Le brouillon et l'antenne sont dans l'état d'avant l'appel.
+    assert [p["beltpack"] for p in auth_client.get("/api/state").get_json()["people"]] \
+        == enregistre
+    assert app.extensions["antenna"].connected is True
+
+
+def test_config_export_inconnue(auth_client):
+    assert auth_client.get("/api/configs/Fantome/export").status_code == 404
+
+
+def test_config_export_exige_une_session(app):
+    anonyme = app.test_client()
+    assert anonyme.get("/api/configs/Jour 2/export").status_code == 401
+
+
 def test_connect_rejects_non_ip_host(client):
     # Anti-SSRF : seul un littéral IP est accepté, pas un nom d'hôte/une URL
     client.post("/admin/setup", data={"password": "motdepasse8"})

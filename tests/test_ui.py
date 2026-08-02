@@ -129,6 +129,30 @@ def test_admin_has_configs_and_selection(auth_client):
     assert 'id="selection-delete"' in html
 
 
+def test_les_commandes_de_fichier_vivent_dans_le_dialogue_configs(auth_client):
+    """Importer / Exporter sont DANS le dialogue « Configurations », plus dans la latérale.
+
+    Assertion d'APPARTENANCE, pas de présence : un `assert 'id="export-btn"' in html`
+    resterait vert si le bouton était resté dans la barre latérale, et ne garderait donc
+    rien du déplacement. On découpe le dialogue (ils ne s'imbriquent pas) et on regarde
+    dedans, puis dans le reste du document.
+    """
+    html = auth_client.get("/admin").get_data(as_text=True)
+    dialogue = re.search(r'<dialog id="configs-dialog".*?</dialog>', html, re.DOTALL)
+    assert dialogue, "dialogue Configurations introuvable"
+    dedans = dialogue.group(0)
+    dehors = html.replace(dedans, "")
+
+    for cible in ('id="import-btn"', 'id="import-input"', 'id="export-btn"'):
+        assert cible in dedans, f"{cible} devrait être dans le dialogue"
+        assert cible not in dehors, f"{cible} traîne encore hors du dialogue"
+
+    # Le sélecteur de fichiers reste ouvrable : le bouton ne peut pas s'en passer.
+    assert 'type="file"' in dedans
+    # La latérale « Données » n'a plus ses deux rangées de fichier.
+    assert "import-label" not in html
+
+
 def test_display_page_renders(client):
     r = client.get("/display")
     assert r.status_code == 200

@@ -1254,16 +1254,20 @@
     }
   }
 
-  /* ---------- Export / Import ---------- */
-  function exportConfig() {
+  /* ---------- Export / Import ----------
+     Deux sources possibles pour un même fichier : le plateau À L'ÉCRAN (modifications
+     non enregistrées comprises) et une configuration SUR LE DISQUE, relue par l'API.
+     La fabrication du fichier, elle, est identique — d'où une seule fonction. */
+  function downloadRost(data, nom) {
     // Fichier de configuration ComRoster — extension .rost (contenu JSON).
-    const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `comroster-${Date.now()}.rost`;
+    a.download = `comroster-${nom}.rost`;
     document.body.append(a); a.click(); a.remove();
     URL.revokeObjectURL(a.href);
   }
+  const exportConfig = () => downloadRost(state.data, Date.now());
   /* Reconstruction du brouillon depuis un fichier importé.
 
      On NE RÉÉNUMÈRE PLUS les champs à la main. L'ancienne version listait les clés une à
@@ -1279,7 +1283,7 @@
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       let json;
       try {
         json = JSON.parse(ev.target.result);
@@ -1287,11 +1291,23 @@
       if (!json || typeof json !== "object" || Array.isArray(json)) {
         toast("Fichier invalide : structure inattendue.", true); return;
       }
+      /* La confirmation ne peut venir qu'ICI : le sélecteur de fichiers du système
+         s'ouvre en premier, et faire confirmer un fichier illisible n'apporterait rien.
+         Elle existe parce que l'import remplace TOUT le plateau — le voisin de dialogue
+         (« Charger ») demande la même chose pour le même geste. */
+      if (!await confirmDialog(
+        `Remplacer le plateau actuel par « ${file.name} » ? Le travail en cours sera perdu.`,
+        { title: "Importer un fichier", okLabel: "Remplacer" })) return;
       state.data = Board.draftFromImport(json);
       markDirty(); render();
+      document.getElementById("configs-dialog").close();
+      toast("Plateau importé");
     };
     reader.onerror = () => toast("Lecture du fichier impossible.", true);
     reader.readAsText(file);
+    // Vidé tout de suite : sans ça, réimporter LE MÊME fichier n'émettrait pas de
+    // « change ». La lecture est déjà lancée sur l'objet File, elle ne s'en trouve pas
+    // interrompue.
     e.target.value = "";
   }
 
@@ -1438,6 +1454,9 @@
   bindSettings();
   el.publishBtn.addEventListener("click", publishButtonClick);
   document.getElementById("export-btn").addEventListener("click", exportConfig);
+  // Le bouton porte l'apparence, l'input porte la capacité : lui seul peut ouvrir le
+  // sélecteur de fichiers, mais un <input type=file> ne se style pas comme un bouton.
+  document.getElementById("import-btn").addEventListener("click", () => el.importInput.click());
   el.importInput.addEventListener("change", importConfig);
   document.getElementById("history-btn").addEventListener("click", openHistory);
   document.getElementById("history-clear").addEventListener("click", clearHistory);
@@ -2151,6 +2170,7 @@
     ul.innerHTML = items.length
       ? items.map((c) => `<li><span>${esc(c.name)}</span><span class="cfg-actions">`
           + `<button type="button" data-load="${esc(c.name)}">Charger</button>`
+          + `<button type="button" data-export="${esc(c.name)}">Exporter</button>`
           + `<button type="button" data-del="${esc(c.name)}" class="chip-btn danger">Supprimer</button></span></li>`).join("")
       : "<li class='empty-hint'>Aucune configuration enregistrée.</li>";
     ul.querySelectorAll("[data-load]").forEach((b) => b.addEventListener("click", async () => {
@@ -2161,6 +2181,17 @@
       setUnpublished(true);
       await load();
       toast("Configuration chargée");
+    }));
+    /* Export d'une config ENREGISTRÉE : son contenu est sur le disque, pas à l'écran.
+       On le relit par une route de lecture pure — surtout pas `/load`, qui écraserait
+       le plateau en cours et déconnecterait l'antenne pour un simple téléchargement.
+       Le dialogue reste ouvert : exporter ne change rien, on peut en exporter deux. */
+    ul.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("click", async () => {
+      let cfg;
+      try { cfg = await apiSend("GET", `/api/configs/${encodeURIComponent(b.dataset.export)}/export`); }
+      catch { toast("Export impossible", true); return; }
+      downloadRost(cfg.state, cfg.slug);
+      toast(`« ${cfg.name} » exportée`);
     }));
     ul.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
       if (!await confirmDialog(`Supprimer « ${b.dataset.del} » ?`, { okLabel: "Supprimer", danger: true })) return;

@@ -55,14 +55,29 @@ class Configs:
                    "state": state}
         self.storage.atomic_write(path, payload)
 
-    def load(self, name):
+    def read(self, name):
+        """Enregistrement complet : `{name, updated_at, state}`.
+
+        Le `name` renvoyé est celui STOCKÉ, pas celui demandé : deux graphies voisines
+        (« Jour 2 » / « jour 2 ») visent le même fichier via le slug, et c'est la graphie
+        d'origine qui doit nommer le fichier exporté.
+        """
         path = self._path(name)
         if not os.path.exists(path):
             raise KeyError(name)
         data = self.storage.read_json(path)   # tolérant à la corruption (.bak / None)
-        if data is None:
+        # `state` absent = enregistrement inutilisable : le traiter comme introuvable
+        # plutôt que de laisser un KeyError de dictionnaire remonter jusqu'au handler,
+        # qui n'attrape que le KeyError « config inconnue » et rendrait un 500.
+        if data is None or "state" not in data:
             raise KeyError(name)
-        return data["state"]
+        return data
+
+    def slug(self, name):
+        return _slug(name)
+
+    def load(self, name):
+        return self.read(name)["state"]
 
     def delete(self, name):
         path = self._path(name)

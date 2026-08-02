@@ -15,3 +15,21 @@ def open_reglages(page):
     """
     page.click("#settings-btn")
     page.wait_for_selector("#settings-menu:not([hidden])", state="visible")
+
+
+def wait_saved(page):
+    """Attend la FIN du cycle d'enregistrement du brouillon.
+
+    La chip d'état n'affiche pas un libellé figé « Brouillon enregistré » : sitôt la
+    sauvegarde finie elle retourne à sa vérité (« N en attente » / « À jour »), qui dépend
+    de l'écart publié. Le signal fiable est donc le CYCLE : « Enregistrement… »
+    (data-state=syncing, tenu ≥ 500 ms par le debounce — immanquable si on appelle ce
+    helper juste après l'édition) puis sa sortie.
+
+    Promue ici depuis test_e2e.py (où elle s'appelait `_wait_saved`) : tout test qui
+    demande au SERVEUR de relire le brouillon — enregistrer une configuration, publier —
+    doit l'attendre, sinon il fige l'état d'AVANT son édition sans qu'aucune assertion
+    ne le signale.
+    """
+    page.wait_for_selector("#sync-status[data-state='syncing']")
+    page.wait_for_selector("#sync-status:not([data-state='syncing'])")
