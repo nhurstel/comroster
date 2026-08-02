@@ -759,9 +759,19 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .admin-dialog button:hover:not(:disabled) { border-color: var(--border-3); }
 .admin-dialog button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 700; }
 .admin-dialog button.primary:hover:not(:disabled) { background: var(--accent-lt); }
-.admin-dialog .dialog-actions .danger { color: var(--danger); border-color: var(--danger-line); margin-right: auto; }
-.admin-dialog .dialog-actions .danger:hover:not(:disabled) { background: var(--danger-bg); }
+/* L'APPARENCE du destructif, partout où il apparaît dans un dialogue. Le sélecteur ne
+   nommait que `.dialog-actions` : le bouton « Supprimer » de la liste des configurations
+   portait donc `class="danger"` sans que rien ne l'honore — trois boutons gris
+   identiques dont un seul détruit. Une étiquette qui n'active aucune règle est pire
+   qu'absente : à la relecture du balisage, elle fait croire que c'est signalé. */
+.admin-dialog .dialog-actions .danger,
+.admin-dialog .cfg-actions .danger { color: var(--danger); border-color: var(--danger-line); }
+.admin-dialog .dialog-actions .danger:hover:not(:disabled),
+.admin-dialog .cfg-actions .danger:hover:not(:disabled) { background: var(--danger-bg); }
 .admin-dialog .dialog-actions .danger:disabled { opacity: 0.4; }
+/* Propre au PIED, pas à l'apparence : y repousser le destructif à l'opposé des boutons
+   de sortie. Dans une rangée de liste, il décollerait « Supprimer » de ses voisins. */
+.admin-dialog .dialog-actions .danger { margin-right: auto; }
 /* Redémarrage (action notable, non destructive) */
 .admin-dialog button.primary.confirm-danger { background: var(--error); color: #FFFFFF; }
 .admin-dialog button.primary.confirm-danger:hover:not(:disabled) { background: #E2604F; }

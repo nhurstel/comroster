@@ -1022,8 +1022,20 @@ présence dans la page).
 - **`_wait_saved` promue** dans `tests/e2e/helpers.py` (sous le nom `wait_saved`) : tout
   test qui fait relire le brouillon PAR LE SERVEUR doit l'attendre.
 
-### Signalé, pas corrigé (décision de Nathan)
-« Supprimer » ne se distingue pas visuellement dans la liste : il porte bien
-`class="chip-btn danger"`, mais la règle rouge est `.admin-dialog .dialog-actions .danger`
-et ne couvre pas la liste. Défaut préexistant, rendu plus sensible par le troisième
-bouton de la rangée.
+### Corrigé ensuite, sur décision de Nathan
+« Supprimer » ne se distinguait pas dans la liste : il portait `class="chip-btn danger"`,
+mais AUCUNE des deux règles qui utilisent `.danger` ne s'appliquait là — l'une exige
+`.dialog-actions` (le pied d'un dialogue), l'autre `.block-actions`. Deux classes
+inertes, et un balisage qui faisait croire, à la relecture, que le destructif était
+signalé. Trois boutons gris identiques dont un seul détruit.
+
+Le sélecteur est désormais scindé selon ce qu'il porte : l'APPARENCE (couleur, bordure,
+survol) s'étend à `.cfg-actions`, le PLACEMENT (`margin-right: auto`, qui repousse le
+destructif à l'opposé des boutons de sortie) reste propre au pied — appliqué à une
+rangée de liste, il aurait décollé « Supprimer » de ses voisins. `chip-btn`, morte au
+même endroit et pour la même raison, est retirée.
+
+Mesuré, pas relu : `getComputedStyle` donne `rgb(240,133,122)` (`--danger`) sur
+« Supprimer » et `rgb(238,241,247)` sur ses deux voisins ; les trois restent alignés
+(657 / 737 / 821 px). Et le pied du dialogue Historique garde son comportement — marge
+résolue à 268 px, destructif collé à gauche, « Fermer » rejeté à droite.

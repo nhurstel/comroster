@@ -2171,7 +2171,7 @@
       ? items.map((c) => `<li><span>${esc(c.name)}</span><span class="cfg-actions">`
           + `<button type="button" data-load="${esc(c.name)}">Charger</button>`
           + `<button type="button" data-export="${esc(c.name)}">Exporter</button>`
-          + `<button type="button" data-del="${esc(c.name)}" class="chip-btn danger">Supprimer</button></span></li>`).join("")
+          + `<button type="button" data-del="${esc(c.name)}" class="danger">Supprimer</button></span></li>`).join("")
       : "<li class='empty-hint'>Aucune configuration enregistrée.</li>";
     ul.querySelectorAll("[data-load]").forEach((b) => b.addEventListener("click", async () => {
       if (!await confirmDialog(`Charger « ${b.dataset.load} » ? Le tableau actuel sera remplacé et l'antenne déconnectée.`,
