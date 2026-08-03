@@ -1126,10 +1126,18 @@ Pointage établi dans le CODE, pas d'après les messages de commit.
       parlent du matériel Raspberry, pas du produit : à trancher au cas par cas).
 
 ### Reste à faire
-- [ ] **1. Densité de la vue Blocs : 4 rangées de base au lieu de 3** (« +1 sur la
-      densité »). Levier identifié : `--card-min: 300px` (admin.css:45), qui pilote le
-      `repeat(auto-fill, minmax(…))` du plan de travail. À MESURER au rendu, pas à l'œil :
-      le nombre de colonnes dépend de la largeur réelle (leçon 2026-07-23).
+- [x] **1. Densité de la vue Blocs : 4 colonnes au lieu de 3.** `--card-min` 300 → 232 px,
+      valeur MESURÉE : la grille fait 994 px à 1440, mais 24 px de rembourrage et 7 px de
+      gouttière par colonne s'en retranchent — 240 px y tenait encore 3 colonnes, à cinq
+      pixels près. Résultat : 1280 → 3, 1440 → **4**, 1920 → 6.
+      **Défaut de fond trouvé en chemin** : à 237 px les noms de groupe tombaient en
+      « M… ». La cause n'était pas la largeur mais `.block-actions` (Renommer/Supprimer),
+      qui restait DANS LE FLUX en `opacity: 0` et mangeait ~133 px d'en-tête en
+      permanence — la leçon du 2026-07-23 rejouée. Repliée pour de bon (`max-width: 0`),
+      elle ne reprend sa place qu'au survol. L'opacité seule est animée : faire glisser
+      `max-width` déplaçait les boutons sous le curseur pendant 120 ms (on vise
+      « Renommer », on relâche sur « Supprimer ») — c'est ce qui a fait tomber un e2e,
+      qui cliquait jusque-là grâce à la place occupée par des boutons invisibles.
 - [ ] **2. Réordonner les beltpacks à la main dans la vue Blocs.** Le tri par numéro est
       livré ; le glisser-déposer INTERNE à un groupe ne l'est pas. ⚠️ Question de fond à
       trancher avec Nathan : un ordre manuel et un tri automatique ne peuvent pas coexister

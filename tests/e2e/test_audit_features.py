@@ -138,6 +138,11 @@ def test_sauvegarder_puis_restaurer_le_boitier(page, live_server):
 
     # On efface le groupe, puis on restaure l'archive téléchargée.
     page.click("#backup-dialog [data-close='backup-dialog']")
+    # Le survol est le GESTE RÉEL : les actions d'un bloc sont repliées (largeur nulle)
+    # tant qu'on ne le survole pas, pour ne pas manger le nom du groupe. Sans ce hover,
+    # le clic viserait le centre d'une boîte de 0 px et l'en-tête l'intercepterait — le
+    # test s'appuyait jusqu'ici sur la place que ces boutons occupaient en étant invisibles.
+    page.hover(".admin-block .block-header")
     page.click(".admin-block .block-actions button:has-text('Supprimer')")
     page.click("#confirm-ok")
     page.wait_for_selector(".admin-block", state="detached")

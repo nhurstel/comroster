@@ -42,7 +42,13 @@
     --mono: 15px;              /* chiffres (n° de beltpack, horloge) */
     --role: 15px; --role-w: 600;
     --row: 31px; --pad: 12px; --gap: 7px; --rad: 7px;
-    --card-min: 300px; --side-w: 204px; --pool-w: 242px; --top-h: 53px;
+    /* --card-min pilote le nombre de colonnes du plan de travail (auto-fill, l.330).
+       Valeur MESURÉE, pas calculée : la grille fait 994px à 1440, mais 24px de
+       rembourrage et 7px de gouttière par colonne s'en retranchent — 240px y tenait
+       encore 3 colonnes, à cinq pixels près. 232px en donne une de plus à chaque largeur
+       usuelle (1280 : 2→3, 1440 : 3→4, 1920 : 4→6) avec 21px de marge à 1440, de quoi
+       survivre à l'apparition d'une barre de défilement. */
+    --card-min: 232px; --side-w: 204px; --pool-w: 242px; --top-h: 53px;
     --tie: "\00B7"; --tie-gap: 0.34em;   /* trait d'union « dot » entre n° et rôle */
 
     /* Preset « base » : Outfit pour l'UI, Inter (tabulaire) pour les nombres. */
@@ -384,14 +390,24 @@ body:has(#configs-dialog[open]) #configs-btn {
     flex: 0 0 auto; cursor: pointer; transition: transform 0.1s;
 }
 .color-swatch:hover { transform: scale(1.12); }
-/* Actions révélées au survol (maquette .acts) : texte, pas de chrome. */
+/* Actions révélées au survol (maquette .acts) : texte, pas de chrome.
+   `opacity: 0` ne rend pas la place : invisibles, ces boutons occupaient quand même une
+   centaine de pixels dans l'en-tête, et le titre du groupe s'y tronquait en « M… » dès
+   que les colonnes se resserraient. Elles se replient donc pour de bon (`max-width: 0`)
+   et ne reprennent leur largeur qu'au survol, aux dépens du titre — qui garde son
+   ellipsis. Même piège que le voyant de beltpack du 2026-07-23 : un élément qui ne
+   montre rien occupe encore. */
 .block-actions {
     display: flex; gap: 11px; flex: 0 0 auto;
     font-size: var(--ui); font-weight: 600; letter-spacing: var(--track);
-    opacity: 0; transition: opacity 0.12s;
+    opacity: 0; max-width: 0; overflow: hidden;
+    /* L'opacité seule est animée : faire glisser `max-width` déplaçait les boutons sous
+       le curseur pendant 120 ms — on vise « Renommer », on relâche sur « Supprimer ».
+       La place se réserve donc d'un coup, et c'est l'encre qui arrive en fondu. */
+    transition: opacity 0.12s;
 }
 .admin-block:hover .block-actions,
-.admin-block:focus-within .block-actions { opacity: 0.95; }
+.admin-block:focus-within .block-actions { opacity: 0.95; max-width: 14rem; }
 .block-actions .chip-btn { color: inherit; }
 .block-actions .chip-btn:hover:not(:disabled) { text-decoration: underline; }
 .block-actions .chip-btn.danger { opacity: 0.8; }
