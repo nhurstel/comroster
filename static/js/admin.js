@@ -112,6 +112,20 @@
     });
   }
 
+  /* Ordre d'affichage des beltpacks : par NUMÉRO croissant.
+     Un plateau se lit comme une liste d'appel — chercher le 12 entre le 47 et le 3 est
+     une charge que rien ne justifie. Tri NUMÉRIQUE quand les deux numéros en sont
+     ("9" avant "10", que l'ordre alphabétique inverserait), alphabétique sinon : rien
+     n'interdit un numéro comme "A1" ou "HF-2". */
+  const parNumero = (a, b) => {
+    const na = Number(normBp(a.beltpack)), nb = Number(normBp(b.beltpack));
+    const aNum = normBp(a.beltpack) !== "" && Number.isFinite(na);
+    const bNum = normBp(b.beltpack) !== "" && Number.isFinite(nb);
+    if (aNum && bNum) return na - nb;
+    if (aNum !== bNum) return aNum ? -1 : 1;      // les numéros avant les libellés
+    return normBp(a.beltpack).localeCompare(normBp(b.beltpack), "fr", { numeric: true });
+  };
+
   function findBlock(id) { return state.data.groups.find((g) => g.id === id); }
   function findPerson(id) { return state.data.people.find((p) => p.id === id); }
   function beltpackTaken(num, ignoreId) {
@@ -390,7 +404,7 @@
 
   function renderAvailable() {
     el.available.innerHTML = "";
-    const all = state.data.people.filter((p) => !p.group_id);
+    const all = state.data.people.filter((p) => !p.group_id).sort(parNumero);
     el.availableCount.textContent = all.length;
     const q = (state.filter || "").trim().toLowerCase();
     const avail = q
@@ -447,7 +461,7 @@
       setTimeout(() => { delete el.blocks.dataset.cascade; }, groups.length * 40 + 400);
     }
     groups.forEach((block, bi) => {
-      const members = state.data.people.filter((p) => p.group_id === block.id);
+      const members = state.data.people.filter((p) => p.group_id === block.id).sort(parNumero);
       const wrap = document.createElement("section");
       wrap.className = "admin-block";
       wrap.dataset.blockId = block.id;
@@ -494,6 +508,14 @@
       // long poussait les actions hors de l'en-tête. Le mot complet passe en infobulle.
       badge.textContent = String(members.length).padStart(2, "0");
       badge.title = `${members.length} affectation${members.length > 1 ? "s" : ""}`;
+      // Double-clic = renommer, exactement comme sur le numéro ou le rôle d'un
+      // beltpack. `stopPropagation` : sans lui le double-clic remonterait à la carte,
+      // qui ouvre l'édition d'un membre. Le `h3` seul est la cible — pas le titleWrap,
+      // qui est aussi la poignée de glisser-déposer du groupe.
+      h3.title = "Double-cliquer pour renommer";
+      h3.addEventListener("dblclick", (e) => {
+        e.preventDefault(); e.stopPropagation(); renameBlock(block.id);
+      });
       titleWrap.append(swatch, h3, badge);
       // Poignée de réordonnancement : on glisse le groupe par son titre.
       titleWrap.draggable = true;
