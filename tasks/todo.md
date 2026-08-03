@@ -1090,3 +1090,60 @@ restauré à l'octet près.
 **Relevé au passage :** les cases B1 à B4 du lot du 2026-07-27 (onglet « Écran ») étaient
 restées vides alors que tout est livré depuis longtemps. Cochées après vérification dans le
 code, pas sur mémoire.
+
+---
+
+# LOT 2026-08-02/03 — Retours d'usage de Nathan (13 points)
+
+⚠️ **Consigné le 2026-08-03, en retard.** Cette liste a été donnée le 2026-08-02 et le
+travail a commencé (commits `4a67048` et `6d1d3c6`) SANS être écrite ici. Un `/clear` a
+suivi : la session d'après a repris sur un todo.md qui n'en portait pas un mot, et Nathan a
+dû redonner la liste. La leçon est déjà écrite ailleurs sous une autre forme (« tant qu'un
+humain doit penser à recopier, il oubliera ») ; ici le remède est simple et sans excuse :
+**une demande s'écrit dans todo.md AVANT la première ligne de code**, pas après le lot.
+
+Pointage établi dans le CODE, pas d'après les messages de commit.
+
+### Livré (à vérifier une fois à l'écran)
+- [x] Double-clic sur le nom d'un groupe pour le renommer (`6d1d3c6`).
+- [x] Beltpacks triés par numéro croissant par défaut — Blocs et Disponibles (`6d1d3c6`).
+      Tri numérique quand les deux en sont, alphabétique sinon (« A1 », « HF-2 »).
+- [x] « Déposer un beltpack » → « **Ajouter** un beltpack ».
+- [x] « Non affectés » → « **Disponibles** ».
+- [x] « Visa » → « **Signature** » (une case où l'on signe doit le dire).
+- [x] Impression : « 1 groupe/page » et « Non affectés » retirés, avec toute leur chaîne ;
+      « État publié — ce que la salle voit » → « État publié » ; « Brouillon en
+      préparation » → « Brouillon ».
+- [x] Configurations : « Exporter le plateau » → « **Exporter** » ; « le tableau actuel »
+      → « le **Roster** actuel ».
+- [x] Sauvegarde : « boîtier neuf » → « autre ComRoster » ; « Phrase de passe » → « Mot de
+      passe » ; « Télécharger la sauvegarde » → « **Générer** la sauvegarde » ; « Examiner
+      le contenu » → « **Charger une sauvegarde** ».
+- [x] Panneau Écran : sous-titre « PRODUCTION » → « **TEXTE** ».
+- [x] « boîtier » → « **ComRoster** » : le produit se nomme lui-même, plus de terme
+      intermédiaire à apprendre. **PARTIEL** — 33 occurrences subsistent dans
+      `templates/` et `static/` au 2026-08-03, à passer en revue une par une (certaines
+      parlent du matériel Raspberry, pas du produit : à trancher au cas par cas).
+
+### Reste à faire
+- [ ] **1. Densité de la vue Blocs : 4 rangées de base au lieu de 3** (« +1 sur la
+      densité »). Levier identifié : `--card-min: 300px` (admin.css:45), qui pilote le
+      `repeat(auto-fill, minmax(…))` du plan de travail. À MESURER au rendu, pas à l'œil :
+      le nombre de colonnes dépend de la largeur réelle (leçon 2026-07-23).
+- [ ] **2. Réordonner les beltpacks à la main dans la vue Blocs.** Le tri par numéro est
+      livré ; le glisser-déposer INTERNE à un groupe ne l'est pas. ⚠️ Question de fond à
+      trancher avec Nathan : un ordre manuel et un tri automatique ne peuvent pas coexister
+      sans règle — soit l'ordre manuel devient l'ordre (et le tri n'est qu'une action
+      « ranger par numéro »), soit le tri gagne toujours et le glisser ne sert à rien.
+- [ ] **3. Supprimer « Historique » ?** (doublon supposé de Configurations) — **avis
+      demandé, à rendre avant de toucher au code.**
+- [ ] **4. Impression : « Imprimer le brouillon » seulement s'il existe un brouillon**
+      distinct du publié (aujourd'hui le lien est inconditionnel, print.html:31-34).
+- [ ] **5. Impression : mise en page « plus sympa »** — travail de design, à cadrer.
+- [ ] **6. Sauvegarde : remise en page** (« pas tout à fait clean »).
+- [ ] **7. Panneau Écran : replier automatiquement le témoin « Affichage en cours »**
+      à l'arrivée sur l'onglet (deux aperçus côte à côte n'ont pas de sens).
+- [ ] **8. Header : rapprocher les menus du bouton d'envoi** — « il y a un vrai vide entre
+      lui et le "en direct" ». ⚠️ Un lot du 2026-07-27 a déjà réduit cet écart de 260 à
+      195 px sans rien déplacer ; il faut donc MESURER l'état actuel avant de conclure.
+- [ ] **9. Redesigner la page de login.**
