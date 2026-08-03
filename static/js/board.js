@@ -138,10 +138,42 @@
     return orderedIds.slice(i, j + 1);
   }
 
+  /* ---------- Ordre d'affichage des beltpacks ----------
+     Deux régimes, décidés GROUPE PAR GROUPE (choix de Nathan, 2026-08-03) :
+
+       • par défaut, TRI PAR NUMÉRO — un plateau se lit comme une liste d'appel, et
+         chercher le 12 entre le 47 et le 3 est une charge que rien ne justifie ;
+       • dès qu'on range un membre à la main, CE groupe passe en `manual_order` et garde
+         l'ordre posé, jusqu'à ce qu'on demande « Trier par n° ».
+
+     La règle vit ici parce qu'elle a DEUX lecteurs : l'administration et l'écran de
+     régie. Elle n'en avait qu'un jusqu'ici (admin.js), et c'était un défaut silencieux —
+     la salle voyait l'ordre brut du fichier pendant que le régisseur voyait un ordre trié.
+
+     En manuel, l'ordre est celui du tableau `people` : c'est la seule donnée d'ordre qui
+     existe côté serveur, et elle est déjà persistée telle quelle. Aucun champ d'ordre à
+     ajouter, donc aucun à oublier dans un chemin d'écriture (leçon du 2026-07-28). */
+  function parNumero(a, b) {
+    const aTexte = str(a && a.beltpack).trim(), bTexte = str(b && b.beltpack).trim();
+    const na = Number(aTexte), nb = Number(bTexte);
+    const aNum = aTexte !== "" && Number.isFinite(na);
+    const bNum = bTexte !== "" && Number.isFinite(nb);
+    if (aNum && bNum) return na - nb;
+    if (aNum !== bNum) return aNum ? -1 : 1;      // les numéros avant les libellés
+    return aTexte.localeCompare(bTexte, "fr", { numeric: true });
+  }
+
+  function ordonnerMembres(membres, groupe) {
+    const liste = Array.isArray(membres) ? membres.slice() : [];
+    if (groupe && groupe.manual_order) return liste;   // l'ordre du tableau fait foi
+    return liste.sort(parNumero);
+  }
+
   return {
     SKINS, TEXT_SCALES, MAX_COLUMNS, DEFAULT_INDICATORS, DRAFT_FIELDS,
     sanitizeTheme, sanitizeSkin, sanitizeTextScale, sanitizeColumns, sanitizeIndicators,
     draftFromImport, emptyDraft,
     plural, pendingLabel, isDraftAhead, rangeIds,
+    parNumero, ordonnerMembres,
   };
 });

@@ -126,6 +126,12 @@ def build_draft(payload):
             "name": (g.get("name") or "").strip() or "Groupe",
             "color": g.get("color") or "#3AAFA9",
             "order": order if isinstance(order, int) else index,
+            # Régime d'ordre des membres, décidé groupe par groupe : faux = tri par
+            # numéro (le défaut), vrai = l'ordre du tableau `people` fait foi, parce que
+            # quelqu'un l'a rangé à la main. `is True` plutôt que `bool()` : une valeur
+            # farfelue venue d'un fichier importé retombe sur le tri, jamais sur un ordre
+            # figé que personne n'a demandé.
+            "manual_order": g.get("manual_order") is True,
         })
         group_ids.add(gid)
 

@@ -112,19 +112,11 @@
     });
   }
 
-  /* Ordre d'affichage des beltpacks : par NUMÉRO croissant.
-     Un plateau se lit comme une liste d'appel — chercher le 12 entre le 47 et le 3 est
-     une charge que rien ne justifie. Tri NUMÉRIQUE quand les deux numéros en sont
-     ("9" avant "10", que l'ordre alphabétique inverserait), alphabétique sinon : rien
-     n'interdit un numéro comme "A1" ou "HF-2". */
-  const parNumero = (a, b) => {
-    const na = Number(normBp(a.beltpack)), nb = Number(normBp(b.beltpack));
-    const aNum = normBp(a.beltpack) !== "" && Number.isFinite(na);
-    const bNum = normBp(b.beltpack) !== "" && Number.isFinite(nb);
-    if (aNum && bNum) return na - nb;
-    if (aNum !== bNum) return aNum ? -1 : 1;      // les numéros avant les libellés
-    return normBp(a.beltpack).localeCompare(normBp(b.beltpack), "fr", { numeric: true });
-  };
+  /* Ordre d'affichage des beltpacks — la règle vit dans board.js, partagée avec l'écran
+     de régie : deux copies finiraient par montrer deux ordres différents à la salle et au
+     régisseur, ce qui était exactement le cas avant ce lot. */
+  const parNumero = window.ComRoster.Board.parNumero;
+  const ordonnerMembres = window.ComRoster.Board.ordonnerMembres;
 
   function findBlock(id) { return state.data.groups.find((g) => g.id === id); }
   function findPerson(id) { return state.data.people.find((p) => p.id === id); }
@@ -461,7 +453,8 @@
       setTimeout(() => { delete el.blocks.dataset.cascade; }, groups.length * 40 + 400);
     }
     groups.forEach((block, bi) => {
-      const members = state.data.people.filter((p) => p.group_id === block.id).sort(parNumero);
+      const members = ordonnerMembres(
+        state.data.people.filter((p) => p.group_id === block.id), block);
       const wrap = document.createElement("section");
       wrap.className = "admin-block";
       wrap.dataset.blockId = block.id;
@@ -528,6 +521,13 @@
 
       const actions = document.createElement("div");
       actions.className = "block-actions";
+      // « Trier par n° » n'apparaît que sur un groupe rangé à la main : ailleurs le tri
+      // est déjà l'état courant, et le bouton ne ferait rien qu'on puisse constater.
+      if (block.manual_order) {
+        actions.append(chip("Trier par n°", () => {
+          block.manual_order = false; markDirty(); render();
+        }));
+      }
       actions.append(
         chip("Renommer", () => renameBlock(block.id)),
         chip("Supprimer", () => deleteBlock(block.id), "danger"),
@@ -537,12 +537,24 @@
       const list = document.createElement("div");
       list.className = "block-items";
       list.dataset.blockId = block.id;
-      list.addEventListener("dragover", (e) => { if (state.dragGroup) return; e.preventDefault(); list.dataset.dragover = "true"; if (e.dataTransfer) e.dataTransfer.dropEffect = "move"; });
-      list.addEventListener("dragleave", () => { delete list.dataset.dragover; });
+      /* Un dépôt est un RANGEMENT quand il porte sur un seul beltpack déjà membre du
+         groupe, ou sur un groupe qu'on a déjà rangé à la main : là, la place visée compte.
+         Amener un beltpack de la réserve dans un groupe trié n'est pas « toucher à
+         l'ordre » — ça reste une simple affectation, et le tri par numéro doit survivre. */
+      const rangement = (drag) => !!drag && !drag.multi
+        && (block.manual_order || findPerson(drag.userId)?.group_id === block.id);
+      list.addEventListener("dragover", (e) => {
+        if (state.dragGroup) return;
+        e.preventDefault(); list.dataset.dragover = "true";
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+        marquerInsertion(list, rangement(state.drag) ? indexInsertion(list, e.clientY) : -1);
+      });
+      list.addEventListener("dragleave", () => { delete list.dataset.dragover; marquerInsertion(list, -1); });
       list.addEventListener("drop", (e) => {
-        e.preventDefault(); delete list.dataset.dragover;
+        e.preventDefault(); delete list.dataset.dragover; marquerInsertion(list, -1);
         if (!state.drag || state.dragGroup) return;
-        if (state.drag.multi) assignMany(state.drag.ids, block.id);
+        if (rangement(state.drag)) reorderInto(state.drag.userId, block.id, indexInsertion(list, e.clientY));
+        else if (state.drag.multi) assignMany(state.drag.ids, block.id);
         else assign(state.drag.userId, block.id);
       });
 
@@ -878,6 +890,54 @@
     if (!p || p.group_id === groupId) return;   // inconnu ou déjà dans ce groupe
     p.group_id = groupId; markDirty(); render();
   }
+  /* Ranger un beltpack À UNE PLACE PRÉCISE dans un groupe.
+     Ce geste fait basculer le groupe en ordre manuel : c'est le « on touche à l'ordre »
+     de la règle. L'ordre AFFICHÉ au moment du dépôt devient l'ordre enregistré, sans quoi
+     le premier rangement à la main réarrangerait tout le reste du groupe sous les yeux
+     de l'utilisateur.
+
+     Le tableau `people` est la seule donnée d'ordre : on y remet les membres du groupe
+     dans leur nouvel ordre. Les déplacer en fin de tableau est sans effet visible — chaque
+     groupe est lu par filtrage, et la réserve est triée par numéro — mais évite d'avoir à
+     réinsérer au bon endroit un bloc de lignes entrelacées avec d'autres groupes. */
+  function reorderInto(personId, groupId, index) {
+    const block = findBlock(groupId);
+    const perso = findPerson(personId);
+    if (!block || !perso) return;
+    const membres = ordonnerMembres(
+      state.data.people.filter((p) => p.group_id === groupId && p.id !== personId), block);
+    const cible = Math.max(0, Math.min(index, membres.length));
+    membres.splice(cible, 0, perso);
+    perso.group_id = groupId;
+    const dansLeGroupe = new Set(membres.map((p) => p.id));
+    state.data.people = state.data.people.filter((p) => !dansLeGroupe.has(p.id)).concat(membres);
+    block.manual_order = true;
+    markDirty(); render();
+  }
+
+  /* Trait d'insertion : sans lui on dépose à l'aveugle, et un rangement à la main dont on
+     ne voit pas la cible se retente jusqu'à tomber juste. `index === -1` efface le trait.
+     Posé sur la carte visée (ou la dernière, par en dessous) plutôt que sur un élément
+     ajouté : rien à retirer du DOM, donc rien à oublier d'y retirer. */
+  function marquerInsertion(list, index) {
+    const cartes = [...list.querySelectorAll(".person")];
+    cartes.forEach((c) => { delete c.dataset.insertBefore; delete c.dataset.insertAfter; });
+    if (index < 0) return;
+    if (index < cartes.length) cartes[index].dataset.insertBefore = "true";
+    else if (cartes.length) cartes[cartes.length - 1].dataset.insertAfter = "true";
+  }
+
+  /* Place d'insertion visée par le curseur : le nombre de cartes dont la MOITIÉ est
+     au-dessus de lui. Comparer au milieu et non au bord donne le comportement attendu
+     (déposer sur la moitié haute d'une carte insère avant elle). */
+  function indexInsertion(list, clientY) {
+    const cartes = [...list.querySelectorAll(".person")];
+    return cartes.filter((c) => {
+      const r = c.getBoundingClientRect();
+      return clientY > r.top + r.height / 2;
+    }).length;
+  }
+
   function removeFromGroup(personId) {
     const p = findPerson(personId);
     if (p && p.group_id) { p.group_id = null; markDirty(); render(); }

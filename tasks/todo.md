@@ -1138,13 +1138,34 @@ Pointage établi dans le CODE, pas d'après les messages de commit.
       `max-width` déplaçait les boutons sous le curseur pendant 120 ms (on vise
       « Renommer », on relâche sur « Supprimer ») — c'est ce qui a fait tomber un e2e,
       qui cliquait jusque-là grâce à la place occupée par des boutons invisibles.
-- [ ] **2. Réordonner les beltpacks à la main dans la vue Blocs.** Le tri par numéro est
-      livré ; le glisser-déposer INTERNE à un groupe ne l'est pas. ⚠️ Question de fond à
-      trancher avec Nathan : un ordre manuel et un tri automatique ne peuvent pas coexister
-      sans règle — soit l'ordre manuel devient l'ordre (et le tri n'est qu'une action
-      « ranger par numéro »), soit le tri gagne toujours et le glisser ne sert à rien.
-- [ ] **3. Supprimer « Historique » ?** (doublon supposé de Configurations) — **avis
-      demandé, à rendre avant de toucher au code.**
+- [ ] **2. Réordonner les beltpacks à la main dans la vue Blocs.**
+      **Règle tranchée par Nathan (2026-08-03) :** tri automatique par numéro **par
+      défaut** ; dès qu'on touche à l'ordre d'un groupe, CE groupe passe en **manuel** et
+      garde l'ordre posé ; une action **« Trier par n° »** existe **groupe par groupe**
+      pour y revenir. Le mode est donc porté par le GROUPE, pas par un réglage global —
+      deux groupes peuvent vivre dans deux régimes différents, ce qui est le sens de
+      « au choix ».
+      **LIVRÉ (2026-08-03).** Un seul champ ajouté, `manual_order` sur le groupe : l'ordre
+      lui-même est celui du tableau `people`, seule donnée d'ordre qui existe déjà et qui
+      est déjà persistée — aucun champ d'ordre à ajouter, donc aucun à oublier dans un
+      chemin d'écriture. `is True` et non `bool()` : une valeur farfelue venue d'un fichier
+      importé retombe sur le tri, jamais sur un ordre figé que personne n'a demandé.
+      Glisser-déposer interne avec trait d'insertion (sans repère, on dépose à l'aveugle),
+      et « Trier par n° » n'apparaît que sur un groupe en manuel.
+      **Défaut trouvé en chemin, plus grave que la demande** : le tri par numéro ne vivait
+      que dans `admin.js`. L'écran de régie affichait l'ordre BRUT du fichier — deux
+      vérités pour un seul plateau, et celle qui compte devant public était la mauvaise.
+      La règle est passée dans `board.js`, que les deux pages chargent, et la feuille
+      imprimée (troisième lecteur, côté serveur) suit le même régime.
+      Une simple affectation depuis la réserve ne bascule PAS le groupe en manuel : ce
+      n'est pas « toucher à l'ordre ».
+      Vérifié : 526 unitaires · 59 e2e (dont 4 nouveaux — les premiers du dépôt à faire un
+      vrai glisser-déposer) · 43 JS · ruff propre. Cinq mutations, une propriété chacune,
+      chacune vue tomber.
+- [x] **3. « Historique » — CONSERVÉ** (décision de Nathan, 2026-08-03). Ce n'est pas un
+      doublon de Configurations : l'un garde AUTOMATIQUEMENT les 50 dernières
+      publications, l'autre ne garde que ce qu'on a nommé soi-même. Aucun renommage
+      demandé, rien à faire.
 - [ ] **4. Impression : « Imprimer le brouillon » seulement s'il existe un brouillon**
       distinct du publié (aujourd'hui le lien est inconditionnel, print.html:31-34).
 - [ ] **5. Impression : mise en page « plus sympa »** — travail de design, à cadrer.

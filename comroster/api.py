@@ -97,11 +97,16 @@ def admin_print():
              else _storage().load_published() or model.empty_state())
     groups = sorted(state.get("groups") or [], key=lambda g: g.get("order") or 0)
     people = state.get("people") or []
-    by_group = {
-        g["id"]: sorted((p for p in people if p.get("group_id") == g["id"]),
-                        key=lambda p: _beltpack_sort_key(p.get("beltpack")))
-        for g in groups
-    }
+    # Même régime d'ordre que les deux écrans (static/js/board.js) : tri par numéro, sauf
+    # sur un groupe rangé à la main, où l'ordre du tableau fait foi. Une conduite papier
+    # qui contredit l'écran est pire qu'une conduite absente.
+    def _membres(g):
+        membres = [p for p in people if p.get("group_id") == g["id"]]
+        if g.get("manual_order"):
+            return membres
+        return sorted(membres, key=lambda p: _beltpack_sort_key(p.get("beltpack")))
+
+    by_group = {g["id"]: _membres(g) for g in groups}
     reserve = sorted((p for p in people if not p.get("group_id")),
                      key=lambda p: _beltpack_sort_key(p.get("beltpack")))
     return render_template(

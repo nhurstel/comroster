@@ -246,3 +246,31 @@ def test_columns_supports_up_to_six():
     assert model.sanitize_columns(5) == 5
     assert model.sanitize_columns(6) == 6
     assert model.sanitize_columns(7) == 0        # au-delà de 6 → automatique
+
+
+def test_manual_order_absent_par_defaut_donc_tri_automatique():
+    """Un groupe qui n'a jamais été rangé à la main se lit trié par numéro.
+
+    Le régime d'ordre est porté par le GROUPE (choix de Nathan) : deux groupes peuvent
+    vivre dans deux régimes différents. Le défaut doit être le tri, sinon un plateau venu
+    d'ailleurs figerait un ordre que personne n'a choisi.
+    """
+    etat = model.build_draft({"groups": [{"id": "g1", "name": "Son"}], "people": []})
+    assert etat["groups"][0]["manual_order"] is False
+
+
+def test_manual_order_conserve_mais_seulement_sil_vaut_vrai():
+    """`is True` et non `bool()` : seul le booléen vrai fige l'ordre.
+
+    Une valeur farfelue venue d'un fichier importé (« oui », 1, {}) doit retomber sur le
+    tri, jamais sur un ordre manuel que personne n'a demandé — et que rien ne montrerait,
+    « Trier par n° » n'apparaissant que sur un groupe en manuel.
+    """
+    def regime(valeur):
+        payload = {"groups": [{"id": "g1", "name": "Son", "manual_order": valeur}],
+                   "people": []}
+        return model.build_draft(payload)["groups"][0]["manual_order"]
+
+    assert regime(True) is True
+    for farfelu in (1, "oui", "true", {}, [1], None):
+        assert regime(farfelu) is False, f"{farfelu!r} a figé l'ordre"

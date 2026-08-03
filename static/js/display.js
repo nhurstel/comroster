@@ -155,7 +155,11 @@
 
     grid.innerHTML = "";
     groups.forEach((group, index) => {
-      const members = people.filter((p) => p.group_id === group.id);
+      // Même règle d'ordre que l'administration (board.js) : tri par numéro, sauf sur un
+      // groupe rangé à la main. Sans ce partage, la salle lisait l'ordre brut du fichier
+      // pendant que le régisseur voyait un ordre trié — deux vérités pour un seul plateau.
+      const members = window.ComRoster.Board.ordonnerMembres(
+        people.filter((p) => p.group_id === group.id), group);
       const blockEl = document.createElement("section");
       blockEl.className = "block";
       blockEl.style.setProperty("--block-accent", group.color || "var(--primary)");

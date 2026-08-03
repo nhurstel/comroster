@@ -424,6 +424,11 @@ body:has(#configs-dialog[open]) #configs-btn {
 .person + .person { border-top: 1px solid rgb(0 0 0 / 0.1); }   /* séparateurs : filets */
 .person:hover { background: rgb(0 0 0 / 0.12); }
 .person.dragging { opacity: 0.45; cursor: grabbing; }
+/* Trait d'insertion pendant un rangement à la main (voir marquerInsertion). Un
+   `box-shadow` plutôt qu'une bordure : il ne prend aucune place, donc les lignes ne
+   sautent pas d'un pixel au passage du curseur. */
+.person[data-insert-before] { box-shadow: inset 0 2px 0 var(--on-gel, currentColor); }
+.person[data-insert-after]  { box-shadow: inset 0 -2px 0 var(--on-gel, currentColor); }
 .person .bp {
     flex: 0 0 auto; min-width: 26px;
     font-family: var(--f-mono); font-size: var(--mono); font-weight: 500;

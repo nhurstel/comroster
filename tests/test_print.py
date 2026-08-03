@@ -44,6 +44,26 @@ def test_les_beltpacks_sont_tries_numeriquement(plateau):
     assert positions == sorted(positions), "ordre des numéros incorrect sur la feuille"
 
 
+def test_un_groupe_range_a_la_main_garde_son_ordre_sur_le_papier(plateau):
+    """La feuille est le TROISIÈME lecteur de l'ordre, après l'admin et l'écran.
+
+    Un régisseur qui range ses beltpacks dans un ordre à lui — l'ordre d'appel, celui du
+    plan de feu — le fait pour s'y retrouver ; une conduite papier qui le retrie derrière
+    lui contredit l'écran au moment précis où le boîtier n'est plus là pour arbitrer.
+    """
+    etat = plateau.get("/api/state").get_json()
+    etat["groups"][0]["manual_order"] = True
+    # Ordre délibérément CONTRAIRE au tri numérique : sans la garde, il serait effacé.
+    membres = [p for p in etat["people"] if p["group_id"]]
+    reste = [p for p in etat["people"] if not p["group_id"]]
+    etat["people"] = reste + sorted(membres, key=lambda p: -int(p["beltpack"]))
+    assert plateau.put("/api/draft", json=etat).status_code == 200
+
+    html = plateau.get("/admin/print?draft=1").get_data(as_text=True)
+    positions = [html.index(f'class="c-bp">{n}<') for n in ("10", "2", "1")]
+    assert positions == sorted(positions), "la feuille a retrié un groupe rangé à la main"
+
+
 def test_cle_de_tri_numerique():
     nums = ["10", "2", "1", "abc", "7"]
     assert sorted(nums, key=_beltpack_sort_key) == ["1", "2", "7", "10", "abc"]

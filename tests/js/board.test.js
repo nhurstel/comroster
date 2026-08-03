@@ -147,3 +147,44 @@ describe("rangeIds — balayage MAJ+clic", () => {
     expect(Board.rangeIds(ids, "a", "inconnu")).toEqual([]);
   });
 });
+
+describe("ordonnerMembres — tri automatique, sauf si on a rangé à la main", () => {
+  const membres = [
+    { id: "c", beltpack: "10" },
+    { id: "a", beltpack: "9" },
+    { id: "b", beltpack: "47" },
+  ];
+
+  it("trie par NUMÉRO, pas par texte, quand le groupe n'a pas été rangé", () => {
+    // « 9 » avant « 10 » : l'ordre alphabétique les inverserait, et c'est précisément ce
+    // qu'on lit sur un plateau dont les numéros dépassent la dizaine.
+    const ordre = Board.ordonnerMembres(membres, { manual_order: false });
+    expect(ordre.map((p) => p.beltpack)).toEqual(["9", "10", "47"]);
+  });
+
+  it("respecte l'ordre posé dès que le groupe est en manuel", () => {
+    const ordre = Board.ordonnerMembres(membres, { manual_order: true });
+    expect(ordre.map((p) => p.id)).toEqual(["c", "a", "b"]);
+  });
+
+  it("trie aussi sans groupe (réserve) ou sans régime déclaré", () => {
+    expect(Board.ordonnerMembres(membres, null).map((p) => p.beltpack))
+      .toEqual(["9", "10", "47"]);
+    expect(Board.ordonnerMembres(membres, {}).map((p) => p.beltpack))
+      .toEqual(["9", "10", "47"]);
+  });
+
+  it("ne modifie jamais le tableau reçu", () => {
+    const copie = membres.slice();
+    Board.ordonnerMembres(membres, { manual_order: false });
+    expect(membres).toEqual(copie);
+  });
+
+  it("range les numéros avant les libellés, et les libellés entre eux", () => {
+    // Rien n'interdit un beltpack nommé « A1 » ou « HF-2 » : il ne doit pas s'intercaler
+    // au hasard entre deux chiffres.
+    const mixte = [{ beltpack: "HF-2" }, { beltpack: "3" }, { beltpack: "A1" }];
+    expect(Board.ordonnerMembres(mixte, {}).map((p) => p.beltpack))
+      .toEqual(["3", "A1", "HF-2"]);
+  });
+});
