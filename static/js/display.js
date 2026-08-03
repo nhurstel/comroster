@@ -13,7 +13,6 @@
   const liveIndicator = document.getElementById("live-indicator");
   const liveLabel = liveIndicator?.querySelector(".status-text");
   const clockEl = document.getElementById("board-clock");
-  const syncHint = document.getElementById("sync-hint");
   const scrollContainer = document.getElementById("display-scroll");
   const updatedAtTime = document.getElementById("updated-at-time");
   const totalGroupsEl = document.getElementById("total-groups");
@@ -54,12 +53,15 @@
      texte sur la même couleur : deux copies finiraient par diverger sans qu'on le voie. */
   const inkFor = window.ComRoster.inkFor;
 
-  function setLive(mode) {
+  function setLive(mode, label) {
     if (!liveIndicator || !liveLabel) return;
     if (liveStatusReset) { clearTimeout(liveStatusReset); liveStatusReset = null; }
     const labels = { idle: "En direct", updated: "Mise à jour", error: "Reconnexion…", syncing: "Synchronisation…" };
     liveIndicator.dataset.state = mode;
-    liveLabel.textContent = labels[mode] || labels.idle;
+    // `label` sert au cas sans reprise possible (pas d'EventSource) : l'état visuel reste
+    // celui de l'erreur, mais annoncer « Reconnexion… » promettrait un retour qui n'aura
+    // pas lieu. Un voyant de régie ne dit que ce qui est vrai.
+    liveLabel.textContent = label || labels[mode] || labels.idle;
     if (mode === "updated") {
       liveStatusReset = setTimeout(() => setLive("idle"), 2500);
     }
@@ -448,20 +450,20 @@
   }
 
   function subscribe() {
-    if (!window.EventSource) { if (syncHint) syncHint.textContent = "Temps réel indisponible"; return; }
+    // Aucune mise à jour n'arrivera jamais : le voyant doit le dire, sinon il resterait
+    // sur « En direct » devant un tableau figé.
+    if (!window.EventSource) { setLive("error", "Temps réel indisponible"); return; }
     if (eventSource) eventSource.close();
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-    if (syncHint) syncHint.textContent = "Connexion en cours…";
 
     eventSource = new EventSource("/events");
     // `snapshot` n'anime jamais : il est réémis à chaque reconnexion (cf. runTransition).
     eventSource.addEventListener("snapshot", (e) => { apply(e.data, false); setLive("idle"); });
     eventSource.addEventListener("published", (e) => apply(e.data, true));
     eventSource.addEventListener("live", (e) => { try { applyLive(JSON.parse(e.data)); } catch { /* ignore */ } });
-    eventSource.onopen = () => { setLive("idle"); if (syncHint) syncHint.textContent = "Mises à jour en direct actives"; };
+    eventSource.onopen = () => setLive("idle");
     eventSource.onerror = () => {
       setLive("error");
-      if (syncHint) syncHint.textContent = "Tentative de reconnexion…";
       if (eventSource) { eventSource.close(); eventSource = null; }
       if (!reconnectTimer) reconnectTimer = setTimeout(() => { reconnectTimer = null; subscribe(); }, 4000);
     };
@@ -474,17 +476,14 @@
     let ob;
     try { ob = await fetch("/api/onboarding").then((r) => r.json()); } catch { return; }
     const overlay = document.getElementById("onboarding");
-    const hint = document.getElementById("admin-hint");
     if (!ob.configured) {
       document.getElementById("ob-url").textContent = shortUrl(ob.hostname_url);
       document.getElementById("ob-ip").textContent = shortUrl(ob.admin_url);
       const img = document.getElementById("ob-qr-img");
       if (!img.getAttribute("src")) img.src = "/display/qr.svg";
       overlay.hidden = false;
-      if (hint) hint.hidden = true;
     } else {
       overlay.hidden = true;
-      if (hint) { hint.textContent = "⚙ Admin : " + shortUrl(ob.hostname_url); hint.hidden = false; }
       // Box configurée : plus besoin de sonder (le tableau arrive par le SSE).
       if (onboardingTimer) { clearInterval(onboardingTimer); onboardingTimer = null; }
     }

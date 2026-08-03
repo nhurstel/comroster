@@ -61,6 +61,28 @@ def test_transition_publication_declinee_par_apparence():
     )
 
 
+def test_display_js_trouve_ce_quil_adresse(client):
+    """Chaque `getElementById` de display.js doit avoir sa cible dans la page rendue.
+
+    Deux éléments — `sync-hint` (« Mises à jour en direct actives ») et `admin-hint`
+    (« ⚙ Admin : comroster.local ») — ont été retirés du pied de l'écran le 2026-07-13,
+    volontairement. Le JS, lui, a continué d'écrire dedans pendant plus de deux semaines :
+    quatre messages d'état qui ne s'affichaient nulle part, protégés par un `if (el)` qui
+    rendait la panne parfaitement silencieuse. La même garde existe pour journal.js et
+    health.js face à admin.html (tests/test_panneaux.py) ; l'écran de régie n'en avait pas.
+
+    Lu sur la page RENDUE : c'est le décor réel, un id posé dans une branche Jinja jamais
+    prise ne compte pas.
+    """
+    html = client.get("/display").get_data(as_text=True)
+    js = (Path(__file__).resolve().parent.parent / "static" / "js" / "display.js").read_text(
+        encoding="utf-8")
+    attendus = set(re.findall(r'getElementById\("([^"]+)"\)', js))
+    assert attendus, "aucun getElementById trouvé : le motif de lecture est à revoir"
+    manquants = sorted(i for i in attendus if f'id="{i}"' not in html)
+    assert manquants == [], f"display.js écrit dans des éléments absents de l'écran : {manquants}"
+
+
 def test_transition_publication_toujours_coupee_par_le_mode_performance():
     """Aucune règle d'animation ne doit échapper à la garde du mode performance.
 

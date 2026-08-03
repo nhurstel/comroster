@@ -387,18 +387,22 @@ Gardé par `test_indicator_toggles_persist`, qui encodait justement l'ancien com
 
 Arbitrage Nathan : **mise en page + aperçu live du brouillon**.
 
-- [ ] B1. Serveur : `/admin/preview?draft=1` rend le **brouillon** (`load_draft()`)
+*(B1 à B4 : livrés, cases relevées le 2026-08-03 après vérification dans le code —
+`?draft=1` et son test (`test_api.py:138`), `.screen-layout`, `<select>` restylés,
+`fitPreview()` à 1920×1080 rechargé sur `panneau-affiche`.)*
+
+- [x] B1. Serveur : `/admin/preview?draft=1` rend le **brouillon** (`load_draft()`)
       au lieu du publié. C'est ce qui distingue cet aperçu du témoin « Affichage en
       cours » (bas de la latérale), qui montre ce qui est **à l'antenne**. Deux
       fonctions différentes, donc pas de doublon (leçon 2026-07-25 « un bouton par
       fonction »). + test unitaire.
-- [ ] B2. Template : `.screen-layout` = rail de cartes (Production / Apparence /
+- [x] B2. Template : `.screen-layout` = rail de cartes (Production / Apparence /
       Indicateurs) + panneau d'aperçu. **Tous les ids conservés** (`#skin-select`,
       `#theme-select`, `#meta-columns`…) → `bindSettings`/`syncSettingsInputs` et les
       e2e ne bougent pas.
-- [ ] B3. CSS : cartes de réglages, `<select>` restylés (`appearance:none` + chevron
+- [x] B3. CSS : cartes de réglages, `<select>` restylés (`appearance:none` + chevron
       maison), cases à cocher custom, panneau d'aperçu.
-- [ ] B4. JS : rendu à **1920×1080 puis mis à l'échelle** via le `fitPreview()`
+- [x] B4. JS : rendu à **1920×1080 puis mis à l'échelle** via le `fitPreview()`
       existant (leçon 2026-07-23 : un aperçu à une autre résolution est faux par
       construction, l'écran étant en `auto-fit`). Rechargement à l'activation de
       l'onglet, après chaque enregistrement du brouillon, et au resize.
@@ -1039,3 +1043,50 @@ Mesuré, pas relu : `getComputedStyle` donne `rgb(240,133,122)` (`--danger`) sur
 « Supprimer » et `rgb(238,241,247)` sur ses deux voisins ; les trois restent alignés
 (657 / 737 / 821 px). Et le pied du dialogue Historique garde son comportement — marge
 résolue à 268 px, destructif collé à gauche, « Fermer » rejeté à droite.
+
+---
+
+## Lot « Ce que l'écran croyait dire » — 2026-08-03
+
+Reprise du seul point technique laissé ouvert au lot du 2026-07-28 (soir) : « `display.js`
+référence `#sync-hint` mais l'élément n'existe plus — à trancher : rétablir ou retirer ».
+
+**Tranché : retirer.** L'historique donne la réponse sans avoir à deviner. Le commit
+`0156f0d` (2026-07-13, « simplifications display/admin ») retire du pied de l'écran, dans
+son propre message, « la partie admin (écrou/adresse) et "mises à jour en direct" ». Les
+deux suppressions étaient donc voulues ; c'est le JS qui n'a pas suivi.
+
+**Un second mort trouvé au passage, jamais signalé :** `#admin-hint`, retiré par le MÊME
+commit. `loadOnboarding()` continuait d'y écrire « ⚙ Admin : comroster.local » une fois la
+box configurée. Deux éléments, cinq écritures, toutes protégées par un `if (el)` qui rendait
+la panne parfaitement silencieuse — pendant trois semaines.
+
+- [x] **Le seul message qui portait une information est récupéré.** Sur les cinq, quatre
+      doublaient le voyant « En direct » (`setLive` dit déjà « Reconnexion… », « Mise à
+      jour »). Le cinquième, lui, n'avait pas d'équivalent : sans `EventSource`, la page
+      abandonnait en silence et le voyant restait au vert devant un tableau qui ne serait
+      plus jamais mis à jour. `setLive` accepte donc un libellé explicite, et ce cas
+      affiche « Temps réel indisponible » avec l'état visuel d'erreur — sans promettre une
+      reconnexion qui n'aura pas lieu.
+- [x] **Garde structurelle** (`test_display_js_trouve_ce_quil_adresse`) : chaque
+      `getElementById` de `display.js` doit exister dans la page `/display` RENDUE. Elle
+      existait pour `journal.js` et `health.js` face à `admin.html` depuis la fusion des
+      panneaux (leçon 2026-07-30) — l'écran de régie, lui, n'en avait aucune, et c'est
+      exactement le trou par lequel ces deux éléments ont survécu.
+- [x] **`.person .name` supprimé de `display.css`** : dernier vestige du champ « nom »,
+      disparu du modèle bien avant (le README l'affirmait encore à tort en juillet).
+      Constat déjà noté au lot des apparences, jamais nettoyé. Vérifié au rendu :
+      0 élément `.person .name` dans le document.
+
+**Vérifié :** 522 unitaires (+1) · 55 e2e · 38 JS · ruff propre. Rendu réel à 1920×1080
+(6 groupes, 24 beltpacks) : voyant « EN DIRECT » à `data-state=idle`, 24 cartes, console
+navigateur vide — collecteur prouvé armé par une sonde, sans quoi l'assertion négative ne
+prouverait rien (leçon 2026-07-23).
+
+**Garde confrontée à sa mutation :** réintroduire un `getElementById("sync-hint")` dans
+`display.js` fait tomber le test, avec le bon message (`['sync-hint']`), et le fichier est
+restauré à l'octet près.
+
+**Relevé au passage :** les cases B1 à B4 du lot du 2026-07-27 (onglet « Écran ») étaient
+restées vides alors que tout est livré depuis longtemps. Cochées après vérification dans le
+code, pas sur mémoire.

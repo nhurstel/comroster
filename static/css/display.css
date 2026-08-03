@@ -227,9 +227,8 @@ body.display-page[data-theme="day"] .brand-mark-color { filter: none; }
   white-space: nowrap; overflow: hidden;
 }
 .wrap-roles .person .role { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
-.person .name { font-size: 0.8rem; color: var(--d-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Indicateurs temps réel (batterie) — largeur stable pour ne pas décaler le nom */
+/* Indicateurs temps réel (batterie) — largeur stable pour ne pas décaler le rôle */
 .card-live { margin-left: auto; display: flex; align-items: center; gap: 0.7rem; flex: 0 0 auto; padding-left: 0.6rem; }
 .bp-batt { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--d-muted); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 3.4em; text-align: right; }
 .bp-batt.low { color: #E0913A; }
