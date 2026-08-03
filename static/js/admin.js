@@ -347,7 +347,7 @@
     t.type = "button";
     t.className = "drop-tile";
     t.title = "Ajouter un beltpack";
-    t.textContent = "déposer un beltpack";
+    t.textContent = "ajouter un beltpack";
     t.addEventListener("click", onClick);
     return t;
   }
@@ -1941,7 +1941,7 @@
     wifiState("Recherche des réseaux…");
     try {
       const res = await apiSend("GET", "/api/network/wifi-scan");
-      if (!res.available) { wifiState("Recherche indisponible sur ce boîtier — saisir le nom manuellement."); }
+      if (!res.available) { wifiState("Recherche indisponible sur ce ComRoster — saisir le nom manuellement."); }
       else renderWifiList(res.networks || []);
     } catch { wifiState("Recherche impossible — saisir le nom manuellement."); }
     finally { btn.disabled = false; }
@@ -2053,9 +2053,9 @@
       await apiSend("PUT", "/api/network", cfg);
       const where = link === "wifi" ? `en Wi-Fi sur <b>${esc(cfg.wifi.ssid)}</b>` : "en filaire (RJ45)";
       res.innerHTML = mode === "static"
-        ? `Enregistré. Cliquez <b>Appliquer maintenant</b> — le boîtier passera ${where} sur `
+        ? `Enregistré. Cliquez <b>Appliquer maintenant</b> — le ComRoster passera ${where} sur `
           + `<b>${esc(cfg.address)}</b> (adresse affichée à l'écran). Reconnectez-vous ensuite sur cette adresse.`
-        : `Enregistré. Cliquez <b>Appliquer maintenant</b> — le boîtier passera ${where} en adresse automatique.`;
+        : `Enregistré. Cliquez <b>Appliquer maintenant</b> — le ComRoster passera ${where} en adresse automatique.`;
       res.hidden = false;
       if (applyBtn) applyBtn.hidden = false;
       toast("Configuration réseau enregistrée");
@@ -2090,12 +2090,12 @@
   document.getElementById("reboot-btn").addEventListener("click", async (ev) => {
     const btn = ev.currentTarget;              // AVANT l'await : currentTarget est nul après
     if (!await confirmDialog("Écran et administration indisponibles environ une minute.",
-                             { title: "Redémarrer le boîtier", okLabel: "Redémarrer" })) return;
+                             { title: "Redémarrer le ComRoster", okLabel: "Redémarrer" })) return;
     const original = btn.innerHTML;
     btn.disabled = true; btn.textContent = "Redémarrage…";
     try {
       await apiSend("POST", "/api/reboot");
-      toast("Redémarrage du boîtier en cours…");
+      toast("Redémarrage du ComRoster en cours…");
     } catch (e) {
       // Si le boîtier redémarre VRAIMENT, la requête peut échouer (connexion coupée).
       // Seule une réponse d'erreur explicite du serveur signifie que ça n'a pas marché.
@@ -2104,7 +2104,7 @@
         toast(refus, true);
         btn.disabled = false; btn.innerHTML = original;
       } else {
-        toast("Redémarrage du boîtier en cours…");
+        toast("Redémarrage du ComRoster en cours…");
       }
     }
   });
@@ -2174,7 +2174,7 @@
           + `<button type="button" data-del="${esc(c.name)}" class="danger">Supprimer</button></span></li>`).join("")
       : "<li class='empty-hint'>Aucune configuration enregistrée.</li>";
     ul.querySelectorAll("[data-load]").forEach((b) => b.addEventListener("click", async () => {
-      if (!await confirmDialog(`Charger « ${b.dataset.load} » ? Le tableau actuel sera remplacé et l'antenne déconnectée.`,
+      if (!await confirmDialog(`Charger « ${b.dataset.load} » ? Le Roster actuel sera remplacé et l'antenne déconnectée.`,
                                { title: "Charger la configuration", okLabel: "Charger" })) return;
       await apiSend("POST", `/api/configs/${encodeURIComponent(b.dataset.load)}/load`);
       document.getElementById("configs-dialog").close();
@@ -2297,9 +2297,9 @@
       box.innerHTML = [
         `<li><b>${s.groups}</b> groupe${s.groups > 1 ? "s" : ""}, <b>${s.people}</b> beltpack${s.people > 1 ? "s" : ""}</li>`,
         `<li><b>${s.configs}</b> configuration${s.configs > 1 ? "s" : ""} enregistrée${s.configs > 1 ? "s" : ""}</li>`,
-        s.has_network ? `<li>Configuration réseau (${esc(s.network_link || "?")}) — <b>remplacera celle du boîtier</b></li>` : "<li>Aucune configuration réseau</li>",
+        s.has_network ? `<li>Configuration réseau (${esc(s.network_link || "?")}) — <b>remplacera celle du ComRoster</b></li>` : "<li>Aucune configuration réseau</li>",
         s.has_antenna ? "<li>Identifiants du réseau intercom</li>" : "<li>Aucun identifiant intercom</li>",
-        s.has_password ? "<li><b>Mot de passe d'administration</b> — remplacera celui du boîtier</li>" : "<li>Aucun mot de passe</li>",
+        s.has_password ? "<li><b>Mot de passe d'administration</b> — remplacera celui du ComRoster</li>" : "<li>Aucun mot de passe</li>",
       ].join("");
       box.hidden = false;
       document.getElementById("bk-restore").hidden = false;
@@ -2315,7 +2315,7 @@
     const btn = ev.currentTarget;
     if (!backupPayloadB64) return;
     if (!await confirmDialog(
-      "Le plateau, le réseau, les identifiants intercom et le mot de passe du boîtier "
+      "Le plateau, le réseau, les identifiants intercom et le mot de passe du ComRoster "
       + "seront remplacés par ceux de la sauvegarde. Action irréversible.",
       { title: "Restaurer la sauvegarde", okLabel: "Restaurer", danger: true })) return;
     const passphrase = document.getElementById("bk-restore-pass").value;

@@ -25,7 +25,8 @@ def plateau(auth_client):
 def test_la_feuille_montre_l_etat_publie_par_defaut(plateau):
     html = plateau.get("/admin/print").get_data(as_text=True)
     assert "Son" in html and "HF" in html and "Régie" in html
-    assert "Non affectés" in html and "Renfort" in html
+    # La réserve ne s'imprime plus : une conduite liste ce qui est AFFECTÉ.
+    assert "Non affectés" not in html and "Renfort" not in html
     assert "État publié" in html
 
 

@@ -23,8 +23,6 @@ export const REGLAGES = {
   colonnes: { attr: "data-cols", valeurs: ["1", "2", "3"], defaut: "3" },
   visa: { attr: "data-visa", valeurs: ["oui", "non"], defaut: "oui" },
   cases: { attr: "data-cases", valeurs: ["oui", "non"], defaut: "non" },
-  reserve: { attr: "data-reserve", valeurs: ["oui", "non"], defaut: "oui" },
-  parPage: { attr: "data-par-page", valeurs: ["oui", "non"], defaut: "non" },
 };
 
 export const CLE_STOCKAGE = "comroster.impression";
@@ -45,10 +43,6 @@ export function normalise(brut) {
  *  Un saut de page à l'intérieur d'un conteneur multi-colonnes est mal supporté :
  *  « un groupe par page » impose donc la colonne unique. La barre désactive le
  *  segment Colonnes en conséquence — un contrôle qui ne ferait rien mentirait. */
-export function effectif(opts) {
-  return opts.parPage === "oui" ? { ...opts, colonnes: "1" } : { ...opts };
-}
-
 /** Uniquement les réglages qui S'ÉCARTENT du défaut : le défaut est l'absence. */
 export function attributs(opts) {
   const sortie = {};

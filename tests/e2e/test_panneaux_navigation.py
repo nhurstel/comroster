@@ -143,8 +143,13 @@ def test_la_feuille_est_refaite_a_chaque_passage(page, live_server):
 
     page.click('[data-tab="board"]')
     page.wait_for_selector('.tab-panel[data-panel="board"]:not([hidden])')
+    page.click("#add-block-btn")
+    page.fill("#block-name", "Plateau")
+    page.click("#block-form button[type=submit]")
+    page.wait_for_selector("#blocks-container >> text=Plateau")
     page.click("#add-beltpack-pool")
     page.fill("#person-beltpack", "77")
+    page.select_option("#person-assign", label="Plateau")
     page.click("#person-form button[type=submit]")
     page.wait_for_selector(".person .bp:has-text('77')")
     # La feuille rend l'état PUBLIÉ par défaut : on publie, sinon le beltpack ajouté

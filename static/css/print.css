@@ -238,12 +238,9 @@
   print-color-adjust: exact;
 }
 
-[data-reserve="non"] .sheet-reserve { display: none; }
 
 /* Un groupe par page. `printopts.effectif()` force déjà `data-cols="1"` : un saut de
    page à l'intérieur d'un conteneur multi-colonnes est mal supporté. */
-[data-par-page="oui"] .sheet-group { break-before: page; page-break-before: always; }
-[data-par-page="oui"] .sheet-group:first-child { break-before: auto; page-break-before: auto; }
 
 /* Formats. `printopts.js` insère la règle @page correspondante en CSSOM (une @page ne
    peut pas être conditionnée par un sélecteur) ; ces règles-ci pilotent ce qui, dans le

@@ -11,7 +11,7 @@
    Pas d'impression automatique au chargement : ouvrir la feuille pour la RELIRE est
    le cas le plus fréquent, et une boîte d'impression surgissante serait une décision
    prise à la place de l'utilisateur. */
-import { attributs, ecrire, effectif, lire, REGLAGES } from "./printopts.js";
+import { attributs, ecrire, lire, REGLAGES } from "./printopts.js";
 
 const TAILLES = {
   "a3-portrait": "A3 portrait",
@@ -21,8 +21,7 @@ const TAILLES = {
   "a5-portrait": "A5 portrait",
 };
 
-const CASES = [["visa", "opt-visa"], ["cases", "opt-cases"],
-               ["reserve", "opt-reserve"], ["parPage", "opt-par-page"]];
+const CASES = [["visa", "opt-visa"], ["cases", "opt-cases"]];
 
 let opts = lire(window.localStorage);
 
@@ -38,7 +37,7 @@ function poserFormat(format) {
 }
 
 function appliquer() {
-  const vue = effectif(opts);
+  const vue = { ...opts };
   const poses = attributs(vue);
   for (const def of Object.values(REGLAGES)) {
     const valeur = poses[def.attr];

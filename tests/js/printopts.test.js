@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { attributs, CLE_STOCKAGE, ecrire, effectif, lire, normalise, REGLAGES }
+import { attributs, CLE_STOCKAGE, ecrire, lire, normalise, REGLAGES }
   from "../../static/js/printopts.js";
 
 /** Faux Storage : le module ne doit dépendre que de getItem/setItem. */
@@ -36,18 +36,6 @@ describe("normalise", () => {
 
   it("conserve une valeur légale", () => {
     expect(normalise({ colonnes: "1" }).colonnes).toBe("1");
-  });
-});
-
-describe("effectif", () => {
-  it("force la colonne unique quand « un groupe par page » est actif", () => {
-    // Un saut de page DANS un conteneur multi-colonnes est mal supporté : plutôt que
-    // de rendre un résultat imprévisible, la contrainte est explicite et testée.
-    expect(effectif(normalise({ parPage: "oui", colonnes: "3" })).colonnes).toBe("1");
-  });
-
-  it("laisse les colonnes tranquilles sinon", () => {
-    expect(effectif(normalise({ parPage: "non", colonnes: "3" })).colonnes).toBe("3");
   });
 });
 

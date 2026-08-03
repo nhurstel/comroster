@@ -186,16 +186,6 @@ def test_le_defaut_ne_pose_aucun_attribut(page, live_server):
     feuille.close()
 
 
-def test_un_groupe_par_page_desactive_le_choix_des_colonnes(page, live_server):
-    """Un contrôle qui reste actif mais sans effet ment à l'utilisateur."""
-    _plateau_publie(page, live_server)
-    feuille = _feuille(page, live_server)
-    feuille.check("#opt-par-page")
-    feuille.wait_for_selector("#opt-cols button:disabled")
-    assert feuille.get_attribute("html", "data-cols") == "1"
-    feuille.close()
-
-
 def test_actionner_chaque_reglage_ne_produit_aucune_erreur_console(page, live_server):
     """Une violation de CSP n'apparaît QUE dans la console : le test serveur vérifie
     l'absence de `style=` dans le HTML, il ne voit pas ce que le JS fait ensuite.
@@ -215,9 +205,11 @@ def test_actionner_chaque_reglage_ne_produit_aucune_erreur_console(page, live_se
 
     feuille.select_option("#opt-format", "a4-portrait")
     feuille.click("#opt-cols button[data-valeur='1']")
-    for case in ("#opt-visa", "#opt-cases", "#opt-reserve", "#opt-par-page"):
+    for case in ("#opt-visa", "#opt-cases"):
         feuille.click(case)
-    feuille.wait_for_selector("html[data-par-page='oui']", state="attached")
+    # Le dernier réglage actionné doit avoir ATTERRI avant de conclure : sans cette
+    # attente, on lirait la console d'une page qui n'a pas fini d'appliquer.
+    feuille.wait_for_selector("html[data-cases='oui']", state="attached")
 
     feuille.evaluate("console.debug('sonde')")      # prouve que le collecteur est armé
     assert journal, "collecteur console jamais armé — l'assertion suivante ne prouverait rien"

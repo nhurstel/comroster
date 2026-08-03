@@ -52,7 +52,7 @@
             <button type="button" class="menu-item" role="menuitem" data-tab="journal">Journal</button>
             <div class="menu-sep" role="separator"></div>
             <button type="button" class="menu-item" role="menuitem" id="network-btn"
-                    title="Configuration réseau du boîtier">Réseau</button>
+                    title="Configuration réseau du ComRoster">Réseau</button>
             <button type="button" class="menu-item" role="menuitem" id="backup-btn"
                     title="Archive complète : plateau, réseau, antenne, configurations, mot de passe">Sauvegarde</button>
             <button type="button" class="menu-item" role="menuitem" id="password-btn">Mot de passe</button>
@@ -161,7 +161,7 @@
             </section>
             <section class="admin-panel panel-pool" aria-labelledby="available-heading">
               <div class="pool-head">
-                <h3 id="available-heading" class="nav-label">Non affectés <span class="badge" id="available-count"></span></h3>
+                <h3 id="available-heading" class="nav-label">Disponibles <span class="badge" id="available-count"></span></h3>
                 <div class="pool-find">
                   <input type="search" id="available-filter" placeholder="N° ou nom…" autocomplete="off">
                   <kbd>⌘K</kbd>
@@ -184,7 +184,7 @@
           <div class="screen-layout">
             <div class="screen-rail">
               <section class="settings-card">
-                <div class="nav-label">Production</div>
+                <div class="nav-label">Texte</div>
                 {# « Nom de la production » = titre centré de l'écran ; « Titre » + « Sous-titre »
                    = paire en haut à gauche. #}
                 <label class="side-field"><span>Nom de la production</span>
@@ -240,7 +240,7 @@
                     <em>niveau de charge remonté par l'antenne</em></span></label>
                 <label class="side-check"><input type="checkbox" id="meta-perf">
                   <span class="check-text">Mode performance
-                    <em>allège les effets — utile sur un boîtier lent</em></span></label>
+                    <em>allège les effets — utile sur un ComRoster lent</em></span></label>
               </section>
             </div>
 
@@ -307,7 +307,7 @@
            titre du plateau, donc le panneau doit se nommer lui-même. #}
         <section class="tab-panel" data-panel="health" hidden>
           <div class="journal-toolbar">
-            <span class="tb-title">Santé du boîtier</span>
+            <span class="tb-title">Santé du ComRoster</span>
             <div class="tb-right">
               <span class="tb-note" id="health-status">chargement…</span>
               <span class="tb-note" id="health-updated" title="Dernière actualisation · toutes les 4 s">—</span>
@@ -430,28 +430,28 @@
      elle contient le mot de passe Wi-Fi en clair. #}
   <dialog id="backup-dialog" class="admin-dialog backup-dialog">
     <form method="dialog">
-      <h2>Sauvegarde du boîtier</h2>
-      <p class="dialog-hint">Une archive unique, réinjectable sur un boîtier neuf :
+      <h2>Sauvegarde du ComRoster</h2>
+      <p class="dialog-hint">Une archive unique, réinjectable sur un autre ComRoster :
         plateau, réglages d'écran, réseau, identifiants du réseau intercom,
         configurations enregistrées et mot de passe d'administration.</p>
 
       <section class="bk-block">
         <div class="nav-label">Créer une sauvegarde</div>
-        <label class="field"><span>Phrase de passe <em>(8 caractères minimum)</em></span>
+        <label class="field"><span>Mot de passe <em>(8 caractères minimum)</em></span>
           <input type="password" id="bk-pass" autocomplete="new-password" minlength="8"></label>
         <p class="dialog-hint">L'archive contient le mot de passe Wi-Fi et l'empreinte du
           mot de passe admin : elle est donc chiffrée. <b>Notez cette phrase avec le
           fichier</b> — sans elle, l'archive est irrécupérable.</p>
-        <button type="button" id="bk-create" class="primary">Télécharger la sauvegarde</button>
+        <button type="button" id="bk-create" class="primary">Générer la sauvegarde</button>
       </section>
 
       <section class="bk-block">
         <div class="nav-label">Restaurer</div>
         <label class="field"><span>Fichier de sauvegarde</span>
           <input type="file" id="bk-file" accept=".rostbak,application/json"></label>
-        <label class="field"><span>Phrase de passe de cette archive</span>
+        <label class="field"><span>Mot de passe de cette archive</span>
           <input type="password" id="bk-restore-pass" autocomplete="off"></label>
-        <button type="button" id="bk-inspect">Examiner le contenu</button>
+        <button type="button" id="bk-inspect">Charger une sauvegarde</button>
         {# On annonce ce qu'on s'apprête à écraser AVANT de le faire : restaurer remplace
            le réseau et le mot de passe. « Restaurer » ne s'active qu'après l'examen. #}
         <ul id="bk-summary" class="import-summary" hidden></ul>
@@ -579,7 +579,7 @@
 
   <dialog id="network-dialog" class="admin-dialog">
     <form id="network-form" method="dialog">
-      <h2>Réseau du boîtier</h2>
+      <h2>Réseau du ComRoster</h2>
       {# État courant : la première question est « à quelle adresse suis-je joignable, là ? ».
          Rempli par openNetwork() depuis GET /api/network/status. #}
       <div class="net-current" id="net-current" hidden></div>
@@ -669,7 +669,7 @@
       <div class="cfg-file">
         <span class="cfg-file-label">Fichier</span>
         <button type="button" id="import-btn">Importer…</button>
-        <button type="button" id="export-btn">Exporter le plateau</button>
+        <button type="button" id="export-btn">Exporter</button>
         <input type="file" id="import-input" accept=".rost,application/json" hidden>
       </div>
       <div class="dialog-actions"><button type="button" data-close="configs-dialog">Fermer</button></div>

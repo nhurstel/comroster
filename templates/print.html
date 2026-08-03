@@ -23,7 +23,7 @@
       <a class="print-back" href="{{ url_for('api.admin_page') }}">← Administration</a>
     {% endif %}
     <span class="print-source">
-      {% if is_draft %}Brouillon en préparation{% else %}État publié — ce que la salle voit{% endif %}
+      {% if is_draft %}Brouillon{% else %}État publié{% endif %}
     </span>
     <span class="print-swap">
       {# La bascule REPORTE `embed` : sans ça, changer de source à l'intérieur du panneau
@@ -52,10 +52,8 @@
           <button type="button" data-valeur="3">3</button>
         </span>
       </span>
-      <label class="opt"><input type="checkbox" id="opt-visa"> Visa</label>
+      <label class="opt"><input type="checkbox" id="opt-visa"> Signature</label>
       <label class="opt"><input type="checkbox" id="opt-cases"> Cases</label>
-      <label class="opt"><input type="checkbox" id="opt-reserve"> Non affectés</label>
-      <label class="opt"><input type="checkbox" id="opt-par-page"> 1 groupe/page</label>
     </div>
 
     <button type="button" id="print-now" class="print-go">Imprimer</button>
@@ -107,7 +105,7 @@
                 <span class="sheet-rule" data-color="{{ group.color or '#555555' }}"></span>
                 {{ group.name }}
               </th></tr>
-              <tr><th class="c-bp">N°</th><th class="c-role">Rôle</th><th class="c-remis">Remis</th><th class="c-sign">Visa</th></tr>
+              <tr><th class="c-bp">N°</th><th class="c-role">Rôle</th><th class="c-remis">Remis</th><th class="c-sign">Signature</th></tr>
             </thead>
             <tbody>
               {% for p in membres %}
@@ -121,23 +119,6 @@
       </section>
     {% endfor %}
 
-    {% if reserve %}
-      <section class="sheet-group sheet-reserve">
-        <h2 class="sheet-group-name">
-          <span class="sheet-rule" data-color="#8A94A6"></span>
-          Non affectés
-          <span class="sheet-count">{{ reserve|length }}</span>
-        </h2>
-        <table class="sheet-table">
-          <thead><tr><th class="c-bp">N°</th><th class="c-role">Rôle</th><th class="c-remis">Remis</th><th class="c-sign">Visa</th></tr></thead>
-          <tbody>
-            {% for p in reserve %}
-              <tr><td class="c-bp">{{ p.beltpack }}</td><td class="c-role">{{ p.role or '—' }}</td><td class="c-remis">☐</td><td class="c-sign"></td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </section>
-    {% endif %}
   </div>
 
   {# Répété au pied de CHAQUE page à l'impression : une conduite qui se sépare doit
