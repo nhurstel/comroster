@@ -57,18 +57,11 @@ def test_aucun_identifiant_en_double(admin_html):
     assert doublons == [], f"identifiants présents plusieurs fois : {doublons}"
 
 
-@pytest.mark.parametrize("script", ["journal.js", "health.js"])
-def test_les_scripts_trouvent_ce_quils_adressent(admin_html, script):
-    """Chaque `getElementById` de ces scripts doit avoir sa cible dans admin.html.
-
-    Ces deux fichiers avaient leur propre page, qui garantissait leur décor. Cette page
-    n'existe plus : sans cette garde, renommer ou oublier un élément dans admin.html
-    laisserait le panneau se peindre à moitié, sans la moindre erreur visible.
-    """
-    js = _lire("static", "js", script)
-    attendus = set(re.findall(r'getElementById\("([^"]+)"\)', js))
-    manquants = sorted(i for i in attendus if f'id="{i}"' not in admin_html)
-    assert manquants == [], f"{script} adresse des éléments absents d'admin.html : {manquants}"
+# La garde « chaque getElementById a sa cible » vivait ici, pour journal.js et health.js
+# seulement. Elle vaut pour TOUS les couples script/page : faute de l'avoir généralisée le
+# jour où on l'a écrite, `display.js` a écrit trois semaines durant dans deux éléments
+# retirés de son template sans que rien ne le signale. Elle est désormais dans
+# tests/test_pages_et_scripts.py, qui découvre les scripts de chaque page rendue.
 
 
 @pytest.mark.parametrize("script", ["journal.js", "health.js"])
