@@ -20,12 +20,12 @@ import pytest
 
 pytestmark = pytest.mark.e2e
 
-# Vide toléré entre le mot d'état et le mot « Publier ». L'écart VOULU est de 40 px
-# (réglage de Nathan : 25 px était trop serré) ; le seuil est posé plus haut pour ne pas
-# tomber au moindre décalage de police — une garde calée sur la valeur exacte de la cible
-# se déclencherait pour un pixel, ce qui la rendrait inutile. Le défaut qu'elle attrape
-# valait 117 px, elle garde donc toute sa marge de détection.
-CREUX_MAX_PX = 55
+# Vide toléré entre le mot d'état et le mot « Publier ». L'écart VOULU est de 56 px
+# (réglage de Nathan, affiné en deux passes : 25 px trop serré, puis 40 px encore) ; le
+# seuil est posé plus haut pour ne pas tomber au moindre décalage de police — une garde
+# calée sur la valeur exacte de la cible se déclencherait pour un pixel, ce qui la rendrait
+# inutile. Le défaut qu'elle attrape valait 117 px, elle garde sa marge de détection.
+CREUX_MAX_PX = 70
 
 
 def _enter_admin(page, base):

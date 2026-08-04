@@ -1218,11 +1218,12 @@ Pointage établi dans le CODE, pas d'après les messages de commit.
       (2) chip d'état `justify-content: flex-end` : la réserve reste nécessaire (sans elle
       les onglets sauteraient à chaque frappe) mais rien n'obligeait à la laisser du côté
       de l'action — elle se réfugie contre le filet de l'horloge, entre deux témoins passifs.
-      **Résultat mesuré : creux 117 → 25 px, puis porté à 40 px sur réglage de Nathan**
-      (25 px trop serré) par une MARGE de 15 px avant le bouton — pas un padding, qui
-      aurait étendu la zone de survol et de clic dans un espace n'appartenant pas au
-      bouton. Le seuil de la garde est posé à 55 px et non à 40 : calé sur la valeur exacte
-      de la cible, il tomberait au moindre décalage de police.
+      **Résultat mesuré : creux 117 → 25 px, puis réglé par Nathan en deux passes —
+      25 px trop serré, 40 px encore : valeur finale 56 px**, obtenue par une MARGE de
+      31 px avant le bouton (et non un padding, qui aurait étendu la zone de survol et de
+      clic dans un espace n'appartenant pas au bouton). Le seuil de la garde suit à 70 px,
+      jamais calé sur la valeur exacte de la cible : il tomberait au moindre décalage de
+      police. Le défaut qu'il attrape valait 117 px, la marge de détection reste large.
       **Nathan, 2026-08-04 : les 487 px entre le fil d'Ariane et les onglets ne le gênent
       pas** — rien à faire de ce côté.
       **Garde ajoutée** (`tests/e2e/test_header_geometrie.py`, 2 tests) : le piège est
