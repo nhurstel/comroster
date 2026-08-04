@@ -255,7 +255,7 @@
       const d = await fetch("/api/health").then((r) => (r.ok ? r.json() : Promise.reject(r.status)));
       render(d);
       document.getElementById("health-updated").textContent = new Date().toLocaleTimeString("fr-FR");
-      document.getElementById("health-status").textContent = "boîtier surveillé en direct";
+      document.getElementById("health-status").textContent = "ComRoster surveillé en direct";
     } catch {
       document.getElementById("health-status").textContent = "serveur injoignable — nouvelle tentative dans 4 s";
     }

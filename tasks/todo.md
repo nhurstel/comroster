@@ -1121,9 +1121,22 @@ Pointage établi dans le CODE, pas d'après les messages de commit.
       le contenu » → « **Charger une sauvegarde** ».
 - [x] Panneau Écran : sous-titre « PRODUCTION » → « **TEXTE** ».
 - [x] « boîtier » → « **ComRoster** » : le produit se nomme lui-même, plus de terme
-      intermédiaire à apprendre. **PARTIEL** — 33 occurrences subsistent dans
-      `templates/` et `static/` au 2026-08-03, à passer en revue une par une (certaines
-      parlent du matériel Raspberry, pas du produit : à trancher au cas par cas).
+      intermédiaire à apprendre. **TERMINÉ (2026-08-04).** Les 33 occurrences passées en
+      revue : **4 seulement étaient du texte LU par l'utilisateur**, les 29 autres sont des
+      commentaires de code (Jinja `{# #}`, CSS, JS). Traitées :
+      « Votre boîtier est prêt. » → « Votre **ComRoster** est prêt. » (onboarding écran) ;
+      « boîtier surveillé en direct » → « **ComRoster** surveillé en direct » (Santé) ;
+      « Les messages techniques du boîtier » → « du **ComRoster** » (état vide du Journal) ;
+      et « Redémarrage du boîtier » → « **Redémarrage** » tout court — aucun libellé voisin
+      de cette table ne nomme la machine (« Réglages réseau enregistrés », « Antenne
+      connectée »), parce que le journal EST celui du ComRoster : le complément n'apprenait
+      rien et rompait la série.
+      **Les commentaires gardent « boîtier » à dessein** : ils désignent l'appliance
+      physique (carte SD, redémarrage, réseau, « un boîtier prêté d'une production à
+      l'autre »), et y substituer le nom du produit appauvrirait le sens pour le prochain
+      lecteur. C'est la distinction que le lot demandait de trancher au cas par cas.
+      Contrôlé par analyse des chaînes littérales, commentaires retirés : 0 occurrence
+      visible restante dans `templates/` et `static/`.
 
 ### Reste à faire
 - [x] **1. Densité de la vue Blocs : 4 colonnes au lieu de 3.** `--card-min` 300 → 232 px,

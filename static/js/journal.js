@@ -19,7 +19,10 @@
     history_clear: "Publications passées effacées",
     network_save: "Réglages réseau enregistrés",
     network_apply: "Réglages réseau appliqués",
-    reboot: "Redémarrage du boîtier",
+    // « Redémarrage » et non « Redémarrage du ComRoster » : aucun libellé voisin ne nomme
+    // la machine (« Réglages réseau enregistrés », « Antenne connectée »), parce que le
+    // journal EST celui du ComRoster. Le complément n'apprenait rien et rompait la série.
+    reboot: "Redémarrage",
     antenna_connect: "Antenne connectée",
     antenna_disconnect: "Antenne déconnectée",
     antenna_import: "Import depuis l'antenne",
@@ -131,7 +134,7 @@
           ? `<div class="journal-empty"><b>Aucune ligne ne correspond.</b>`
             + `<span>Élargissez le filtre texte, ou réactivez un niveau ci-dessus.</span></div>`
           : `<div class="journal-empty"><b>Rien à signaler.</b>`
-            + `<span>Les messages techniques du boîtier s'inscrivent ici pendant la session ; `
+            + `<span>Les messages techniques du ComRoster s'inscrivent ici pendant la session ; `
             + `le tampon repart de zéro à chaque redémarrage.</span></div>`;
       document.getElementById("journal-count").textContent = state.logs.length
         ? `${rows.length} ligne${rows.length > 1 ? "s" : ""} sur ${state.logs.length} en mémoire`
