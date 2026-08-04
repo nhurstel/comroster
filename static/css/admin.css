@@ -193,8 +193,13 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 .status-badge[data-state="pending"] .pulse { background: var(--warning); }
 
 /* Publication en « texte » (réglage retenu) : turquoise sans fond + raccourci. */
+/* La marge (et non un padding) sépare les témoins passifs — horloge, état — de l'ACTION.
+   Un padding aurait étendu la zone de survol et de clic vers la gauche, faisant réagir le
+   bouton dans un espace qui ne lui appartient pas ; la marge, elle, ne fait que séparer.
+   Écart voulu entre le mot d'état et le mot « Publier » : 40 px (réglage de Nathan). */
 #publish-btn.publish-text {
     display: flex; align-items: center; justify-content: center; gap: 11px; padding: 0 16px;
+    margin-left: 15px;
     background: transparent; color: var(--accent);
     font-size: calc(var(--ui) + 0.5px); font-weight: 700;
     letter-spacing: var(--track); white-space: nowrap; transition: background 0.12s;

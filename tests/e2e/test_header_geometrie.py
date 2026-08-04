@@ -20,11 +20,12 @@ import pytest
 
 pytestmark = pytest.mark.e2e
 
-# Vide toléré entre le mot d'état et le mot « Publier ». Au moment où cette garde est
-# écrite la valeur mesurée est de 25 px (padding du bouton 16 + 9 de réserve d'état) ;
-# 40 laisse respirer un changement de police sans laisser repasser le défaut, qui valait
-# 117 px.
-CREUX_MAX_PX = 40
+# Vide toléré entre le mot d'état et le mot « Publier ». L'écart VOULU est de 40 px
+# (réglage de Nathan : 25 px était trop serré) ; le seuil est posé plus haut pour ne pas
+# tomber au moindre décalage de police — une garde calée sur la valeur exacte de la cible
+# se déclencherait pour un pixel, ce qui la rendrait inutile. Le défaut qu'elle attrape
+# valait 117 px, elle garde donc toute sa marge de détection.
+CREUX_MAX_PX = 55
 
 
 def _enter_admin(page, base):
