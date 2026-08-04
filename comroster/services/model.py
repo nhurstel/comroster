@@ -211,6 +211,11 @@ def add_group(state, name, color, order=None):
         "name": name,
         "color": color,
         "order": order if order is not None else len(state["groups"]),
+        # Même forme que `build_draft` : sans cette ligne, un groupe créé par
+        # `POST /api/groups` n'a pas le champ tant qu'un enregistrement complet du
+        # brouillon ne l'a pas normalisé — deux formes de groupe selon le chemin de
+        # création, dont l'une fait apparaître un faux écart entre brouillon et publié.
+        "manual_order": False,
     }
     state["groups"].append(group)
     touch(state)

@@ -116,6 +116,11 @@ def test_la_feuille_en_trame_perd_son_lien_de_retour(auth_client):
     Le lien reste en revanche sur /admin/print ouverte directement — adresse encore
     diffusée par l'aide-mémoire terrain, où il est le seul chemin de retour.
     """
+    # Un groupe suffit à créer un brouillon DISTINCT du publié : sans lui, la bascule
+    # « Imprimer le brouillon » ne s'affiche plus (elle proposerait deux liens pour un seul
+    # document) et il n'y aurait rien dont vérifier le report d'`embed`.
+    auth_client.post("/api/groups", json={"name": "Son", "color": "#3FA6B0"})
+
     assert "← Administration" in auth_client.get("/admin/print").get_data(as_text=True)
     embarquee = auth_client.get("/admin/print?embed=1").get_data(as_text=True)
     assert "← Administration" not in embarquee

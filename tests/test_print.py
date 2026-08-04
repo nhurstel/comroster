@@ -9,6 +9,7 @@ import re
 import pytest
 
 from comroster.api import SEUIL_GROUPE_LONG, _beltpack_sort_key, _date_fr
+from comroster.services import model
 
 
 @pytest.fixture
@@ -42,6 +43,61 @@ def test_les_beltpacks_sont_tries_numeriquement(plateau):
     html = plateau.get("/admin/print").get_data(as_text=True)
     positions = [html.index(f'class="c-bp">{n}<') for n in ("1", "2", "10")]
     assert positions == sorted(positions), "ordre des numéros incorrect sur la feuille"
+
+
+def test_le_lien_vers_le_brouillon_n_apparait_que_s_il_y_a_un_brouillon(plateau):
+    """Demande de Nathan. Juste après une publication, brouillon et publié sont le MÊME
+    plateau : proposer « Imprimer le brouillon » offrirait deux liens pour un seul
+    document, et le doute d'avoir la mauvaise feuille en main au pire moment.
+
+    La comparaison ignore `updated_at`, ré-horodaté à chaque frappe — s'y fier annoncerait
+    un écart là où l'on a seulement retapé le même mot.
+    """
+    assert "Imprimer le brouillon" not in plateau.get("/admin/print").get_data(as_text=True)
+
+    plateau.post("/api/groups", json={"name": "Lumière", "color": "#E4B93C"})
+    assert "Imprimer le brouillon" in plateau.get("/admin/print").get_data(as_text=True)
+
+    plateau.post("/api/publish")
+    assert "Imprimer le brouillon" not in plateau.get("/admin/print").get_data(as_text=True)
+
+
+def test_reenregistrer_le_brouillon_sans_le_changer_ne_cree_pas_un_faux_brouillon(
+        plateau, monkeypatch):
+    """Réenregistrer le brouillon tel quel le ré-horodate sans rien changer d'autre.
+
+    C'est le cas courant, pas un cas tordu : l'administration enregistre le brouillon à
+    chaque frappe, et `build_draft` repose `updated_at` à chaque fois. Une comparaison
+    brute des deux états annoncerait donc « brouillon à imprimer » après un simple
+    passage dans un champ, alors qu'il n'y a rien de plus à sortir que la version déjà à
+    l'antenne. C'est ce test qui justifie d'écarter `updated_at`.
+
+    L'horodatage est FORCÉ plutôt qu'attendu : `now_iso()` a une granularité d'une
+    seconde, et un test qui s'exécute en millisecondes réécrit la même valeur — la
+    mutation de contrôle passait au vert pour cette seule raison, sans rien prouver.
+    """
+    avant = plateau.get("/api/state").get_json()
+    monkeypatch.setattr(model, "now_iso", lambda: "2030-01-01T00:00:00Z")
+    assert plateau.put("/api/draft", json=avant).status_code == 200
+
+    apres = plateau.get("/api/state").get_json()
+    # Témoin positif : sans écart d'horodatage réel, l'assertion suivante ne prouverait
+    # rien (leçon 2026-07-23 sur les assertions négatives creuses).
+    assert apres["updated_at"] != avant["updated_at"]
+    assert {k: v for k, v in apres.items() if k != "updated_at"} == \
+           {k: v for k, v in avant.items() if k != "updated_at"}
+
+    html = plateau.get("/admin/print").get_data(as_text=True)
+    assert "Imprimer le brouillon" not in html, (
+        "un simple réenregistrement a été pris pour un brouillon à imprimer"
+    )
+
+
+def test_un_plateau_jamais_publie_propose_quand_meme_son_brouillon(auth_client):
+    """Sans publication, la feuille « publiée » est vide : c'est le seul cas où le lien
+    doit s'afficher alors qu'il n'y a rien à comparer."""
+    auth_client.post("/api/groups", json={"name": "Son", "color": "#3FA6B0"})
+    assert "Imprimer le brouillon" in auth_client.get("/admin/print").get_data(as_text=True)
 
 
 def test_un_groupe_range_a_la_main_garde_son_ordre_sur_le_papier(plateau):

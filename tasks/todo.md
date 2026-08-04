@@ -1166,8 +1166,17 @@ Pointage établi dans le CODE, pas d'après les messages de commit.
       doublon de Configurations : l'un garde AUTOMATIQUEMENT les 50 dernières
       publications, l'autre ne garde que ce qu'on a nommé soi-même. Aucun renommage
       demandé, rien à faire.
-- [ ] **4. Impression : « Imprimer le brouillon » seulement s'il existe un brouillon**
-      distinct du publié (aujourd'hui le lien est inconditionnel, print.html:31-34).
+- [x] **4. Impression : « Imprimer le brouillon » seulement s'il existe un brouillon**
+      distinct du publié (2026-08-03). La comparaison ignore `updated_at` : toute mutation
+      ré-horodate le brouillon, y compris celles qui le ramènent à son point de départ.
+      **Deux enseignements de la mutation de contrôle**, qui a d'abord PASSÉ (donc ne
+      prouvait rien) : (a) `now_iso()` a une granularité d'une seconde, un test qui
+      s'exécute en millisecondes réécrit la même valeur — l'horodatage est désormais forcé
+      par `monkeypatch`, avec un témoin positif qui vérifie qu'il a réellement bougé ;
+      (b) en cherchant pourquoi, un **défaut du lot précédent** est apparu : `add_group`
+      posait le groupe à la main, sans `manual_order`, alors que `build_draft` l'ajoute —
+      deux formes de groupe selon le chemin de création, dont l'une fabriquait un faux
+      écart entre brouillon et publié. Corrigé à la source.
 - [ ] **5. Impression : mise en page « plus sympa »** — travail de design, à cadrer.
 - [ ] **6. Sauvegarde : remise en page** (« pas tout à fait clean »).
 - [x] **7. Panneau Écran : repli automatique du témoin « Affichage en cours »** (2026-08-03).

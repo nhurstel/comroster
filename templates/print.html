@@ -30,7 +30,10 @@
          y ferait réapparaître le lien de retour. #}
       {% if is_draft %}
         <a href="{{ url_for('api.admin_print', embed=1 if embed else None) }}">Imprimer l'état publié</a>
-      {% else %}
+      {# Sans brouillon distinct, ce lien proposerait une seconde version identique à celle
+         qu'on regarde : deux liens pour un seul document, et le doute d'avoir la mauvaise
+         feuille en main au pire moment. #}
+      {% elif brouillon_distinct %}
         <a href="{{ url_for('api.admin_print', draft=1, embed=1 if embed else None) }}">Imprimer le brouillon</a>
       {% endif %}
     </span>

@@ -82,6 +82,30 @@ def admin_preview():
                            preview_scroll=request.args.get("scroll") == "1")
 
 
+def _brouillon_distinct(brouillon, publie):
+    """Y a-t-il vraiment un brouillon, c'est-à-dire un plateau qui n'est pas à l'antenne ?
+
+    « Imprimer le brouillon » proposait une seconde version même quand elle était en tout
+    point celle qu'on venait de publier : deux liens pour un seul document, et le doute
+    d'avoir sous la main la mauvaise feuille au pire moment.
+
+    La comparaison IGNORE `updated_at` : toute mutation du brouillon le ré-horodate
+    (`model.touch()`), y compris celles qui le ramènent à son point de départ — créer un
+    groupe puis le supprimer, réenregistrer le même contenu, rappeler depuis l'Historique
+    la version déjà à l'antenne. Une comparaison brute annoncerait dans tous ces cas un
+    brouillon à imprimer qui n'existe pas.
+
+    Tant qu'on n'a jamais publié, il y a bien un brouillon distinct — la feuille publiée
+    serait vide.
+    """
+    def sans_horodatage(etat):
+        return {k: v for k, v in (etat or {}).items() if k != "updated_at"}
+
+    if not publie:
+        return bool((brouillon or {}).get("groups") or (brouillon or {}).get("people"))
+    return sans_horodatage(brouillon) != sans_horodatage(publie)
+
+
 @bp.get("/admin/print")
 @login_required
 def admin_print():
@@ -93,8 +117,9 @@ def admin_print():
     et `?draft=1` rend le brouillon, pour imprimer une version en préparation.
     """
     draft = request.args.get("draft") == "1"
-    state = (_storage().load_draft() if draft
-             else _storage().load_published() or model.empty_state())
+    brouillon = _storage().load_draft()
+    publie = _storage().load_published()
+    state = brouillon if draft else (publie or model.empty_state())
     groups = sorted(state.get("groups") or [], key=lambda g: g.get("order") or 0)
     people = state.get("people") or []
     # Même régime d'ordre que les deux écrans (static/js/board.js) : tri par numéro, sauf
@@ -112,6 +137,7 @@ def admin_print():
     return render_template(
         "print.html", state=state, groups=groups, by_group=by_group,
         reserve=reserve, is_draft=draft, seuil_long=SEUIL_GROUPE_LONG,
+        brouillon_distinct=_brouillon_distinct(brouillon, publie),
         embed=request.args.get("embed") == "1",
         updated_fr=_date_fr(state.get("updated_at")),
         printed_at=datetime.now(timezone.utc).astimezone().strftime("%d/%m/%Y à %H:%M"),
