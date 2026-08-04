@@ -1248,4 +1248,25 @@ Pointage établi dans le CODE, pas d'après les messages de commit.
       (b) état réduit à sa pastille, le détail vivant déjà dans la barre d'état ≈ −80 px ;
       (c) horloge + état déplacés à gauche dans le vide de 487 px ≈ −195 px, ce qui
       revient sur la décision de juillet.
-- [ ] **9. Redesigner la page de login.**
+- [ ] **9. Redesigner la page de login.** **DIAGNOSTIC POSÉ ET MESURÉ (2026-08-04)**,
+      exécution à faire — capture relue à 1440×900, valeurs relevées en CSSOM :
+      - **Charge `main.css` + `auth.css`.** C'est la cause de tout le reste : la page hérite
+        de la feuille globale dont l'admin a été DÉCOUPLÉ en juillet (leçon 2026-07-25 :
+        « on ne peut pas énumérer ce qu'on hérite »). Le login est donc le dernier endroit
+        du produit resté sur la DA abandonnée.
+      - **Voile turquoise toujours actif** : `body::before` =
+        `radial-gradient(circle at 50% 0%, rgba(51,214,198,.04), transparent 60%)`. C'est
+        le halo diagnostiqué comme signature « projet fait par l'IA » au lot des apparences,
+        neutralisé sur `/display` pour toute apparence ≠ basique — jamais ici.
+      - **Bouton en pilule turquoise pleine et arrondie**, alors que l'admin a abandonné les
+        pilules pour des segments plats et que « Publier » y est en TEXTE sans fond
+        (décision de Nathan, 2026-07-23). La page contredit la DA du reste du produit.
+      - **Carte 420×428 px = 13,9 % de l'écran**, flottant dans 86 % de vide ; `line-height`
+        25,6 px hérité du body global ; deux accents turquoise saturés (contour permanent du
+        champ + aplat du bouton) sur une page qui n'a qu'UNE action.
+      **Remède retenu (à exécuter) :** découpler comme l'admin — la page ne charge plus que
+      sa feuille, reconstruite sur les jetons de l'admin. Verrouiller par un test
+      (`assert "main.css" not in html`), sur le modèle de celui qui garde déjà l'admin.
+      ⚠️ `login.html` porte TROIS états dans le même template (connexion · réinitialisation ·
+      code de récupération affiché) : les trois doivent être capturés, pas seulement le
+      premier. Et `setup.html` partage `auth.css` — vérifier qu'il ne casse pas.
