@@ -1186,7 +1186,36 @@ Pointage établi dans le CODE, pas d'après les messages de commit.
       réglages des autres. Mécanique : `panneau-cache`, symétrique du `panneau-affiche`
       existant — ce qu'un panneau allume en arrivant doit pouvoir s'éteindre en partant,
       plutôt qu'une liste de cas particuliers dans `selectTab`.
-- [ ] **8. Header : rapprocher les menus du bouton d'envoi** — « il y a un vrai vide entre
+- [x] **8. Header : rapprocher les menus du bouton d'envoi** — **LIVRÉ (2026-08-04)**,
+      après que la capture de Nathan a montré que ma mesure de juillet répondait à côté.
+      **Cause racine, mesurée sur les GLYPHES et non sur les boîtes** : les segments
+      étaient bien contigus (0 px entre eux), mais deux d'entre eux portaient une largeur
+      figée sur leur pire cas et laissaient leur réserve en vide INTERNE — 69 px dans la
+      chip d'état (figée pour « 88 en attente », affichant « À jour », contenu calé à
+      gauche) + 48 px dans le bouton (figé pour « Annuler la publication · 5 », contenu
+      centré). Soit **117 px de creux** entre le mot d'état et le mot « Publier », que la
+      mesure des rectangles ne pouvait pas voir. « On dirait que c'est aligné vers la
+      droite » décrivait exactement ça.
+      **Deux gestes, aucun déplacement** (la décision de juillet — horloge et état restent
+      entre Réseau et Publier — est donc respectée) :
+      (1) libellé armé « Annuler la publication · N » → « **Annuler · N** ». C'est lui qui
+      fixait la largeur du bouton : 184 → **120 px**. L'alternative (retirer l'état armé du
+      calcul) a été écartée — le bouton se serait élargi de 80 px À CHAQUE publication,
+      faisant sauter l'action la plus fréquente. Ici rien ne bouge jamais.
+      (2) chip d'état `justify-content: flex-end` : la réserve reste nécessaire (sans elle
+      les onglets sauteraient à chaque frappe) mais rien n'obligeait à la laisser du côté
+      de l'action — elle se réfugie contre le filet de l'horloge, entre deux témoins passifs.
+      **Résultat mesuré : creux 117 → 25 px (−79 %).**
+      **Garde ajoutée** (`tests/e2e/test_header_geometrie.py`, 2 tests) : le piège est
+      structurel — il suffit d'ajouter un libellé long à `fixWidthToLongest()` pour rouvrir
+      le creux sans qu'aucune assertion existante ne bronche. Elle mesure la distance entre
+      les GLYPHES. Deux mutations, une propriété chacune, chacune vue tomber : libellé armé
+      long → 57 px + 96 px de rab (les deux gardes) ; `flex-end` retiré → 85 px (la garde du
+      creux SEULE, celle du bouton reste verte).
+      *Reste ouvert, non demandé* : 487 px de vide subsistent entre le fil d'Ariane et les
+      onglets (`.admin-tabs { margin-left: auto }`) — c'est le seul vrai vide du bandeau,
+      mais Nathan n'a pas dit qu'il le gênait.
+- [~] ~~8 (analyse initiale, conservée pour mémoire)~~ — « il y a un vrai vide entre
       lui et le "en direct" ». **MESURÉ à 1440 px (2026-08-03), et la mesure contredit la
       lecture spontanée** : titre `155→229`, onglets `716→1061`, horloge `1061→1133`,
       état `1133→1256`, Publier `1256→1440`. Les quatre derniers sont CONTIGUS — il n'y a

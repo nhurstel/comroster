@@ -67,8 +67,10 @@
           <span class="status-text" id="sync-label">Brouillon synchronisé</span>
         </div>
         {# Le décompte d'envoi (5 s annulable) est intégré au bouton : la progression le
-           remplit et le libellé devient « Annuler la publication ». La largeur est
-           verrouillée en JS (sur le plus long état) pour que l'en-tête ne bouge pas. #}
+           remplit et le libellé devient « Annuler · N ». La largeur est verrouillée en JS
+           pour que l'en-tête ne bouge pas — sur les états NOMINAUX seulement : la caler
+           sur le libellé armé revenait à payer sa réserve en permanence, d'où un vide
+           autour du mot « Publier » au repos. #}
         <button type="button" id="publish-btn" class="publish-text">
           <span class="pub-fill" id="pub-fill" aria-hidden="true"></span>
           <span class="pub-label" id="pub-label">Publier</span>

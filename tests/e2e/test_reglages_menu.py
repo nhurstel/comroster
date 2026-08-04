@@ -52,7 +52,7 @@ def test_echap_annule_la_publication_avant_de_fermer_le_menu(page, live_server):
     """
     _enter_admin(page, live_server)
     page.click("#publish-btn")                                  # arme le décompte de 5 s
-    page.wait_for_selector("#pub-label:has-text('Annuler la publication')")
+    page.wait_for_selector("#pub-label:has-text('Annuler')")     # « Annuler · N » (décompte)
     open_reglages(page)
     page.keyboard.press("Escape")
     # La publication est annulée…

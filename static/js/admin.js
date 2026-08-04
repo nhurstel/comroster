@@ -1232,7 +1232,13 @@
      l'« annuler l'envoi » d'un mail. ⌘↵ pendant le décompte envoie tout de suite. */
   const PUBLISH_DELAY = 5000;
   const PUB_IDLE = "Publier";
-  const PUB_ARM = (n) => `Annuler la publication · ${n}`;
+  // « Annuler » et non « Annuler la publication » : ce libellé est le PLUS LONG des trois,
+  // donc c'est lui qui fixait la largeur du bouton (184 px) — et cette largeur était payée
+  // EN PERMANENCE, laissant 48 px de vide autour du mot « Publier » au repos. C'est le même
+  // arbitrage qu'en juillet pour la chip d'état (ne pas réserver la place d'un état rare),
+  // qui n'avait alors été appliqué qu'à elle. Le mot suffit : le bouton se remplit d'une
+  // progression et affiche le décompte, le contexte est donné par ce qui bouge.
+  const PUB_ARM = (n) => `Annuler · ${n}`;
   const PUB_DONE = "Publié ✓";
   const pubLabel = () => document.getElementById("pub-label");
   const pubFill = () => document.getElementById("pub-fill");
@@ -1310,7 +1316,7 @@
       label.textContent = PUB_IDLE;
     }, 1300);
   }
-  // Clic sur le bouton : armer, ou annuler s'il est déjà armé (il affiche « Annuler la publication »).
+  // Clic sur le bouton : armer, ou annuler s'il est déjà armé (il affiche « Annuler · N »).
   function publishButtonClick() { if (publishTimer) cancelPublish(); else armPublish(); }
   // Raccourci ⌘↵ : armer, ou envoyer tout de suite si déjà armé.
   function publishShortcut() { if (publishTimer) sendNow(); else armPublish(); }
