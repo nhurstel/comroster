@@ -1925,13 +1925,33 @@
   // Repli mémorisé : sans persistance il se rouvrirait à chaque publication (l'admin
   // recharge la page rarement, mais assez pour que ce soit agaçant).
   const DOCK_KEY = "comroster.preview-dock";
-  function setDock(open) {
+  function setDock(open, memoriser = true) {
     previewDock.dataset.open = open ? "1" : "0";
     dockToggle.setAttribute("aria-expanded", String(open));
-    try { localStorage.setItem(DOCK_KEY, open ? "1" : "0"); } catch { /* mode privé */ }
+    if (memoriser) {
+      try { localStorage.setItem(DOCK_KEY, open ? "1" : "0"); } catch { /* mode privé */ }
+    }
     // Replié, l'iframe est retirée du DOM de rendu : on la recharge (et remesure) au
     // dépliage, sinon elle afficherait l'état publié d'il y a peut-être une heure.
     if (open) { fitPreview(previewMini); reloadPreview(); }
+  }
+
+  /* Repli CONTEXTUEL sur l'onglet « Écran » (demande de Nathan) : ce panneau montre déjà
+     le brouillon en grand, et le témoin de la latérale montre ce qui est à l'antenne —
+     deux aperçus côte à côte, dont un minuscule.
+
+     Il ne MÉMORISE rien : ce serait confondre « je n'en veux pas » avec « il gêne ici ».
+     L'état d'avant est retenu et rendu en quittant l'onglet, sinon un simple passage par
+     Écran effacerait en silence un réglage posé exprès. */
+  let dockAvantEcran = null;
+  function replierTemoin(surEcran) {
+    if (surEcran) {
+      if (dockAvantEcran === null) dockAvantEcran = previewDock.dataset.open === "1";
+      if (dockAvantEcran) setDock(false, false);
+    } else if (dockAvantEcran !== null) {
+      if (dockAvantEcran) setDock(true, false);
+      dockAvantEcran = null;
+    }
   }
   dockToggle.addEventListener("click", () => setDock(previewDock.dataset.open !== "1"));
   let dockOpen = true;
@@ -2618,15 +2638,22 @@
       menu.querySelector(".tab")?.toggleAttribute("data-active", dedans);
     });
     let montre = null;
+    const partants = [];
     document.querySelectorAll(".tab-panel").forEach((p) => {
+      const etaitVisible = !p.hidden;
       p.hidden = p.dataset.panel !== name;
       if (!p.hidden) montre = p;
+      else if (etaitVisible) partants.push(p);
     });
     try { localStorage.setItem(TAB_KEY, name); } catch { /* mode privé */ }
     // Un panneau caché n'est ni mesurable ni à jour : l'aperçu du brouillon a besoin de
     // sa largeur, la feuille d'impression d'être refaite, le journal et la santé d'une
     // relève. UN seul signal pour les quatre — chacun s'y branche sans qu'on ait à
     // rallonger ici une liste de cas particuliers.
+    // Symétrique de « panneau-affiche » : ce qu'un panneau allume en arrivant, il doit
+    // pouvoir l'éteindre en partant — sans quoi la restauration se réécrirait ici sous
+    // forme de cas particuliers, ce que ce signal existe précisément pour éviter.
+    partants.forEach((p) => p.dispatchEvent(new CustomEvent("panneau-cache")));
     montre?.dispatchEvent(new CustomEvent("panneau-affiche"));
   }
   tabEntries().forEach((el) =>
@@ -2634,8 +2661,12 @@
 
   // L'aperçu du brouillon n'est mesurable qu'une fois son panneau affiché (il est rendu
   // à 1920×1080 puis mis à l'échelle sur la largeur réelle).
-  document.querySelector('.tab-panel[data-panel="screen"]')
-    ?.addEventListener("panneau-affiche", reloadScreenPreview);
+  const panneauEcran = document.querySelector('.tab-panel[data-panel="screen"]');
+  panneauEcran?.addEventListener("panneau-affiche", () => {
+    reloadScreenPreview();
+    replierTemoin(true);
+  });
+  panneauEcran?.addEventListener("panneau-cache", () => replierTemoin(false));
 
   /* ---------- Panneau Impression ----------
      La feuille reste SON propre document, chargé en trame : c'est lui qui porte les

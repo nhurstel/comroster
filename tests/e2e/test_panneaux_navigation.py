@@ -193,6 +193,29 @@ def test_un_panneau_ferme_n_interroge_pas_le_boitier(page, live_server):
     )
 
 
+def test_l_onglet_ecran_replie_le_temoin_sans_effacer_la_preference(page, live_server):
+    """Demande de Nathan : arriver sur « Écran » replie « Affichage en cours ».
+
+    Le panneau montre déjà le brouillon en grand ; le témoin, lui, montre ce qui est à
+    l'antenne. Deux aperçus côte à côte, dont un minuscule.
+
+    Le point qui compte est la SECONDE assertion : le repli ne doit pas être mémorisé.
+    Sans ça, un simple passage par Écran effacerait un réglage posé exprès et le témoin ne
+    reviendrait jamais — un panneau n'a pas à décider des préférences des autres.
+    """
+    _enter_admin(page, live_server)
+    page.wait_for_selector('#preview-dock[data-open="1"]')
+
+    page.click('[data-tab="screen"]')
+    page.wait_for_selector('#preview-dock[data-open="0"]')
+    assert page.evaluate("localStorage.getItem('comroster.preview-dock')") != "0", (
+        "le repli contextuel a écrasé la préférence de l'utilisateur"
+    )
+
+    page.click('[data-tab="board"]')
+    page.wait_for_selector('#preview-dock[data-open="1"]')
+
+
 def test_l_ancienne_adresse_du_journal_ouvre_le_panneau(page, live_server):
     """Les signets et l'aide-mémoire terrain citent encore /admin/journal.
 

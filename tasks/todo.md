@@ -1170,9 +1170,24 @@ Pointage établi dans le CODE, pas d'après les messages de commit.
       distinct du publié (aujourd'hui le lien est inconditionnel, print.html:31-34).
 - [ ] **5. Impression : mise en page « plus sympa »** — travail de design, à cadrer.
 - [ ] **6. Sauvegarde : remise en page** (« pas tout à fait clean »).
-- [ ] **7. Panneau Écran : replier automatiquement le témoin « Affichage en cours »**
-      à l'arrivée sur l'onglet (deux aperçus côte à côte n'ont pas de sens).
+- [x] **7. Panneau Écran : repli automatique du témoin « Affichage en cours »** (2026-08-03).
+      Repli CONTEXTUEL : il ne mémorise rien, et l'état d'avant est rendu en quittant
+      l'onglet — sinon un simple passage par Écran effacerait en silence une préférence
+      posée exprès, et le témoin ne reviendrait jamais. Un panneau n'a pas à décider des
+      réglages des autres. Mécanique : `panneau-cache`, symétrique du `panneau-affiche`
+      existant — ce qu'un panneau allume en arrivant doit pouvoir s'éteindre en partant,
+      plutôt qu'une liste de cas particuliers dans `selectTab`.
 - [ ] **8. Header : rapprocher les menus du bouton d'envoi** — « il y a un vrai vide entre
-      lui et le "en direct" ». ⚠️ Un lot du 2026-07-27 a déjà réduit cet écart de 260 à
-      195 px sans rien déplacer ; il faut donc MESURER l'état actuel avant de conclure.
+      lui et le "en direct" ». **MESURÉ à 1440 px (2026-08-03), et la mesure contredit la
+      lecture spontanée** : titre `155→229`, onglets `716→1061`, horloge `1061→1133`,
+      état `1133→1256`, Publier `1256→1440`. Les quatre derniers sont CONTIGUS — il n'y a
+      aucun vide à supprimer entre les onglets et Publier, seulement 195 px d'éléments
+      (horloge 72 + état 123). Le seul vrai vide du bandeau est ailleurs : **487 px entre
+      le titre et les onglets**. Rapprocher davantage exige donc de RÉDUIRE ou DÉPLACER
+      l'horloge et l'état — or déplacer avait été explicitement révoqué par Nathan le
+      2026-07-27 (« ils doivent rester entre Réseau et Publier »). **Arbitrage demandé
+      avant tout code**, options chiffrées : (a) horloge sans les secondes ≈ −20 px ;
+      (b) état réduit à sa pastille, le détail vivant déjà dans la barre d'état ≈ −80 px ;
+      (c) horloge + état déplacés à gauche dans le vide de 487 px ≈ −195 px, ce qui
+      revient sur la décision de juillet.
 - [ ] **9. Redesigner la page de login.**
