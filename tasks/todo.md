@@ -1758,3 +1758,34 @@ Vérifié : 550 unitaires · 64 e2e (deux passes identiques) · 43 JS · ruff pr
 `wait_for_selector` durant bien plus qu'une frame. Refait en RETENANT le
 `requestAnimationFrame` (mis en file par `add_init_script`, libéré après la saisie), avec
 un témoin positif que la file n'est pas vide. Confronté à sa mutation : il tombe.
+
+---
+
+# 👉 POINT D'ENTRÉE — état au 2026-08-09 (fin de session)
+
+**Rien n'est en cours, rien n'est cassé.** `main` à jour, CI VERTE, arbre propre.
+Dernier commit : `c772677`. Suite : **550 unitaires · 64 e2e · 43 JS · ruff propre**.
+
+Sept lots livrés dans la session : connexion (login+setup), sauvegarde, retour au
+plateau depuis le logo, pagination A3, refonte de la feuille imprimée, couleurs +
+monochrome, focus du dialogue beltpack. Plus trois tests instables corrigés et la
+factorisation des helpers e2e.
+
+## Ce qui reste, par ordre
+
+1. **À juger par Nathan, à l'œil** (aucun test ne le fera) : le dialogue Sauvegarde, et
+   surtout le **blanc en bas de rangée** de la feuille imprimée — une rangée se cale sur
+   son groupe le plus haut, c'est le prix de l'alignement qu'il a demandé. Si cela gêne à
+   l'usage, l'arbitrage alignement / densité est à rouvrir : c'est l'un OU l'autre.
+2. **Non tranché** : sur la feuille, le pied redit l'en-tête. Nathan a demandé de le
+   GARDER, sans dire s'il fallait l'alléger. Demander avant de toucher.
+3. **Dette assumée** : `tests/e2e/test_e2e.py` fait 600+ lignes et mélange des sujets
+   sans rapport. Aucun caractère urgent.
+4. **Jamais demandé, jamais fait** : captures dans la documentation (étape 7 du lot des
+   apparences), et le cahier des charges (D1) jamais retouché depuis l'origine.
+
+## Trois pièges de cette session, à ne pas rejouer
+- `git checkout <fichier>` sur du travail NON commité rend HEAD et efface tout en silence.
+- `re.S` dans un motif de SUPPRESSION rend le point gourmand à travers les lignes
+  (1479 lignes effacées d'un coup, sans erreur). Raisonner en lignes.
+- Ne jamais lancer deux suites e2e en parallèle : 59 faux échecs.
