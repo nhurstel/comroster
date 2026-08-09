@@ -1151,7 +1151,7 @@ Pointage établi dans le CODE, pas d'après les messages de commit.
       `max-width` déplaçait les boutons sous le curseur pendant 120 ms (on vise
       « Renommer », on relâche sur « Supprimer ») — c'est ce qui a fait tomber un e2e,
       qui cliquait jusque-là grâce à la place occupée par des boutons invisibles.
-- [ ] **2. Réordonner les beltpacks à la main dans la vue Blocs.**
+- [x] **2. Réordonner les beltpacks à la main dans la vue Blocs.**
       **Règle tranchée par Nathan (2026-08-03) :** tri automatique par numéro **par
       défaut** ; dès qu'on touche à l'ordre d'un groupe, CE groupe passe en **manuel** et
       garde l'ordre posé ; une action **« Trier par n° »** existe **groupe par groupe**
@@ -1498,7 +1498,7 @@ Pointage établi dans le CODE, pas d'après les messages de commit.
       (b) état réduit à sa pastille, le détail vivant déjà dans la barre d'état ≈ −80 px ;
       (c) horloge + état déplacés à gauche dans le vide de 487 px ≈ −195 px, ce qui
       revient sur la décision de juillet.
-- [ ] **9. Redesigner la page de login.** **DIAGNOSTIC POSÉ ET MESURÉ (2026-08-04)**,
+- [x] **9. Redesigner la page de login.** **DIAGNOSTIC POSÉ ET MESURÉ (2026-08-04)**,
       exécution à faire — capture relue à 1440×900, valeurs relevées en CSSOM :
       - **Charge `main.css` + `auth.css`.** C'est la cause de tout le reste : la page hérite
         de la feuille globale dont l'admin a été DÉCOUPLÉ en juillet (leçon 2026-07-25 :
@@ -1697,3 +1697,31 @@ renommage de classe (`auth-submit` → `auth-go`) a coûté huit corrections au 
 - Le dialogue Sauvegarde.
 - La feuille imprimée : couleurs, alignement, monochrome, et le BLANC en bas de rangée
   (prix assumé de l'alignement — une rangée se cale sur son groupe le plus haut).
+
+---
+
+## Reste à faire au 2026-08-09 (après six lots livrés et poussés)
+
+### 1. Ce qui n'appartient qu'à Nathan — REGARDER
+Aucun test ne le fera. Les mesures disent que rien ne déborde et que tout est lisible ;
+elles ne disent pas si c'est bien.
+- les cinq états de connexion ;
+- le dialogue Sauvegarde ;
+- la feuille imprimée, et surtout le **blanc en bas de rangée** : une rangée se cale sur
+  son groupe le plus haut. C'est le prix de l'alignement demandé — si ça gêne à l'usage,
+  l'arbitrage alignement / densité est à rouvrir.
+
+### 2. Impression — points du diagnostic NON tranchés
+Le lot a répondu aux arbitrages donnés, mais le diagnostic initial listait aussi :
+- le pied qui redit l'en-tête (sur un document d'une page, c'est une redondance de
+  composition) — Nathan a demandé de GARDER le pied, sans dire s'il fallait l'alléger.
+
+### 3. Dette technique connue, non traitée
+- `tests/e2e/test_e2e.py` fait 600+ lignes et mélange des sujets sans rapport.
+- La course sur le champ rôle est CONTOURNÉE côté test (l'application vide le champ en
+  réaction au numéro). Le correctif de fond serait côté `admin.js` : ne pas écraser une
+  saisie de l'utilisateur. Non fait — cela touche une interaction que Nathan utilise.
+
+### 4. Jamais demandé, jamais fait
+- Captures dans la documentation (étape 7 du lot des apparences).
+- Cahier des charges (D1) non retouché depuis l'origine.
