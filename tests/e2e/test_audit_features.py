@@ -20,7 +20,7 @@ def _enter_admin(page, base):
     page.goto(base + "/admin/setup")
     page.fill("input[name=password]", "motdepasse8")
     page.click("button[type=submit]")
-    page.click("a.auth-submit")
+    page.click("a.auth-go")
     page.wait_for_selector("#add-block-btn")
 
 
@@ -237,7 +237,9 @@ def test_la_feuille_imprimable_s_ouvre_et_liste_les_affectations(page, live_serv
     feuille.goto(live_server + "/admin/print")
     feuille.wait_for_selector(".sheet-table")
     texte = feuille.inner_text("body")
-    assert "Son" in texte and "12" in texte and "HF" in texte
+    # casefold : les noms de groupe sont rendus en capitales par le CSS (leçon n°73).
+    texte = texte.casefold()
+    assert "son" in texte and "12" in texte and "hf" in texte
     # Le filet de couleur est posé en CSSOM (la CSP interdit l'attribut style).
     couleur = feuille.evaluate(
         "() => getComputedStyle(document.querySelector('.sheet-rule')).backgroundColor")

@@ -106,6 +106,61 @@ def _brouillon_distinct(brouillon, publie):
     return sans_horodatage(brouillon) != sans_horodatage(publie)
 
 
+#: Plafond de beltpacks par page imprimée (arbitrage Nathan, 2026-08-05 : « max 40 par
+#: page, à savoir que c'est souvent moins »). C'est un PLAFOND, pas une cible : on ne
+#: complète jamais une page pour l'atteindre.
+MAX_BELTPACKS_PAR_PAGE = 40
+
+
+def _paginer(groups, by_group, maxi=MAX_BELTPACKS_PAR_PAGE):
+    """Répartit les groupes en pages d'au plus `maxi` beltpacks.
+
+    La coupure se décide ici plutôt qu'en CSS : un saut de page à l'intérieur d'un
+    conteneur multi-colonnes est mal supporté (c'est déjà pour cette raison que « un
+    groupe par page » imposait la colonne unique), et surtout une règle exprimée en
+    NOMBRE DE LIGNES ne peut pas s'exprimer en hauteur de boîte.
+
+    Trois cas, dans cet ordre :
+      1. le groupe tient dans la place restante → on le pose ;
+      2. il n'y tient pas mais tiendrait entier sur une page neuve → on ouvre une page
+         plutôt que de le couper pour rien (lire la moitié d'un groupe au verso est ce
+         qui fait rater une affectation) ;
+      3. il dépasse `maxi` à lui seul → il est coupé, et son en-tête se répète (le
+         balisage `sheet-group-long` s'en charge déjà).
+    """
+    pages, courante, occupe = [], [], 0
+
+    def fermer():
+        nonlocal courante, occupe
+        if courante:
+            pages.append(courante)
+        courante, occupe = [], 0
+
+    for groupe in groups:
+        reste = list(by_group.get(groupe["id"]) or [])
+        if not reste:
+            # Un groupe vide reste affiché (il dit « personne n'est affecté ici »), mais
+            # ne consomme aucune ligne du quota.
+            courante.append((groupe, []))
+            continue
+        while reste:
+            place = maxi - occupe
+            if place <= 0:
+                fermer()
+            elif len(reste) <= place:
+                courante.append((groupe, reste))
+                occupe += len(reste)
+                reste = []
+            elif len(reste) <= maxi and courante:
+                fermer()
+            else:
+                courante.append((groupe, reste[:place]))
+                reste = reste[place:]
+                fermer()
+    fermer()
+    return pages
+
+
 @bp.get("/admin/print")
 @login_required
 def admin_print():
@@ -136,7 +191,8 @@ def admin_print():
                      key=lambda p: _beltpack_sort_key(p.get("beltpack")))
     return render_template(
         "print.html", state=state, groups=groups, by_group=by_group,
-        reserve=reserve, is_draft=draft, seuil_long=SEUIL_GROUPE_LONG,
+        pages=_paginer(groups, by_group), reserve=reserve,
+        is_draft=draft, seuil_long=SEUIL_GROUPE_LONG,
         brouillon_distinct=_brouillon_distinct(brouillon, publie),
         embed=request.args.get("embed") == "1",
         updated_fr=_date_fr(state.get("updated_at")),

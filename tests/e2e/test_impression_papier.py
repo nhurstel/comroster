@@ -30,7 +30,7 @@ GROUPE_LONG = 14
 PLATEAU = (("Régie", 4), ("Lumière", GROUPE_LONG), ("Son", 6), ("Plateau", 5))
 
 
-def _plateau_publie(page, live_server):
+def _plateau_publie(page, live_server, plateau=None):
     """Un plateau RÉALISTE : plusieurs groupes dont un au-delà du seuil de coupure.
 
     Le défaut de réidentification d'un groupe coupé est passé inaperçu sur une première
@@ -46,14 +46,14 @@ def _plateau_publie(page, live_server):
     page.fill("input[name=password]", "motdepasse8")
     page.click("button[type=submit]")
     # Écran de code de récupération : il s'intercale entre le setup et l'admin.
-    page.click("a.auth-submit")
+    page.click("a.auth-go")
     page.wait_for_selector("#add-block-btn")
 
     jeton = page.get_attribute('meta[name="csrf-token"]', "content")
     entetes = {"X-CSRFToken": jeton, "Content-Type": "application/json"}
 
     numero = 1
-    for nom, effectif in PLATEAU:
+    for nom, effectif in (plateau or PLATEAU):
         reponse = page.request.post(f"{live_server}/api/groups",
                                     headers=entetes, data={"name": nom})
         gid = reponse.json()["id"]
@@ -124,24 +124,37 @@ def test_le_pied_ordinaire_ne_double_pas_le_bandeau_sur_le_papier(page, live_ser
 
 
 @besoin_poppler
-def test_un_groupe_coupe_se_reidentifie_en_tete_de_colonne(page, live_server, tmp_path):
+def test_un_groupe_coupe_se_reidentifie_sur_la_page_suivante(page, live_server, tmp_path):
     """Sans cela, la suite d'un groupe n'est qu'une liste de numéros orpheline — ce que
     le code lui-même décrit comme faisant rater une affectation. Le nom vit dans le
     `<thead>`, seul élément que le navigateur répète.
 
     Défaut RÉEL, trouvé en regardant le PDF : aucune assertion sur le DOM ne l'aurait vu,
     puisque le balisage était déjà correct — c'est la répétition qui manquait.
+
+    CE QUE CE TEST GARDE A CHANGÉ DE LIEU, pas de nature (2026-08-05). Tant que les
+    groupes coulaient en `column-count`, un groupe de 14 se coupait d'une colonne à
+    l'autre. Depuis le passage en GRILLE — demandé pour que les groupes s'alignent — un
+    groupe occupe une cellule entière et ne se coupe plus horizontalement. La seule
+    coupure qui subsiste est celle de PAGE, décidée par `_paginer` au-delà de 40
+    beltpacks : c'est donc là qu'il faut l'exercer, avec un groupe qui dépasse ce
+    plafond. Le garder sur 14 en aurait fait un test qui ne mord plus sur rien.
     """
-    _plateau_publie(page, live_server)
+    _plateau_publie(page, live_server,
+                    plateau=(("Régie", 4), ("Lumière", 45), ("Son", 6)))
     feuille = _feuille(page, live_server)
     pdf = tmp_path / "coupe.pdf"
     feuille.pdf(path=str(pdf), prefer_css_page_size=True)
 
-    texte = _texte_pdf(pdf)
-    # Le groupe long est le SEUL à dépasser le seuil : son nom doit donc apparaître deux
-    # fois (en tête, puis à la reprise), là où un groupe court n'apparaît qu'une fois.
-    assert texte.count("Lumière") >= 2, "le groupe coupé ne se réidentifie pas"
-    assert texte.count("Régie") == 1, "un groupe court ne doit pas se répéter"
+    # Comparaison en casse normalisée : depuis la refonte du 2026-08-05, le bandeau de
+    # groupe est en capitales par `text-transform`, et Chromium RÉALISE la transformation
+    # dans le PDF — pdftotext lit donc « LUMIÈRE ». Comparer sur la casse source ferait
+    # échouer le test pour une raison qui n'a rien à voir avec ce qu'il garde (leçon n°73).
+    texte = _texte_pdf(pdf).casefold()
+    # 45 > 40 : « Lumière » est coupé entre deux pages, son nom doit donc apparaître
+    # deux fois (en tête, puis à la reprise). Un groupe court, lui, n'apparaît qu'une.
+    assert texte.count("lumière") >= 2, "le groupe coupé ne se réidentifie pas"
+    assert texte.count("régie") == 1, "un groupe court ne doit pas se répéter"
     feuille.close()
 
 
@@ -174,7 +187,7 @@ def test_les_reglages_sont_memorises_d_une_ouverture_a_l_autre(page, live_server
 
 
 def test_le_defaut_ne_pose_aucun_attribut(page, live_server):
-    """Le défaut est l'ABSENCE d'attribut : A3 / 3 colonnes / visa vivent dans les règles
+    """Le défaut est l'ABSENCE d'attribut : A3 / 3 colonnes vivent dans les règles
     de base de print.css. Si un attribut apparaissait au chargement, la valeur par défaut
     serait dupliquée entre le CSS et le JS — et l'une des deux dériverait (leçon n°58)."""
     _plateau_publie(page, live_server)
@@ -205,11 +218,10 @@ def test_actionner_chaque_reglage_ne_produit_aucune_erreur_console(page, live_se
 
     feuille.select_option("#opt-format", "a4-portrait")
     feuille.click("#opt-cols button[data-valeur='1']")
-    for case in ("#opt-visa", "#opt-cases"):
-        feuille.click(case)
+    feuille.click("#opt-mono")
     # Le dernier réglage actionné doit avoir ATTERRI avant de conclure : sans cette
     # attente, on lirait la console d'une page qui n'a pas fini d'appliquer.
-    feuille.wait_for_selector("html[data-cases='oui']", state="attached")
+    feuille.wait_for_selector("html[data-mono='oui']", state="attached")
 
     feuille.evaluate("console.debug('sonde')")      # prouve que le collecteur est armé
     assert journal, "collecteur console jamais armé — l'assertion suivante ne prouverait rien"

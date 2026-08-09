@@ -21,7 +21,7 @@ const TAILLES = {
   "a5-portrait": "A5 portrait",
 };
 
-const CASES = [["visa", "opt-visa"], ["cases", "opt-cases"]];
+const CASES = [["monochrome", "opt-mono"]];
 
 let opts = lire(window.localStorage);
 
@@ -77,9 +77,30 @@ for (const [cle, id] of CASES) {
 }
 document.getElementById("print-now").addEventListener("click", () => window.print());
 
-// Filets de couleur : posés en CSSOM, jamais en attribut `style` (CSP).
+// Couleurs de groupe : posées en CSSOM, jamais en attribut `style` (CSP).
+//
+// Le bandeau prend l'APLAT de la couleur du groupe (demande Nathan, 2026-08-05 : « mettre
+// plus en avant les couleurs, rappeler l'interface du soft ») — c'est le langage de
+// l'apparence « grille » de l'écran de régie, où le bloc EST la couleur.
+//
+// Poser du texte sur une couleur choisie par l'utilisateur n'est sûr que parce que DEUX
+// garde-fous existent déjà : le nuancier des groupes est borné à 12 teintes calibrées
+// (≥ 4,5:1), et `inkFor` décide de l'encre par la luminance. On réutilise cette règle,
+// on ne la réécrit pas : deux implémentations finiraient par juger différemment.
+const inkFor = window.ComRoster && window.ComRoster.inkFor;
 document.querySelectorAll(".sheet-rule[data-color]").forEach((el) => {
   el.style.background = el.dataset.color;
+  const bandeau = el.closest(".sheet-group-name") || el.closest("th");
+  if (bandeau) {
+    // Variable CSS, PAS un fond inline : en monochrome, la feuille doit pouvoir
+    // ignorer la couleur. Un `style.background` posé ici gagnerait sur toute règle et
+    // rendrait le mode impossible sans repasser par le JS.
+    bandeau.style.setProperty("--gel", el.dataset.color);
+    // `inkFor` rend null si la couleur n'est pas un littéral hex : la feuille garde
+    // alors son encre par défaut plutôt que de parier.
+    const encre = inkFor ? inkFor(el.dataset.color) : null;
+    if (encre) bandeau.dataset.ink = encre;
+  }
 });
 
 appliquer();

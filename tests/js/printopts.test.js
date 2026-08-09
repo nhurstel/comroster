@@ -1,7 +1,7 @@
 /* Réglages de la feuille d'impression — logique pure.
 
    Le point non évident que ces tests verrouillent : le DÉFAUT est l'ABSENCE
-   d'attribut. `print.css` porte A3 / 3 colonnes / visa dans ses règles de base,
+   d'attribut. `print.css` porte A3 / 3 colonnes dans ses règles de base,
    chaque data-* n'étant qu'un dépassement. Une seule source pour le défaut, et
    rien à recopier entre Python et JS (leçon 2026-07-28 n°58). */
 import { readFileSync } from "node:fs";
@@ -52,10 +52,10 @@ describe("attributs", () => {
 describe("persistance", () => {
   it("relit ce qu'elle a écrit", () => {
     const store = fauxStore();
-    ecrire(store, normalise({ colonnes: "2", visa: "non" }));
+    ecrire(store, normalise({ colonnes: "2", monochrome: "oui" }));
     const relu = lire(store);
     expect(relu.colonnes).toBe("2");
-    expect(relu.visa).toBe("non");
+    expect(relu.monochrome).toBe("oui");
   });
 
   it("retombe sur les défauts si le stockage est vide ou illisible", () => {

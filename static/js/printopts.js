@@ -10,7 +10,7 @@
    s'effaçaient en silence).
 
    LE DÉFAUT N'EST PAS UN ATTRIBUT : c'est son absence. Les règles de base de
-   print.css valent A3 portrait / 3 colonnes / visa ; chaque data-* est un
+   print.css valent A3 portrait / 3 colonnes ; chaque data-* est un
    DÉPASSEMENT. D'où une seule source pour le défaut, aucune duplication entre
    Python et JS, et aucun scintillement au chargement. */
 
@@ -20,9 +20,11 @@ export const REGLAGES = {
     valeurs: ["a3-portrait", "a3-paysage", "a4-portrait", "a4-paysage", "a5-portrait"],
     defaut: "a3-portrait",
   },
-  colonnes: { attr: "data-cols", valeurs: ["1", "2", "3"], defaut: "3" },
-  visa: { attr: "data-visa", valeurs: ["oui", "non"], defaut: "oui" },
-  cases: { attr: "data-cases", valeurs: ["oui", "non"], defaut: "non" },
+  colonnes: { attr: "data-cols", valeurs: ["1", "2", "3", "4"], defaut: "3" },
+  /* Monochrome : une laser N&B écrase les teintes de luminance voisine, qui
+     deviennent indiscernables ENTRE ELLES. Le choix cesse d'être subi. Défaut
+     « couleur » — c'est la demande d'origine (« mettre plus en avant les couleurs »). */
+  monochrome: { attr: "data-mono", valeurs: ["oui", "non"], defaut: "non" },
 };
 
 export const CLE_STOCKAGE = "comroster.impression";

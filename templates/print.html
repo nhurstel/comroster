@@ -1,3 +1,16 @@
+{# Glyphe de marque, défini UNE fois et employé au pied écran comme au bandeau
+   d'impression. Le dupliquer aurait garanti qu'un des deux dérive.
+
+   SVG INLINE et non <img> : `comroster-glyph.svg` est peint en #EEF1F7, un blanc cassé
+   fait pour le fond SOMBRE de l'écran de régie — donc invisible sur du papier ou sur le
+   fond clair de cette feuille. Inline, il hérite de `currentColor`. #}
+{% macro glyphe(classe) -%}
+  {%- if brand.active -%}
+    <img class="{{ classe }}" src="{{ url_for('display.brand_logo_print', v=brand.version) }}" alt="">
+  {%- else -%}
+    <svg class="{{ classe }}" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><circle cx="32" cy="16" r="8.5"/><rect x="12" y="32" width="40" height="8.5" rx="4.25"/><rect x="12" y="46" width="27" height="8.5" rx="4.25"/></svg>
+  {%- endif -%}
+{%- endmacro %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -53,10 +66,12 @@
           <button type="button" data-valeur="1">1</button>
           <button type="button" data-valeur="2">2</button>
           <button type="button" data-valeur="3">3</button>
+          <button type="button" data-valeur="4">4</button>
         </span>
       </span>
-      <label class="opt"><input type="checkbox" id="opt-visa"> Signature</label>
-      <label class="opt"><input type="checkbox" id="opt-cases"> Cases</label>
+      {# Monochrome : coché, la feuille sort sans aplats de couleur. Pour une laser
+         N&B, où deux teintes voisines deviennent le même gris. #}
+      <label class="opt"><input type="checkbox" id="opt-mono"> Monochrome</label>
     </div>
 
     <button type="button" id="print-now" class="print-go">Imprimer</button>
@@ -69,8 +84,16 @@
     <img class="sheet-logo" src="{{ url_for('display.brand_logo_print', v=brand.version) }}"
          alt="{{ brand.name }}">
     {% endif %}
+    {# LES TROIS titres coexistent (demande Nathan, 2026-08-05). L'ancien
+       `production_name or title` était un OU exclusif : dès qu'un nom de production
+       existait, le TITRE du plateau disparaissait purement et simplement du papier.
+       Hiérarchie : la production surmonte le titre, qui surmonte son sous-titre. Le repli
+       ne s'applique qu'au titre principal, seul champ qui ne peut pas rester vide. #}
     <div class="sheet-title">
-      <h1>{{ state.production_name or state.title or 'Affectation Intercom' }}</h1>
+      {% if state.production_name and state.title %}
+        <p class="sheet-prod">{{ state.production_name }}</p>
+      {% endif %}
+      <h1>{{ state.title or state.production_name or 'Affectation Intercom' }}</h1>
       {% if state.subtitle %}<p class="sheet-sub">{{ state.subtitle }}</p>{% endif %}
     </div>
     <dl class="sheet-meta">
@@ -85,9 +108,13 @@
     <p class="sheet-empty">Aucune affectation à imprimer.</p>
   {% endif %}
 
+  {# Une page = au plus MAX_BELTPACKS_PAR_PAGE beltpacks (40). Le découpage est fait par
+     le serveur (`_paginer`) : une règle exprimée en NOMBRE DE LIGNES ne s'exprime pas en
+     hauteur de boîte, et un saut de page dans un conteneur multi-colonnes est mal
+     supporté. Chaque page a son propre conteneur, donc ses propres colonnes. #}
+  {% for page in pages %}
   <div class="sheet-groups">
-    {% for group in groups %}
-      {% set membres = by_group[group.id] %}
+    {% for group, membres in page %}
       <section class="sheet-group{% if membres|length > seuil_long %} sheet-group-long{% endif %}">
         {# Un filet de la couleur du groupe plutôt qu'un aplat : à l'impression, un fond
            coloré consomme l'encre, grise le texte et disparaît en noir et blanc. #}
@@ -104,15 +131,19 @@
                  précisément ce qui fait rater une affectation. Le `<thead>` étant le seul
                  élément que le navigateur répète, le nom vit ici. Masqué par CSS pour les
                  groupes courts, qui portent déjà leur `<h2>`. #}
-              <tr class="sheet-thead-name"><th colspan="4">
+              <tr class="sheet-thead-name"><th colspan="2">
                 <span class="sheet-rule" data-color="{{ group.color or '#555555' }}"></span>
                 {{ group.name }}
               </th></tr>
-              <tr><th class="c-bp">N°</th><th class="c-role">Rôle</th><th class="c-remis">Remis</th><th class="c-sign">Signature</th></tr>
+              {# La ligne « N° · RÔLE » est SUPPRIMÉE (2026-08-05). Répétée une fois par
+                 groupe, elle était lue neuf fois pour n'apprendre qu'une chose évidente :
+                 un nombre est un numéro, un texte est un rôle. Le `<thead>` reste, car il
+                 est le seul élément que le navigateur répète en tête de colonne — c'est
+                 lui qui réidentifie un groupe coupé. #}
             </thead>
             <tbody>
               {% for p in membres %}
-                <tr><td class="c-bp">{{ p.beltpack }}</td><td class="c-role">{{ p.role or '—' }}</td><td class="c-remis">☐</td><td class="c-sign"></td></tr>
+                <tr><td class="c-bp">{{ p.beltpack }}</td><td class="c-role">{{ p.role or '—' }}</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -123,10 +154,12 @@
     {% endfor %}
 
   </div>
+  {% endfor %}
 
   {# Répété au pied de CHAQUE page à l'impression : une conduite qui se sépare doit
      rester identifiable feuille par feuille. #}
   <div class="sheet-band">
+    {{ glyphe('sheet-band-logo') }}
     {{ state.production_name or state.title or 'Affectation Intercom' }} ·
     {% if is_draft %}Brouillon{% else %}Publié{% endif %} · édité le {{ printed_at }}
     {#- Le bandeau REMPLACE le pied à l'impression : il porte donc la marque, sinon le
@@ -134,13 +167,22 @@
     · {% if brand.active %}{{ brand.name }} · Propulsé par ComRoster{% else %}ComRoster{% endif %}
   </div>
 
+  {# Le bandeau ci-dessus n'existe qu'à l'impression : sans ce second appel, le logo
+     serait invisible à l'écran — là où l'on consulte la feuille le plus souvent. #}
   <footer class="sheet-foot">
+    {{ glyphe('sheet-foot-logo') }}
     {% if brand.active %}{{ brand.name }}{% else %}ComRoster{% endif %} ·
     {{ state.title or 'Affectation Intercom' }}
     {%- if updated_fr %} · dernière modification {{ updated_fr }}{% endif %}
     {%- if brand.active %} · Propulsé par ComRoster{% endif %}
   </footer>
 
+  {# ink.js porte la règle de luminance partagée avec l'écran de régie et l'admin.
+     Chargé AVANT le module : il expose window.ComRoster.inkFor, que print.js consomme.
+     Le réimplémenter ici ferait juger la lisibilité différemment d'un support à
+     l'autre, et personne ne le verrait — on ne compare jamais les deux au même
+     instant (c'est l'argument même de l'en-tête d'ink.js). #}
+  <script src="{{ url_for('static', filename='js/ink.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/print.js') }}"></script>
 </body>
 </html>

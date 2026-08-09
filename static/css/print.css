@@ -21,7 +21,20 @@
    de colonnes.
    ========================================================================== */
 
+/* Polices auto-hébergées, comme partout ailleurs (Pi hors-ligne, aucun appel CDN).
+   Outfit est la police d'INTERFACE du produit : l'employer pour les titres et les
+   bandeaux est ce qui rapproche le plus la feuille de la DA du soft (demande Nathan,
+   2026-08-05). Inter reste sur les données — ses chiffres tabulaires alignent les
+   numéros de beltpack, ce qu'Outfit ne fait pas aussi bien. */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/inter-400.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('../fonts/inter-600.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/inter-700.woff2') format('woff2'); }
+@font-face { font-family: 'Outfit'; font-style: normal; font-weight: 500; font-display: swap; src: url('../fonts/outfit-500.woff2') format('woff2'); }
+@font-face { font-family: 'Outfit'; font-style: normal; font-weight: 600; font-display: swap; src: url('../fonts/outfit-600.woff2') format('woff2'); }
+@font-face { font-family: 'Outfit'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/outfit-700.woff2') format('woff2'); }
+
 :root {
+  --f-ui: 'Outfit', 'Inter', sans-serif;
   --ink: #14181f;
   --ink-soft: #4a5462;
   --ink-faint: #8a94a6;
@@ -113,7 +126,15 @@
    titre — sans effet quand il n'y a que 2 enfants (sans pack), donc non-régressif. */
 .sheet-title { margin-right: auto; }
 
-.sheet-head h1 { margin: 0; font-size: 22pt; letter-spacing: -0.015em; }
+.sheet-head h1 { margin: 0; font-family: var(--f-ui); font-size: 22pt; font-weight: 600; letter-spacing: -0.015em; }
+/* Sur-titre : la production surmonte le titre du plateau. Plus petit et espacé que le
+   h1 qu'il annonce — il situe, il ne concurrence pas. */
+.sheet-prod {
+  margin: 0 0 .15rem;
+  font-size: .72rem; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-soft);
+}
 .sheet-sub { margin: .2rem 0 0; color: var(--ink-soft); }
 .sheet-meta { display: flex; gap: 8mm; margin: 0; text-align: right; }
 .sheet-meta div { margin: 0; }
@@ -126,15 +147,28 @@
 .sheet-meta dd { margin: .1rem 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* ---------- Groupes ---------- */
-/* Trois colonnes par défaut : c'est le format A3, celui sous lequel la conduite est
-   tirée en pratique. Les règles `[data-cols]` ne sont que des dépassements. */
+/* GRILLE, et non plus `column-count` (2026-08-05, « les groupes devraient être alignés,
+   là c'est peu lisible »). En colonnes coulantes, un groupe débordait dans la colonne
+   suivante : aucun bandeau ne se calait sur son voisin, et l'œil ne trouvait aucune
+   rangée où s'accrocher.
+   `align-items: start` évite que les groupes courts s'étirent à la hauteur du plus haut
+   de leur rangée. Le blanc en bas de rangée est le PRIX de l'alignement : il est assumé,
+   et la pagination à 40 le borne. */
 .sheet-groups {
   padding: 5mm 0 0;
-  column-count: 3;
-  column-gap: 8mm;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: start;
+  gap: 5mm 8mm;
 }
-[data-cols="1"] .sheet-groups { column-count: 1; }
-[data-cols="2"] .sheet-groups { column-count: 2; }
+[data-cols="1"] .sheet-groups { grid-template-columns: 1fr; }
+[data-cols="2"] .sheet-groups { grid-template-columns: repeat(2, 1fr); }
+[data-cols="4"] .sheet-groups { grid-template-columns: repeat(4, 1fr); gap: 5mm 6mm; }
+
+/* Chaque `.sheet-groups` est UNE page (découpage serveur à 40 beltpacks). La règle porte
+   sur les suivantes seulement : `break-before` sur la première ouvrirait une page blanche
+   en tête de document. */
+.sheet-groups + .sheet-groups { break-before: page; page-break-before: always; }
 
 .sheet-group {
   /* Un groupe court ne doit JAMAIS être coupé entre deux colonnes ou deux pages : lire
@@ -143,7 +177,7 @@
      seuil serveur (SEUIL_GROUPE_LONG), le groupe se coupe, en répétant son en-tête. */
   break-inside: avoid;
   page-break-inside: avoid;
-  margin: 0 0 6mm;
+  margin: 0;
 }
 .sheet-group-long { break-inside: auto; page-break-inside: auto; }
 .sheet-group-long .sheet-table thead { display: table-header-group; }
@@ -160,27 +194,80 @@
    élément, il faut qualifier (leçon 2026-07-23 n°29). Vérifié au rendu, pas à l'œil sur
    le code : sans cette qualification le nom sortait en petites capitales grises. */
 .sheet-table .sheet-thead-name th {
-  padding: 0 0 .35rem;
+  /* Même bandeau que `.sheet-group-name` : la reprise d'un groupe coupé doit se
+     reconnaître au premier coup d'œil comme le groupe lui-même, pas comme un titre
+     d'un autre registre. */
+  padding: 1.1mm 2mm;
   border-bottom: none;
-  font-size: 12pt;
-  font-weight: 700;
-  text-transform: none;
-  letter-spacing: normal;
-  color: var(--ink);
+  background: var(--gel, var(--ink));
+  color: var(--paper);
+  border-radius: 3px;
+  font-family: var(--f-ui);
+  font-size: 12.5pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 /* Le filet reprend l'alignement qu'il a dans un `<h2>`, où il est posé en flex. */
 .sheet-thead-name .sheet-rule { vertical-align: -.12em; margin-right: .4rem; }
 
+/* Bandeau de groupe PLEIN (direction retenue le 2026-08-05 : « on doit pouvoir lire la
+   page de loin »). Le fond est l'ENCRE, jamais la couleur du groupe : poser du texte sur
+   une teinte saisie par l'utilisateur ne garantit aucun contraste, et la même feuille
+   sortie d'une laser monochrome deviendrait illisible. La couleur reste portée par le
+   filet, qui l'identifie sans jamais servir de fond à du texte. */
 .sheet-group-name {
   display: flex;
   align-items: center;
-  gap: .5rem;
-  margin: 0 0 .35rem;
-  font-size: 12pt;
+  gap: .45rem;
+  margin: 0 0 1.6mm;
+  padding: 1.1mm 2mm;
+  /* Encre par défaut, remplacée par `data-ink` dès que print.js a posé la couleur du
+     groupe. Le défaut sert de repli : sans JS, ou pour un groupe sans couleur, le
+     bandeau reste franc au lieu de disparaître en texte noir sur blanc. */
+  /* `--gel` est posé par print.js. Le repli à l'encre couvre trois cas : pas de JS,
+     groupe sans couleur, et mode monochrome (qui remet la variable à l'encre). */
+  background: var(--gel, var(--ink));
+  color: var(--paper);
+  font-family: var(--f-ui);
+  font-size: 12.5pt;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
+
+/* MODE MONOCHROME.
+   La surcharge porte sur `background`, PAS sur `--gel`. Le JS pose `--gel` en style
+   INLINE, et une propriété personnalisée inline l'emporte sur toute règle de feuille,
+   si spécifique soit-elle : neutraliser la variable ici n'aurait donc eu aucun effet
+   (constaté au rendu — la première version sortait en couleur malgré le mode actif).
+   `background` n'étant jamais posé inline, la règle gagne.
+   L'encre calculée est écrasée aussi : sur un fond redevenu noir, une encre « sombre »
+   disparaîtrait. Le `!important` vise `[data-ink]`, de spécificité égale et déclaré
+   plus haut. */
+[data-mono="oui"] .sheet-group-name,
+[data-mono="oui"] .sheet-thead-name th {
+  background: var(--ink);
+  color: var(--paper) !important;
+}
+[data-mono="oui"] .sheet-rule { display: none; }
+
+/* Encre décidée par la LUMINANCE de la couleur du groupe (ink.js, seuil .179) — la même
+   règle que l'écran de régie et l'admin, jamais une seconde implémentation. */
+[data-ink="dark"] { color: var(--ink); }
+[data-ink="light"] { color: var(--paper); }
+/* Sur un bandeau devenu couleur, le filet ferait doublon : il annonçait cette couleur
+   que le bandeau porte désormais entièrement. */
+.sheet-group-name[data-ink] .sheet-rule,
+.sheet-thead-name th[data-ink] .sheet-rule { display: none; }
 .sheet-rule {
   display: inline-block;
-  width: 4px;
+  width: 5px;
   height: 1.05em;
   border-radius: 2px;
   background: var(--ink-faint);
@@ -189,11 +276,13 @@
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
+/* L'effectif était illisible : gris pâle, rejeté à droite, sans lien visuel avec le nom
+   qu'il qualifie. Sur le bandeau il partage l'encre du groupe. */
 .sheet-count {
   margin-left: auto;
-  font-size: 9pt;
-  font-weight: 600;
-  color: var(--ink-faint);
+  font-size: 10.5pt;
+  font-weight: 700;
+  color: var(--paper);
   font-variant-numeric: tabular-nums;
 }
 
@@ -210,25 +299,28 @@
   border-bottom: 1px solid var(--rule);
 }
 .sheet-table td {
-  padding: 1.4mm .4rem 1.4mm 0;
+  padding: 1.9mm .4rem 1.9mm 0;
   border-bottom: 1px solid var(--rule);
   vertical-align: baseline;
 }
+/* LE NUMÉRO D'ABORD : c'est lui qu'on cherche sur le terrain (« à qui est le 34 ? »),
+   donc c'est lui qui porte la lisibilité de loin. Chiffres tabulaires pour que les
+   unités s'alignent en colonne — un rang de numéros mal alignés se parcourt mal. */
 .c-bp {
-  width: 3.2em;
+  width: 2.9em;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
+  font-size: 15pt;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
 }
-.c-role { width: auto; }
+/* Le rôle hérite des 28 mm rendus par la colonne de signature supprimée. */
+.c-role { width: auto; font-family: var(--f-ui); font-size: 11.5pt; }
 
-/* Colonne de visa : une conduite papier se signe. 28 mm — à 3,2 em on ne pouvait rien
-   y écrire, ce qui rendait la colonne décorative. */
-.c-sign { width: 28mm; }
-[data-visa="non"] .c-sign { display: none; }
+/* La colonne de signature a été SUPPRIMÉE (Nathan, 2026-08-05 : « le design n'est pas
+   bon »). Les 28 mm qu'elle réservait reviennent au rôle, qui doit se lire de loin. */
 
-/* Case « Remis », à cocher au crayon pendant la distribution des beltpacks. */
-.c-remis { display: none; width: 12mm; text-align: center; }
-[data-cases="oui"] .c-remis { display: table-cell; }
+/* La colonne « Remis » a été supprimée avec son réglage (Nathan, 2026-08-05). */
 
 /* Zébrure : en colonne unique SEULEMENT, où la ligne fait près de 27 cm et où l'œil
    dérive d'une ligne à l'autre. En trois colonnes elle ne coûterait que de l'encre. */
@@ -253,6 +345,13 @@
 .sheet-none, .sheet-empty { margin: .2rem 0; color: var(--ink-faint); font-style: italic; }
 .sheet-empty { padding: 2rem 0; }
 
+/* Le pied écran porte le même glyphe que le bandeau imprimé. */
+.sheet-foot-logo {
+  height: 4.5mm; width: 4.5mm;
+  vertical-align: -1.2mm;
+  margin-right: 1.8mm;
+  color: var(--ink-soft);
+}
 .sheet-foot {
   padding: 4mm 0 0;
   margin-top: 4mm;
@@ -266,6 +365,19 @@
    son identité feuille par feuille — c'est tout l'objet d'un document « filet ».
    Invisible à l'écran, où le pied ordinaire dit déjà la même chose. */
 .sheet-band { display: none; }
+/* Le logo du pied s'aligne sur la ligne de base du texte qu'il accompagne, et reste
+   petit : il signe la feuille, il ne la titre pas. */
+/* 3,6 mm ne se voyait pas (« je ne vois pas le logo ») : porté à 6 mm, et le pied passe
+   à l'encre du texte courant plutôt qu'au gris le plus pâle, sans quoi agrandir un
+   glyphe presque blanc n'aurait rien changé. */
+.sheet-band-logo {
+  height: 5mm; width: 5mm;
+  vertical-align: -1.5mm;
+  margin-right: 2mm;
+  /* Le bandeau est au gris le plus pâle : un glyphe de cette teinte resterait invisible
+     même agrandi. Il prend donc l'encre intermédiaire — visible sans dominer le pied. */
+  color: var(--ink-soft);
+}
 
 /* ---------- Impression ---------- */
 @page {

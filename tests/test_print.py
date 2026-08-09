@@ -176,12 +176,18 @@ def test_le_titre_de_la_page_porte_le_nouveau_nom(plateau):
     assert "Feuille d'affectation" not in titre
 
 
-def test_la_colonne_annonce_le_role_et_non_le_nom(plateau):
+def test_la_feuille_ne_parle_jamais_d_un_nom_qui_n_existe_pas(plateau):
     """Une personne, c'est {id, role, beltpack, group_id} : le champ nom n'existe plus.
-    L'en-tête « NOM » affichait donc le rôle — récidive de la leçon 2026-07-23 n°32."""
+
+    L'en-tête de colonne disait « NOM » et affichait le RÔLE (leçon 2026-07-23 n°32).
+    Cet en-tête a été supprimé le 2026-08-05 avec la refonte « le numéro d'abord » — la
+    garde reste, car ce qu'elle protège n'est pas l'en-tête mais le VOCABULAIRE : la
+    feuille ne doit jamais promettre un nom qu'elle est incapable d'imprimer. Elle porte
+    donc désormais sur le contenu RENDU, seule preuve que la feuille dit vrai.
+    """
     html = plateau.get("/admin/print").get_data(as_text=True)
-    assert ">Rôle<" in html
     assert ">Nom<" not in html
+    assert "Régie" in html          # le plateau de test est bien imprimé
 
 
 def test_le_pied_date_en_francais_et_jamais_en_iso(plateau):
