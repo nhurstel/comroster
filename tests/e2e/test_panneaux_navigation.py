@@ -9,17 +9,9 @@ import pytest
 
 # `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
 # pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
-from helpers import open_reglages
+from helpers import enter_admin, open_reglages
 
 pytestmark = pytest.mark.e2e
-
-
-def _enter_admin(page, base):
-    page.goto(base + "/admin/setup")
-    page.fill("input[name=password]", "motdepasse8")
-    page.click("button[type=submit]")
-    page.click("a.auth-go")
-    page.wait_for_selector("#add-block-btn")
 
 
 def _marquer_le_document(page):
@@ -41,7 +33,7 @@ def _document_intact(page):
     ("print", "#print-frame"),
 ])
 def test_le_panneau_souvre_sans_quitter_l_administration(page, live_server, panneau, ancre):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     _marquer_le_document(page)
 
     if panneau == "print":
@@ -69,7 +61,7 @@ def test_l_entree_du_menu_allume_l_onglet_qui_la_porte(page, live_server):
     Sans ce repère, le panneau s'ouvrirait sans qu'aucun onglet ne soit marqué : on
     saurait ce qu'on regarde, jamais comment y revenir ni d'où l'on vient.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     assert page.get_attribute("#settings-btn", "data-active") is None
     open_reglages(page)
     page.click('[data-tab="journal"]')
@@ -91,7 +83,7 @@ def test_le_volet_technique_du_journal_ne_touche_pas_au_plateau(page, live_serve
     du plateau, depuis un autre panneau. Vérifié par mutation — rendre le sélecteur
     d'admin.js à nouveau global fait bien tomber ce test.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click("#add-block-btn")
     page.fill("#block-name", "Lumière")
     page.click("#block-form button[type=submit]")
@@ -116,7 +108,7 @@ def test_la_feuille_a_imprimer_sait_quelle_est_en_trame(page, live_server):
     « ← Administration » n'y est pas — dans une trame, il pointerait sur la page qui
     la contient.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click("#add-beltpack-pool")
     # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
     # non encore affiché part en silence et soumet un formulaire incomplet.
@@ -139,7 +131,7 @@ def test_la_feuille_est_refaite_a_chaque_passage(page, live_server):
     On imprimerait alors une conduite d'où manque le beltpack ajouté entre-temps :
     l'accident exact contre lequel la feuille papier existe.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click('[data-tab="print"]')
     page.wait_for_selector('.tab-panel[data-panel="print"]:not([hidden])')
     page.frame_locator("#print-frame").locator("#print-now").wait_for()
@@ -182,7 +174,7 @@ def test_un_panneau_ferme_n_interroge_pas_le_boitier(page, live_server):
     page.on("request", lambda r: sondes.append(r.url)
             if any(p in r.url for p in ("/api/journal", "/api/logs", "/api/health")) else None)
 
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     sondes.clear()
     page.wait_for_timeout(6000)          # > un battement de chacun des deux panneaux
     assert sondes == [], f"panneaux fermés, et pourtant {len(sondes)} requêtes : {sondes[:5]}"
@@ -209,7 +201,7 @@ def test_l_onglet_ecran_replie_le_temoin_sans_effacer_la_preference(page, live_s
     Sans ça, un simple passage par Écran effacerait un réglage posé exprès et le témoin ne
     reviendrait jamais — un panneau n'a pas à décider des préférences des autres.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.wait_for_selector('#preview-dock[data-open="1"]')
 
     page.click('[data-tab="screen"]')
@@ -228,7 +220,7 @@ def test_l_ancienne_adresse_du_journal_ouvre_le_panneau(page, live_server):
     Elle mène désormais au panneau — et l'URL ne garde pas `?panneau=`, qui mentirait
     dès le clic suivant.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.goto(live_server + "/admin/journal")
     page.wait_for_selector('.tab-panel[data-panel="journal"]:not([hidden])')
     assert page.is_visible(".admin-top")
@@ -244,7 +236,7 @@ def test_la_marque_ramene_au_plateau_depuis_impression(page, live_server):
     Impression. Le témoin qui compte est la MÉMOIRE : sans elle, un simple rechargement
     aurait suffi et le test passerait même si le correctif était retiré.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click('[data-tab="print"]')
     page.wait_for_selector('.tab-panel[data-panel="print"]:not([hidden])')
     # L'onglet est bien mémorisé : c'est ce qui rendait le retour impossible.

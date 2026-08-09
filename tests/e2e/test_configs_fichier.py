@@ -17,32 +17,14 @@ import pytest
 
 # `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
 # pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
-from helpers import wait_saved
+from helpers import ajouter_beltpack, enter_admin, wait_saved
 
 pytestmark = pytest.mark.e2e
 
 
-def _enter_admin(page, base):
-    page.goto(base + "/admin/setup")
-    page.fill("input[name=password]", "motdepasse8")
-    page.click("button[type=submit]")
-    page.click("a.auth-go")
-    page.wait_for_selector("#add-block-btn")
-
-
 def _ajouter_beltpack(page, numero, role):
-    """Le vrai geste (réserve + formulaire), comme dans test_e2e.py."""
-    page.click("#add-beltpack-pool")
-    # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
-    # non encore affiché part en silence et soumet un formulaire incomplet.
-    page.wait_for_selector("#person-dialog[open]")
-    page.fill("#person-beltpack", numero)
-    page.fill("#person-role", role)
-    page.click("#person-form button[type=submit]")
-    page.wait_for_selector(f".person .bp:has-text('{numero}')")
-    # Et son RÔLE : c'est lui qui manquait en CI (« assert 'Régie' in [''] »). Attendre le
-    # seul numéro laissait passer une carte dont le champ rôle n'était pas encore rendu.
-    page.wait_for_selector(f".person .role:has-text('{role}')")
+    """Le geste partagé, puis l'attente propre à CE fichier."""
+    ajouter_beltpack(page, numero, role)
     # Le DOM est en avance sur le disque : enregistrer une configuration fait relire le
     # brouillon PAR LE SERVEUR, qui figerait sinon l'état d'avant cet ajout.
     wait_saved(page)
@@ -59,7 +41,7 @@ def _roles_a_l_ecran(page):
 
 def test_annuler_l_import_laisse_le_plateau_intact(page, live_server):
     """La garde qui compte : sans elle, la confirmation serait décorative."""
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     _ajouter_beltpack(page, "5", "Régie")
     avant = page.evaluate("async () => await (await fetch('/api/state')).json()")
 
@@ -93,7 +75,7 @@ def test_exporter_une_configuration_sort_l_etat_enregistre(page, live_server):
     contiendrait la modification. Et s'il avait été câblé sur `/load`, faute d'une route
     de lecture pure, le plateau à l'écran aurait été écrasé par l'export lui-même.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     _ajouter_beltpack(page, "5", "Régie")
 
     _ouvrir_configs(page)
@@ -126,7 +108,7 @@ def test_exporter_une_configuration_sort_l_etat_enregistre(page, live_server):
 
 def test_exporter_le_plateau_courant_depuis_le_pied(page, live_server):
     """Le pied « Fichier » exporte ce qui est À L'ÉCRAN."""
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     _ajouter_beltpack(page, "5", "Régie")
 
     _ouvrir_configs(page)

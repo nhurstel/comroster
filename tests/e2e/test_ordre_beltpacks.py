@@ -9,16 +9,9 @@ pas dans le DOM seul, et c'est précisément la partie que personne n'avait exer
 e2e du dépôt ne faisait de drag avant celui-ci.
 """
 import pytest
+from helpers import ajouter_beltpack, enter_admin
 
 pytestmark = pytest.mark.e2e
-
-
-def _enter_admin(page, base):
-    page.goto(base + "/admin/setup")
-    page.fill("input[name=password]", "motdepasse8")
-    page.click("button[type=submit]")
-    page.click("a.auth-go")
-    page.wait_for_selector("#add-block-btn")
 
 
 def _plateau(page):
@@ -31,13 +24,10 @@ def _plateau(page):
     page.fill("#block-name", "Son")
     page.click("#block-form button[type=submit]")
     for numero in ("30", "10", "20"):
-        page.click(".block-items .drop-tile")
-        # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
-        # non encore affiché part en silence et soumet un formulaire incomplet.
-        page.wait_for_selector("#person-dialog[open]")
-        page.fill("#person-beltpack", numero)
-        page.fill("#person-role", f"Rôle {numero}")
-        page.click("#person-form button[type=submit]")
+        # Ouverture par la tuile du GROUPE : ces beltpacks doivent y être affectés
+        # directement, pas passer par la réserve.
+        ajouter_beltpack(page, numero, f"Rôle {numero}",
+                         ouvrir=".block-items .drop-tile")
         page.wait_for_selector(f".admin-block .person .bp:text-is('{numero}')")
 
 
@@ -60,13 +50,13 @@ def _monter_le_dernier_en_tete(page):
 
 
 def test_les_membres_sont_tries_par_numero_sans_intervention(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     _plateau(page)
     assert _numeros(page) == ["10", "20", "30"]
 
 
 def test_ranger_a_la_main_fige_l_ordre_puis_trier_le_rend(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     _plateau(page)
 
     _monter_le_dernier_en_tete(page)
@@ -96,7 +86,7 @@ def test_l_ecran_de_regie_montre_le_meme_ordre_que_l_administration(page, live_s
     et celle qui compte devant public était la mauvaise. La règle est passée dans board.js,
     que les deux pages chargent ; ce test est ce qui l'y maintient.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     _plateau(page)
     _monter_le_dernier_en_tete(page)
     page.wait_for_function(_premier_est("30"))
@@ -119,7 +109,7 @@ def test_l_ordre_manuel_survit_a_un_rechargement(page, live_server):
     """Sans persistance, le rangement ne tiendrait pas jusqu'au show — donc ne servirait
     à rien. On attend la FIN du cycle d'enregistrement, jamais la seule mise à jour du
     DOM, qui est toujours en avance sur le disque (leçon 2026-07-31)."""
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     _plateau(page)
     _monter_le_dernier_en_tete(page)
     page.wait_for_function(_premier_est("30"))

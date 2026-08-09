@@ -8,21 +8,13 @@ import pytest
 
 # `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
 # pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
-from helpers import open_reglages
+from helpers import enter_admin, open_reglages
 
 pytestmark = pytest.mark.e2e
 
 
-def _enter_admin(page, base):
-    page.goto(base + "/admin/setup")
-    page.fill("input[name=password]", "motdepasse8")
-    page.click("button[type=submit]")
-    page.click("a.auth-go")
-    page.wait_for_selector("#add-block-btn")
-
-
 def test_menu_souvre_et_se_ferme(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     open_reglages(page)
     assert page.get_attribute("#settings-btn", "aria-expanded") == "true"
 
@@ -33,7 +25,7 @@ def test_menu_souvre_et_se_ferme(page, live_server):
 
 
 def test_echap_ferme_le_menu_et_rend_le_focus(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     open_reglages(page)
     page.keyboard.press("Escape")
     page.wait_for_selector("#settings-menu", state="hidden")
@@ -50,7 +42,7 @@ def test_echap_annule_la_publication_avant_de_fermer_le_menu(page, live_server):
     ce que l'utilisateur demande. Vérifié par mutation : déplacer la branche du menu
     devant celle du décompte fait bien tomber ce test.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click("#publish-btn")                                  # arme le décompte de 5 s
     page.wait_for_selector("#pub-label:has-text('Annuler')")     # « Annuler · N » (décompte)
     open_reglages(page)
@@ -69,7 +61,7 @@ def test_echap_ferme_le_menu_et_la_selection_survit(page, live_server):
     garde est le COMPORTEMENT, pas l'ordre des deux branches : la sélection est
     protégée par `onBoard`, qui exclut le menu ouvert.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     # ⌘A ne sélectionne QUE ce qui existe : sans beltpack, la barre ne s'active jamais et
     # le test échouerait avant d'atteindre son sujet.
     page.click("#add-beltpack-pool")
@@ -100,7 +92,7 @@ def test_cmd_z_est_neutralise_menu_ouvert(page, live_server):
     Sans cette garde, on croit corriger une frappe et on efface un groupe — le défaut
     exact relevé le 2026-07-27 pour les champs de saisie, dont le menu est le nouveau cas.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click("#add-block-btn")
     page.fill("#block-name", "Lumière")
     page.click("#block-form button[type=submit]")
@@ -125,7 +117,7 @@ def test_cmd_z_est_neutralise_menu_ouvert(page, live_server):
 
 
 def test_les_fleches_parcourent_les_items(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click("#settings-btn")
     page.wait_for_selector("#settings-menu:not([hidden])", state="visible")
     page.keyboard.press("ArrowDown")

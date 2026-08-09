@@ -17,6 +17,7 @@ partir d'une LISTE de libellés, et il suffit d'y ajouter un texte long pour rou
 creux sans qu'aucune assertion existante ne bronche.
 """
 import pytest
+from helpers import enter_admin
 
 pytestmark = pytest.mark.e2e
 
@@ -28,21 +29,13 @@ pytestmark = pytest.mark.e2e
 CREUX_MAX_PX = 70
 
 
-def _enter_admin(page, base):
-    page.goto(base + "/admin/setup")
-    page.fill("input[name=password]", "motdepasse8")
-    page.click("button[type=submit]")
-    page.click("a.auth-go")
-    page.wait_for_selector("#add-block-btn")
-
-
 def test_le_mot_d_etat_ne_s_eloigne_pas_du_bouton_publier(page, live_server):
     """Aucune réserve de largeur ne doit s'ouvrir entre l'état et l'action.
 
     Mesure les bords des TEXTES (`#sync-label`, `#pub-label`), pas ceux de leurs
     conteneurs : c'est précisément l'écart entre les deux qui avait masqué le défaut.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.wait_for_selector("#sync-label:has-text('À jour')")
     page.wait_for_timeout(700)          # lockHeaderWidths() repasse une fois les polices prêtes
 
@@ -67,7 +60,7 @@ def test_le_libelle_arme_ne_fixe_pas_la_largeur_du_bouton(page, live_server):
     refermé par un autre moyen tout en payant encore la réserve du libellé armé. On
     compare donc la largeur au repos au contenu réellement affiché.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.wait_for_selector("#pub-label:has-text('Publier')")
     page.wait_for_timeout(700)
 

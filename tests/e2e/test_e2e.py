@@ -7,22 +7,13 @@ import pytest
 
 # `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
 # pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
-from helpers import open_reglages, wait_saved
+from helpers import enter_admin, open_reglages, wait_saved
 
 pytestmark = pytest.mark.e2e
 
 
-def _enter_admin(page, base):
-    """Configuration initiale → connexion automatique → page d'administration."""
-    page.goto(base + "/admin/setup")
-    page.fill("input[name=password]", "motdepasse8")
-    page.click("button[type=submit]")
-    page.click("a.auth-go")                 # « Accéder à l'administration »
-    page.wait_for_selector("#add-block-btn")
-
-
 def test_setup_create_publish_display(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
 
     # Créer un groupe
     page.click("#add-block-btn")
@@ -101,7 +92,7 @@ def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie",
     le chargement : une violation CSP ou une exception JS y apparaît, là où un test de
     contenu DOM ne verrait rien (cf. leçon 2026-07-07).
     """
-    _enter_admin(page, base)
+    enter_admin(page, base)
     if skin:
         _open_screen_tab(page)
         page.select_option("#skin-select", skin)
@@ -197,7 +188,7 @@ def test_publication_joue_la_transition_darrivee(page, live_server):
     L'écran est ouvert AVANT la publication : c'est la seule façon de recevoir un vrai
     `published`. Les autres e2e l'ouvrent après et ne reçoivent qu'un `snapshot`.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     display = _open_display_recording(page.context, live_server)
 
     _add_group_and_publish(page)
@@ -215,7 +206,7 @@ def test_publication_joue_la_transition_darrivee(page, live_server):
 
 def test_mode_performance_supprime_la_transition(page, live_server):
     """Mode performance : aucun état d'animation, donc aucun délai avant le tableau."""
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     _open_screen_tab(page)
     page.check("#meta-perf")
     wait_saved(page)
@@ -236,7 +227,7 @@ def test_snapshot_nanime_pas(page, live_server):
     L'animer rejouerait la transition toutes les 4 s quand le réseau tousse, en plein
     show, sans rien de nouveau à montrer.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     _add_group_and_publish(page)
 
     display = _open_display_recording(page.context, live_server)
@@ -341,7 +332,7 @@ def test_preview_tracks_published_and_opens_no_sse(page, live_server):
         }
         """
     )
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     _open_screen_tab(page)
     page.select_option("#skin-select", "grille")
     page.click('.admin-tabs .tab[data-tab="board"]')     # « + Groupe » vit dans l'onglet Affectations
@@ -409,7 +400,7 @@ def test_fresh_box_shows_onboarding(page, live_server):
 
 
 def test_available_filter(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     for num, role in [("11", "Regie"), ("22", "Lumiere")]:
         page.click("#add-beltpack-pool")
         # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
@@ -425,7 +416,7 @@ def test_available_filter(page, live_server):
 
 
 def test_indicator_toggles_persist(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     # Réglages dans l'onglet « Écran » (plus de dialog) : décocher enregistre en direct.
     _open_screen_tab(page)
     page.uncheck("#ind-battery")
@@ -441,7 +432,7 @@ def test_indicator_toggles_persist(page, live_server):
 
 
 def test_network_dialog_sets_static_ip(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     open_reglages(page)
     page.click("#network-btn")
     page.wait_for_selector("#network-dialog[open]")
@@ -454,7 +445,7 @@ def test_network_dialog_sets_static_ip(page, live_server):
 
 
 def test_antenna_dialog_opens_wizard_when_unconfigured(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click("#antenna-btn")
     # Antenne non configurée → l'assistant s'affiche, le tableau de bord reste masqué.
     page.wait_for_selector("#antenna-wizard:not([hidden])")
@@ -468,7 +459,7 @@ def _seed_table(page, live_server):
     Le mélange affecté / non affecté est nécessaire pour reproduire le défaut : c'est
     lui qui faisait exister une même personne à DEUX endroits du document.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click("#add-block-btn")
     page.fill("#block-name", "Plateau")
     page.click("#block-form button[type=submit]")
@@ -565,7 +556,7 @@ def test_undo_redo_scoped_to_the_draft(page, live_server):
     test le VÉRIFIE plutôt que de le supposer : une IP fixe enregistrée avant l'annulation
     doit être intacte après.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     open_reglages(page)
     page.click("#network-btn")
     page.wait_for_selector("#network-dialog[open]")
@@ -604,7 +595,7 @@ def test_undo_ignored_inside_a_text_field(page, live_server):
     Sans cette réserve, corriger une faute de frappe dans le titre effacerait le dernier
     groupe créé — une surprise coûteuse en régie.
     """
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click("#add-block-btn")
     page.fill("#block-name", "Plateau")
     page.click("#block-form button[type=submit]")

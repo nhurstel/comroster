@@ -11,17 +11,9 @@ import pytest
 
 # `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
 # pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
-from helpers import open_reglages
+from helpers import enter_admin, open_reglages
 
 pytestmark = pytest.mark.e2e
-
-
-def _enter_admin(page, base):
-    page.goto(base + "/admin/setup")
-    page.fill("input[name=password]", "motdepasse8")
-    page.click("button[type=submit]")
-    page.click("a.auth-go")
-    page.wait_for_selector("#add-block-btn")
 
 
 def _collect_console(page):
@@ -42,7 +34,7 @@ def _collect_console(page):
 
 def test_l_admin_seul_n_annonce_aucun_afficheur(page, live_server):
     erreurs, _ = _collect_console(page)
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     # La barre d'état lit /api/status. Sans le correctif, l'admin comptait son propre
     # flux SSE et affichait « 1 afficheur » sans le moindre écran branché.
     page.wait_for_function(
@@ -54,7 +46,7 @@ def test_l_admin_seul_n_annonce_aucun_afficheur(page, live_server):
 def test_un_vrai_ecran_est_bien_compte(page, live_server):
     """Assertion miroir : sans elle, le test précédent passerait même si le compteur
     était bloqué à zéro."""
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     ecran = page.context.new_page()
     ecran.goto(live_server + "/display")
     ecran.wait_for_selector("#display-grid", state="attached")
@@ -67,7 +59,7 @@ def test_un_vrai_ecran_est_bien_compte(page, live_server):
 # ---------- B. L'import ne perd plus de champs ----------
 
 def test_l_import_conserve_le_nom_de_production_et_la_taille_du_texte(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click(".admin-tabs .tab[data-tab='screen']")
     page.fill("#meta-production", "Carmen")
     page.select_option("#meta-text-scale", "tres-grand")
@@ -94,7 +86,7 @@ def test_l_import_conserve_le_nom_de_production_et_la_taille_du_texte(page, live
 
 def test_changer_le_mot_de_passe_depuis_l_admin(page, live_server):
     erreurs, _ = _collect_console(page)
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     open_reglages(page)
     page.click("#password-btn")
     page.wait_for_selector("#password-dialog[open]")
@@ -120,7 +112,7 @@ def test_changer_le_mot_de_passe_depuis_l_admin(page, live_server):
 
 def test_sauvegarder_puis_restaurer_le_boitier(page, live_server):
     erreurs, vus = _collect_console(page)
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click("#add-block-btn")
     page.fill("#block-name", "Lumière")
     page.click("#block-form button[type=submit]")
@@ -173,7 +165,7 @@ def test_sauvegarder_puis_restaurer_le_boitier(page, live_server):
 
 
 def test_une_mauvaise_phrase_de_passe_le_dit_et_ne_restaure_rien(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     open_reglages(page)
     page.click("#backup-btn")
     page.fill("#bk-pass", "phrase-de-passe")
@@ -193,7 +185,7 @@ def test_une_mauvaise_phrase_de_passe_le_dit_et_ne_restaure_rien(page, live_serv
 # ---------- C3. Repères d'historique ----------
 
 def test_nommer_et_epingler_une_publication(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click("#add-beltpack-pool")
     # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
     # non encore affiché part en silence et soumet un formulaire incomplet.
@@ -222,7 +214,7 @@ def test_nommer_et_epingler_une_publication(page, live_server):
 # ---------- C4. Impression ----------
 
 def test_la_feuille_imprimable_s_ouvre_et_liste_les_affectations(page, live_server):
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click("#add-block-btn")
     page.fill("#block-name", "Son")
     page.click("#block-form button[type=submit]")
@@ -258,7 +250,7 @@ def test_la_feuille_imprimable_s_ouvre_et_liste_les_affectations(page, live_serv
 
 def test_la_decouverte_propose_sans_remplacer_la_saisie_manuelle(page, live_server):
     erreurs, _ = _collect_console(page)
-    _enter_admin(page, live_server)
+    enter_admin(page, live_server)
     page.click("#antenna-btn")
     page.wait_for_selector("#antenna-dialog[open]")
     # En mode dev le serveur rend un jeu fictif : la liste doit se remplir seule.

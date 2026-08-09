@@ -1674,7 +1674,20 @@ Les deux passent systématiquement en local (63/63) et n'échouent que sur le ru
 lent. **Pourquoi il faut les corriger et non les tolérer** : un test qui échoue au hasard
 finit par être ignoré, et le jour où il signale un VRAI défaut, personne ne le croit.
 
-### Dette ouverte n°2 — le helper de connexion e2e, dupliqué huit fois
+### ✅ Dette n°2 — helper de connexion e2e, RÉSORBÉE (2026-08-09)
+`enter_admin` et `ajouter_beltpack` vivent dans `helpers.py`. Les sept copies locales de
+`_enter_admin` (identiques à l'octet près) sont supprimées, et les deux helpers locaux de
+saisie délèguent désormais au geste commun — les attentes qui réparent les flakys
+(ouverture du dialogue, rendu du numéro PUIS du rôle) sont ainsi écrites une seule fois.
+
+**Fausse manœuvre au passage, consignée** : mon premier script de suppression employait
+`re.S`, qui fait matcher `.` à travers les lignes — 1479 lignes effacées dans sept
+fichiers, sans la moindre erreur. Restauré par `git checkout` : sûr ICI parce que tout
+était commité et poussé, à la différence de l'incident du 2026-08-04. Refait en
+raisonnant par LIGNES, et contrôlé par une grandeur invariante (`--collect-only` rend
+toujours 63 tests) plutôt qu'en relisant un diff énorme.
+
+### (historique) ### Dette ouverte n°2 — le helper de connexion e2e, dupliqué huit fois
 Huit fichiers portent leur propre `_enter_admin`. C'est ce qui a fait qu'un simple
 renommage de classe (`auth-submit` → `auth-go`) a coûté huit corrections au lieu d'une.
 `helpers.py` existe déjà et porte `open_reglages` / `wait_saved` : la place est prête.
