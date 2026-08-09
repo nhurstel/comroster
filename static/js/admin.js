@@ -2377,7 +2377,17 @@
 
   // Changer de fichier ou de phrase invalide l'examen : « Restaurer » ne doit jamais
   // appliquer un contenu autre que celui qui vient d'être annoncé à l'écran.
-  document.getElementById("bk-file").addEventListener("change", bkResetInspection);
+  document.getElementById("bk-file").addEventListener("change", (ev) => {
+    bkResetInspection();
+    // Le contrôle natif étant masqué au profit d'un bouton maison, plus rien n'annonce
+    // le fichier retenu : sans cette ligne, on cliquerait « Charger » sans savoir SUR
+    // QUOI. C'est la contrepartie obligatoire du remplacement du rendu natif.
+    const nom = ev.target.files?.[0]?.name || "";
+    const cible = document.getElementById("bk-file-name");
+    cible.textContent = nom || "aucun fichier choisi";
+    cible.dataset.chosen = nom ? "oui" : "non";
+    if (nom) { cible.title = nom; } else { cible.removeAttribute("title"); }
+  });
   document.getElementById("bk-restore-pass").addEventListener("input", bkResetInspection);
 
   function readFileAsBase64(file) {
@@ -2722,6 +2732,19 @@
       if (saved && saved !== "board" && panels.includes(saved)) selectTab(saved);
     }
   } catch { /* mode privé */ }
+
+  /* La marque ramène au plateau. Elle porte un vrai `href` — clic milieu, ⌘-clic et
+     « ouvrir dans un nouvel onglet » doivent marcher, et le lien reste bon sans JS —
+     mais suivre ce lien RECHARGERAIT la page, et le chargement restaure l'onglet
+     mémorisé : depuis Impression, on revenait donc sur Impression. On bascule de panneau
+     au lieu de naviguer.
+     Les clics « ouvrir ailleurs » sont laissés au navigateur : les intercepter
+     casserait le seul cas où l'utilisateur veut réellement une seconde page. */
+  document.querySelector(".brand")?.addEventListener("click", (ev) => {
+    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+    ev.preventDefault();
+    selectTab("board");
+  });
 
   /* ---------- Barre d'outils du plateau ---------- */
   // Recherche grep : estompe en direct les cartes hors correspondance (combiné aux vues).

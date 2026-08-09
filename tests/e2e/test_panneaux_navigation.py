@@ -18,7 +18,7 @@ def _enter_admin(page, base):
     page.goto(base + "/admin/setup")
     page.fill("input[name=password]", "motdepasse8")
     page.click("button[type=submit]")
-    page.click("a.auth-submit")
+    page.click("a.auth-go")
     page.wait_for_selector("#add-block-btn")
 
 
@@ -227,3 +227,23 @@ def test_l_ancienne_adresse_du_journal_ouvre_le_panneau(page, live_server):
     page.wait_for_selector('.tab-panel[data-panel="journal"]:not([hidden])')
     assert page.is_visible(".admin-top")
     assert "panneau=" not in page.url
+
+
+def test_la_marque_ramene_au_plateau_depuis_impression(page, live_server):
+    """Le logo ComRoster ramène aux affectations, y compris depuis Impression.
+
+    Défaut né de la RENCONTRE de deux comportements justes : la marque est un lien
+    (`href="/admin"`), et l'onglet actif est restauré depuis localStorage au chargement
+    (lot « A bis », 2026-07-27). Suivre le lien rechargeait donc la page… qui restaurait
+    Impression. Le témoin qui compte est la MÉMOIRE : sans elle, un simple rechargement
+    aurait suffi et le test passerait même si le correctif était retiré.
+    """
+    _enter_admin(page, live_server)
+    page.click('[data-tab="print"]')
+    page.wait_for_selector('.tab-panel[data-panel="print"]:not([hidden])')
+    # L'onglet est bien mémorisé : c'est ce qui rendait le retour impossible.
+    assert page.evaluate("localStorage.getItem('comroster.admin.tab')") == "print"
+
+    page.click(".brand")
+    page.wait_for_selector('.tab-panel[data-panel="board"]:not([hidden])')
+    assert page.is_visible(".admin-top"), "l'en-tête doit rester en place"

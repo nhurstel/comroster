@@ -1304,15 +1304,55 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 
 /* ---------- Sauvegarde du boîtier ---------- */
 .backup-dialog { min-width: 32rem; }
+/* Le bloc porte son propre rythme vertical. `.field` n'a aucune marge (l.815) : tant que
+   l'aide s'intercalait entre le champ et le bouton, c'étaient SES marges qui espaçaient
+   tout — la déplacer après l'action a fait coller le bouton à son champ. Une pile réglée
+   une fois vaut mieux que des marges rajoutées élément par élément. */
 .bk-block {
   padding: .9rem 0;
   border-top: 1px solid var(--border);
+  display: grid;
+  gap: .6rem;
+  justify-items: start;          /* les boutons gardent leur largeur naturelle… */
 }
+.bk-block .field,
+.bk-block .import-summary,
+.bk-block .auth-error { justify-self: stretch; }   /* …les champs occupent la colonne */
 .bk-block:first-of-type { border-top: 0; }
-.bk-block .nav-label { margin-bottom: .5rem; }
+.bk-block .nav-label { margin-bottom: 0; }
 /* La restauration est destructrice : son bouton n'a pas l'allure de l'action neutre. */
 .backup-dialog .danger-btn { margin-top: .6rem; }
 #bk-summary { margin-top: .6rem; }
+/* L'avertissement suit son bouton au lieu de s'intercaler avant lui. */
+.bk-block .dialog-hint { margin-top: .55rem; }
+
+/* Sélecteur de fichier maison (voir le commentaire d'admin.html). Le contrôle natif
+   est retiré de la vue SANS quitter le document : `display:none` le sortirait de
+   l'ordre de tabulation et le rendrait inatteignable au clavier. */
+.bk-pick { display: flex; align-items: center; gap: .6rem; }
+.bk-pick-input {
+  position: absolute; width: 1px; height: 1px;
+  opacity: 0; pointer-events: none;
+}
+.bk-pick-btn {
+  flex: none;
+  padding: 0 .7rem; height: var(--row);
+  display: inline-flex; align-items: center;
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  border-radius: var(--rad);
+  font-size: var(--ui); letter-spacing: var(--track);
+  cursor: pointer;
+}
+.bk-pick-btn:hover { border-color: var(--border-3); }
+/* Le focus vit sur l'input masqué : sans ce relais, parcourir au clavier n'afficherait
+   AUCUN repère — le bouton visible n'est qu'une étiquette. */
+.bk-pick-input:focus-visible + .bk-pick-btn { outline: 2px solid var(--accent); outline-offset: 1px; }
+.bk-pick-name {
+  color: var(--fg-subtle); font-size: var(--ui);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bk-pick-name[data-chosen="oui"] { color: var(--fg); }
 
 /* ---------- Découverte d'antenne ----------
    Même géométrie que la liste Wi-Fi du dialogue réseau : deux listes de « choses

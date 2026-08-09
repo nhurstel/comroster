@@ -441,19 +441,32 @@
         <div class="nav-label">Créer une sauvegarde</div>
         <label class="field"><span>Mot de passe <em>(8 caractères minimum)</em></span>
           <input type="password" id="bk-pass" autocomplete="new-password" minlength="8"></label>
-        <p class="dialog-hint">L'archive contient le mot de passe Wi-Fi et l'empreinte du
-          mot de passe admin : elle est donc chiffrée. <b>Notez cette phrase avec le
-          fichier</b> — sans elle, l'archive est irrécupérable.</p>
         <button type="button" id="bk-create" class="primary">Générer la sauvegarde</button>
+        {# L'avertissement vient APRÈS l'action : intercalé entre le champ et son bouton,
+           il coupait la séquence de lecture (saisir → valider) par trois lignes de prose. #}
+        <p class="dialog-hint">L'archive est chiffrée — elle contient le mot de passe Wi-Fi
+          et l'empreinte du mot de passe admin. <b>Notez ce mot de passe avec le
+          fichier</b> : sans lui, l'archive est irrécupérable.</p>
       </section>
 
       <section class="bk-block">
         <div class="nav-label">Restaurer</div>
-        <label class="field"><span>Fichier de sauvegarde</span>
-          <input type="file" id="bk-file" accept=".rostbak,application/json"></label>
+        {# Sélecteur de fichier maison. Le contrôle natif s'affichait en clair et EN
+           ANGLAIS (« Choose File / No file chosen ») : son bouton et son texte ne sont ni
+           stylables ni traduisibles, ils suivent la locale du navigateur. L'input reste
+           dans le document (focusable, accessible), seul son rendu est remplacé — même
+           parti que les <select> restylés au lot du 2026-07-27. #}
+        <div class="field"><span>Fichier de sauvegarde</span>
+          <div class="bk-pick">
+            <input type="file" id="bk-file" accept=".rostbak,application/json" class="bk-pick-input">
+            <label class="bk-pick-btn" for="bk-file">Choisir un fichier…</label>
+            <span class="bk-pick-name" id="bk-file-name">aucun fichier choisi</span>
+          </div>
+        </div>
         <label class="field"><span>Mot de passe de cette archive</span>
           <input type="password" id="bk-restore-pass" autocomplete="off"></label>
-        <button type="button" id="bk-inspect">Charger une sauvegarde</button>
+        {# Même poids que « Générer » : chacun est l'action principale de son bloc. #}
+        <button type="button" id="bk-inspect" class="primary">Charger une sauvegarde</button>
         {# On annonce ce qu'on s'apprête à écraser AVANT de le faire : restaurer remplace
            le réseau et le mot de passe. « Restaurer » ne s'active qu'après l'examen. #}
         <ul id="bk-summary" class="import-summary" hidden></ul>
