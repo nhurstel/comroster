@@ -72,6 +72,28 @@ def open_reglages(page):
     page.wait_for_selector("#settings-menu:not([hidden])", state="visible")
 
 
+def open_screen_tab(page):
+    """Active l'onglet « Écran » et attend que ses champs soient réellement là.
+
+    Les réglages d'écran (apparence, luminosité, colonnes, indicateurs) y vivent depuis la
+    refonte admin : il faut l'activer avant d'agir sur eux, sinon Playwright refuse
+    d'interagir avec des champs masqués.
+
+    Promue ici depuis test_e2e.py (où elle s'appelait `_open_screen_tab`) au moment du
+    découpage : ses appelants se répartissent en TROIS fichiers, et `test_audit_features`
+    réinventait déjà le même clic en dur. Quatre copies d'un sélecteur, c'est quatre
+    corrections le jour où l'onglet change de nom.
+    """
+    page.click('.admin-tabs .tab[data-tab="screen"]')
+    page.wait_for_selector("#skin-select", state="visible")
+
+
+def open_board_tab(page):
+    """Revient à l'onglet « Affectations » (le bouton « + Groupe » y vit)."""
+    page.click('.admin-tabs .tab[data-tab="board"]')
+    page.wait_for_selector("#add-block-btn", state="visible")
+
+
 def wait_saved(page):
     """Attend la FIN du cycle d'enregistrement du brouillon.
 

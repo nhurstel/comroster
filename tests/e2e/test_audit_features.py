@@ -11,7 +11,7 @@ import pytest
 
 # `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
 # pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
-from helpers import enter_admin, open_reglages
+from helpers import enter_admin, open_reglages, open_screen_tab
 
 pytestmark = pytest.mark.e2e
 
@@ -60,7 +60,7 @@ def test_un_vrai_ecran_est_bien_compte(page, live_server):
 
 def test_l_import_conserve_le_nom_de_production_et_la_taille_du_texte(page, live_server):
     enter_admin(page, live_server)
-    page.click(".admin-tabs .tab[data-tab='screen']")
+    open_screen_tab(page)
     page.fill("#meta-production", "Carmen")
     page.select_option("#meta-text-scale", "tres-grand")
     page.wait_for_selector("#sync-status[data-state='syncing']")

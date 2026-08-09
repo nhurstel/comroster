@@ -1785,8 +1785,9 @@ qu'à son œil sont donc **validés tels quels** :
 
 ## Ce qui reste, par ordre
 
-1. **Dette assumée** : `tests/e2e/test_e2e.py` fait 600+ lignes et mélange des sujets
-   sans rapport. Aucun caractère urgent.
+1. ~~**Dette assumée** : `tests/e2e/test_e2e.py` fait 600+ lignes et mélange des sujets
+   sans rapport.~~ **RÉSORBÉE le 2026-08-09** — voir le lot « Découper test_e2e.py »
+   plus bas.
 2. **Jamais demandé, jamais fait** : captures dans la documentation (étape 7 du lot des
    apparences), et le cahier des charges (D1) jamais retouché depuis l'origine.
 
@@ -1795,8 +1796,10 @@ qu'à son œil sont donc **validés tels quels** :
 # LOT 2026-08-09 (b) — Découper `tests/e2e/test_e2e.py`
 
 **Demande de Nathan, verbatim : « reglons le pb du 2E2 ».** Il s'agit du point 1 du reste
-à faire : 627 lignes, 21 tests, 8 helpers locaux, des sujets sans rapport dans un seul
-fichier.
+à faire : 627 lignes, 20 tests, 8 helpers locaux, des sujets sans rapport dans un seul
+fichier. (J'avais d'abord annoncé « 21 tests », à Nathan et ici : c'était un comptage à
+l'œil, démenti par la comparaison automatique des noms en fin de lot. La leçon vaut
+au-delà de l'anecdote — un chiffre relevé à la main n'est pas une mesure.)
 
 ## Ce que le fichier contient réellement (relevé, pas supposé)
 
@@ -1808,7 +1811,7 @@ fichier.
 | `_wait_frame` | le seul test d'aperçu | avec lui |
 | `_seed_table` | les 3 tests de sélection | avec eux |
 
-## Découpage retenu — par SUJET, 21 tests répartis en 8 fichiers
+## Découpage retenu — par SUJET, 20 tests répartis en 8 fichiers
 
 1. `test_parcours_complet.py` (1) — setup → publication → écran. Le parcours nominal.
 2. `test_apparences.py` (4) — `basique` / `lineaire` / `grille`, bornes d'ajustement, encre.
@@ -1841,6 +1844,36 @@ fichier.
 Aucun test n'est réécrit, renommé, ajouté ni supprimé : c'est un déplacement. Toute
 tentation d'« améliorer un test au passage » rendrait l'invariant de comptage aveugle au
 seul risque réel — en perdre un en chemin.
+
+## LIVRÉ (2026-08-09)
+
+`tests/e2e/test_e2e.py` n'existe plus. Ses 20 tests vivent dans les huit fichiers prévus,
+déplacés sans une modification de corps. Deux helpers sont montés dans `helpers.py` :
+`open_screen_tab` (ses appelants se répartissaient sur trois fichiers, et
+`test_audit_features` réinventait le même clic en dur — il l'appelle désormais) et
+`open_board_tab`, son retour, qui était recopié à quatre endroits.
+
+**Vérifié : 550 unitaires · 64 e2e (DEUX passes, 103 s et 104 s) · 43 JS · ruff propre.**
+
+### Ce que les contrôles ont réellement prouvé
+- Le comptage (64 avant, 64 après) dit qu'il y a le bon NOMBRE de tests, pas que ce sont
+  les mêmes. La comparaison des NOMS (`def test_*` de la sauvegarde contre ceux des huit
+  fichiers, triés puis diffés) le dit : aucune différence. C'est elle qui a démenti mon
+  « 21 tests » annoncé à l'œil.
+- `__pycache__` purgé avant la collecte : un cache périmé masque exactement les défauts
+  d'import, ceux qui bloquent toute la suite (leçon n°80).
+- Aucune collision de basename : `tests/e2e` n'est pas un package, un nom de fichier de
+  test y est un identifiant GLOBAL.
+- Contrôle d'alphabet sur les 750 lignes ajoutées : 23 caractères non-ASCII, tous
+  légitimes (`°`, `→`, `↵`, `⇧`, `≈`, `⌘` et les accents). Aucun homoglyphe.
+
+### Deux faux signaux de MON exécution, à ne pas rejouer
+- `grep -P` n'existe pas sur le grep BSD de macOS : mon premier contrôle d'alphabet a
+  rendu une sortie VIDE, que j'ai failli lire comme « rien à signaler ». Refait par un
+  script du scratchpad (leçon n°52).
+- Le hook rtk a rejeté un `find ... -exec` (« compound predicates ») et mon `echo` de
+  confort affichait quand même « aucun doublon ». Conclusion tirée d'une commande en
+  ERREUR — récidive exacte de la leçon n°49. Refait par `rtk proxy find`.
 
 ---
 
