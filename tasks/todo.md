@@ -1643,3 +1643,34 @@ encodage et alphabet contrôlés. Leçon écrite.
 Juger les cinq états à l'œil. Les mesures disent que rien ne déborde et que tout est
 lisible ; elles ne disent pas si la composition lui plaît. Deux réglages sont des valeurs
 d'ambiance, faciles à bouger : la gouttière (44 px) et la largeur de colonne (372 px).
+
+---
+
+## État au 2026-08-09 — `main` à jour, CI verte
+
+18 commits poussés (le distant était resté au 2026-08-02 : les lots des jours
+précédents n'avaient jamais été envoyés non plus).
+
+### ⚠️ Dette ouverte n°1 — DEUX e2e INSTABLES (à traiter en priorité)
+La CI est tombée sur `main` puis est passée AU RE-RUN, sans une ligne de code changée.
+Ce ne sont donc pas des régressions, mais des tests instables :
+- `test_exporter_le_plateau_courant_depuis_le_pied` : `assert 'Régie' in ['']` — le
+  beltpack existe mais son RÔLE est vide. La saisie du formulaire n'a pas abouti avant
+  la suite du test, alors que `wait_saved` est bien appelé : l'attente porte sur
+  l'enregistrement du brouillon, pas sur la prise en compte du champ.
+- `test_les_membres_sont_tries_par_numero_sans_intervention` : expiration en attendant
+  le beltpack « 30 » — création de 30 beltpacks trop lente pour le runner.
+Les deux passent systématiquement en local (63/63) et n'échouent que sur le runner, plus
+lent. **Pourquoi il faut les corriger et non les tolérer** : un test qui échoue au hasard
+finit par être ignoré, et le jour où il signale un VRAI défaut, personne ne le croit.
+
+### Dette ouverte n°2 — le helper de connexion e2e, dupliqué huit fois
+Huit fichiers portent leur propre `_enter_admin`. C'est ce qui a fait qu'un simple
+renommage de classe (`auth-submit` → `auth-go`) a coûté huit corrections au lieu d'une.
+`helpers.py` existe déjà et porte `open_reglages` / `wait_saved` : la place est prête.
+
+### À juger par Nathan, à l'œil (aucun test ne le fera)
+- Les cinq états de connexion.
+- Le dialogue Sauvegarde.
+- La feuille imprimée : couleurs, alignement, monochrome, et le BLANC en bas de rangée
+  (prix assumé de l'alignement — une rangée se cale sur son groupe le plus haut).
