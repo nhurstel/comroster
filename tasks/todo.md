@@ -1771,18 +1771,78 @@ plateau depuis le logo, pagination A3, refonte de la feuille imprimée, couleurs
 monochrome, focus du dialogue beltpack. Plus trois tests instables corrigés et la
 factorisation des helpers e2e.
 
+## ✅ Verdict de Nathan (2026-08-09, après relecture des rendus) — RIEN À REPRENDRE
+
+Verbatim : « 1 tout est okay tel quel 2 okay aussi ». Les deux points qui n'appartenaient
+qu'à son œil sont donc **validés tels quels** :
+- le **blanc en bas de rangée** de la feuille imprimée : okay tel quel. L'arbitrage
+  alignement / densité est **TRANCHÉ EN FAVEUR DE L'ALIGNEMENT** — ne pas le rouvrir de
+  sa propre initiative : le blanc est un prix accepté, pas un défaut en attente.
+- le **dialogue Sauvegarde** : okay aussi.
+- le **pied de la feuille** qui redit l'en-tête : couvert par « tout est okay tel quel »,
+  et cohérent avec sa demande antérieure de le GARDER. On n'y touche pas. S'il y revient,
+  ce sera une demande neuve, pas une dette.
+
 ## Ce qui reste, par ordre
 
-1. **À juger par Nathan, à l'œil** (aucun test ne le fera) : le dialogue Sauvegarde, et
-   surtout le **blanc en bas de rangée** de la feuille imprimée — une rangée se cale sur
-   son groupe le plus haut, c'est le prix de l'alignement qu'il a demandé. Si cela gêne à
-   l'usage, l'arbitrage alignement / densité est à rouvrir : c'est l'un OU l'autre.
-2. **Non tranché** : sur la feuille, le pied redit l'en-tête. Nathan a demandé de le
-   GARDER, sans dire s'il fallait l'alléger. Demander avant de toucher.
-3. **Dette assumée** : `tests/e2e/test_e2e.py` fait 600+ lignes et mélange des sujets
+1. **Dette assumée** : `tests/e2e/test_e2e.py` fait 600+ lignes et mélange des sujets
    sans rapport. Aucun caractère urgent.
-4. **Jamais demandé, jamais fait** : captures dans la documentation (étape 7 du lot des
+2. **Jamais demandé, jamais fait** : captures dans la documentation (étape 7 du lot des
    apparences), et le cahier des charges (D1) jamais retouché depuis l'origine.
+
+---
+
+# LOT 2026-08-09 (b) — Découper `tests/e2e/test_e2e.py`
+
+**Demande de Nathan, verbatim : « reglons le pb du 2E2 ».** Il s'agit du point 1 du reste
+à faire : 627 lignes, 21 tests, 8 helpers locaux, des sujets sans rapport dans un seul
+fichier.
+
+## Ce que le fichier contient réellement (relevé, pas supposé)
+
+| Helper local | Utilisé par | Destination |
+|---|---|---|
+| `_open_screen_tab` | 5 tests **de trois futurs fichiers** + déjà réinventé en dur dans `test_audit_features.py:63` | **`helpers.py`**, rendu public sous `open_screen_tab` |
+| `_NUMBER_ROLE_OFFSET`, `_publish_one_group` | les 4 tests d'apparence | avec eux |
+| `_ANIM_RECORDER`, `_open_display_recording`, `_add_group_and_publish` | les 3 tests de transition | avec eux |
+| `_wait_frame` | le seul test d'aperçu | avec lui |
+| `_seed_table` | les 3 tests de sélection | avec eux |
+
+## Découpage retenu — par SUJET, 21 tests répartis en 8 fichiers
+
+1. `test_parcours_complet.py` (1) — setup → publication → écran. Le parcours nominal.
+2. `test_apparences.py` (4) — `basique` / `lineaire` / `grille`, bornes d'ajustement, encre.
+3. `test_transitions_affichage.py` (3) — arrivée, mode performance, `snapshot` n'anime pas.
+4. `test_apercu_temoin.py` (1) — le témoin suit le publié et n'ouvre aucun flux SSE.
+5. `test_selection_tableau.py` (3) — MAJ+clic, réaffectation en lot, ⌘A et le filtre.
+6. `test_annuler_refaire.py` (2) — portée de ⌘Z, et sa réserve dans les champs de saisie.
+7. `test_admin_dialogues.py` (4) — filtre réserve, indicateurs, réseau, antenne.
+8. `test_ecran_autonome.py` (2) — box neuve (onboarding + QR), Screen Wake Lock. Les deux
+   seuls tests qui ne passent JAMAIS par l'admin.
+
+## Garde-fous, tirés des leçons — chacun est une étape, pas une intention
+
+- **Collision de noms** (leçon n°80) : `tests/e2e` n'est pas un package, un nom de fichier
+  de test est un identifiant GLOBAL. Les 8 noms ont été confrontés aux 47 fichiers de
+  `tests/` et aux 10 de `tests/e2e/` : **aucune collision**. À revérifier après création.
+- **Pas de `re.S`** (leçon n°102) : le déplacement se fait par LIGNES, jamais par une
+  expression régulière multi-lignes. 1479 lignes avaient été effacées ainsi.
+- **Sauvegarde hors git** (leçon n°89) : `git checkout` ne rend pas l'état d'avant, il rend
+  HEAD. Copie du fichier dans le scratchpad AVANT de commencer, et travail commité d'abord.
+- **Invariant de contrôle** (leçon n°102) : `--collect-only` doit rendre **exactement 64**
+  tests e2e avant ET après. C'est la grandeur qui prouve qu'aucun test n'a été perdu —
+  relire un diff de 627 lignes ne le prouve pas.
+- **Jamais deux suites en parallèle** (leçon n°92) : 59 faux échecs. Vérifier `ps` avant.
+- **Lire `N passed`, pas le code retour** (leçons n°73 et 92) : `pytest tests/e2e` sans
+  `-m e2e` répond « 64 deselected » ET code 0. Ce n'est pas un succès.
+
+## Ce que ce lot ne fait PAS
+
+Aucun test n'est réécrit, renommé, ajouté ni supprimé : c'est un déplacement. Toute
+tentation d'« améliorer un test au passage » rendrait l'invariant de comptage aveugle au
+seul risque réel — en perdre un en chemin.
+
+---
 
 ## Trois pièges de cette session, à ne pas rejouer
 - `git checkout <fichier>` sur du travail NON commité rend HEAD et efface tout en silence.
