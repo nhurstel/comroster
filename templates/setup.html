@@ -1,41 +1,39 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Configuration · ComRoster</title>
-  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/comroster-badge.svg') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-</head>
-<body class="auth-page" data-theme="night">
-  <div class="auth-card">
-    {% if recovery_code %}
-      <div class="auth-header">
-        <h1>Compte créé</h1>
-        <p>Conservez votre code de récupération en lieu sûr.</p>
-      </div>
-      <div class="recovery-code-display">
-        <div class="stat-label">Code de récupération</div>
-        <div class="recovery-code">{{ recovery_code }}</div>
-        <p class="recovery-hint">Il ne sera affiché qu'une seule fois.</p>
-      </div>
-      <div class="recovery-warning">Sans ce code ni votre mot de passe, l'accès admin devra être réinitialisé manuellement.</div>
-      <a class="btn btn-primary auth-submit" href="{{ url_for('api.admin_page') }}">Accéder à l'administration</a>
-    {% else %}
-      <div class="auth-header">
-        <img class="auth-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="" width="44" height="44">
-        <h1 class="wordmark">ComRoster</h1>
-        <p>Configuration initiale — définissez le mot de passe administrateur.</p>
-      </div>
-      {% for m in get_flashed_messages() %}<div class="auth-error">{{ m }}</div>{% endfor %}
-      <form class="auth-form" method="post">
-        <label class="field"><span>Mot de passe (4 caractères minimum)</span>
-          <input type="password" name="password" required minlength="4" autocomplete="new-password" autofocus></label>
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="primary auth-submit">Créer le compte</button>
-      </form>
-    {% endif %}
+{# Deux états : configuration initiale (boîtier vierge) · code de récupération
+   affiché juste après la création. Même cadre que la connexion. #}
+{% extends "auth_base.html" %}
+
+{% block titre %}{% if recovery_code %}Compte créé{% else %}Configuration{% endif %}{% endblock %}
+
+{% block large %}{% if recovery_code %} wide{% endif %}{% endblock %}
+
+{% block corps %}
+{% if recovery_code %}
+  <h1 class="auth-title">Compte créé</h1>
+  <p class="auth-lede">Conservez ce code en lieu sûr : c'est la seule porte de secours.</p>
+
+  <div class="auth-code-label">Code de récupération</div>
+  <div class="auth-code">{{ recovery_code }}</div>
+  <p class="auth-note">Il ne sera affiché qu'une seule fois. Notez-le maintenant.</p>
+
+  <div class="auth-warn">Sans ce code ni votre mot de passe, l'accès administrateur devra être réinitialisé à la main sur la carte SD.</div>
+
+  <div class="auth-code-actions">
+    <a class="auth-go" href="{{ url_for('api.admin_page') }}">Accéder à l'administration</a>
   </div>
-</body>
-</html>
+
+{% else %}
+  <h1 class="auth-title">Configuration initiale</h1>
+  <p class="auth-lede">Ce ComRoster n'a pas encore d'administrateur. Définissez son mot de passe.</p>
+
+  {% for m in get_flashed_messages() %}<div class="auth-error">{{ m }}</div>{% endfor %}
+
+  <form class="auth-form" method="post">
+    <label class="auth-field"><span>Mot de passe (4 caractères minimum)</span>
+      <input type="password" name="password" required minlength="4" autocomplete="new-password" autofocus></label>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="auth-actions">
+      <button type="submit" class="auth-go">Créer le compte</button>
+    </div>
+  </form>
+{% endif %}
+{% endblock %}

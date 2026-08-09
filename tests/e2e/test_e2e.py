@@ -17,7 +17,7 @@ def _enter_admin(page, base):
     page.goto(base + "/admin/setup")
     page.fill("input[name=password]", "motdepasse8")
     page.click("button[type=submit]")
-    page.click("a.auth-submit")                 # « Accéder à l'administration »
+    page.click("a.auth-go")                 # « Accéder à l'administration »
     page.wait_for_selector("#add-block-btn")
 
 

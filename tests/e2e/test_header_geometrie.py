@@ -32,7 +32,7 @@ def _enter_admin(page, base):
     page.goto(base + "/admin/setup")
     page.fill("input[name=password]", "motdepasse8")
     page.click("button[type=submit]")
-    page.click("a.auth-submit")
+    page.click("a.auth-go")
     page.wait_for_selector("#add-block-btn")
 
 

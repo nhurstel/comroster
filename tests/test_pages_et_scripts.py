@@ -28,7 +28,15 @@ PAGES = {
     "display.html": "/display",
     "admin.html": "/admin",
     "print.html": "/admin/print",
+    "login.html": "/admin/login",
+    "setup.html": "/admin/setup",
 }
+
+#: Pages qui n'existent que sur un boîtier SANS administrateur. `/admin/setup` redirige
+#: vers la connexion dès qu'un mot de passe est posé : la rendre avec un client
+#: authentifié aurait gardé la page de login une deuxième fois en croyant garder setup —
+#: un vert qui ne prouve rien.
+VIERGE = {"setup.html"}
 
 
 def _scripts_charges(html):
@@ -59,9 +67,17 @@ def _ids_poses_par(source):
 
 
 @pytest.mark.parametrize("template,route", sorted(PAGES.items()))
-def test_les_scripts_trouvent_ce_quils_adressent(auth_client, template, route):
-    """Lu sur la page RENDUE : un id posé dans une branche Jinja jamais prise ne compte pas."""
-    html = auth_client.get(route).get_data(as_text=True)
+def test_les_scripts_trouvent_ce_quils_adressent(client, template, route):
+    """Lu sur la page RENDUE : un id posé dans une branche Jinja jamais prise ne compte pas.
+
+    L'authentification est posée ici plutôt que par la fixture `auth_client` : celle-ci
+    partage l'application de `client`, donc demander les deux aurait configuré le boîtier
+    pour tout le monde — et `/admin/setup` aurait répondu par une redirection vers la
+    connexion, que l'on aurait gardée en croyant garder setup.
+    """
+    if template not in VIERGE:
+        client.post("/admin/setup", data={"password": "motdepasse8"})
+    html = client.get(route).get_data(as_text=True)
     scripts = _scripts_charges(html)
     assert scripts, f"{route} ne charge aucun script du dépôt : la découverte est à revoir"
 
@@ -83,10 +99,29 @@ def test_aucune_page_a_script_hors_garde():
     ne dirait plus rien de la quatrième — le sort exact de la version « journal.js et
     health.js » qu'elle remplace.
     """
-    porteurs = {
-        f.name for f in TEMPLATES.glob("*.html")
-        if re.search(r'<script[^>]+src="[^"]*js/', f.read_text(encoding="utf-8"))
+    sources = {f.name: f.read_text(encoding="utf-8") for f in TEMPLATES.glob("*.html")}
+    # Un template hérite des scripts de son parent. Sans suivre `extends`, un cadre
+    # commun deviendrait un angle mort : il porterait le script, ses enfants seraient
+    # les seuls servis, et aucun des trois n'entrerait dans la garde.
+    parent = {
+        nom: m.group(1)
+        for nom, src in sources.items()
+        if (m := re.search(r'{%\s*extends\s+"([^"]+)"', src))
     }
+
+    def porte_un_script(nom, vus=()):
+        if nom in vus or nom not in sources:
+            return False
+        if re.search(r'<script[^>]+src="[^"]*js/', sources[nom]):
+            return True
+        suivant = parent.get(nom)
+        return bool(suivant) and porte_un_script(suivant, (*vus, nom))
+
+    # Un cadre étendu par d'autres n'est jamais servi seul : il n'a pas de route propre,
+    # c'est l'enfant qui en a une. L'exiger dans PAGES réclamerait une entrée pour une
+    # page qui n'existe pas.
+    cadres = set(parent.values())
+    porteurs = {nom for nom in sources if porte_un_script(nom) and nom not in cadres}
     assert porteurs == set(PAGES), (
         f"templates porteurs de script non gardés : {sorted(porteurs - set(PAGES))} · "
         f"entrées de PAGES sans script : {sorted(set(PAGES) - porteurs)}"

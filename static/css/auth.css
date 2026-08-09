@@ -1,190 +1,290 @@
-/* ===================================================================
-   AUTH PAGES STYLES
-   Modern authentication pages (login, setup, reset, recovery)
-   =================================================================== */
+/* =====================================================================
+   AUTHENTIFICATION — feuille AUTONOME : login.html et setup.html ne
+   chargent QUE ce fichier (via leur cadre commun, auth_base.html).
 
-.auth-page {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 2rem;
+   NE PAS recharger main.css ici. C'est exactement son héritage qui datait
+   ces deux pages : le voile turquoise de `body::before`, le chrome des
+   boutons en pilule, la line-height 1.6 et l'échelle de tailles d'une DA
+   abandonnée en juillet. L'admin a été découplée pour cette raison
+   (voir l'en-tête d'admin.css) ; ces deux pages étaient les dernières
+   restées dessus. Gardé par tests/test_auth_pages.py, sur les CINQ états.
+
+   Les jetons sont ceux d'admin.css, recopiés parce qu'une feuille
+   autonome ne peut pas les emprunter — et gardés par test_css_tokens,
+   qui exige que tout jeton employé par un groupe de feuilles soit défini
+   dans ce groupe. (Ce test lit le fichier en texte brut, commentaires
+   compris : ne pas écrire ici d'exemple d'appel à un jeton, il serait
+   compté comme un usage réel et réclamerait une définition.)
+
+   Composition : plein cadre (bandeau · corps · pied), registre « face
+   avant d'appareil de scène » — le voyant du bandeau EST une mesure,
+   pas un ornement (leçon 2026-07-28) : auth.js le pilote depuis /healthz.
+   ===================================================================== */
+
+/* ---------- Polices auto-hébergées (Pi hors-ligne — aucun appel CDN) ---------- */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/inter-400.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; font-display: swap; src: url('../fonts/inter-500.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('../fonts/inter-600.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/inter-700.woff2') format('woff2'); }
+@font-face { font-family: 'Outfit'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/outfit-400.woff2') format('woff2'); }
+@font-face { font-family: 'Outfit'; font-style: normal; font-weight: 500; font-display: swap; src: url('../fonts/outfit-500.woff2') format('woff2'); }
+@font-face { font-family: 'Outfit'; font-style: normal; font-weight: 600; font-display: swap; src: url('../fonts/outfit-600.woff2') format('woff2'); }
+@font-face { font-family: 'Outfit'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/outfit-700.woff2') format('woff2'); }
+
+/* ---------- Jetons (miroir d'admin.css) ---------- */
+:root {
+    --bg: #141821; --inset: #0E1119; --surface: #1E2330; --surface-2: #212633;
+    --border: #333A49; --border-2: #39404F; --border-soft: #2C3242;
+    --fg: #EEF1F7; --fg-muted: #C3C8D2; --fg-subtle: #939AA7; --muted: #737A88;
+    --success: #2ECC71; --warning: #E8A13A; --error: #F04D3E;
+    --accent: #D96253; --accent-lt: #E18579; --on-accent: #141005;
+
+    --ui: 12.5px;
+    --ui-sm: 11.5px;
+    --track: 0.02em;
+    --top-h: 53px;
+    /* Gouttière UNIQUE : bandeau, corps et pied s'alignent tous dessus. C'est
+       cet alignement qui fait le « carré » demandé, pas les bordures.
+       Mesuré au rendu : les trois à 44px exactement. */
+    --gut: 44px;
+    /* Rayon serré, propre à cette page : « carré » (demande Nathan 2026-08-04).
+       L'admin garde ses 7px, elle est faite de cartes ; ici il n'y a que des
+       filets et un champ. */
+    --rad: 3px;
+    --col: 372px;               /* largeur de la colonne de saisie */
+
+    --f-ui: 'Outfit', 'Inter', sans-serif;
+    --f-mono: 'Inter', ui-monospace, monospace;
 }
 
-.auth-card {
-    width: 100%;
-    max-width: 420px;
-    background: var(--surface);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    box-shadow: none;
-    padding: 2.5rem 2.25rem;
-    position: relative;
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* L'attribut hidden doit TOUJOURS masquer, même face à une règle display
+   (leçon 2026-06-21). */
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body.auth {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--f-ui); font-size: 13px; line-height: 1.35;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    display: grid;
+    grid-template-rows: var(--top-h) 1fr auto;
     overflow: hidden;
-    animation: fadeIn 0.4s var(--ease-out);
+}
+button, input { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; }
+a { color: var(--accent); text-decoration: none; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 
-.auth-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: var(--glass-highlight);
-    pointer-events: none;
-    border-radius: var(--radius-2xl);
+/* ---------- Bandeau ---------- */
+.auth-top {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 var(--gut);
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--surface);
+}
+.auth-glyph { display: block; width: 17px; height: 17px; }
+.auth-mark { display: block; max-height: 21px; max-width: 132px; }
+.auth-name {
+    font-size: var(--ui); font-weight: 600;
+    letter-spacing: 0.16em; text-transform: uppercase;
+}
+/* La marque cliente prend la tête ; ComRoster passe en mention, comme sur
+   l'écran de régie et la feuille imprimée. */
+.auth-by {
+    font-size: var(--ui-sm); color: var(--fg-subtle);
+    letter-spacing: var(--track);
+}
+.auth-ver {
+    margin-left: auto;
+    font-family: var(--f-mono); font-size: var(--ui-sm);
+    color: var(--fg-subtle); letter-spacing: var(--track);
 }
 
-/* Auth Header */
-.auth-header {
-    text-align: center;
-    margin-bottom: 2rem;
-    position: relative;
-    z-index: 1;
+/* ---------- Voyant de face avant ----------
+   Le disque respire comme la LED de veille d'un appareil de scène, et cette
+   respiration EST l'état de la sonde /healthz. Reprise du principe réglé sur
+   l'écran de démarrage (2026-07-29) : plus l'état est grave, plus le battement
+   est rapide ET moins il est creux — au creux de 28 %, une alarme disparaît la
+   moitié du temps, et une alarme absente la moitié du temps est mauvaise. */
+.auth-led {
+    width: 9px; height: 9px; border-radius: 50%;
+    flex: none;
+    background: var(--muted);
+    animation: auth-respire var(--periode, 2.6s) ease-in-out infinite;
+}
+.auth-led[data-state="on"]   { background: var(--success); --periode: 2.6s; --creux: 0.34; }
+.auth-led[data-state="wait"] { background: var(--muted);   --periode: 1.5s; --creux: 0.45; }
+.auth-led[data-state="off"]  { background: var(--error);   --periode: 0.9s; --creux: 0.62; }
+@keyframes auth-respire {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: var(--creux, 0.34); }
 }
 
-.auth-badge {
-    display: block;
-    width: 44px;
-    height: 44px;
-    margin: 0 auto 1rem;
+/* ---------- Corps ---------- */
+.auth-body {
+    display: grid; align-content: center;
+    padding: 0 var(--gut);
+    overflow-y: auto;
 }
-.auth-header h1 {
-    font-size: var(--text-2xl);
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    margin: 0 0 0.4rem;
+.auth-col { width: 100%; max-width: var(--col); }
+/* Les états qui affichent un code ont besoin de plus de large : le code ne doit
+   JAMAIS se couper (voir .auth-code). */
+.auth-col.wide { max-width: 560px; }
+
+.auth-title {
+    font-size: 21px; font-weight: 600; letter-spacing: -0.01em;
+    margin-bottom: 6px;
+}
+.auth-lede {
+    font-size: var(--ui); color: var(--fg-muted);
+    letter-spacing: var(--track);
+    margin-bottom: 26px;
+}
+
+/* ---------- Formulaire ---------- */
+.auth-form { display: grid; gap: 16px; }
+.auth-field { display: grid; gap: 6px; }
+.auth-field > span {
+    font-size: var(--ui-sm); color: var(--fg-subtle);
+    letter-spacing: 0.06em; text-transform: uppercase;
+}
+.auth-field input {
+    height: 38px; padding: 0 11px;
+    background: var(--inset);
+    border: 1px solid var(--border);
+    border-radius: var(--rad);
     color: var(--fg);
+    letter-spacing: var(--track);
+    transition: border-color 0.14s ease;
 }
-.auth-header h1.wordmark {
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    font-size: var(--text-xl);
-}
-
-.auth-header p {
-    margin: 0;
-    font-size: var(--text-sm);
-    color: var(--fg-muted);
+/* L'accent n'apparaît qu'au FOCUS. Le contour turquoise permanent de l'ancienne
+   page accentuait un champ au repos, sur une page qui n'a qu'une action. */
+.auth-field input:focus { border-color: var(--accent); outline: none; }
+.auth-field input[name="recovery_code"] {
+    font-family: var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase;
 }
 
-/* Auth Form */
-.auth-form {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
+.auth-actions {
+    display: flex; align-items: center; gap: 18px;
+    margin-top: 4px;
 }
-
-.auth-form .field {
-    margin-bottom: 0;
+/* Bouton à filet, pas en pilule pleine : l'admin a abandonné les pilules pour
+   des segments plats. L'aplat d'accent est gardé pour le SURVOL, où il désigne
+   la cible sans crier au repos. */
+.auth-go {
+    /* Porté tantôt par un <button> (soumission), tantôt par un <a> (« Accéder à
+       l'administration ») : inline-flex pour que hauteur et rembourrage tiennent
+       dans les deux cas, et couleur forcée pour ne pas hériter du rouge des liens. */
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--fg); text-decoration: none;
+    height: 34px; padding: 0 18px;
+    border: 1px solid var(--border-2);
+    border-radius: var(--rad);
+    background: var(--surface-2);
+    font-size: var(--ui); font-weight: 600; letter-spacing: var(--track);
+    transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
 }
+.auth-go:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.auth-link {
+    font-size: var(--ui); font-weight: 500; letter-spacing: var(--track);
+}
+.auth-link:hover { color: var(--accent-lt); text-decoration: underline; }
 
-/* Error Messages */
+/* ---------- Erreur ---------- */
 .auth-error {
-    padding: 1rem 1.25rem;
-    background: rgba(240, 77, 62, 0.1);
-    border: 1px solid rgba(240, 77, 62, 0.3);
-    border-radius: var(--radius-md);
-    color: var(--error);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    margin-bottom: 1rem;
+    display: flex; align-items: baseline; gap: 9px;
+    padding: 9px 12px;
+    margin-bottom: 18px;
+    background: var(--inset);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--error);
+    border-radius: var(--rad);
+    font-size: var(--ui); color: var(--fg-muted);
+    letter-spacing: var(--track);
+}
+.auth-error::before {
+    content: "!";
+    font-family: var(--f-mono); font-weight: 700; color: var(--error);
+    flex: none;
 }
 
-body[data-theme="day"] .auth-error {
-    background: rgba(240, 77, 62, 0.08);
+/* ---------- Code de récupération ---------- */
+.auth-code-label {
+    font-size: var(--ui-sm); color: var(--fg-subtle);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    margin-bottom: 9px;
 }
-
-/* Submit Button */
-.auth-submit {
-    width: 100%;
-    padding: 1rem 2rem;
-    font-size: var(--text-base);
-    font-weight: 700;
-    margin-top: 0.5rem;
-}
-
-/* Auth Footer */
-.auth-footer {
-    margin-top: 1.5rem;
-    text-align: center;
-    font-size: var(--text-sm);
-    color: var(--fg-muted);
-    position: relative;
-    z-index: 1;
-}
-
-.auth-footer a {
-    color: var(--primary);
-    font-weight: 600;
-    transition: color var(--duration-fast) var(--ease-out);
-}
-
-.auth-footer a:hover {
-    color: var(--primary-light);
-    text-decoration: underline;
-}
-
-/* Recovery Code Display */
-.recovery-code-display {
-    padding: 2rem;
-    background: rgba(51, 214, 198, 0.08);
-    border: 2px solid var(--primary);
-    border-radius: var(--radius-lg);
-    text-align: center;
-    margin: 1.5rem 0;
-    position: relative;
-    z-index: 1;
-}
-
-.recovery-code {
-    font-family: 'Courier New', monospace;
-    font-size: var(--text-2xl);
-    font-weight: 700;
-    color: var(--primary-light);
-    letter-spacing: 0.1em;
-    margin: 1rem 0;
-    word-break: break-all;
+/* Le seul texte du produit qu'un humain doit RECOPIER à la main. L'ancienne
+   feuille le cassait au milieu d'un segment (break-all dans une carte de
+   420px) : « LCJQ-6JYS-Z393-S » puis « 8ZH ». Un code recopié faux, c'est un
+   boîtier qu'on ne rouvre plus. Il tient donc sur UNE ligne, sans exception, et
+   la boîte défile plutôt que le code ne se coupe. */
+.auth-code {
+    font-family: var(--f-mono);
+    font-size: 25px; font-weight: 600;
+    letter-spacing: 0.13em;
+    color: var(--fg);
+    white-space: nowrap;
+    overflow-x: auto;
+    padding: 15px 16px;
+    background: var(--inset);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    border-radius: var(--rad);
     user-select: all;
 }
+.auth-note {
+    font-size: var(--ui); color: var(--fg-subtle);
+    letter-spacing: var(--track);
+    margin-top: 10px;
+}
+.auth-warn {
+    display: flex; align-items: baseline; gap: 9px;
+    padding: 9px 12px;
+    margin-top: 18px;
+    background: var(--inset);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--warning);
+    border-radius: var(--rad);
+    font-size: var(--ui); color: var(--fg-muted);
+    letter-spacing: var(--track);
+}
+/* Un point d'exclamation typographique, pas l'émoji de l'ancienne feuille : un
+   pictogramme couleur importé du système jure dans une DA monochrome et rend
+   selon la fonte d'emoji de la machine. */
+.auth-warn::before {
+    content: "!";
+    font-family: var(--f-mono); font-weight: 700; color: var(--warning);
+    flex: none;
+}
+.auth-code-actions { margin-top: 24px; }
 
-.recovery-hint {
-    font-size: var(--text-sm);
-    color: var(--fg-muted);
-    margin-top: 1rem;
+/* ---------- Pied ---------- */
+.auth-foot {
+    display: flex; align-items: center; gap: 10px;
+    height: 34px;
+    padding: 0 var(--gut);
+    border-top: 1px solid var(--border-soft);
+    background: var(--surface);
+    font-size: var(--ui-sm); color: var(--fg-subtle);
+    letter-spacing: var(--track);
+}
+.auth-foot .auth-clock {
+    margin-left: auto;
+    font-family: var(--f-mono);
 }
 
-.recovery-warning {
-    padding: 1rem 1.5rem;
-    background: rgba(232, 161, 58, 0.1);
-    border: 1px solid rgba(232, 161, 58, 0.3);
-    border-radius: var(--radius-md);
-    color: var(--warning);
-    font-size: var(--text-sm);
-    font-weight: 600;
-    margin-top: 1.5rem;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-}
-
-.recovery-warning::before {
-    content: "⚠️";
-    font-size: 1.25rem;
-    flex-shrink: 0;
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-    .auth-card {
-        padding: 2rem 1.5rem;
-    }
-
-    .auth-header h1 {
-        font-size: var(--text-2xl);
-    }
-
-    .recovery-code {
-        font-size: var(--text-xl);
-    }
+/* ---------- Étroit ---------- */
+@media (max-width: 620px) {
+    :root { --gut: 20px; }
+    .auth-code { font-size: 19px; }
 }

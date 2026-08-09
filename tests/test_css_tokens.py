@@ -19,12 +19,16 @@ STATIC_CSS = os.path.join(
 )
 
 #: Feuilles chargées ensemble : une variable définie dans main.css est légitimement
-#: utilisable dans display.css ou skins.css. admin.css et print.css sont AUTONOMES —
-#: elles ne chargent pas main.css, elles doivent donc se suffire.
+#: utilisable dans display.css ou skins.css. admin.css, print.css et auth.css sont
+#: AUTONOMES — elles ne chargent pas main.css, elles doivent donc se suffire.
+#:
+#: auth.css a rejoint les autonomes le 2026-08-04. Le groupe DOIT rester à une seule
+#: feuille : tant qu'il portait aussi main.css, un jeton emprunté à la feuille globale
+#: passait le test, et c'est précisément l'emprunt que le découplage supprime.
 GROUPES = {
     "écran de régie": ["main.css", "display.css", "skins.css"],
     "administration": ["admin.css"],
-    "connexion": ["main.css", "auth.css"],
+    "connexion": ["auth.css"],
     "impression": ["print.css"],
 }
 
