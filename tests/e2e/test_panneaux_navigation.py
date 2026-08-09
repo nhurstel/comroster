@@ -118,6 +118,9 @@ def test_la_feuille_a_imprimer_sait_quelle_est_en_trame(page, live_server):
     """
     _enter_admin(page, live_server)
     page.click("#add-beltpack-pool")
+    # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
+    # non encore affiché part en silence et soumet un formulaire incomplet.
+    page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", "42")
     page.click("#person-form button[type=submit]")
     page.wait_for_selector(".person .bp:has-text('42')")
@@ -148,6 +151,9 @@ def test_la_feuille_est_refaite_a_chaque_passage(page, live_server):
     page.click("#block-form button[type=submit]")
     page.wait_for_selector("#blocks-container >> text=Plateau")
     page.click("#add-beltpack-pool")
+    # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
+    # non encore affiché part en silence et soumet un formulaire incomplet.
+    page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", "77")
     page.select_option("#person-assign", label="Plateau")
     page.click("#person-form button[type=submit]")

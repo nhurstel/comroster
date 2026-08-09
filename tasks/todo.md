@@ -1651,7 +1651,17 @@ d'ambiance, faciles à bouger : la gouttière (44 px) et la largeur de colonne (
 18 commits poussés (le distant était resté au 2026-08-02 : les lots des jours
 précédents n'avaient jamais été envoyés non plus).
 
-### ⚠️ Dette ouverte n°1 — DEUX e2e INSTABLES (à traiter en priorité)
+### ✅ Dette n°1 — TROIS tests instables, CORRIGÉS (2026-08-09)
+Cause racine commune aux deux e2e : `fill("#person-beltpack")` sans attendre
+`#person-dialog[open]` — sur un runner lent, la saisie part avant l'ouverture de la
+boîte et le formulaire est soumis incomplet. Motif répété à DOUZE endroits, dans six
+fichiers ; l'attente est posée partout, plus l'attente du RÔLE après soumission (le
+symptôme exact vu en CI). Le troisième, `test_l_archive_est_chiffree`, cherchait
+« Son » — trois caractères — dans du base64 : ~0,4 % de faux positif MESURÉ. Marqueur
+allongé, et garde posée dans le test pour qu'on n'en réintroduise pas un court.
+Éprouvés par RÉPÉTITION (3 passes), une exécution verte ne prouvant rien.
+
+### (historique) ### ⚠️ Dette ouverte n°1 — DEUX e2e INSTABLES (à traiter en priorité)
 La CI est tombée sur `main` puis est passée AU RE-RUN, sans une ligne de code changée.
 Ce ne sont donc pas des régressions, mais des tests instables :
 - `test_exporter_le_plateau_courant_depuis_le_pied` : `assert 'Régie' in ['']` — le

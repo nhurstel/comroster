@@ -16,6 +16,17 @@ from comroster.services import backup
 
 PASS = "phrase-de-passe"
 
+#: Nom de groupe VOLONTAIREMENT long. Ce test cherche les secrets en clair dans une
+#: archive encodée en base64 : un marqueur court s'y retrouve par HASARD. « Son » (trois
+#: caractères) apparaissait dans ~0,4 % des archives — mesuré, pas supposé — ce qui a fait
+#: tomber la CI en affirmant que le chiffrement fuyait. Voir `_MARQUEUR_MINI`.
+GROUPE = "Son-Retours-Loges"
+
+#: Longueur en dessous de laquelle un marqueur n'est plus une preuve. Dans un alphabet
+#: base64 (64 signes), la probabilité qu'une suite de n signes apparaisse par hasard dans
+#: une archive de L caractères vaut ~L/64^n : négligeable dès 8 signes, sensible à 3.
+_MARQUEUR_MINI = 8
+
 
 def _b64(blob):
     return base64.b64encode(blob).decode()
@@ -24,7 +35,7 @@ def _b64(blob):
 @pytest.fixture
 def garni(auth_client, app):
     """Un boîtier avec du contenu partout : roster, réseau, config nommée, antenne."""
-    auth_client.post("/api/groups", json={"name": "Son", "color": "#3FA6B0"})
+    auth_client.post("/api/groups", json={"name": GROUPE, "color": "#3FA6B0"})
     auth_client.post("/api/people", json={"role": "HF", "beltpack": "12"})
     auth_client.post("/api/publish")
     auth_client.put("/api/network", json={"link": "ethernet", "mode": "static",
@@ -46,7 +57,16 @@ def test_l_archive_est_chiffree(app, garni):
     assert enveloppe["format"] == "comroster-backup"
     assert "salt" in enveloppe and enveloppe["kdf"]["iterations"] >= 100_000
     # Aucune donnée exploitable ne doit apparaître dans l'enveloppe.
-    for secret in ("192.168.1.50", "secret-antenne", "Son"):
+    secrets = ("192.168.1.50", "secret-antenne", GROUPE)
+    # Garde du test LUI-MÊME : un marqueur trop court se retrouve par hasard dans du
+    # base64 et fait échouer la CI en accusant le chiffrement. Cette assertion empêche
+    # d'en réintroduire un sans s'en apercevoir.
+    for secret in secrets:
+        assert len(secret) >= _MARQUEUR_MINI, (
+            f"« {secret} » est trop court pour prouver quoi que ce soit : il peut "
+            f"apparaître par hasard dans une archive base64"
+        )
+    for secret in secrets:
         assert secret not in blob.decode(), f"« {secret} » lisible dans l'archive"
 
 
@@ -138,7 +158,7 @@ def test_cycle_complet_par_l_api(app, garni, tmp_path):
                    json={"passphrase": PASS, "content": archive["content"]})
     assert r.status_code == 200, r.get_json()
     assert "brouillon" in r.get_json()["restored"]
-    assert garni.get("/api/state").get_json()["groups"][0]["name"] == "Son"
+    assert garni.get("/api/state").get_json()["groups"][0]["name"] == GROUPE
     assert garni.get("/api/network").get_json()["address"] == "192.168.1.50"
 
 

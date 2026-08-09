@@ -32,6 +32,9 @@ def test_setup_create_publish_display(page, live_server):
 
     # Créer un beltpack affecté au groupe
     page.click("#add-beltpack-pool")
+    # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
+    # non encore affiché part en silence et soumet un formulaire incomplet.
+    page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", "42")
     page.fill("#person-role", "Régie")
     page.select_option("#person-assign", label="Plateau")
@@ -111,6 +114,9 @@ def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie",
     page.click("#block-form button[type=submit]")
     page.wait_for_selector(f"#blocks-container >> text={name}")
     page.click("#add-beltpack-pool")
+    # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
+    # non encore affiché part en silence et soumet un formulaire incomplet.
+    page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", beltpack)
     page.fill("#person-role", role)
     page.select_option("#person-assign", label=name)
@@ -173,6 +179,9 @@ def _add_group_and_publish(page, name="Plateau", beltpack="42", role="Régie"):
     page.click("#block-form button[type=submit]")
     page.wait_for_selector(f"#blocks-container >> text={name}")
     page.click("#add-beltpack-pool")
+    # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
+    # non encore affiché part en silence et soumet un formulaire incomplet.
+    page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", beltpack)
     page.fill("#person-role", role)
     page.select_option("#person-assign", label=name)
@@ -403,6 +412,9 @@ def test_available_filter(page, live_server):
     _enter_admin(page, live_server)
     for num, role in [("11", "Regie"), ("22", "Lumiere")]:
         page.click("#add-beltpack-pool")
+        # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
+        # non encore affiché part en silence et soumet un formulaire incomplet.
+        page.wait_for_selector("#person-dialog[open]")
         page.fill("#person-beltpack", num)
         page.fill("#person-role", role)
         page.click("#person-form button[type=submit]")
@@ -463,6 +475,9 @@ def _seed_table(page, live_server):
     page.wait_for_selector("#blocks-container >> text=Plateau")
     for num, grp in (("10", "Plateau"), ("20", "Plateau"), ("30", None), ("40", None)):
         page.click("#add-beltpack-pool")
+        # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
+        # non encore affiché part en silence et soumet un formulaire incomplet.
+        page.wait_for_selector("#person-dialog[open]")
         page.fill("#person-beltpack", num)
         if grp:
             page.select_option("#person-assign", label=grp)

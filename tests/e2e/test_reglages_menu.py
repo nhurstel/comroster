@@ -73,6 +73,9 @@ def test_echap_ferme_le_menu_et_la_selection_survit(page, live_server):
     # ⌘A ne sélectionne QUE ce qui existe : sans beltpack, la barre ne s'active jamais et
     # le test échouerait avant d'atteindre son sujet.
     page.click("#add-beltpack-pool")
+    # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
+    # non encore affiché part en silence et soumet un formulaire incomplet.
+    page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", "42")
     page.click("#person-form button[type=submit]")
     page.wait_for_selector(".person .bp:has-text('42')")

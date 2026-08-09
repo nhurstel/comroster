@@ -32,6 +32,9 @@ def _plateau(page):
     page.click("#block-form button[type=submit]")
     for numero in ("30", "10", "20"):
         page.click(".block-items .drop-tile")
+        # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
+        # non encore affiché part en silence et soumet un formulaire incomplet.
+        page.wait_for_selector("#person-dialog[open]")
         page.fill("#person-beltpack", numero)
         page.fill("#person-role", f"Rôle {numero}")
         page.click("#person-form button[type=submit]")

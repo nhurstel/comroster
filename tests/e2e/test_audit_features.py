@@ -195,6 +195,9 @@ def test_une_mauvaise_phrase_de_passe_le_dit_et_ne_restaure_rien(page, live_serv
 def test_nommer_et_epingler_une_publication(page, live_server):
     _enter_admin(page, live_server)
     page.click("#add-beltpack-pool")
+    # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
+    # non encore affiché part en silence et soumet un formulaire incomplet.
+    page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", "7")
     page.click("#person-form button[type=submit]")
     page.click("#publish-btn")
@@ -224,6 +227,9 @@ def test_la_feuille_imprimable_s_ouvre_et_liste_les_affectations(page, live_serv
     page.fill("#block-name", "Son")
     page.click("#block-form button[type=submit]")
     page.click("#add-beltpack-pool")
+    # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
+    # non encore affiché part en silence et soumet un formulaire incomplet.
+    page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", "12")
     page.fill("#person-role", "HF")
     page.select_option("#person-assign", label="Son")

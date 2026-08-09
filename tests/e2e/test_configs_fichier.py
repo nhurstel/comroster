@@ -33,10 +33,16 @@ def _enter_admin(page, base):
 def _ajouter_beltpack(page, numero, role):
     """Le vrai geste (réserve + formulaire), comme dans test_e2e.py."""
     page.click("#add-beltpack-pool")
+    # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
+    # non encore affiché part en silence et soumet un formulaire incomplet.
+    page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", numero)
     page.fill("#person-role", role)
     page.click("#person-form button[type=submit]")
     page.wait_for_selector(f".person .bp:has-text('{numero}')")
+    # Et son RÔLE : c'est lui qui manquait en CI (« assert 'Régie' in [''] »). Attendre le
+    # seul numéro laissait passer une carte dont le champ rôle n'était pas encore rendu.
+    page.wait_for_selector(f".person .role:has-text('{role}')")
     # Le DOM est en avance sur le disque : enregistrer une configuration fait relire le
     # brouillon PAR LE SERVEUR, qui figerait sinon l'état d'avant cet ajout.
     wait_saved(page)
