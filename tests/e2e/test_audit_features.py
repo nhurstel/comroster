@@ -224,10 +224,6 @@ def test_la_feuille_imprimable_s_ouvre_et_liste_les_affectations(page, live_serv
     page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", "12")
     page.fill("#person-role", "HF")
-    # L'application écrit dans ce champ de son propre chef (elle propose le
-    # rôle connu du numéro, ou le VIDE) : une seule écriture ne suffit pas.
-    if page.input_value("#person-role") != "HF":
-        page.fill("#person-role", "HF")
     page.select_option("#person-assign", label="Son")
     page.click("#person-form button[type=submit]")
     page.click("#publish-btn")
@@ -269,3 +265,40 @@ def test_la_decouverte_propose_sans_remplacer_la_saisie_manuelle(page, live_serv
     assert re.match(r"^\d+\.\d+\.\d+\.\d+$", page.input_value("#wiz-ip"))
     assert page.is_visible("#wiz-connect-btn"), "la connexion reste une action explicite"
     assert erreurs == []
+
+
+def test_le_dialogue_ne_vole_pas_le_focus_a_qui_saisit_deja(page, live_server):
+    """`openPersonDialog` posait le focus sur le champ numéro à la frame SUIVANTE.
+
+    Entre l'ouverture et cet instant, l'utilisateur a le temps de viser le champ rôle :
+    le focus différé le lui reprenait, et sa frappe partait dans le champ numéro. À
+    l'écran de régie, cela donnait un beltpack publié sans rôle (« BP 42 — »).
+
+    La course est RETENUE plutôt que courue : `requestAnimationFrame` est mis en file
+    d'attente, on saisit, puis on la libère. Une première version de ce test se
+    contentait de viser vite le champ rôle — elle passait AUSSI avec le défaut réintroduit
+    (`wait_for_selector` dure bien plus qu'une frame, la frame était donc déjà écoulée),
+    donc elle ne prouvait rien.
+    """
+    page.add_init_script("""
+        window.__rafs = [];
+        window.requestAnimationFrame = (cb) => { window.__rafs.push(cb); return 0; };
+    """)
+    enter_admin(page, live_server)
+    page.click("#add-beltpack-pool")
+    page.wait_for_selector("#person-dialog[open]")
+
+    # L'utilisateur vise le rôle et tape, AVANT que la frame différée ne s'exécute.
+    page.focus("#person-role")
+    page.keyboard.type("Régie plateau")
+
+    # Témoin positif : sans lui, un rAF jamais mis en file rendrait le test creux.
+    assert page.evaluate("window.__rafs.length") > 0, (
+        "aucune frame différée en attente : la course n'est pas reproduite"
+    )
+    page.evaluate("window.__rafs.splice(0).forEach((cb) => cb())")
+
+    assert page.evaluate("document.activeElement.id") == "person-role", (
+        "le focus différé a repris la main sur une saisie déjà commencée"
+    )
+    assert page.input_value("#person-role") == "Régie plateau"

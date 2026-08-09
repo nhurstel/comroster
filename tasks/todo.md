@@ -1725,3 +1725,36 @@ Le lot a répondu aux arbitrages donnés, mais le diagnostic initial listait aus
 ### 4. Jamais demandé, jamais fait
 - Captures dans la documentation (étape 7 du lot des apparences).
 - Cahier des charges (D1) non retouché depuis l'origine.
+
+---
+
+## LOT 2026-08-09 — Le focus différé du dialogue « beltpack »
+
+**Demande de Nathan : « fais le champ rôle ».** Le contournement posé côté test le
+2026-08-09 traitait le symptôme ; voici la cause, côté PRODUIT.
+
+`openPersonDialog` finit par `requestAnimationFrame(() => el.personBeltpack.focus())`.
+Le focus est donc posé APRÈS l'ouverture, à la frame suivante. Entre les deux,
+l'utilisateur a le temps de cliquer ou de tabuler vers le champ rôle : le rAF lui VOLE
+alors le focus, et ce qu'il tape ensuite part dans le champ numéro.
+
+**Ce n'est pas qu'un problème de test.** À l'usage : ouvrir « Ajouter un beltpack »,
+aller vite au rôle, taper — la saisie atterrit dans le mauvais champ. C'est le même
+mécanisme qui sortait « BP 42 — » en CI.
+
+**Correctif :** le focus initial est une COMMODITÉ, pas une règle — il ne doit s'appliquer
+que si personne n'a encore pris la main. On ne le pose donc que si le focus est encore
+sur le dialogue lui-même.
+
+**Le contournement de test est retiré** (le double remplissage du champ rôle) : le garder
+masquerait une régression future de ce correctif. La VÉRIFICATION de la valeur avant
+soumission, elle, reste — elle dit clairement ce qui ne va pas si le défaut revient.
+
+**LIVRÉ (2026-08-09).** Le focus n'est plus posé que si personne n'a pris la main.
+Contournement de test retiré (helper + cinq sites) ; la vérification de la valeur avant
+soumission reste, elle dira clairement ce qui ne va pas si le défaut revient.
+Vérifié : 550 unitaires · 64 e2e (deux passes identiques) · 43 JS · ruff propre.
+**Le premier test écrit ne prouvait rien** — il passait aussi avec le défaut réintroduit,
+`wait_for_selector` durant bien plus qu'une frame. Refait en RETENANT le
+`requestAnimationFrame` (mis en file par `add_init_script`, libéré après la saisie), avec
+un témoin positif que la file n'est pas vide. Confronté à sa mutation : il tombe.

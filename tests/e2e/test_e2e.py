@@ -28,10 +28,6 @@ def test_setup_create_publish_display(page, live_server):
     page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", "42")
     page.fill("#person-role", "Régie")
-    # L'application écrit dans ce champ de son propre chef (elle propose le
-    # rôle connu du numéro, ou le VIDE) : une seule écriture ne suffit pas.
-    if page.input_value("#person-role") != "Régie":
-        page.fill("#person-role", "Régie")
     page.select_option("#person-assign", label="Plateau")
     page.click("#person-form button[type=submit]")
     page.wait_for_selector(".person .bp:has-text('42')")
@@ -114,10 +110,6 @@ def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie",
     page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", beltpack)
     page.fill("#person-role", role)
-    # L'application écrit dans ce champ de son propre chef (elle propose le
-    # rôle connu du numéro, ou le VIDE) : une seule écriture ne suffit pas.
-    if page.input_value("#person-role") != role:
-        page.fill("#person-role", role)
     page.select_option("#person-assign", label=name)
     page.click("#person-form button[type=submit]")
     page.click("#publish-btn")               # arme le décompte
@@ -183,10 +175,6 @@ def _add_group_and_publish(page, name="Plateau", beltpack="42", role="Régie"):
     page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", beltpack)
     page.fill("#person-role", role)
-    # L'application écrit dans ce champ de son propre chef (elle propose le
-    # rôle connu du numéro, ou le VIDE) : une seule écriture ne suffit pas.
-    if page.input_value("#person-role") != role:
-        page.fill("#person-role", role)
     page.select_option("#person-assign", label=name)
     page.click("#person-form button[type=submit]")
     page.click("#publish-btn")
@@ -420,10 +408,6 @@ def test_available_filter(page, live_server):
         page.wait_for_selector("#person-dialog[open]")
         page.fill("#person-beltpack", num)
         page.fill("#person-role", role)
-        # L'application écrit dans ce champ de son propre chef (elle propose le
-        # rôle connu du numéro, ou le VIDE) : une seule écriture ne suffit pas.
-        if page.input_value("#person-role") != role:
-            page.fill("#person-role", role)
         page.click("#person-form button[type=submit]")
         page.wait_for_selector(f"#available-users .person .bp:has-text('{num}')")
     page.fill("#available-filter", "Lumiere")

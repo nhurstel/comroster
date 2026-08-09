@@ -1102,7 +1102,17 @@
     }
     roleAutofilled = false;
     el.personDialog.showModal();
-    requestAnimationFrame(() => el.personBeltpack.focus());
+    // Le focus initial est une COMMODITÉ, pas une règle : il est posé à la frame
+    // suivante, et entre l'ouverture et cet instant l'utilisateur a le temps de cliquer
+    // ou de tabuler vers le champ rôle. Le lui reprendre envoie sa frappe dans le champ
+    // numéro — défaut réel à l'usage, et cause de « BP 42 — » (un beltpack publié sans
+    // rôle) en CI. On ne prend donc la main que si personne ne l'a encore prise :
+    // showModal() laisse le focus sur le dialogue lui-même tant que rien n'est visé.
+    requestAnimationFrame(() => {
+      const actif = document.activeElement;
+      if (actif && actif !== el.personDialog && el.personDialog.contains(actif)) return;
+      el.personBeltpack.focus();
+    });
   }
 
   // Le nom suit le beltpack : proposer le nom déjà connu pour ce numéro. La proposition
