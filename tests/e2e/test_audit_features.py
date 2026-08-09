@@ -224,6 +224,10 @@ def test_la_feuille_imprimable_s_ouvre_et_liste_les_affectations(page, live_serv
     page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", "12")
     page.fill("#person-role", "HF")
+    # L'application écrit dans ce champ de son propre chef (elle propose le
+    # rôle connu du numéro, ou le VIDE) : une seule écriture ne suffit pas.
+    if page.input_value("#person-role") != "HF":
+        page.fill("#person-role", "HF")
     page.select_option("#person-assign", label="Son")
     page.click("#person-form button[type=submit]")
     page.click("#publish-btn")

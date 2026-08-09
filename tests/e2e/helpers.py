@@ -43,7 +43,24 @@ def ajouter_beltpack(page, numero, role, ouvrir="#add-beltpack-pool"):
     page.click(ouvrir)
     page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", numero)
+    # L'application RÉAGIT au numéro : elle propose le rôle déjà connu pour ce beltpack
+    # et, s'il est inconnu, VIDE le champ rôle (admin.js, écouteur `input` de
+    # #person-beltpack). Écrire le rôle avant que cette réaction n'ait eu lieu le fait
+    # donc effacer — c'est ce qui sortait « BP 42 — » sur l'écran de régie en CI.
     page.fill("#person-role", role)
+    if page.input_value("#person-role") != role:
+        # La proposition est arrivée APRÈS notre saisie et l'a effacée : on repose la
+        # valeur. Le mécanisme exact de cette course n'est pas établi (elle ne se
+        # reproduit pas localement) ; ce qui est établi, c'est que l'application écrit
+        # dans ce champ de son propre chef, donc qu'un test ne peut pas se contenter
+        # d'y écrire une fois.
+        page.fill("#person-role", role)
+    # Vérification AVANT de soumettre : un formulaire soumis incomplet échoue plus tard,
+    # ailleurs, sur une assertion qui ne parle pas de la vraie cause.
+    assert page.input_value("#person-role") == role, (
+        f"le champ rôle vaut « {page.input_value('#person-role')} » et non « {role} » : "
+        "la proposition automatique l'a écrasé"
+    )
     page.click("#person-form button[type=submit]")
     page.wait_for_selector(f".person .bp:has-text('{numero}')")
     page.wait_for_selector(f".person .role:has-text('{role}')")
