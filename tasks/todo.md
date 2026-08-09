@@ -1190,8 +1190,258 @@ Pointage établi dans le CODE, pas d'après les messages de commit.
       posait le groupe à la main, sans `manual_order`, alors que `build_draft` l'ajoute —
       deux formes de groupe selon le chemin de création, dont l'une fabriquait un faux
       écart entre brouillon et publié. Corrigé à la source.
-- [ ] **5. Impression : mise en page « plus sympa »** — travail de design, à cadrer.
-- [ ] **6. Sauvegarde : remise en page** (« pas tout à fait clean »).
+- [ ] **5. Impression : mise en page « plus sympa »** — **DIAGNOSTIC POSÉ SUR PLATEAU
+      RÉALISTE (2026-08-05)**, exécution à faire. Rendu en A3 depuis un vrai PDF, sur
+      **62 beltpacks / 9 groupes** — le jeu que la leçon n°35 exige, et non l'échantillon
+      de 27 qui avait laissé passer le groupe coupé le 2026-07-30.
+      **Premier fait mesuré, qui recadre la demande : tout tient sur UNE SEULE page A3**
+      (841,92 × 1191,12 pt). Le seuil multi-pages n'est donc pas atteint à 62 beltpacks —
+      les défauts de RÉPÉTITION (bandeau, numéro de page) ne se rejugeront qu'au-delà, et
+      il faudra fabriquer ce cas exprès plutôt que l'attendre.
+      **Ce qui rend la feuille ingrate, par ordre d'importance :**
+      1. **~30 % de la hauteur inutilisée.** 62 lignes réparties en 3 colonnes donnent
+         ~21 lignes par colonne, là où l'A3 en tient bien plus : le tableau s'arrête aux
+         deux tiers et le bas est vide. C'est le vrai sujet « plus sympa » — soit moins de
+         colonnes (lignes plus larges, texte plus grand, lisible à distance sur un pupitre),
+         soit une typographie qui occupe la page. **Décision produit, à trancher avec
+         Nathan** : une feuille de régie se lit souvent à bout de bras.
+      2. **La zone de signature ne se voit pas.** Le libellé « SIGNATURE » est là, l'espace
+         de 28 mm aussi, mais RIEN n'indique où signer — ni trait, ni case. On a réservé la
+         place sans dessiner la cible.
+      3. **L'en-tête de colonnes (N° · RÔLE · SIGNATURE) est répété neuf fois**, une fois
+         par groupe. Sur un document dense c'est du bruit qui hache la lecture ; il ne se
+         justifie qu'en tête de colonne PHYSIQUE, pas en tête de chaque groupe.
+      4. **L'effectif du groupe est illisible** — chiffre très clair, rejeté à droite, sans
+         rapport visuel avec le nom du groupe qu'il qualifie.
+      5. **Le pied redit l'en-tête** (« Affectation Intercom · Publié · édité le … ») alors
+         que le bandeau de tête porte déjà les quatre mêmes informations. Sur un document
+         d'une page, c'est la redondance de composition de la leçon du 2026-07-30 : décider
+         lequel des deux répond à une question qu'on se pose vraiment.
+      **⚠️ Contrainte du lot** : huit tests e2e lisent un VRAI PDF et verrouillent le
+      papier (format, bandeau répété, réidentification d'un groupe coupé, numéro de page).
+      Toute refonte doit les faire évoluer sciemment, jamais les contourner.
+
+      **ARBITRAGES DE NATHAN (2026-08-05), à exécuter :**
+      1. **Jusqu'à 4 colonnes** (le sélecteur s'arrête à 3 aujourd'hui).
+      2. **40 beltpacks par page au MAXIMUM** — « c'est souvent moins ». Donc une règle de
+         pagination par le NOMBRE de lignes, pas par le remplissage naturel des colonnes :
+         c'est ce qui répond au bas de page vide, et c'est aussi ce qui fabriquera enfin
+         le cas multi-pages que 62 beltpacks n'atteignaient pas.
+      3. **Le pied reste** (mon option « le supprimer » est écartée).
+      4. **Le troisième titre entre dans l'en-tête.** Défaut de fond confirmé dans le
+         code : `print.html` écrit `production_name or title`, un OU exclusif — si le nom
+         de production existe, le TITRE disparaît purement et simplement de la feuille.
+         Les trois (`production_name`, `title`, `subtitle`) doivent coexister.
+
+      **LIVRÉ (2026-08-05) — les quatre points.**
+      - **4 colonnes** : allowlist `printopts.js`, sélecteur `[data-cols="4"]`
+        (`column-gap` resserré à 6 mm — à quatre colonnes, 8 mm mangeait la largeur utile)
+        et bouton dans la barre. Vérifié au PDF : 4 colonnes, et un groupe coupé se
+        réidentifie bien en tête de colonne.
+      - **Pagination à 40** : faite CÔTÉ SERVEUR (`_paginer`, api.py), pas en CSS. Deux
+        raisons, aucune esthétique — une règle en NOMBRE DE LIGNES ne s'exprime pas en
+        hauteur de boîte, et un saut de page dans un conteneur multi-colonnes est mal
+        supporté (c'est déjà ce qui imposait la colonne unique à « un groupe par page »).
+        Chaque page a son propre conteneur, donc ses propres colonnes.
+        Règle en trois cas : le groupe tient dans la place restante → on le pose ; il
+        tiendrait entier sur une page neuve → on ouvre une page **plutôt que de le couper
+        pour rien** ; il dépasse 40 à lui seul → il est coupé et se réidentifie.
+        Le plateau réel (62) donne **2 pages : 36 + 26**.
+      - **Pied conservé**, inchangé.
+      - **Les trois titres coexistent** : sur-titre `production_name`, `h1` `title`,
+        sous-titre `subtitle`. Le repli ne porte plus que sur le titre principal.
+
+      **Vérifié :** 550 unitaires (+10) · 62 e2e · 43 JS · ruff propre. Les huit tests qui
+      lisent un vrai PDF passent SANS modification — la pagination ne remet pas en jeu le
+      papier qu'ils verrouillent. PDF relu en 3 et en 4 colonnes.
+      **Trois mutations, chacune vue tomber** : plafond porté à 60 → la borne exacte
+      tombe ; suppression du cas « tiendrait entier ailleurs » → le groupe est coupé pour
+      rien ET une page dépasse 40 ; retour au OU exclusif → le test des trois titres tombe.
+      Une garde de CONSERVATION a été ajoutée exprès : aucune assertion sur les tailles de
+      page ne verrait une pagination qui PERD une ligne — `[40, 40, 15]` reste plausible
+      même si trois beltpacks ont disparu en route.
+
+      **Restent ouverts, non demandés** (du diagnostic ci-dessus) : la zone de signature
+      qui ne se voit pas (2), l'en-tête de colonnes répété par groupe (3), l'effectif
+      illisible (4).
+
+      **NOUVEAUX ARBITRAGES DE NATHAN (2026-08-05, suite) :**
+      5. **La fonction Signature est SUPPRIMÉE** — « le design n'est pas bon ». Toute la
+         chaîne part : colonne du tableau, réglage `visa` de l'allowlist, sélecteurs CSS,
+         case de la barre, et les tests qui l'encodent. Cela règle par le vide le point (2)
+         du diagnostic : plus de zone à signer, donc plus de zone invisible à dessiner.
+      6. **« On doit pouvoir lire la page de loin. »** C'est le critère de conception, et
+         il prime : une conduite de régie se consulte à bout de bras, posée sur un pupitre.
+         La colonne libérée par la signature est précisément la place qui manquait pour
+         agrandir. À MESURER en points, pas à juger à l'œil.
+
+      **LIVRÉ (2026-08-05) — direction « LE NUMÉRO D'ABORD », choisie par Nathan.**
+      - **Signature supprimée de bout en bout** : colonne, réglage `visa` de l'allowlist,
+        sélecteurs CSS, case de la barre, et les tests qui l'encodaient (JS et e2e). Cela
+        règle par le VIDE le point (2) du diagnostic — plus de zone à signer, donc plus de
+        zone invisible à dessiner.
+      - **L'en-tête « N° · RÔLE » disparaît** (point 3). Répété une fois par groupe, il
+        était lu neuf fois pour n'apprendre qu'une évidence : un nombre est un numéro. Le
+        `<thead>` RESTE : il est le seul élément que le navigateur répète en tête de
+        colonne, donc le seul moyen de réidentifier un groupe coupé.
+      - **Le numéro porte la lisibilité** : 15 pt gras tabulaire, contre 11 pt hérités.
+        C'est lui qu'on cherche sur le terrain (« à qui est le 34 ? »). Rôle à 11,5 pt,
+        qui hérite des 28 mm rendus par la colonne de signature.
+      - **Bandeau de groupe plein**, à l'encre, nom et effectif en blanc (point 4 réglé :
+        l'effectif partage enfin le poids du nom qu'il qualifie). **Le fond n'est JAMAIS
+        la couleur du groupe** : poser du texte sur une teinte saisie par l'utilisateur ne
+        garantit aucun contraste, et la même feuille sortie d'une laser monochrome
+        deviendrait illisible. La couleur reste portée par le filet.
+      - La reprise d'un groupe coupé porte le MÊME bandeau : sinon la suite ressemblerait
+        à un titre d'un autre registre.
+
+      **Vérifié :** 550 unitaires · 62 e2e · 43 JS · ruff propre. PDF relu sur le plateau
+      réaliste, avec de VRAIS libellés de métier (« Régisseur général », « Poursuite
+      cour ») et non des « Poste 12 » qui ne disent rien de la lisibilité réelle.
+
+      **Deux e2e sont tombés, et ils avaient raison** : `text-transform: uppercase` est
+      RÉALISÉ par Chromium dans le PDF, donc `pdftotext` lit « LUMIÈRE » et non
+      « Lumière ». Les assertions comparent désormais en casse normalisée — récidive
+      exacte de la leçon n°73. Le fond gardé (réidentification d'un groupe coupé) était
+      intact ; c'est la MESURE qui était devenue fausse, pas le produit.
+
+      **Un test reformulé plutôt que supprimé** : `test_la_colonne_annonce_le_role_et_non_
+      le_nom` gardait l'en-tête qui vient de disparaître. Ce qu'il protège n'est pas
+      l'en-tête mais le VOCABULAIRE — la feuille ne doit jamais promettre un « nom »
+      qu'elle est incapable d'imprimer (leçon n°32). Il porte donc sur le contenu rendu.
+
+      **DEMANDE SUIVANTE DE NATHAN (2026-08-05) :** « mettre plus en avant les couleurs.
+      Rappeler l'interface du soft. Mettre un p'tit logo dans le footer peut-être ? »
+      Ceci LÈVE l'objection que j'avais posée deux heures plus tôt (« le fond n'est jamais
+      la couleur du groupe, faute de contraste garanti ») — et le produit contient déjà de
+      quoi la lever proprement :
+      - `ink.js` porte la règle de LUMINANCE (seuil .179) qui choisit l'encre noire ou
+        blanche selon la couleur du fond. Elle est partagée par l'écran de régie et
+        l'admin depuis le lot B1, précisément pour ne pas exister en deux exemplaires.
+        La feuille doit la RÉUTILISER, jamais la réimplémenter en Python.
+      - Le nuancier des groupes est borné à **12 teintes calibrées ≥ 4,5:1** (point E2,
+        031084b) : le contraste est donc garanti par construction, pas par espoir.
+      Réserve à consigner, pas à taire : sur une laser MONOCHROME les aplats deviennent
+      des gris. L'encre calculée garde un contraste correct, mais deux teintes de
+      luminance voisine deviendront indiscernables entre elles — le NOM du groupe reste
+      donc l'information, la couleur reste un renfort.
+
+      **LIVRÉ (2026-08-05).**
+      - **Le bandeau de groupe prend l'APLAT de sa couleur**, avec l'encre décidée par
+        `inkFor` — la règle de luminance du produit, RÉUTILISÉE et non réécrite : `ink.js`
+        est chargé avant le module dans `print.html`, comme il l'est déjà par l'écran et
+        par l'admin. Deux implémentations auraient fini par juger différemment, et
+        personne ne l'aurait vu (on ne compare jamais les deux supports au même instant).
+      - **Sur un bandeau devenu couleur, le filet disparaît** : il annonçait précisément
+        la teinte que le bandeau porte désormais en entier.
+      - **Repli conservé** : sans JS, ou pour un groupe sans couleur, le bandeau reste à
+        l'encre pleine. Il ne retombe jamais en texte noir sur blanc.
+      - **Petit logo au pied**, dans le bandeau répété : la variante ENCRE du pack client
+        s'il y en a un, sinon le glyphe ComRoster. Le pied nommait déjà la marque, il en
+        porte maintenant la forme.
+
+      **Un défaut de MON jeu d'essai, pas du code** : la première feuille est sortie avec
+      des bandeaux GRIS. Les groupes de test étaient créés sans couleur, donc le template
+      retombait sur son défaut `#555555`. Un jeu d'essai qui n'exerce pas la propriété
+      qu'on veut juger ne prouve rien — les couleurs sont désormais prises dans
+      `GROUP_PALETTE` (admin.js), et choisies claires ET sombres exprès pour exercer les
+      DEUX branches de `inkFor` sur la même page. Vérifié au PDF : « LUMIÈRE » (jaune)
+      reçoit une encre noire, « RÉGIE » (rouge) une encre blanche.
+
+      **Vérifié :** 550 unitaires · 62 e2e · 43 JS · ruff propre.
+
+      **DEMANDES SUIVANTES DE NATHAN (2026-08-05) :**
+      1. **Retirer « cases »** (réglage `cases` + colonne « Remis »), avec toute sa chaîne.
+      2. **Ajouter un mode monochrome / couleur.** Répond directement à la réserve écrite
+         plus haut : une laser N&B écrase les teintes voisines. Le choix cesse d'être subi.
+      3. **« Je ne vois pas le logo »** — posé à 3,6 mm, il est invisible à l'usage.
+      4. **Rapprocher le design de la DA du soft.**
+      5. **« Les groupes devraient être alignés, là c'est peu lisible. »** C'est le point
+         STRUCTURANT : `column-count` fait COULER les groupes d'une colonne à l'autre, donc
+         aucun bandeau ne s'aligne avec son voisin et l'œil ne trouve pas de rangée. Il
+         faut passer en GRILLE (`display: grid`), où chaque groupe occupe une cellule.
+         **Contrepartie à assumer** : en grille, un groupe ne se coupe plus d'une colonne à
+         l'autre, donc les rangées se calent sur le groupe le plus haut et le blanc
+         augmente. C'est le prix de l'alignement demandé, et la pagination à 40 le borne.
+
+      **LIVRÉ (2026-08-05/06).**
+      - **`column-count` → `display: grid`.** Chaque groupe occupe une cellule, les
+        bandeaux d'une même rangée sont alignés. `align-items: start` évite que les
+        groupes courts s'étirent à la hauteur du plus haut de leur rangée.
+      - **« cases » supprimé** de bout en bout (réglage, colonne « Remis », CSS, tests).
+      - **Mode monochrome** (`data-mono`), défaut « couleur ». Il répond à la réserve
+        écrite au lot précédent : sur une laser N&B, deux teintes de luminance voisine
+        deviennent le même gris — le choix cesse d'être subi.
+      - **DA rapprochée du soft** : Outfit (la police d'INTERFACE du produit) sur les
+        titres, les bandeaux et les rôles ; Inter conservé sur les NUMÉROS, dont les
+        chiffres tabulaires alignent les unités en colonne. Coins arrondis à 3 px.
+      - **Logo enfin visible.**
+
+      **Deux défauts trouvés au rendu, qu'aucun test n'aurait vus :**
+      - **Le logo était invisible par construction** : `comroster-glyph.svg` est peint en
+        `#EEF1F7`, un blanc cassé fait pour le fond SOMBRE de l'écran — donc invisible sur
+        du papier blanc. L'agrandir n'y changeait rien. Il est désormais posé en SVG
+        INLINE, hérite de `currentColor` et prend l'encre intermédiaire du pied. Même
+        procédé que l'écran de démarrage. (`comroster-badge-mono.svg` existe mais est
+        peint de la même couleur et n'est utilisé nulle part : ce n'était pas la variante
+        encre que son nom laisse croire.)
+      - **Le mode monochrome ne faisait rien** à la première tentative : ma règle
+        neutralisait `--gel`, or le JS pose cette variable en style INLINE, et une
+        propriété personnalisée inline l'emporte sur toute règle de feuille, si spécifique
+        soit-elle. La surcharge porte donc sur `background`, jamais posé inline.
+
+      **Réserve assumée** : en grille, une rangée se cale sur son groupe le plus haut
+      (« Lumière », 14) et le blanc augmente en bas des colonnes voisines. C'est le prix
+      de l'alignement demandé — l'ancien remplissage coulant était plus dense mais
+      n'alignait rien.
+
+      **DEMANDE (2026-08-09) :** « depuis le menu impression, un retour à la page
+      principale quand on clique sur le logo ComRoster ».
+      **Ce n'était pas un manque, c'était un DÉFAUT** : le logo EST déjà un lien
+      (`<a class="brand" href="/admin">`, admin.html l.20, titre « Retour aux
+      affectations »). Il ne fonctionne pas parce qu'il RECHARGE la page, et que l'onglet
+      actif est restauré depuis `localStorage` au chargement (`TAB_KEY`, admin.js l.2731,
+      ajouté au lot « A bis » du 2026-07-27 pour qu'un rafraîchissement ne perde pas
+      l'onglet). Les deux comportements sont justes séparément ; ensemble, ils font que
+      cliquer sur le logo depuis Impression ramène… sur Impression.
+      Correctif : le clic bascule sur le panneau du plateau sans recharger. Le `href` est
+      CONSERVÉ — clic milieu, ⌘-clic et « ouvrir dans un nouvel onglet » doivent continuer
+      de marcher, et le lien reste valide si le JS ne tourne pas.
+      **LIVRÉ (2026-08-09).** Test e2e ajouté, avec le témoin qui compte : il vérifie
+      d'abord que `comroster.admin.tab` vaut bien « print » AVANT de cliquer — sans cela,
+      un simple rechargement suffirait et le test passerait correctif retiré. Confronté à
+      sa mutation (clic redevenu simple lien) : il tombe, seul.
+      **Trouvé au passage, non demandé** : le pied VISIBLE À L'ÉCRAN (`.sheet-foot`) ne
+      portait pas le logo — seul le bandeau d'impression (`.sheet-band`, en `display:none`
+      hors impression) l'avait. Le glyphe est désormais défini une seule fois (macro
+      Jinja) et employé aux deux endroits.
+- [x] **6. Sauvegarde : remise en page** (« pas tout à fait clean »). **LIVRÉ (2026-08-05).**
+      Diagnostic fait sur le dialogue RENDU, pas sur le balisage — quatre défauts, dont un
+      qu'aucune relecture de code ne montre :
+      - **Le sélecteur de fichier était le contrôle NATIF** : bouton blanc système et
+        « Choose File / No file chosen » **en anglais**, au milieu d'une interface
+        francophone sombre. Ni son bouton ni son texte ne sont stylables ou traduisibles —
+        ils suivent la locale du navigateur. Remplacé par un sélecteur maison (bouton
+        « Choisir un fichier… » + nom du fichier retenu), l'`input` restant DANS le
+        document — masqué à l'œil mais focusable, avec relais du `:focus-visible` sur
+        l'étiquette. `display:none` l'aurait sorti de l'ordre de tabulation. Même parti
+        que les `<select>` restylés le 2026-07-27 ; `input[type=file]` avait été oublié.
+      - **L'aide s'intercalait entre le champ et son bouton** : trois lignes de prose
+        coupaient la séquence saisir → valider. Passée APRÈS l'action.
+      - **Deux boutons de poids inégal** (« Générer » plein, « Charger » neutre) alors que
+        chacun est l'action principale de son bloc. Égalisés. Les LIBELLÉS sont conservés :
+        « Générer la sauvegarde » et « Charger une sauvegarde » sont ceux choisis par
+        Nathan au lot des 13 retours, on ne les raccourcit pas.
+      - **Défaut INTRODUIT par le déplacement de l'aide, vu à l'écran** : `.field` n'a
+        aucune marge verticale (admin.css l.815) — c'étaient les marges du paragraphe qui
+        espaçaient tout. Une fois déplacé, le bouton collait à son champ. Corrigé à la
+        source : `.bk-block` porte son propre rythme (pile en `grid`, `gap`), plutôt que
+        des marges recollées élément par élément. Mesuré : 10 px champ→bouton,
+        18 px bouton→aide.
+      Contrepartie obligatoire du rendu natif remplacé : le nom du fichier choisi est
+      désormais affiché par `admin.js` — sans quoi on cliquerait « Charger » sans savoir
+      sur quoi. Vérifié au rendu avec un fichier réellement sélectionné
+      (`comroster-2026-08-04.rostbak`), pas seulement à vide.
 - [x] **7. Panneau Écran : repli automatique du témoin « Affichage en cours »** (2026-08-03).
       Repli CONTEXTUEL : il ne mémorise rien, et l'état d'avant est rendu en quittant
       l'onglet — sinon un simple passage par Écran effacerait en silence une préférence
@@ -1270,3 +1520,126 @@ Pointage établi dans le CODE, pas d'après les messages de commit.
       ⚠️ `login.html` porte TROIS états dans le même template (connexion · réinitialisation ·
       code de récupération affiché) : les trois doivent être capturés, pas seulement le
       premier. Et `setup.html` partage `auth.css` — vérifier qu'il ne casse pas.
+
+---
+
+# LOT 2026-08-04 — La porte d'entrée (point 9 : login + setup)
+
+Exécution du diagnostic ci-dessus. **Direction donnée par Nathan (2026-08-04) :** « d'abord
+ambiance face avant puis plein cadre, un truc pro, carré, clean, cool, complet, geek ».
+Soit le registre de l'écran de démarrage validé le 2026-07-29 (le voyant d'un appareil de
+scène) posé dans une composition plein cadre, et non une carte centrée.
+
+## Périmètre : les DEUX pages, cinq états
+
+Le diagnostic disait « vérifier que `setup.html` ne casse pas ». Vérifié : il casserait.
+Les deux templates chargent `main.css` + `auth.css`, et `setup.html` consomme `.field`,
+`.btn`, `.primary` — tous définis dans `main.css`. Découpler le login seul le laisserait
+donc à la fois cassé ET seul survivant de la DA turquoise abandonnée : deux formes de la
+même porte selon le chemin, exactement le défaut que nomment la leçon du 2026-08-03 (deux
+constructeurs pour une même entité) et celle du 2026-07-30 (deux documents qui divergent).
+
+Cinq états à rendre, tous à capturer — aucun n'est joignable par une simple URL :
+1. connexion (`/admin/login`)
+2. réinitialisation (`/admin/recover`)
+3. code de récupération après réinitialisation (`login.html` + `recovery_code`)
+4. configuration initiale (`/admin/setup`, seulement sur un boîtier vierge)
+5. code de récupération après création (`setup.html` + `recovery_code`)
+
+## Structure retenue
+
+- **Bandeau** (filet dessous) : voyant · glyphe (ou logo de marque) · nom · version à droite.
+- **Corps** : colonne calée à gauche sur la MÊME gouttière que le bandeau — c'est
+  l'alignement qui fait le « carré », pas les bordures.
+- **Pied** (filet dessus) : état de liaison en toutes lettres · horloge.
+
+## Le point qui décide de tout : le voyant doit dire vrai
+
+Un disque qui respire sur une page de login est un ornement — et la leçon du 2026-07-28
+interdit l'ornement qui ressemble à une mesure (c'est elle qui a fait tomber le filet du
+Journal et les faux `[ OK ]` de l'ancien splash). Il ne se justifie que s'il mesure :
+sonde `/healthz` périodique, le voyant tombe si le ComRoster ne répond plus. Un poste de
+régie laissé sur cette page sait alors que le boîtier est parti.
+- Bornée à la visibilité du document (leçon 2026-07-30 : un sondage qui avait le droit de
+  tourner dans une page dédiée ne l'a plus quand personne ne regarde).
+- `/healthz` renvoie DÉJÀ la version sans session (« fuite assumée — LAN de régie »,
+  commentaire de `__init__.py`) : le bandeau n'expose donc rien de neuf.
+
+## Étapes — LIVRÉ (2026-08-04)
+- [x] 1. Captures AVANT des cinq états (le diagnostic n'en tenait qu'un).
+- [x] 2. `auth.css` reconstruite AUTONOME sur les jetons d'`admin.css`.
+- [x] 3. `login.html` + `setup.html` : plein cadre, `main.css` retiré des deux.
+- [x] 4. `static/js/auth.js` — sonde et horloge, servi depuis `self` (CSP stricte).
+- [x] 5. Gardes : découplage sur les cinq états, structurelle script ⇄ page, jetons CSS.
+- [x] 6. Captures APRÈS, console vide, contrastes et géométrie mesurés, mutations passées.
+
+### Une décision de structure, pas de style : le cadre est écrit UNE fois
+`templates/auth_base.html` porte le bandeau, le pied et le voyant ; les deux pages n'ont
+plus que leur contenu. Les dupliquer aurait reconduit le défaut que ce dépôt paie depuis
+juillet — deux documents qui divergent (fusion des panneaux, 2026-07-30) et deux
+constructeurs pour une même entité (`add_group` sans `manual_order`, 2026-08-03).
+Conséquence sur l'outillage : la garde `script ⇄ page rendue` ne voyait pas l'héritage
+Jinja. Un cadre commun aurait été un angle mort parfait — il porte le script, ses enfants
+sont les seuls servis, et aucun des trois n'entrait dans la garde. Elle suit désormais
+`{% extends %}` et exclut les cadres, qui n'ont pas de route propre.
+
+### Trois défauts trouvés en REGARDANT, qu'aucun test n'aurait vus
+- **Le code de récupération se coupait en deux** — « LCJQ-6JYS-Z393-S » puis « 8ZH ».
+  `word-break: break-all` dans une carte de 420 px. C'est le seul texte du produit qu'un
+  humain doit RECOPIER à la main, et un code recopié faux, c'est un boîtier qu'on ne
+  rouvre plus. Il tient maintenant sur une ligne, sans exception (la boîte défile plutôt
+  que le code ne se coupe), et une garde lit la règle dans la feuille.
+- **`Courier New`** pour ce même code, dans un produit qui auto-héberge Inter et Outfit
+  précisément pour ne dépendre d'aucune fonte du système.
+- **Un émoji ⚠️ en couleur** posé en `::before`, qui rend selon la fonte d'emoji de la
+  machine, dans une DA par ailleurs monochrome.
+
+### Le voyant dit vrai, sinon il n'existerait pas
+Un disque qui respire dans un bandeau est un ornement, et la leçon du 2026-07-28 interdit
+l'ornement qui ressemble à une mesure (c'est elle qui a retiré le filet du Journal et les
+faux « [ OK ] » de l'ancien splash). Il sonde donc `/healthz` toutes les 10 s, borné à la
+visibilité du document (leçon 2026-07-30). Ce qu'il dit exactement : « le ComRoster répond
+MAINTENANT » — trivial au chargement, utile ensuite, quand un poste laissé sur cette page
+voit le voyant tomber au lieu d'afficher un formulaire mort d'apparence normale.
+`/healthz` servant déjà la version sans session, le bandeau n'expose rien de neuf.
+
+### Mesuré, pas jugé (1440×900)
+Pire contraste **4,92:1** (seuil AA 4,5) sur les huit textes de la page. Les trois
+gouttières — bandeau, colonne, pied — à **44 px exactement** : c'est cet alignement qui
+fait le « carré » demandé, pas des bordures. Bandeau à 53 px, le même jeton `--top-h` que
+l'admin. Débord horizontal **0**. Console navigateur vide, collecteur prouvé armé par une
+sonde (sans quoi l'assertion négative ne prouverait rien).
+
+### Gardes confrontées à leur mutation, chacune vue tomber
+`main.css` réintroduit dans le cadre → les 5 tests de découplage tombent ; `nowrap`
+remplacé par `break-all` → la garde du code tombe ; la découverte des porteurs privée de
+l'héritage → la garde structurelle tombe (elle avait d'ailleurs signalé `auth_base.html`
+d'elle-même, avant que je ne l'aie déclarée). Le témoin positif
+`test_les_cinq_etats_sont_bien_atteints` existe parce qu'une page d'erreur ou une
+redirection ne contient pas non plus `main.css` : sans lui, les cinq assertions négatives
+passeraient sur des états jamais atteints.
+
+### Défaut de MON exécution, corrigé et consigné
+`git checkout <fichier>` employé pour annuler une mutation de contrôle sur deux fichiers
+NON commités : il ne rend pas l'état d'avant la mutation, il rend HEAD — le travail du lot
+a été effacé sur `auth.css` et `test_pages_et_scripts.py`, sans le moindre avertissement.
+Reconstruits à l'identique (mesures rejouées : mêmes valeurs au pixel et au centième),
+encodage et alphabet contrôlés. Leçon écrite.
+
+### Deux incidents de harnais, tous deux de mon fait
+- **Renommage de classe non tracé.** `auth-submit` → `auth-go` sans chercher ses porteurs :
+  huit fichiers e2e cliquent `a.auth-submit` pour se connecter, tous ont expiré. Corrigé
+  dans les huit. **Dette NON résorbée, signalée** : ces huit fichiers dupliquent chacun
+  leur fonction de connexion, donc un renommage coûte huit corrections au lieu d'une —
+  c'est le motif que la leçon du 2026-07-31 condamne, ici au huitième besoin. La
+  factoriser dans `helpers.py` touche toute la suite e2e : c'est un lot à part.
+- **Deux suites e2e concurrentes** : 59 échecs en 27 min. Relancée seule, la même suite
+  donne **62 verts en 101 s**. Le code n'était pas en cause.
+
+### Vérifié
+**540 unitaires · 62 e2e · 43 JS · ruff propre.**
+
+### Reste à faire — le seul point qui demande Nathan
+Juger les cinq états à l'œil. Les mesures disent que rien ne déborde et que tout est
+lisible ; elles ne disent pas si la composition lui plaît. Deux réglages sont des valeurs
+d'ambiance, faciles à bouger : la gouttière (44 px) et la largeur de colonne (372 px).
