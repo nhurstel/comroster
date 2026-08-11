@@ -111,3 +111,130 @@ def test_la_feuille_interdit_la_coupure_du_code():
         "le code de récupération doit tenir sur une ligne, sans exception"
     )
     assert "break-all" not in corps
+
+
+# --------------------------------------------------------------------------
+# Jetons : le focus et l'erreur ne doivent PAS porter le même signal, et le
+# thème clair ne doit pas être livré à moitié.
+# --------------------------------------------------------------------------
+FEUILLE = (CSS / "auth.css").read_text(encoding="utf-8")
+
+
+def _bloc_sombre():
+    """Le :root de base, hors media query."""
+    debut = FEUILLE.index(":root {")
+    return FEUILLE[debut:FEUILLE.index("\n}", debut)]
+
+
+def _bloc_clair():
+    """Le bloc complet du thème clair, accolade fermante en colonne 0."""
+    debut = FEUILLE.index("@media (prefers-color-scheme: light)")
+    return FEUILLE[debut:FEUILLE.index("\n}", debut)]
+
+
+def _jetons_couleur(bloc):
+    """Les seuls jetons dont la valeur est une couleur — les mesures (--gut,
+    --col…) n'ont aucune raison d'être redéfinies par un thème."""
+    return {
+        nom for nom, valeur in re.findall(r"(--[a-z0-9-]+)\s*:\s*([^;]+);", bloc)
+        if valeur.strip().startswith("#")
+    }
+
+
+def _valeur(bloc, jeton):
+    trouve = re.search(rf"{jeton}\s*:\s*([^;]+);", bloc)
+    assert trouve, f"{jeton} n'est pas défini dans ce bloc"
+    return trouve.group(1).strip().lower()
+
+
+def test_le_theme_clair_redefinit_toutes_les_couleurs_du_sombre():
+    """Un thème à moitié fait est le mode de panne le plus probable : un jeton
+    oublié laisse un aplat sombre au milieu d'une page claire, sans un bruit."""
+    manquants = _jetons_couleur(_bloc_sombre()) - _jetons_couleur(_bloc_clair())
+    assert not manquants, f"jetons non redéfinis en thème clair : {sorted(manquants)}"
+
+
+@pytest.mark.parametrize("nom", ["sombre", "clair"])
+def test_le_focus_ne_porte_ni_la_couleur_de_l_erreur_ni_celle_de_l_accent(nom):
+    """Le défaut corrigé ici : l'accent était rouge, donc un champ en autofocus
+    annonçait une erreur inexistante. Sans cette garde, un futur ajustement de
+    palette les rapprocherait de nouveau en silence."""
+    bloc = _bloc_sombre() if nom == "sombre" else _bloc_clair()
+    focus = _valeur(bloc, "--focus")
+    assert focus != _valeur(bloc, "--error")
+    assert focus != _valeur(bloc, "--accent")
+
+
+def test_la_feuille_n_accentue_plus_le_champ_au_focus():
+    """Garde de mise en œuvre : le focus doit passer par --focus, pas --accent."""
+    assert "input:focus { border-color: var(--focus)" in FEUILLE
+
+
+# --------------------------------------------------------------------------
+# Composition : les témoins d'état forment UNE plaque, et rien n'est dupliqué.
+# --------------------------------------------------------------------------
+TEMOINS = ("auth-led", "auth-state", "auth-ver", "auth-clock")
+
+
+def test_la_plaque_regroupe_les_quatre_temoins_dans_le_pied(etats):
+    """Voyant, état, version et horloge forment UNE plaque d'appareil. Groupés
+    dans le pied, ils tiennent dans la même zone de grille aux deux mises en
+    page — c'est ce qui évite de les dupliquer pour le flanc d'identité."""
+    for nom, html in etats.items():
+        pied = html[html.index('<footer class="auth-foot"'):html.index("</footer>")]
+        for identifiant in TEMOINS:
+            assert f'id="{identifiant}"' in pied, f"{identifiant} hors du pied sur {nom}"
+
+
+def test_aucun_identifiant_de_temoin_n_est_duplique(etats):
+    """Un doublon rendrait le pilotage par auth.js silencieusement partiel :
+    getElementById ne rend que le premier."""
+    for nom, html in etats.items():
+        for identifiant in TEMOINS:
+            assert html.count(f'id="{identifiant}"') == 1, f"{identifiant} en double sur {nom}"
+
+
+def test_l_attribut_de_theme_mort_a_disparu(etats):
+    """data-theme="night" n'était lu par aucune règle de la feuille, et il
+    contredit désormais le thème clair automatique."""
+    for nom, html in etats.items():
+        assert 'data-theme="night"' not in html, f"attribut mort encore présent sur {nom}"
+
+
+def test_la_feuille_compose_deux_flancs_au_dela_de_900px():
+    assert "@media (min-width: 900px)" in FEUILLE
+    assert "grid-template-areas" in FEUILLE
+
+
+def test_le_logo_client_garde_un_fond_sombre_dans_les_deux_themes():
+    """Les logos clients sont presque toujours des PNG BLANCS, dessinés pour un
+    fond sombre. Sans plaque, le thème clair les rend invisibles — et c'est un
+    défaut qui n'apparaît QUE chez un client ayant téléversé son logo, jamais
+    en développement. Le jeton vaut donc la même valeur dans les deux thèmes."""
+    assert "background: var(--plaque);" in FEUILLE
+    assert _valeur(_bloc_sombre(), "--plaque") == _valeur(_bloc_clair(), "--plaque")
+
+
+def test_les_cibles_tactiles_atteignent_44px_au_pointeur_grossier():
+    """Champ à 38 px et bouton à 34 px : sous la barre des 44 px, sur une page
+    ouverte au téléphone. C'est le POINTEUR qui décide, pas la largeur — une
+    fenêtre étroite pilotée à la souris garde la densité du bureau."""
+    assert "@media (pointer: coarse)" in FEUILLE
+    debut = FEUILLE.index("@media (pointer: coarse)")
+    bloc = FEUILLE[debut:FEUILLE.index("\n}", debut)]
+    hauteurs = [int(v) for v in re.findall(r"height:\s*(\d+)px", bloc)]
+    assert hauteurs, "le bloc tactile ne fixe aucune hauteur"
+    assert min(hauteurs) >= 44, f"cible sous 44 px : {min(hauteurs)}px"
+
+
+def test_l_alphabet_du_code_exclut_les_caracteres_ambigus():
+    """La lisibilité du code tient à la SOURCE, pas à la police. Cette garde
+    remplace celle prévue au plan (désambiguïsation typographique) : la mesure
+    des woff2 embarqués a montré que ni « zero » ni « ss02 » n'y survivent, et
+    l'alphabet rend la question sans objet. Si quelqu'un « enrichit » un jour
+    l'alphabet, c'est ICI que ça doit casser — pas chez un client qui recopie
+    un O pour un 0 et se ferme définitivement l'accès."""
+    from comroster.services.secret import ALPHABET_CODE
+    for ambigu in "IO01":
+        assert ambigu not in ALPHABET_CODE, f"« {ambigu} » est ambigu à la main"
+    assert len(set(ALPHABET_CODE)) == len(ALPHABET_CODE), "alphabet avec doublons"

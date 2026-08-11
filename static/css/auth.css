@@ -38,6 +38,16 @@
     --fg: #EEF1F7; --fg-muted: #C3C8D2; --fg-subtle: #939AA7; --muted: #737A88;
     --success: #2ECC71; --warning: #E8A13A; --error: #F04D3E;
     --accent: #D96253; --accent-lt: #E18579; --on-accent: #141005;
+    /* Le focus est NEUTRE, et c'est un correctif : l'accent du produit est un
+       corail voisin de l'erreur. Un champ simplement focalisé portait donc le
+       signal de l'erreur, sur un formulaire dont le champ est en autofocus.
+       Pas de turquoise ici : ce serait ressusciter la DA abandonnée en juillet. */
+    --focus: #EEF1F7;
+    /* Fond permanent du logo client, IDENTIQUE dans les deux thèmes : c'est
+       précisément son rôle de ne pas suivre la lumière. Un jeton plutôt qu'une
+       valeur en dur, pour que la garde « toutes les couleurs du sombre sont
+       redéfinies » le voie passer. */
+    --plaque: #0E1119;
 
     --ui: 12.5px;
     --ui-sm: 11.5px;
@@ -54,7 +64,31 @@
     --col: 372px;               /* largeur de la colonne de saisie */
 
     --f-ui: 'Outfit', 'Inter', sans-serif;
+    /* Inter à chasse tabulaire — pour des nombres ALIGNÉS (heure, version). Ce
+       n'est pas une monospace, et le nom du jeton ne doit pas le laisser croire.
+       Le code de récupération n'en a pas besoin : sa lisibilité vient de son
+       alphabet, qui exclut déjà I, O, 0 et 1 (services/secret.py). */
     --f-mono: 'Inter', ui-monospace, monospace;
+}
+
+/* ---------- Thème clair ----------
+   La page est ouverte au bureau en pleine lumière autant qu'en régie : un aplat
+   très sombre plein écran y devient un miroir. Aucun réglage utilisateur, c'est
+   le système qui tranche. Seules les COULEURS sont redéfinies — les mesures
+   (gouttière, colonne, rayon) ne dépendent pas de la lumière ambiante. */
+@media (prefers-color-scheme: light) {
+    :root {
+        --bg: #F2F4F8; --inset: #FFFFFF; --surface: #FFFFFF; --surface-2: #E9ECF3;
+        --border: #C8CEDA; --border-2: #B4BCCB; --border-soft: #DDE2EA;
+        --fg: #151922; --fg-muted: #3F4756; --fg-subtle: #5C6575; --muted: #7A8393;
+        --success: #1B8B4A; --warning: #9A6410; --error: #C0392B;
+        /* L'accent est assombri : le corail du thème sombre ne tient pas
+           4,5:1 sur un fond clair. */
+        --accent: #B23F31; --accent-lt: #8F3227; --on-accent: #FFFFFF;
+        --focus: #151922;
+        /* Volontairement inchangé : voir la règle du logo client. */
+        --plaque: #0E1119;
+    }
 }
 
 /* ---------- Base ---------- */
@@ -75,7 +109,7 @@ body.auth {
 button, input { font: inherit; color: inherit; }
 button { background: none; border: 0; cursor: pointer; }
 a { color: var(--accent); text-decoration: none; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -91,8 +125,26 @@ a { color: var(--accent); text-decoration: none; }
     border-bottom: 1px solid var(--border-soft);
     background: var(--surface);
 }
-.auth-glyph { display: block; width: 17px; height: 17px; }
-.auth-mark { display: block; max-height: 21px; max-width: 132px; }
+/* Silhouette masquée plutôt qu'image : le SVG porte un fill quasi blanc en dur,
+   donc invisible dès qu'un fond clair existe. Le masque le rend indépendant du
+   fichier et lui donne l'accent du produit dans les deux thèmes. */
+.auth-glyph {
+    display: block; width: 17px; height: 17px;
+    flex: none;
+    background-color: var(--accent);
+    -webkit-mask: url('../img/comroster-glyph.svg') center / contain no-repeat;
+    mask: url('../img/comroster-glyph.svg') center / contain no-repeat;
+}
+/* Les logos clients sont presque toujours des PNG BLANCS, dessinés pour un fond
+   sombre. Sans cette plaque, le thème clair les rendrait invisibles — un défaut
+   qui n'apparaît QUE chez un client ayant téléversé son logo, jamais en
+   développement. Le fond ne suit donc pas le thème. */
+.auth-mark {
+    display: block; max-height: 21px; max-width: 132px;
+    background: var(--plaque);
+    padding: 6px 10px;
+    border-radius: var(--rad);
+}
 .auth-name {
     font-size: var(--ui); font-weight: 600;
     letter-spacing: 0.16em; text-transform: uppercase;
@@ -140,6 +192,14 @@ a { color: var(--accent); text-decoration: none; }
    JAMAIS se couper (voir .auth-code). */
 .auth-col.wide { max-width: 560px; }
 
+/* Une seule animation, et elle est brève : la page n'est pas un spectacle. Le
+   bloc prefers-reduced-motion en tête de feuille la neutralise déjà. */
+@keyframes auth-arrivee {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+}
+.auth-col { animation: auth-arrivee 0.16s ease-out both; }
+
 .auth-title {
     font-size: 21px; font-weight: 600; letter-spacing: -0.01em;
     margin-bottom: 6px;
@@ -166,9 +226,11 @@ a { color: var(--accent); text-decoration: none; }
     letter-spacing: var(--track);
     transition: border-color 0.14s ease;
 }
-/* L'accent n'apparaît qu'au FOCUS. Le contour turquoise permanent de l'ancienne
-   page accentuait un champ au repos, sur une page qui n'a qu'une action. */
-.auth-field input:focus { border-color: var(--accent); outline: none; }
+/* Le focus se signale par un anneau NEUTRE. L'accent était employé ici, mais
+   comme il est corail, un champ en autofocus annonçait une erreur inexistante :
+   deux sens pour un seul signal. Le contour turquoise permanent de l'ancienne
+   page, lui, accentuait un champ au repos sur une page qui n'a qu'une action. */
+.auth-field input:focus { border-color: var(--focus); outline: none; }
 .auth-field input[name="recovery_code"] {
     font-family: var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase;
 }
@@ -278,13 +340,68 @@ a { color: var(--accent); text-decoration: none; }
     font-size: var(--ui-sm); color: var(--fg-subtle);
     letter-spacing: var(--track);
 }
-.auth-foot .auth-clock {
-    margin-left: auto;
-    font-family: var(--f-mono);
+/* L'horloge suit la version au lieu de s'en écarter : depuis que les quatre
+   témoins forment une plaque, c'est --auth-ver qui porte la poussée à droite. */
+.auth-foot .auth-clock { font-family: var(--f-mono); }
+
+/* ---------- Deux flancs ----------
+   Au-delà de 900 px, le cadre cesse d'être trois bandes empilées : les MÊMES
+   trois enfants sont réaffectés en deux colonnes. Le vide de 1024 px que
+   laissait la colonne de saisie se remplit d'identité et d'état réel, pas de
+   décor. Aucun nœud n'est dupliqué, donc auth.js n'a rien à savoir de tout ça. */
+@media (min-width: 900px) {
+    body.auth {
+        grid-template-columns: 1fr minmax(420px, 520px);
+        grid-template-rows: 1fr auto;
+        grid-template-areas:
+            "ident form"
+            "plate form";
+    }
+    .auth-top {
+        grid-area: ident;
+        /* Centré, comme la colonne de saisie en face : deux blocs alignés sur
+           le même axe se répondent, là où une identité collée en bas laissait
+           tout le haut du flanc en aplat. */
+        flex-direction: column; align-items: flex-start; justify-content: center;
+        gap: 16px;
+        height: auto;
+        padding: var(--gut);
+        background: none; border-bottom: 0;
+    }
+    .auth-glyph { width: 56px; height: 56px; }
+    /* La hiérarchie était plate — tout tenait entre 11,5 et 21 px. Le nom du
+       produit prend l'échelle d'une sérigraphie de face avant ; le titre du
+       formulaire garde ses 21 px, la distinction de rang fait le reste. */
+    .auth-name { font-size: 34px; letter-spacing: 0.10em; }
+    .auth-by { font-size: var(--ui); }
+    /* Le logo client est un bitmap téléversé (132×21 à l'origine) : l'agrandir
+       comme le glyphe vectoriel le rendrait flou. */
+    .auth-mark { max-height: 40px; max-width: 240px; }
+    .auth-body {
+        grid-area: form;
+        border-left: 1px solid var(--border-soft);
+    }
+    .auth-foot {
+        grid-area: plate;
+        height: auto;
+        padding: 0 var(--gut) var(--gut);
+        background: none; border-top: 0;
+    }
 }
 
 /* ---------- Étroit ---------- */
 @media (max-width: 620px) {
     :root { --gut: 20px; }
     .auth-code { font-size: 19px; }
+}
+
+/* ---------- Pointeur grossier ----------
+   La page est ouverte au téléphone et à la tablette. C'est le POINTEUR qui
+   déclenche l'élargissement, pas la largeur : une fenêtre de bureau étroite
+   n'a aucune raison de perdre sa densité. */
+@media (pointer: coarse) {
+    .auth-field input { height: 46px; }
+    .auth-go { height: 46px; padding: 0 22px; }
+    /* Le lien n'a pas de boîte propre : on lui en donne une, sans le déplacer. */
+    .auth-link { padding: 12px 0; }
 }

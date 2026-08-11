@@ -12,22 +12,21 @@
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/comroster-badge.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
-<body class="auth" data-theme="night">
-  {# Bandeau — face avant : voyant, identité, version. Le voyant démarre en
-     « wait » et n'est promu qu'après une réponse RÉELLE de /healthz : au repos
-     il n'affirme rien. #}
+<body class="auth">
+  {# Bandeau — IDENTITÉ seule. Les témoins d'état l'ont quitté pour le pied :
+     regroupés, ils forment une plaque d'appareil qui tient dans une SEULE zone
+     de grille, et la mise en page à deux flancs n'a donc rien à dupliquer. #}
   <header class="auth-top">
-    <span class="auth-led" id="auth-led" data-state="wait" aria-hidden="true"></span>
     {% if brand.active %}
       <img class="auth-mark" src="{{ url_for('display.brand_logo', v=brand.version) }}" alt="{{ brand.name }}">
       <span class="auth-by">Propulsé par ComRoster</span>
     {% else %}
-      <img class="auth-glyph" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="" width="17" height="17">
+      {# Silhouette teintée par CSS, et non <img> : le fichier porte un fill
+         quasi blanc en dur, invisible en thème clair. Décoratif — le nom du
+         produit le suit en toutes lettres. #}
+      <span class="auth-glyph" aria-hidden="true"></span>
       <span class="auth-name">ComRoster</span>
     {% endif %}
-    {# La version complète en infobulle : /healthz la sert déjà sans session,
-       le bandeau n'expose donc rien de neuf. #}
-    <span class="auth-ver" id="auth-ver"{% if appversion.label %} title="{{ appversion.label }}"{% endif %}>{{ appversion.public or '' }}</span>
   </header>
 
   <main class="auth-body">
@@ -36,12 +35,17 @@
     </div>
   </main>
 
-  {# Pied — l'état de liaison en toutes lettres double le voyant pour qui ne
-     lit pas les couleurs, et l'horloge est le repère de régie de l'admin. Les
-     deux restent vides tant que auth.js n'a pas parlé : une heure figée par le
-     serveur mentirait dès la minute suivante. #}
+  {# Plaque d'appareil — le voyant démarre en « wait » et n'est promu qu'après
+     une réponse RÉELLE de /healthz : au repos il n'affirme rien. L'état en
+     toutes lettres le double pour qui ne lit pas les couleurs, et l'horloge est
+     le repère de régie de l'admin. Les deux restent vides tant que auth.js n'a
+     pas parlé : une heure figée par le serveur mentirait dès la minute
+     suivante. La version complète reste en infobulle — /healthz la sert déjà
+     sans session, la plaque n'expose donc rien de neuf. #}
   <footer class="auth-foot">
+    <span class="auth-led" id="auth-led" data-state="wait" aria-hidden="true"></span>
     <span id="auth-state">vérification…</span>
+    <span class="auth-ver" id="auth-ver"{% if appversion.label %} title="{{ appversion.label }}"{% endif %}>{{ appversion.public or '' }}</span>
     <span class="auth-clock" id="auth-clock"></span>
   </footer>
 
