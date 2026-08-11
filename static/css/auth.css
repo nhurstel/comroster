@@ -38,6 +38,11 @@
     --fg: #EEF1F7; --fg-muted: #C3C8D2; --fg-subtle: #939AA7; --muted: #737A88;
     --success: #2ECC71; --warning: #E8A13A; --error: #F04D3E;
     --accent: #D96253; --accent-lt: #E18579; --on-accent: #141005;
+    /* Le focus est NEUTRE, et c'est un correctif : l'accent du produit est un
+       corail voisin de l'erreur. Un champ simplement focalisé portait donc le
+       signal de l'erreur, sur un formulaire dont le champ est en autofocus.
+       Pas de turquoise ici : ce serait ressusciter la DA abandonnée en juillet. */
+    --focus: #EEF1F7;
 
     --ui: 12.5px;
     --ui-sm: 11.5px;
@@ -55,6 +60,24 @@
 
     --f-ui: 'Outfit', 'Inter', sans-serif;
     --f-mono: 'Inter', ui-monospace, monospace;
+}
+
+/* ---------- Thème clair ----------
+   La page est ouverte au bureau en pleine lumière autant qu'en régie : un aplat
+   très sombre plein écran y devient un miroir. Aucun réglage utilisateur, c'est
+   le système qui tranche. Seules les COULEURS sont redéfinies — les mesures
+   (gouttière, colonne, rayon) ne dépendent pas de la lumière ambiante. */
+@media (prefers-color-scheme: light) {
+    :root {
+        --bg: #F2F4F8; --inset: #FFFFFF; --surface: #FFFFFF; --surface-2: #E9ECF3;
+        --border: #C8CEDA; --border-2: #B4BCCB; --border-soft: #DDE2EA;
+        --fg: #151922; --fg-muted: #3F4756; --fg-subtle: #5C6575; --muted: #7A8393;
+        --success: #1B8B4A; --warning: #9A6410; --error: #C0392B;
+        /* L'accent est assombri : le corail du thème sombre ne tient pas
+           4,5:1 sur un fond clair. */
+        --accent: #B23F31; --accent-lt: #8F3227; --on-accent: #FFFFFF;
+        --focus: #151922;
+    }
 }
 
 /* ---------- Base ---------- */
@@ -75,7 +98,7 @@ body.auth {
 button, input { font: inherit; color: inherit; }
 button { background: none; border: 0; cursor: pointer; }
 a { color: var(--accent); text-decoration: none; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -166,9 +189,11 @@ a { color: var(--accent); text-decoration: none; }
     letter-spacing: var(--track);
     transition: border-color 0.14s ease;
 }
-/* L'accent n'apparaît qu'au FOCUS. Le contour turquoise permanent de l'ancienne
-   page accentuait un champ au repos, sur une page qui n'a qu'une action. */
-.auth-field input:focus { border-color: var(--accent); outline: none; }
+/* Le focus se signale par un anneau NEUTRE. L'accent était employé ici, mais
+   comme il est corail, un champ en autofocus annonçait une erreur inexistante :
+   deux sens pour un seul signal. Le contour turquoise permanent de l'ancienne
+   page, lui, accentuait un champ au repos sur une page qui n'a qu'une action. */
+.auth-field input:focus { border-color: var(--focus); outline: none; }
 .auth-field input[name="recovery_code"] {
     font-family: var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase;
 }

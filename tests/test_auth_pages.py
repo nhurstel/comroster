@@ -111,3 +111,60 @@ def test_la_feuille_interdit_la_coupure_du_code():
         "le code de récupération doit tenir sur une ligne, sans exception"
     )
     assert "break-all" not in corps
+
+
+# --------------------------------------------------------------------------
+# Jetons : le focus et l'erreur ne doivent PAS porter le même signal, et le
+# thème clair ne doit pas être livré à moitié.
+# --------------------------------------------------------------------------
+FEUILLE = (CSS / "auth.css").read_text(encoding="utf-8")
+
+
+def _bloc_sombre():
+    """Le :root de base, hors media query."""
+    debut = FEUILLE.index(":root {")
+    return FEUILLE[debut:FEUILLE.index("\n}", debut)]
+
+
+def _bloc_clair():
+    """Le bloc complet du thème clair, accolade fermante en colonne 0."""
+    debut = FEUILLE.index("@media (prefers-color-scheme: light)")
+    return FEUILLE[debut:FEUILLE.index("\n}", debut)]
+
+
+def _jetons_couleur(bloc):
+    """Les seuls jetons dont la valeur est une couleur — les mesures (--gut,
+    --col…) n'ont aucune raison d'être redéfinies par un thème."""
+    return {
+        nom for nom, valeur in re.findall(r"(--[a-z0-9-]+)\s*:\s*([^;]+);", bloc)
+        if valeur.strip().startswith("#")
+    }
+
+
+def _valeur(bloc, jeton):
+    trouve = re.search(rf"{jeton}\s*:\s*([^;]+);", bloc)
+    assert trouve, f"{jeton} n'est pas défini dans ce bloc"
+    return trouve.group(1).strip().lower()
+
+
+def test_le_theme_clair_redefinit_toutes_les_couleurs_du_sombre():
+    """Un thème à moitié fait est le mode de panne le plus probable : un jeton
+    oublié laisse un aplat sombre au milieu d'une page claire, sans un bruit."""
+    manquants = _jetons_couleur(_bloc_sombre()) - _jetons_couleur(_bloc_clair())
+    assert not manquants, f"jetons non redéfinis en thème clair : {sorted(manquants)}"
+
+
+@pytest.mark.parametrize("nom", ["sombre", "clair"])
+def test_le_focus_ne_porte_ni_la_couleur_de_l_erreur_ni_celle_de_l_accent(nom):
+    """Le défaut corrigé ici : l'accent était rouge, donc un champ en autofocus
+    annonçait une erreur inexistante. Sans cette garde, un futur ajustement de
+    palette les rapprocherait de nouveau en silence."""
+    bloc = _bloc_sombre() if nom == "sombre" else _bloc_clair()
+    focus = _valeur(bloc, "--focus")
+    assert focus != _valeur(bloc, "--error")
+    assert focus != _valeur(bloc, "--accent")
+
+
+def test_la_feuille_n_accentue_plus_le_champ_au_focus():
+    """Garde de mise en œuvre : le focus doit passer par --focus, pas --accent."""
+    assert "input:focus { border-color: var(--focus)" in FEUILLE
