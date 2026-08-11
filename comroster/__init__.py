@@ -1,7 +1,8 @@
 import os
 from datetime import timedelta
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, redirect, request, url_for
+from flask_wtf.csrf import CSRFError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .antenna import bp as antenna_bp
@@ -9,7 +10,7 @@ from .api import bp as api_bp
 from .auth import bp as auth_bp
 from .config import Config
 from .display import bp as display_bp
-from .security import csrf, limiter
+from .security import csrf, current_is_authenticated, limiter
 from .services import logbuffer
 from .services.antenna import AntennaClient
 from .services.branding import Branding
@@ -160,6 +161,26 @@ def _register_security(app):
             "frame-ancestors 'self'; form-action 'self'",
         )
         return resp
+
+    @app.errorhandler(CSRFError)
+    def _csrf(err):
+        """Une session morte doit être DISCERNABLE d'une requête malformée.
+
+        Flask-WTF valide le jeton CSRF avant que `login_required` ne s'exécute :
+        sans session, c'est donc un 400 générique qui partait, jamais le 401 que
+        security.py sait pourtant produire. Le client recevait le même signal pour
+        « ta session est morte » (définitif, il faut se reconnecter) et pour « la
+        requête est invalide » (passager, réessayer suffit) — d'où une admin qui
+        laissait l'utilisateur travailler dans le vide pendant des heures.
+        """
+        if not current_is_authenticated():
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "session_expired"}), 401
+            return redirect(url_for("auth.login"))
+        # Session vivante mais jeton refusé : là c'est bien une requête à rejeter.
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "csrf"}), 400
+        return err
 
     @app.errorhandler(400)
     def _400(err):

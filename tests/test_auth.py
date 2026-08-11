@@ -71,3 +71,29 @@ def test_session_cookie_expires(client):
     resp = client.post("/admin/setup", data={"password": "motdepasse8"})
     cookies = "; ".join(resp.headers.getlist("Set-Cookie"))
     assert "session=" in cookies and "Expires=" in cookies
+
+
+def test_une_session_expiree_s_annonce_comme_telle_et_non_en_400(tmp_path):
+    """Une session morte doit être DISCERNABLE d'une requête malformée.
+
+    Flask-WTF valide le jeton CSRF AVANT que login_required ne s'exécute : sans
+    session, c'est donc un 400 générique qui partait, et jamais le 401
+    « unauthorized » que security.py sait pourtant produire. Le client recevait le
+    même signal pour « ta session est morte, reconnecte-toi » (définitif) et pour
+    « la requête est invalide » (passager) — d'où une interface qui laissait
+    l'utilisateur travailler dans le vide.
+
+    Le CSRF est désactivé sous TESTING : on le rallume, sinon ce test passerait
+    sans jamais atteindre le défaut qu'il vise.
+    """
+    from comroster import create_app
+
+    app = create_app({"DATA_DIR": str(tmp_path), "SECRET_KEY": "x", "TESTING": True})
+    app.config["WTF_CSRF_ENABLED"] = True
+    client = app.test_client()
+
+    reponse = client.put("/api/draft", json={"groups": []},
+                         headers={"X-CSRFToken": "jeton-perime"})
+
+    assert reponse.status_code == 401, "une session expirée doit rendre 401, pas 400"
+    assert reponse.get_json()["error"] == "session_expired"
