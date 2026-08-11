@@ -1789,8 +1789,53 @@ qu'à son œil sont donc **validés tels quels** :
    sans rapport.~~ **RÉSORBÉE le 2026-08-09** — voir le lot « Découper test_e2e.py »
    plus bas.
 2. ~~**Jamais demandé, jamais fait** : captures dans la documentation~~ **FAIT le
-   2026-08-11** (voir le lot plus bas). Reste de ce point : le **cahier des charges (D1)**,
-   jamais retouché depuis l'origine — et je n'ai toujours pas trouvé où il vit.
+   2026-08-11** (voir le lot plus bas). ~~Reste de ce point : le cahier des charges~~
+   **FAIT le 2026-08-11 également** : il vit à la racine (`comroster-cahier-des-charges.md`),
+   il est à jour, et cinq gardes le tiennent désormais.
+
+**Il ne reste rien de listé.** Les points ouverts sont ceux que l'usage fera remonter.
+
+---
+
+# LOT 2026-08-11 (c) — Le cahier des charges remis à jour
+
+**Demande de Nathan, verbatim : « go cahier des charges ».** Dernier point du reste à
+faire. Le document vit à la racine : `comroster-cahier-des-charges.md`, écrit le
+2026-06-19 et **jamais retouché depuis** — deux mois.
+
+## Ce qu'il affirmait de faux (vérifié, pas supposé)
+
+- le champ **`nom`** dans le modèle : retiré depuis, en régie on cherche une fonction ;
+- **8 caractères** de mot de passe minimum : c'est **4** depuis le 2026-07-06 ;
+- **SortableJS** comme brique de glisser-déposer : jamais installé, c'est du HTML5 natif ;
+- **six routes** cartographiées : le produit en sert **soixante-trois** ;
+- **« last-write-wins, pas de verrou »** : invalidé par la sérialisation du cycle
+  lire-modifier-écrire ;
+- **Python 3.7+** : c'est 3.12 ;
+- dix modules livrés depuis n'y figuraient pas du tout (apparences, impression,
+  sauvegarde chiffrée, configurations nommées, journal, contrôle avant show, antenne
+  Bolero, réseau, marque blanche, kiosk, version visible).
+
+## Ce qui est livré
+
+Document réécrit. Les sections dont l'intention tient encore sont marquées **§ d'origine**
+et conservées telles quelles ; le reste décrit ce qui EXISTE. Les décisions corrigées le
+disent explicitement plutôt que d'effacer la trace — pourquoi le champ `nom` est parti,
+pourquoi 4 et non 8, pourquoi le verrou a remplacé le last-write-wins.
+
+**Cinq gardes** (`tests/test_cahier_des_charges.py`) confrontent les CHIFFRES du document
+au code : routes contre `app.url_map`, minimum de mot de passe contre la constante,
+nombre de services contre le paquet, taille de la palette contre `GROUP_PALETTE`, forme
+d'un beltpack contre le normaliseur. Le coût est assumé : ajouter une route obligera à
+corriger un nombre ici. C'est le but — un document qu'on n'a jamais à toucher est un
+document qui ment déjà.
+
+**La garde a attrapé ma propre erreur à son premier lancement** : j'avais écrit
+« vingt-deux services » pour une liste qui en comptait vingt-trois. Meilleure preuve
+qu'elle mord qu'une mutation. Celle des routes a quand même été éprouvée à part (63 → 61
+dans le texte : elle tombe en nommant l'écart).
+
+**Vérifié : 558 unitaires · ruff propre.**
 
 ---
 
