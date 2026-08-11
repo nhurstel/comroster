@@ -1788,8 +1788,56 @@ qu'à son œil sont donc **validés tels quels** :
 1. ~~**Dette assumée** : `tests/e2e/test_e2e.py` fait 600+ lignes et mélange des sujets
    sans rapport.~~ **RÉSORBÉE le 2026-08-09** — voir le lot « Découper test_e2e.py »
    plus bas.
-2. **Jamais demandé, jamais fait** : captures dans la documentation (étape 7 du lot des
-   apparences), et le cahier des charges (D1) jamais retouché depuis l'origine.
+2. ~~**Jamais demandé, jamais fait** : captures dans la documentation~~ **FAIT le
+   2026-08-11** (voir le lot plus bas). Reste de ce point : le **cahier des charges (D1)**,
+   jamais retouché depuis l'origine — et je n'ai toujours pas trouvé où il vit.
+
+---
+
+# LOT 2026-08-11 — Les captures de la documentation
+
+**Demande de Nathan : « OK GO »**, périmètre choisi « les captures dans la doc ».
+Étape 7 du lot des apparences, restée en suspens depuis juillet.
+
+## Ce qui est livré
+
+Quatre captures dans `docs/img/`, insérées là où le README décrivait en MOTS ce qui se
+regarde : les trois apparences de l'écran de régie sous le tableau qui les compare, et
+l'écran d'administration sous « Premier démarrage ». Chaque image apparaît **une seule
+fois** — un README qui montre deux fois la même chose a le même défaut que l'interface
+qu'il documente.
+
+**Un générateur commité**, `tools/captures.py`, plutôt que des PNG déposés à la main :
+une capture qu'on ne sait pas refaire se périme en silence, et c'est précisément ce qui
+est arrivé au texte de ce README (leçon n°32). Trois partis pris y sont défendus en
+commentaire — résolution réelle (1920×1080, celle du kiosk), jeu de données
+représentatif (6 groupes, 26 beltpacks, teintes claires ET sombres pour exercer les deux
+sorties de la règle d'encre), souris écartée avant chaque prise (sinon on photographie
+un `:hover`, leçon n°90).
+
+**Trois gardes** (`tests/test_readme_images.py`) : toute image référencée existe, aucune
+n'est vide, et aucune capture de `docs/img` n'est orpheline. Cette dernière moitié compte
+autant que la première — sans elle, supprimer une section laisse son image derrière, et
+plus personne n'ose y toucher. Éprouvées par mutation ciblée : une capture vidée ne fait
+tomber QU'UNE des trois (leçon n°83).
+
+`.captures-tmp/` est au `.gitignore` — le script le nettoie, mais s'il tombe en route il
+laisserait un état complet à la racine, `admin_secret.json` compris. Règle vérifiée par
+`git check-ignore`, pas par relecture.
+
+**Vérifié : 553 unitaires · ruff propre.**
+
+## Deux défauts que SEULE la capture a montrés
+
+1. **Mon jeu d'essai** donnait la même valeur au titre et au nom de production : le
+   bandeau affichait « CARMEN » à gauche et « Carmen » au centre. Corrigé (le titre est
+   devenu la salle). Aucun test ne pouvait le voir — les deux champs étaient justes.
+2. **Le produit, sur l'apparence `lineaire`** : le pictogramme et la pastille « EN
+   DIRECT » ne sont pas alignés sur l'horloge, et une surface plus claire les entoure —
+   ce que `basique` ne fait pas. **NON CORRIGÉ, non mesuré**, hors du périmètre donné.
+   À trancher par Nathan : soit c'est le parti pris de l'apparence, soit c'est un défaut
+   d'alignement, et dans ce cas la métrique honnête est la position des GLYPHES, pas
+   celle des boîtes (leçon n°88).
 
 ---
 

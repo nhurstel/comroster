@@ -38,6 +38,10 @@ comroster/VERSION
 # Outillage de test JS (dev uniquement — rien de tout ceci ne part sur le boîtier)
 node_modules/
 
+# DATA_DIR jetable de tools/captures.py. Le script le supprime en sortant, mais s'il
+# tombe en route il laisse un état complet à la racine — dont admin_secret.json.
+.captures-tmp/
+
 # macOS
 .DS_Store
 .thumbnail

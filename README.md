@@ -119,6 +119,13 @@ procédure de mise à jour : [deploy/raspberry-pi.md](deploy/raspberry-pi.md), s
    glisser-déposer dans les groupes, puis **Envoyer à l'affichage**.
 4. Ouvrir `/display` sur l'écran de régie — mise à jour en direct à chaque publication.
 
+![Écran d'administration](docs/img/administration.png)
+*L'administration : les groupes au centre, la réserve à droite (beltpacks non affectés),
+le témoin de l'écran publié en bas à gauche. La barre du bas dit l'essentiel en continu —
+combien d'afficheurs sont branchés, l'heure de la dernière publication, l'apparence en
+cours. Rien de ce qui est visible ici n'est encore à l'écran de régie tant qu'on n'a pas
+cliqué **Publier**.*
+
 ## Apparences de l'écran
 
 `/display` se décline en trois **apparences** (réglage « Apparence » dans l'admin), chacune
@@ -130,6 +137,20 @@ sans recharger l'écran de régie.
 | `basique` | Basique | **Défaut.** Cartes en verre dépoli, accent turquoise, capitales. |
 | `lineaire` | Linéaire | Tableau réglé, à-plat. La couleur du groupe se limite au bandeau de tête. Rôles nettement plus gros (pas de cadre à financer). |
 | `grille` | Grille | Mosaïque pleine : le groupe **est** une surface colorée. Le plus lisible de loin. |
+
+![Écran de régie, apparence Basique](docs/img/ecran-basique.png)
+*Basique — cartes en verre dépoli, numéro de beltpack en pastille colorée.*
+
+![Écran de régie, apparence Linéaire](docs/img/ecran-lineaire.png)
+*Linéaire — la couleur se limite au bandeau de tête ; les rôles gagnent la place du cadre.*
+
+![Écran de régie, apparence Grille](docs/img/ecran-grille.png)
+*Grille — le groupe est une surface pleine. L'encre bascule du noir au blanc selon la
+luminance de la teinte : ici noire sur le jaune, le vert et le cyan, blanche sur le bleu,
+le grenat et le mauve.*
+
+> Les trois captures sortent du même plateau, à **1920×1080** (la résolution du kiosk Pi),
+> et se régénèrent par `.venv/bin/python tools/captures.py`.
 
 Techniquement : un attribut `data-skin` sur `<body>` ; `basique` vit dans
 [display.css](static/css/display.css), les autres dans [skins.css](static/css/skins.css). Les
