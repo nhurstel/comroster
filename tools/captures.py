@@ -158,6 +158,19 @@ def main():
             bureau.close()
 
             # L'écran de régie, dans ses trois apparences, à la résolution du kiosk.
+            # LA PORTE D'ENTRÉE, dans les deux thèmes. Le générateur l'ignorait,
+            # et c'est précisément là qu'un défaut a échappé à toute la suite :
+            # un champ cerclé de la couleur d'erreur au repos ne fait tomber
+            # aucune assertion. Une capture le montre en une image.
+            for theme in ("dark", "light"):
+                porte = navigateur.new_context(
+                    viewport={"width": 1440, "height": 900}, color_scheme=theme)
+                page = porte.new_page()
+                page.goto(base + "/admin/login")
+                page.wait_for_selector(".auth-form")
+                _prendre(page, SORTIE / f"connexion-{theme}.png")
+                porte.close()
+
             regie = navigateur.new_context(viewport={"width": 1920, "height": 1080})
             ecran = regie.new_page()
             for skin in ("basique", "lineaire", "grille"):
