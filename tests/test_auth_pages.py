@@ -168,3 +168,48 @@ def test_le_focus_ne_porte_ni_la_couleur_de_l_erreur_ni_celle_de_l_accent(nom):
 def test_la_feuille_n_accentue_plus_le_champ_au_focus():
     """Garde de mise en œuvre : le focus doit passer par --focus, pas --accent."""
     assert "input:focus { border-color: var(--focus)" in FEUILLE
+
+
+# --------------------------------------------------------------------------
+# Composition : les témoins d'état forment UNE plaque, et rien n'est dupliqué.
+# --------------------------------------------------------------------------
+TEMOINS = ("auth-led", "auth-state", "auth-ver", "auth-clock")
+
+
+def test_la_plaque_regroupe_les_quatre_temoins_dans_le_pied(etats):
+    """Voyant, état, version et horloge forment UNE plaque d'appareil. Groupés
+    dans le pied, ils tiennent dans la même zone de grille aux deux mises en
+    page — c'est ce qui évite de les dupliquer pour le flanc d'identité."""
+    for nom, html in etats.items():
+        pied = html[html.index('<footer class="auth-foot"'):html.index("</footer>")]
+        for identifiant in TEMOINS:
+            assert f'id="{identifiant}"' in pied, f"{identifiant} hors du pied sur {nom}"
+
+
+def test_aucun_identifiant_de_temoin_n_est_duplique(etats):
+    """Un doublon rendrait le pilotage par auth.js silencieusement partiel :
+    getElementById ne rend que le premier."""
+    for nom, html in etats.items():
+        for identifiant in TEMOINS:
+            assert html.count(f'id="{identifiant}"') == 1, f"{identifiant} en double sur {nom}"
+
+
+def test_l_attribut_de_theme_mort_a_disparu(etats):
+    """data-theme="night" n'était lu par aucune règle de la feuille, et il
+    contredit désormais le thème clair automatique."""
+    for nom, html in etats.items():
+        assert 'data-theme="night"' not in html, f"attribut mort encore présent sur {nom}"
+
+
+def test_la_feuille_compose_deux_flancs_au_dela_de_900px():
+    assert "@media (min-width: 900px)" in FEUILLE
+    assert "grid-template-areas" in FEUILLE
+
+
+def test_le_logo_client_garde_un_fond_sombre_dans_les_deux_themes():
+    """Les logos clients sont presque toujours des PNG BLANCS, dessinés pour un
+    fond sombre. Sans plaque, le thème clair les rend invisibles — et c'est un
+    défaut qui n'apparaît QUE chez un client ayant téléversé son logo, jamais
+    en développement. Le jeton vaut donc la même valeur dans les deux thèmes."""
+    assert "background: var(--plaque);" in FEUILLE
+    assert _valeur(_bloc_sombre(), "--plaque") == _valeur(_bloc_clair(), "--plaque")

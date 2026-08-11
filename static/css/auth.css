@@ -43,6 +43,11 @@
        signal de l'erreur, sur un formulaire dont le champ est en autofocus.
        Pas de turquoise ici : ce serait ressusciter la DA abandonnée en juillet. */
     --focus: #EEF1F7;
+    /* Fond permanent du logo client, IDENTIQUE dans les deux thèmes : c'est
+       précisément son rôle de ne pas suivre la lumière. Un jeton plutôt qu'une
+       valeur en dur, pour que la garde « toutes les couleurs du sombre sont
+       redéfinies » le voie passer. */
+    --plaque: #0E1119;
 
     --ui: 12.5px;
     --ui-sm: 11.5px;
@@ -77,6 +82,8 @@
            4,5:1 sur un fond clair. */
         --accent: #B23F31; --accent-lt: #8F3227; --on-accent: #FFFFFF;
         --focus: #151922;
+        /* Volontairement inchangé : voir la règle du logo client. */
+        --plaque: #0E1119;
     }
 }
 
@@ -114,8 +121,26 @@ a { color: var(--accent); text-decoration: none; }
     border-bottom: 1px solid var(--border-soft);
     background: var(--surface);
 }
-.auth-glyph { display: block; width: 17px; height: 17px; }
-.auth-mark { display: block; max-height: 21px; max-width: 132px; }
+/* Silhouette masquée plutôt qu'image : le SVG porte un fill quasi blanc en dur,
+   donc invisible dès qu'un fond clair existe. Le masque le rend indépendant du
+   fichier et lui donne l'accent du produit dans les deux thèmes. */
+.auth-glyph {
+    display: block; width: 17px; height: 17px;
+    flex: none;
+    background-color: var(--accent);
+    -webkit-mask: url('../img/comroster-glyph.svg') center / contain no-repeat;
+    mask: url('../img/comroster-glyph.svg') center / contain no-repeat;
+}
+/* Les logos clients sont presque toujours des PNG BLANCS, dessinés pour un fond
+   sombre. Sans cette plaque, le thème clair les rendrait invisibles — un défaut
+   qui n'apparaît QUE chez un client ayant téléversé son logo, jamais en
+   développement. Le fond ne suit donc pas le thème. */
+.auth-mark {
+    display: block; max-height: 21px; max-width: 132px;
+    background: var(--plaque);
+    padding: 6px 10px;
+    border-radius: var(--rad);
+}
 .auth-name {
     font-size: var(--ui); font-weight: 600;
     letter-spacing: 0.16em; text-transform: uppercase;
@@ -303,9 +328,48 @@ a { color: var(--accent); text-decoration: none; }
     font-size: var(--ui-sm); color: var(--fg-subtle);
     letter-spacing: var(--track);
 }
-.auth-foot .auth-clock {
-    margin-left: auto;
-    font-family: var(--f-mono);
+/* L'horloge suit la version au lieu de s'en écarter : depuis que les quatre
+   témoins forment une plaque, c'est --auth-ver qui porte la poussée à droite. */
+.auth-foot .auth-clock { font-family: var(--f-mono); }
+
+/* ---------- Deux flancs ----------
+   Au-delà de 900 px, le cadre cesse d'être trois bandes empilées : les MÊMES
+   trois enfants sont réaffectés en deux colonnes. Le vide de 1024 px que
+   laissait la colonne de saisie se remplit d'identité et d'état réel, pas de
+   décor. Aucun nœud n'est dupliqué, donc auth.js n'a rien à savoir de tout ça. */
+@media (min-width: 900px) {
+    body.auth {
+        grid-template-columns: 1fr minmax(420px, 520px);
+        grid-template-rows: 1fr auto;
+        grid-template-areas:
+            "ident form"
+            "plate form";
+    }
+    .auth-top {
+        grid-area: ident;
+        /* Centré, comme la colonne de saisie en face : deux blocs alignés sur
+           le même axe se répondent, là où une identité collée en bas laissait
+           tout le haut du flanc en aplat. */
+        flex-direction: column; align-items: flex-start; justify-content: center;
+        gap: 16px;
+        height: auto;
+        padding: var(--gut);
+        background: none; border-bottom: 0;
+    }
+    .auth-glyph { width: 56px; height: 56px; }
+    /* Le logo client est un bitmap téléversé (132×21 à l'origine) : l'agrandir
+       comme le glyphe vectoriel le rendrait flou. */
+    .auth-mark { max-height: 40px; max-width: 240px; }
+    .auth-body {
+        grid-area: form;
+        border-left: 1px solid var(--border-soft);
+    }
+    .auth-foot {
+        grid-area: plate;
+        height: auto;
+        padding: 0 var(--gut) var(--gut);
+        background: none; border-top: 0;
+    }
 }
 
 /* ---------- Étroit ---------- */
