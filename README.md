@@ -119,6 +119,14 @@ procédure de mise à jour : [deploy/raspberry-pi.md](deploy/raspberry-pi.md), s
    glisser-déposer dans les groupes, puis **Envoyer à l'affichage**.
 4. Ouvrir `/display` sur l'écran de régie — mise à jour en direct à chaque publication.
 
+![Écran de connexion, thème sombre](docs/img/connexion-dark.png)
+![Écran de connexion, thème clair](docs/img/connexion-light.png)
+*La porte d'entrée, en régie et au bureau. Le thème suit la préférence du système :
+la page est ouverte aussi bien sur un portable dans une salle sombre que sur un poste
+en pleine lumière, où un aplat très sombre deviendrait un miroir. Le voyant du pied
+n'est pas un ornement — il sonde `/healthz`, et tombe quand le ComRoster s'arrête,
+plutôt que d'afficher un formulaire mort d'apparence normale.*
+
 ![Écran d'administration](docs/img/administration.png)
 *L'administration : les groupes au centre, la réserve à droite (beltpacks non affectés),
 le témoin de l'écran publié en bas à gauche. La barre du bas dit l'essentiel en continu —
