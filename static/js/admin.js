@@ -131,8 +131,82 @@
     if (body !== undefined) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
     const resp = await fetch(url, opts);
     const data = resp.headers.get("content-type")?.includes("json") ? await resp.json() : null;
+    // 401 = session morte. C'est le SEUL échec dont on sache qu'il ne se répare pas
+    // tout seul : il se traite ICI, une fois, et non dans chacun des quarante
+    // appelants — dont aucun ne le distinguait d'une coupure réseau passagère.
+    if (resp.status === 401) sessionPerdue();
     if (!resp.ok) { const e = new Error(data?.code || resp.status); e.payload = data; throw e; }
     return data;
+  }
+
+  /* ---------- Session expirée ----------
+     Le défaut n'était pas de perdre la session — 12 h d'onglet ouvert, un portable
+     refermé, c'est normal. Le défaut était de ne PAS LE DIRE : l'interface restait
+     manipulable, montrait le travail comme s'il était pris en compte, et le
+     rafraîchissement suivant renvoyait au login, tout perdu.
+
+     Trois gestes, et leur ORDRE compte : mettre à l'abri d'abord (si l'onglet
+     ferme dans la seconde, c'est la seule chose qui aura servi), avertir ensuite,
+     empêcher enfin. */
+  const RESCUE_KEY = "comroster.brouillon-rescape";
+  let sessionMorte = false;
+
+  function sessionPerdue() {
+    if (sessionMorte) return;      // un seul avertissement, même si dix appels échouent
+    sessionMorte = true;
+
+    try {
+      localStorage.setItem(RESCUE_KEY, JSON.stringify({ at: Date.now(), data: state.data }));
+    } catch { /* navigation privée ou quota : on avertit quand même */ }
+
+    setStatus("Session expirée", "error");
+
+    const login = document.body.dataset.login || "/admin/login";
+    const barre = document.createElement("div");
+    barre.className = "session-lost";
+    barre.setAttribute("role", "alert");
+    barre.innerHTML =
+      "<b>Session expirée.</b> Vos modifications ne sont plus enregistrées. " +
+      "Elles sont mises de côté et vous seront proposées après reconnexion. " +
+      '<a class="session-lost-go" href="' + esc(login) + '">Se reconnecter</a>';
+    document.body.insertAdjacentElement("afterbegin", barre);
+
+    // Continuer à éditer ne produirait plus que du travail perdu.
+    document.body.dataset.session = "lost";
+    if (el.publishBtn) el.publishBtn.disabled = true;
+  }
+
+  /* Au chargement suivant — donc après reconnexion — on propose la reprise. On ne
+     restaure JAMAIS d'office : le brouillon serveur a pu changer entre-temps, et
+     écraser sans demander serait le défaut qu'on vient de corriger, à l'envers. */
+  function proposerReprise() {
+    let sauve = null;
+    try { sauve = JSON.parse(localStorage.getItem(RESCUE_KEY) || "null"); } catch { /* illisible */ }
+    if (!sauve?.data) return;
+
+    const barre = document.createElement("div");
+    barre.className = "session-rescue";
+    barre.setAttribute("role", "alert");
+    barre.innerHTML =
+      "<b>Travail non enregistré retrouvé</b> (" +
+      esc(new Date(sauve.at).toLocaleString("fr-FR")) + "). " +
+      '<button type="button" class="session-rescue-yes">Restaurer</button> ' +
+      '<button type="button" class="session-rescue-no">Ignorer</button>';
+    document.body.insertAdjacentElement("afterbegin", barre);
+
+    barre.querySelector(".session-rescue-yes").addEventListener("click", () => {
+      state.data = sauve.data;
+      localStorage.removeItem(RESCUE_KEY);
+      barre.remove();
+      render();
+      renderStatusBar();
+      scheduleSave();          // repart par le chemin d'enregistrement normal
+      toast("Travail restauré — enregistrement en cours.");
+    });
+    barre.querySelector(".session-rescue-no").addEventListener("click", () => {
+      localStorage.removeItem(RESCUE_KEY);
+      barre.remove();
+    });
   }
 
   /* Regroupement des écritures du brouillon. Chaque enregistrement est une écriture
@@ -192,6 +266,10 @@
       reloadScreenPreview();
     } catch (err) {
       if (generation !== saveGeneration) return;
+      // `sessionPerdue()` a déjà posé son libellé — et il est plus juste. L'écraser
+      // par « Échec de l'enregistrement » ferait dire deux choses différentes au
+      // bandeau et à la barre d'état pour un seul et même événement.
+      if (sessionMorte) return;
       setStatus("Échec de l'enregistrement", "error");
       if (err.message === "beltpack_conflict") {
         toast("Deux beltpacks ont le même numéro. Corrigez avant d'enregistrer.", true);
@@ -2826,6 +2904,7 @@
 
   /* ---------- Init ---------- */
   resetUndo();                // référence de départ : rien à annuler avant la 1re édition
+  proposerReprise();          // un travail sauvé d'une session morte attend peut-être
   render();
   updateSelectionBar();
   refreshAntennaBadge();

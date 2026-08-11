@@ -24,6 +24,20 @@ def enter_admin(page, base):
     page.wait_for_selector("#add-block-btn")
 
 
+def se_reconnecter(page, base):
+    """Reconnexion sur un boîtier DÉJÀ configuré — le geste d'un utilisateur dont la
+    session a expiré.
+
+    `enter_admin` ne convient pas ici : il passe par /admin/setup, qui redirige vers la
+    connexion dès qu'un administrateur existe. Appelé deux fois, il attend donc un
+    bouton « Accéder à l'administration » qui n'apparaîtra jamais.
+    """
+    page.goto(base + "/admin/login")
+    page.fill("input[name=password]", MOT_DE_PASSE)
+    page.click("button[type=submit]")
+    page.wait_for_selector("#add-block-btn")
+
+
 def ajouter_beltpack(page, numero, role, ouvrir="#add-beltpack-pool"):
     """Ajoute un beltpack par le VRAI geste : ouvrir la boîte, saisir, soumettre.
 

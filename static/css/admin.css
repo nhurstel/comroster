@@ -1401,3 +1401,43 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .ant-name { color: var(--fg); font-weight: 600; }
 .ant-ip { color: var(--fg-muted); font-variant-numeric: tabular-nums; font-size: var(--ui); }
 .ant-bp { color: var(--fg-subtle); font-size: var(--ui); }
+
+/* ---------- Session expirée ----------
+   Deux bandeaux pleine largeur, posés en tête de <body> donc HORS de .admin-app :
+   le verrou qui neutralise l'application ne peut pas les atteindre.
+
+   Ils ne sont pas décoratifs. Le défaut qu'ils corrigent : une session morte ne se
+   signalait que par un libellé de 11 px dans la barre du bas, pendant que le plateau
+   restait manipulable et affichait le travail comme enregistré. */
+.session-lost,
+.session-rescue {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 11px 18px;
+    font-size: 13px; color: var(--fg);
+    border-bottom: 1px solid var(--border);
+}
+.session-lost { background: var(--danger-bg); border-bottom-color: var(--danger-line); }
+.session-rescue { background: var(--surface-2); }
+
+.session-lost b { color: var(--danger); }
+
+.session-lost-go,
+.session-rescue-yes,
+.session-rescue-no {
+    display: inline-flex; align-items: center;
+    height: 30px; padding: 0 14px;
+    border: 1px solid var(--border-2); border-radius: 7px;
+    background: var(--surface-3); color: var(--fg);
+    font: inherit; font-weight: 600; text-decoration: none;
+    cursor: pointer;
+}
+.session-lost-go:hover,
+.session-rescue-yes:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+/* Le verrou. Éditer après la mort de la session ne produirait plus que du travail
+   perdu — mieux vaut une interface visiblement gelée qu'une interface qui ment. */
+body[data-session="lost"] .admin-app {
+    pointer-events: none;
+    opacity: 0.5;
+    filter: saturate(0.4);
+}
