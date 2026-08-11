@@ -47,7 +47,7 @@ Ces règles s'appliquent à **toutes** les tâches.
 **Interfaces :**
 - Produit : le jeton `--focus` et le bloc `@media (prefers-color-scheme: light)`, consommés par les tâches 2, 3 et 5.
 
-- [ ] **Étape 1 : écrire les tests qui échouent**
+- [x] **Étape 1 : écrire les tests qui échouent**
 
 Ajouter à la fin de `tests/test_auth_pages.py` :
 
@@ -109,12 +109,12 @@ def test_la_feuille_n_accentue_plus_le_champ_au_focus():
     assert "input:focus { border-color: var(--focus)" in FEUILLE
 ```
 
-- [ ] **Étape 2 : lancer les tests pour vérifier qu'ils échouent**
+- [x] **Étape 2 : lancer les tests pour vérifier qu'ils échouent**
 
 Run : `.venv/bin/python -m pytest tests/test_auth_pages.py -k "focus or theme_clair" -v`
 Attendu : ÉCHEC — `--focus` absent et `@media (prefers-color-scheme: light)` introuvable (`ValueError: substring not found`).
 
-- [ ] **Étape 3 : écrire l'implémentation**
+- [x] **Étape 3 : écrire l'implémentation**
 
 Dans `static/css/auth.css`, ajouter le jeton de focus au bloc `:root` existant, juste après la ligne `--accent` :
 
@@ -160,12 +160,12 @@ Puis ajouter, **après** le bloc `:root` et avant le commentaire `/* ---------- 
 }
 ```
 
-- [ ] **Étape 4 : lancer les tests pour vérifier qu'ils passent**
+- [x] **Étape 4 : lancer les tests pour vérifier qu'ils passent**
 
 Run : `.venv/bin/python -m pytest tests/test_auth_pages.py -v`
 Attendu : PASS sur l'ensemble du fichier, anciennes gardes comprises.
 
-- [ ] **Étape 5 : mesurer le contraste, ne pas le supposer**
+- [x] **Étape 5 : mesurer le contraste, ne pas le supposer**
 
 ```bash
 .venv/bin/python - <<'PY'
@@ -213,7 +213,7 @@ PY
 
 Attendu : **≥ 4,5:1**. Si un couple descend sous la barre, assombrir le jeton fautif du bloc clair et relancer. **Consigner la valeur mesurée dans le message de commit.**
 
-- [ ] **Étape 6 : committer**
+- [x] **Étape 6 : committer**
 
 ```bash
 git add static/css/auth.css tests/test_auth_pages.py
