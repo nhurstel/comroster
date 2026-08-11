@@ -175,9 +175,12 @@ body.display-page[data-skin="lineaire"] .header-actions {
   margin-left: auto; gap: 0;
   align-self: stretch; align-items: stretch;
 }
-/* « En direct » avant l'heure : en régie c'est l'heure qu'on cherche, elle finit la barre. */
+/* Ordre du bandeau : celui du DOM (horloge, « En direct », logo), donc le même que
+   `basique` et `grille`. Il y avait ici deux `order` (pastille 1, horloge 2) posés pour
+   faire finir la barre par l'heure — mais le LOGO, troisième frère, n'en avait pas reçu :
+   resté à la valeur par défaut 0, il passait devant les deux. Une intention exprimée sur
+   deux enfants sur trois produit l'ordre de personne. */
 body.display-page[data-skin="lineaire"] .status-badge {
-  order: 1;
   display: flex; align-items: center; gap: 0.55rem;
   padding: 0 1.1rem;
   border-left: 1px solid var(--l-line);
@@ -186,13 +189,25 @@ body.display-page[data-skin="lineaire"] .status-badge .status-text {
   font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--l-muted);
 }
 body.display-page[data-skin="lineaire"] .board-clock {
-  order: 2;
   display: flex; align-items: center;
   padding: 0 1.25rem; min-width: 0;
   border-left: 1px solid var(--l-line);
   font-family: var(--font-body);
   font-size: 1.55rem; font-weight: 500; letter-spacing: -0.02em;
   color: var(--l-fg);
+}
+/* Le logo est la troisième zone du bandeau, et la seule qui n'avait rien reçu : sur un
+   conteneur en `align-items: stretch`, un élément de hauteur DÉFINIE (height: 1.85rem)
+   ne s'étire pas — il se pose au DÉBUT de l'axe, donc collé en haut. On lui rend la
+   même forme de cellule qu'à ses voisines : hauteur libre pour que le filet vertical
+   monte de haut en bas, et le glyphe recentré par `object-fit: contain` (déjà posé sur
+   la règle de base) dans le rembourrage. */
+body.display-page[data-skin="lineaire"] .brand-mark {
+  align-self: stretch;
+  height: auto;
+  padding: 0.8rem 1.1rem;
+  box-sizing: border-box;
+  border-left-color: var(--l-line);
 }
 
 /* ---------- Le tableau ----------

@@ -72,6 +72,62 @@ def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie",
     return display, errors
 
 
+# Géométrie des zones de droite du bandeau : leur ordre VISUEL (trié par abscisse, donc
+# après application des `order` CSS) et leur écart au centre vertical du bandeau.
+_ZONES_DU_BANDEAU = """() => {
+    const header = document.querySelector('header');
+    const hr = header.getBoundingClientRect();
+    return [...document.querySelector('.header-actions').children]
+        .filter((el) => el.getBoundingClientRect().width > 0)
+        .map((el) => {
+            const r = el.getBoundingClientRect();
+            return {
+                nom: el.className,
+                x: r.x,
+                ecart: (r.top + r.bottom) / 2 - (hr.top + hr.bottom) / 2,
+            };
+        })
+        .sort((a, b) => a.x - b.x);
+}"""
+
+
+# L'ordre attendu est celui du DOM. Il est écrit en toutes lettres, et non déduit d'une
+# apparence de référence : une constante se lit, une comparaison croisée passerait au vert
+# le jour où LES TROIS dérivent ensemble.
+_ORDRE_DU_BANDEAU = ["board-clock", "status-badge", "brand-mark"]
+
+
+@pytest.mark.parametrize("skin", ["basique", "lineaire", "grille"])
+def test_le_bandeau_est_range_pareil_dans_les_trois_apparences(page, live_server, skin):
+    """Ordre des zones de droite, et logo centré — sur chacune des trois apparences.
+
+    `lineaire` sortait des deux : elle donnait un `order` à la pastille et à l'horloge
+    mais pas au LOGO, resté à la valeur par défaut 0, qui passait donc devant les deux ;
+    et son `align-items: stretch` ne recentre pas un élément de hauteur DÉFINIE, qui se
+    pose alors au début de l'axe — le logo restait collé en haut. Deux défauts visibles
+    à l'œil, invisibles à toute assertion de contenu.
+
+    On mesure l'ordre VISUEL (trié par abscisse) et non celui du DOM : sans cela le test
+    passerait quels que soient les `order`, c'est-à-dire précisément ce qu'il surveille.
+
+    Le test est paramétré plutôt que bouclé sur les trois apparences dans un seul corps :
+    chaque cas a besoin d'un boîtier NEUF, `enter_admin` passant par /admin/setup, qui ne
+    se rejoue pas une fois le mot de passe défini.
+    """
+    display, _ = _publish_one_group(page, live_server, skin=skin)
+    zones = display.evaluate(_ZONES_DU_BANDEAU)
+
+    # `basique` est la seule à montrer les compteurs (skins.css masque .stats-container
+    # ailleurs) : on compare la queue commune aux trois.
+    ordre = [z["nom"] for z in zones if "stats-container" not in z["nom"]]
+    assert ordre == _ORDRE_DU_BANDEAU, f"{skin} range le bandeau autrement : {ordre}"
+
+    ecart = next(z["ecart"] for z in zones if z["nom"] == "brand-mark")
+    # 1,5 px de tolérance : un bandeau de hauteur impaire ne centre exactement aucun de
+    # ses enfants — ses voisines ne le sont pas davantage.
+    assert abs(ecart) <= 1.5, f"{skin} : logo décentré de {ecart:.1f} px"
+
+
 def test_base_skin_keeps_historic_fit_bounds(page, live_server):
     """Non-régression du contrat d'ajustement (lot 2026-07-15) après le passage des
     bornes de fitDisplayText en variables CSS : `base` doit rester identique."""

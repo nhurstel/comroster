@@ -1794,6 +1794,70 @@ qu'à son œil sont donc **validés tels quels** :
 
 ---
 
+# LOT 2026-08-11 (b) — Le bandeau de l'apparence `lineaire`
+
+**Demande de Nathan, verbatim** : « Effectivement le pictogramme n'est pas bon.
+Effectivement fais le même ordre que dans "grille". »
+
+Deux décisions, prises après qu'il a vu la capture produite par le lot précédent.
+
+## Cause racine — une seule, deux symptômes
+
+`lineaire` passe `.header-actions` en `align-items: stretch` (skins.css:174) pour que
+chaque zone du bandeau porte son filet vertical pleine hauteur. La pastille et l'horloge
+se re-centrent alors chacune pour leur compte (`display:flex; align-items:center`) et
+reçoivent un `order` explicite (1 et 2). **Le logo n'a reçu ni l'un ni l'autre** :
+
+- sans `order`, il garde la valeur par défaut **0** et passe DEVANT ses deux frères ;
+- sans re-centrage, `stretch` retombe sur le début de l'axe pour un élément de hauteur
+  définie (`height: 1.85rem`) — il reste donc collé en haut.
+
+Le commentaire de skins.css:178 décrit l'intention d'origine (« En direct avant l'heure,
+l'heure finit la barre »). Nathan tranche en sens inverse : **l'ordre de `grille`**, qui
+est simplement l'ordre du DOM — horloge, pastille, logo. Les deux `order` sautent donc,
+et le commentaire avec eux : le garder en ferait une affirmation fausse.
+
+## À ne pas oublier
+
+`docs/img/ecran-lineaire.png` montre le défaut : la capture doit être RÉGÉNÉRÉE dans le
+même commit, sinon la documentation contredit le produit.
+
+## LIVRÉ (2026-08-11)
+
+Les deux `order` sont retirés, le logo reçoit la même forme de cellule que ses voisines
+(`align-self: stretch; height: auto`), et le commentaire qui revendiquait l'ancien ordre
+est remplacé — le garder en aurait fait une affirmation fausse.
+
+**Mesuré, pas jugé** (1920×1080, les trois apparences) : ordre visuel identique partout,
+`board-clock → status-badge → brand-mark`. Le logo occupe désormais 0→63 px dans un
+bandeau de 64, écart au centre **−0,5 px** — exactement celui de ses deux voisines, donc
+son filet vertical court de haut en bas comme les leurs.
+
+**Garde ajoutée** : `test_le_bandeau_est_range_pareil_dans_les_trois_apparences`,
+paramétré sur les trois apparences. Il mesure l'ordre VISUEL (trié par abscisse) et non
+celui du DOM — sans quoi il passerait quels que soient les `order`, c'est-à-dire
+précisément ce qu'il surveille. L'ordre attendu est une constante écrite en clair, pas
+une comparaison croisée entre apparences : celle-ci passerait au vert le jour où les
+trois dérivent ensemble.
+
+**Chaque garde vue tomber, une propriété à la fois** (leçon n°83) : `order: 1` rendu à la
+pastille → l'ordre tombe sur `board-clock, brand-mark, status-badge` ; l'étirement retiré
+au logo → le centrage tombe à **−17,2 px**. Dans les deux cas, seule `lineaire` échoue,
+`basique` et `grille` restent vertes.
+
+**Capture régénérée**, et seulement celle-là : les trois autres ont été restaurées depuis
+l'index, l'heure affichée étant leur seule différence. Le diff ne porte donc que sur ce
+qui a réellement changé.
+
+**Vérifié : 553 unitaires · 67 e2e · 43 JS · ruff propre.**
+
+### Au passage, un point qui inquiétait Nathan et qui n'est pas un défaut
+Les compteurs « 6 groupes · 26 beltpacks » absents de `lineaire` et de `grille` sont
+**délibérés** : `skins.css:92` masque `.stats-container` hors `basique`, chaque groupe
+portant déjà son propre décompte.
+
+---
+
 # LOT 2026-08-11 — Les captures de la documentation
 
 **Demande de Nathan : « OK GO »**, périmètre choisi « les captures dans la doc ».
