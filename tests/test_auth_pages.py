@@ -213,3 +213,15 @@ def test_le_logo_client_garde_un_fond_sombre_dans_les_deux_themes():
     en développement. Le jeton vaut donc la même valeur dans les deux thèmes."""
     assert "background: var(--plaque);" in FEUILLE
     assert _valeur(_bloc_sombre(), "--plaque") == _valeur(_bloc_clair(), "--plaque")
+
+
+def test_les_cibles_tactiles_atteignent_44px_au_pointeur_grossier():
+    """Champ à 38 px et bouton à 34 px : sous la barre des 44 px, sur une page
+    ouverte au téléphone. C'est le POINTEUR qui décide, pas la largeur — une
+    fenêtre étroite pilotée à la souris garde la densité du bureau."""
+    assert "@media (pointer: coarse)" in FEUILLE
+    debut = FEUILLE.index("@media (pointer: coarse)")
+    bloc = FEUILLE[debut:FEUILLE.index("\n}", debut)]
+    hauteurs = [int(v) for v in re.findall(r"height:\s*(\d+)px", bloc)]
+    assert hauteurs, "le bloc tactile ne fixe aucune hauteur"
+    assert min(hauteurs) >= 44, f"cible sous 44 px : {min(hauteurs)}px"

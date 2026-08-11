@@ -377,3 +377,14 @@ a { color: var(--accent); text-decoration: none; }
     :root { --gut: 20px; }
     .auth-code { font-size: 19px; }
 }
+
+/* ---------- Pointeur grossier ----------
+   La page est ouverte au téléphone et à la tablette. C'est le POINTEUR qui
+   déclenche l'élargissement, pas la largeur : une fenêtre de bureau étroite
+   n'a aucune raison de perdre sa densité. */
+@media (pointer: coarse) {
+    .auth-field input { height: 46px; }
+    .auth-go { height: 46px; padding: 0 22px; }
+    /* Le lien n'a pas de boîte propre : on lui en donne une, sans le déplacer. */
+    .auth-link { padding: 12px 0; }
+}
