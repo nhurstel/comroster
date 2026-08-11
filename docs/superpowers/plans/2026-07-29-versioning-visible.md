@@ -20,7 +20,7 @@ Ces règles s'appliquent à **toutes** les tâches ci-dessous.
 - **Politique appliance fail-safe.** Toute lecture qui échoue retourne une valeur neutre et journalise un avertissement. Jamais d'exception qui empêcherait une page de s'afficher. Modèle : `comroster/services/lifetime.py:_load`.
 - **Jamais un numéro inventé.** Si l'information n'est pas connue, l'afficher comme inconnue ou ne rien afficher — jamais une valeur par défaut plausible.
 - **Français dans tout le code produit** : docstrings, commentaires, noms de tests, libellés d'interface. Les commentaires expliquent le *pourquoi*, pas le *quoi* — c'est la convention du dépôt.
-- **Commits en français**, préfixés `feat:` / `fix:` / `docs:` / `test:`, avec `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>` en pied.
+- **Commits en français**, préfixés `feat:` / `fix:` / `docs:` / `test:`.
 - **Format du fichier `comroster/VERSION`** : une ligne, trois champs séparés par une espace simple, terminée par un saut de ligne.
   ```
   v1.4.0+7 9f3c1a2 2026-07-29
@@ -245,9 +245,7 @@ git commit -m "feat(version): service de lecture de la version gravée
 
 Le numéro n'est jamais saisi : il est lu dans comroster/VERSION, gravé au
 déploiement. Fichier absent ou mal formé donne « inconnue », jamais un
-numéro partiel — un demi-numéro se lit comme un numéro entier.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+numéro partiel — un demi-numéro se lit comme un numéro entier."
 ```
 
 ---
@@ -437,9 +435,7 @@ git commit -m "feat(version): détecter un code modifié depuis le déploiement
 
 Compare le commit gravé au SHA lu dans .git, par lecture de fichier — jamais
 par mtime : git status réécrit l'index sans qu'une ligne de code ait bougé,
-et une garde qui crie au loup finit ignorée.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+et une garde qui crie au loup finit ignorée."
 ```
 
 ---
@@ -558,9 +554,7 @@ git add comroster/__init__.py comroster/services/health.py tests/test_version.py
 git commit -m "feat(version): exposer la version à /healthz, à la santé et aux gabarits
 
 Injectée sous le nom appversion : « version » est déjà pris par le numéro de
-révision d'une publication.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+révision d'une publication."
 ```
 
 ---
@@ -725,9 +719,7 @@ git commit -m "feat(version): graver la version au déploiement
 
 Une ligne de texte nu, lisible par Python et par sh sans dépendance. Rien
 n'est gravé si git ne répond pas : l'absence de fichier est un état géré,
-un numéro faux ne l'est pas.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+un numéro faux ne l'est pas."
 ```
 
 ---
@@ -805,9 +797,7 @@ git add templates/display.html tests/test_version.py
 git commit -m "feat(version): version publique au pied de l'écran de régie
 
 v1.4 et non v1.4.0+7 : moins précis n'est pas mentir. Sans tag, le pied
-reste mot pour mot ce qu'il était — pas de séparateur orphelin.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+reste mot pour mot ce qu'il était — pas de séparateur orphelin."
 ```
 
 ---
@@ -959,9 +949,7 @@ git commit -m "feat(version): version sur l'écran de démarrage
 
 Passée par l'URL comme next et health : le splash s'ouvre en file:// avant
 que le serveur réponde. Le « + » est encodé en %2B, sans quoi la chaîne de
-requête le décoderait en espace.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+requête le décoderait en espace."
 ```
 
 ---
@@ -1047,9 +1035,7 @@ Attendu : une ligne « Démarrage de l'application » — libellé en français,
 git add comroster/__init__.py static/js/journal.js tests/test_version.py
 git commit -m "feat(version): journaliser la version à chaque démarrage
 
-Le journal devient l'historique des mises à jour du boîtier.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+Le journal devient l'historique des mises à jour du boîtier."
 ```
 
 ---
@@ -1151,9 +1137,7 @@ git add static/js/health.js tests/test_version.py
 git commit -m "feat(version): carte d'identité du logiciel dans l'onglet Santé
 
 Label, commit, date, et la mention d'incertitude quand le dépôt a bougé
-depuis le déploiement. Seul endroit où stale est visible.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+depuis le déploiement. Seul endroit où stale est visible."
 ```
 
 ---
@@ -1222,9 +1206,7 @@ git add README.md deploy/raspberry-pi.md
 git commit -m "docs: discipline de version — poser le tag avant de déployer
 
 Le message du tag annoté tient lieu de journal des versions : pas de
-CHANGELOG.md, qui serait un deuxième endroit à tenir à jour.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+CHANGELOG.md, qui serait un deuxième endroit à tenir à jour."
 ```
 
 - [ ] **Étape 4 : poser le premier tag**
@@ -1272,9 +1254,7 @@ Ajouter une entrée à `tasks/lessons.md`, au format du fichier (`[date] | ce qu
 
 ```bash
 git add tasks/lessons.md
-git commit -m "docs: leçon — le « + » d'une URL se décode en espace
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+git commit -m "docs: leçon — le « + » d'une URL se décode en espace"
 ```
 
 ---
