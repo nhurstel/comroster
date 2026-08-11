@@ -1,6 +1,6 @@
 # Pages d'authentification, la face avant assumée — plan d'implémentation
 
-> **Pour les agents :** SOUS-COMPÉTENCE REQUISE — utiliser `superpowers:subagent-driven-development` (recommandé) ou `superpowers:executing-plans` pour exécuter ce plan tâche par tâche. Les étapes utilisent la syntaxe case à cocher (`- [ ]`).
+> **Pour les agents :** SOUS-COMPÉTENCE REQUISE — utiliser `superpowers:subagent-driven-development` (recommandé) ou `superpowers:executing-plans` pour exécuter ce plan tâche par tâche. Les étapes utilisent la syntaxe case à cocher (`- [x]`).
 
 **Objectif :** donner aux pages d'authentification une composition qui occupe le cadre, une identité visible, un thème clair et des cibles tactiles conformes — sans toucher `auth.js` ni les deux gabarits de page.
 
@@ -242,7 +242,7 @@ Pire contraste mesuré en thème clair : <VALEUR DE L'ÉTAPE 5>."
 - Consomme : le jeton `--focus` et le bloc clair de la tâche 1.
 - Produit : les zones de grille `ident` / `form` / `plate`, consommées par la tâche 5.
 
-- [ ] **Étape 1 : écrire les tests qui échouent**
+- [x] **Étape 1 : écrire les tests qui échouent**
 
 ```python
 def test_la_plaque_regroupe_les_quatre_temoins_dans_le_pied(etats):
@@ -284,12 +284,12 @@ def test_le_logo_client_garde_un_fond_sombre_dans_les_deux_themes():
     assert _valeur(_bloc_sombre(), "--plaque") == _valeur(_bloc_clair(), "--plaque")
 ```
 
-- [ ] **Étape 2 : lancer les tests pour vérifier qu'ils échouent**
+- [x] **Étape 2 : lancer les tests pour vérifier qu'ils échouent**
 
 Run : `.venv/bin/python -m pytest tests/test_auth_pages.py -k "plaque or duplique or theme_mort or flancs" -v`
 Attendu : ÉCHEC — les témoins sont aujourd'hui répartis entre bandeau et pied, et `data-theme="night"` est présent.
 
-- [ ] **Étape 3 : regrouper la plaque dans le cadre commun**
+- [x] **Étape 3 : regrouper la plaque dans le cadre commun**
 
 Dans `templates/auth_base.html`, remplacer la balise `<body>` ainsi que les blocs `header` et `footer` :
 
@@ -326,7 +326,7 @@ Dans `templates/auth_base.html`, remplacer la balise `<body>` ainsi que les bloc
   </footer>
 ```
 
-- [ ] **Étape 4 : composer les deux flancs**
+- [x] **Étape 4 : composer les deux flancs**
 
 Dans `static/css/auth.css`, la version quittant le bandeau pour le pied, remplacer sa règle :
 
@@ -405,13 +405,13 @@ Le jeton `--plaque` est ajouté au bloc `:root` **et** au bloc clair de la tâch
     --plaque: #0E1119;
 ```
 
-- [ ] **Étape 5 : lancer les tests, puis toute la suite**
+- [x] **Étape 5 : lancer les tests, puis toute la suite**
 
 Run : `.venv/bin/python -m pytest tests/test_auth_pages.py -v`
 Puis : `.venv/bin/python -m pytest -q` et `.venv/bin/python -m pytest -q -m e2e`
 Attendu : tout passe. **Si un e2e échoue, ne pas ajuster le test avant d'avoir vérifié que la page est réellement correcte** — les huit fichiers visent des classes inchangées, un échec signale donc une régression, pas un sélecteur à suivre.
 
-- [ ] **Étape 6 : vérifier le rendu réel**
+- [x] **Étape 6 : vérifier le rendu réel**
 
 Rendre `/admin/login` à 1440×900 puis à 380×740, dans les deux thèmes, et regarder :
 - le flanc gauche porte glyphe, nom, puis la plaque en bas ;
@@ -419,7 +419,7 @@ Rendre `/admin/login` à 1440×900 puis à 380×740, dans les deux thèmes, et r
 - sous 900 px, la page reprend la forme bandeau · corps · pied ;
 - aucun débord horizontal.
 
-- [ ] **Étape 7 : committer**
+- [x] **Étape 7 : committer**
 
 ```bash
 git add templates/auth_base.html static/css/auth.css tests/test_auth_pages.py
@@ -445,7 +445,7 @@ L'attribut mort data-theme=night disparaît au passage."
 
 **Interfaces :** consomme les jetons de la tâche 1. Ne produit rien pour les suivantes.
 
-- [ ] **Étape 1 : écrire le test qui échoue**
+- [x] **Étape 1 : écrire le test qui échoue**
 
 ```python
 def test_les_cibles_tactiles_atteignent_44px_au_pointeur_grossier():
@@ -460,12 +460,12 @@ def test_les_cibles_tactiles_atteignent_44px_au_pointeur_grossier():
     assert min(hauteurs) >= 44, f"cible sous 44 px : {min(hauteurs)}px"
 ```
 
-- [ ] **Étape 2 : lancer le test pour vérifier qu'il échoue**
+- [x] **Étape 2 : lancer le test pour vérifier qu'il échoue**
 
 Run : `.venv/bin/python -m pytest tests/test_auth_pages.py -k tactiles -v`
 Attendu : ÉCHEC — `ValueError: substring not found`.
 
-- [ ] **Étape 3 : écrire l'implémentation**
+- [x] **Étape 3 : écrire l'implémentation**
 
 Ajouter à la fin de `static/css/auth.css` :
 
@@ -482,12 +482,12 @@ Ajouter à la fin de `static/css/auth.css` :
 }
 ```
 
-- [ ] **Étape 4 : lancer les tests pour vérifier qu'ils passent**
+- [x] **Étape 4 : lancer les tests pour vérifier qu'ils passent**
 
 Run : `.venv/bin/python -m pytest tests/test_auth_pages.py -v`
 Attendu : PASS.
 
-- [ ] **Étape 5 : mesurer les boîtes réelles au doigt simulé**
+- [x] **Étape 5 : mesurer les boîtes réelles au doigt simulé**
 
 ```bash
 .venv/bin/python - <<'PY'
@@ -514,7 +514,7 @@ PY
 
 Attendu : **≥ 44** pour les deux.
 
-- [ ] **Étape 6 : committer**
+- [x] **Étape 6 : committer**
 
 ```bash
 git add static/css/auth.css tests/test_auth_pages.py
@@ -536,7 +536,7 @@ déclenché par pointer: coarse et non par la largeur : une fenêtre de bureau
 
 **Interfaces :** consomme les jetons de la tâche 1.
 
-- [ ] **Étape 1 : MESURER ce que contiennent les polices embarquées**
+- [x] **Étape 1 : MESURER ce que contiennent les polices embarquées**
 
 Ne rien supposer. `fonttools` est un outil de développement, installé hors du runtime du produit :
 
@@ -560,7 +560,7 @@ PY
 
 Consigner le résultat de la mesure dans le message de commit.
 
-- [ ] **Étape 2 : écrire le test qui échoue**
+- [x] **Étape 2 : écrire le test qui échoue**
 
 ```python
 def test_le_code_de_recuperation_est_rendu_sans_glyphes_ambigus():
@@ -573,12 +573,12 @@ def test_le_code_de_recuperation_est_rendu_sans_glyphes_ambigus():
         "le code est rendu sans désambiguïsation des glyphes"
 ```
 
-- [ ] **Étape 3 : lancer le test pour vérifier qu'il échoue**
+- [x] **Étape 3 : lancer le test pour vérifier qu'il échoue**
 
 Run : `.venv/bin/python -m pytest tests/test_auth_pages.py -k ambigus -v`
 Attendu : ÉCHEC.
 
-- [ ] **Étape 4a : implémentation — voie 1 (les fonctions existent)**
+- [x] **Étape 4a : implémentation — voie 1 (les fonctions existent)**
 
 Dans `.auth-code`, ajouter juste après la ligne `font-family` :
 
@@ -589,7 +589,7 @@ Dans `.auth-code`, ajouter juste après la ligne `font-family` :
     font-feature-settings: "zero" 1, "ss02" 1;
 ```
 
-- [ ] **Étape 4b : implémentation — voie 2 (les fonctions ont été purgées)**
+- [x] **Étape 4b : implémentation — voie 2 (les fonctions ont été purgées)**
 
 Générer un sous-ensemble limité aux caractères du code — majuscules, chiffres, tiret :
 
@@ -609,7 +609,7 @@ Déclarer la police auprès des autres `@font-face` en tête de `auth.css` :
 Ajouter le jeton dans `:root` : `--f-code: 'CodeMono', ui-monospace, monospace;`
 Puis dans `.auth-code`, remplacer `font-family: var(--f-mono);` par `font-family: var(--f-code);`
 
-- [ ] **Étape 5 : corriger le jeton qui ment**
+- [x] **Étape 5 : corriger le jeton qui ment**
 
 Quelle que soit la voie retenue, remplacer le commentaire du jeton `--f-mono` pour qu'il cesse d'annoncer une monospace :
 
@@ -619,16 +619,16 @@ Quelle que soit la voie retenue, remplacer le commentaire du jeton `--f-mono` po
     --f-mono: 'Inter', ui-monospace, monospace;
 ```
 
-- [ ] **Étape 6 : lancer les tests**
+- [x] **Étape 6 : lancer les tests**
 
 Run : `.venv/bin/python -m pytest tests/test_auth_pages.py -v`
 Attendu : PASS, y compris l'ancienne garde `test_la_feuille_interdit_la_coupure_du_code`.
 
-- [ ] **Étape 7 : vérifier à l'œil**
+- [x] **Étape 7 : vérifier à l'œil**
 
 Rendre `/admin/setup`, créer un compte, lire le code affiché : `0` et `O`, `1` et `I` doivent se distinguer sans hésitation. Capturer l'image.
 
-- [ ] **Étape 8 : committer**
+- [x] **Étape 8 : committer**
 
 ```bash
 git add static/css/auth.css tests/test_auth_pages.py
@@ -652,7 +652,7 @@ Mesure des woff2 embarqués : <RÉSULTAT DE L'ÉTAPE 1>."
 
 **Interfaces :** consomme les zones de grille de la tâche 2.
 
-- [ ] **Étape 1 : écrire l'implémentation**
+- [x] **Étape 1 : écrire l'implémentation**
 
 Ajouter à l'intérieur du bloc `@media (min-width: 900px)` créé en tâche 2 :
 
@@ -676,16 +676,16 @@ Puis, **hors** media query, à la suite de la règle `.auth-col` :
 .auth-col { animation: auth-arrivee 0.16s ease-out both; }
 ```
 
-- [ ] **Étape 2 : lancer toute la suite**
+- [x] **Étape 2 : lancer toute la suite**
 
 Run : `.venv/bin/python -m pytest -q` puis `.venv/bin/python -m pytest -q -m e2e`
 Attendu : tout passe. Une animation d'arrivée peut rendre un e2e instable s'il agit avant sa fin — **si un test devient intermittent, RETENIR l'animation comme le fait la leçon du 2026-08-09 (mise en file via `add_init_script`, geste, puis libération), ne pas allonger une attente.**
 
-- [ ] **Étape 3 : vérifier le rendu réel**
+- [x] **Étape 3 : vérifier le rendu réel**
 
 Rendre à 1440×900 dans les deux thèmes. La page doit se lire comme composée, pas comme centrée par défaut. Vérifier que l'animation ne rejoue pas à chaque frappe dans le champ.
 
-- [ ] **Étape 4 : committer**
+- [x] **Étape 4 : committer**
 
 ```bash
 git add static/css/auth.css
@@ -704,7 +704,7 @@ en tête de feuille."
 **Fichiers :**
 - Modifier : `tools/captures.py`
 
-- [ ] **Étape 1 : étendre le générateur**
+- [x] **Étape 1 : étendre le générateur**
 
 Dans `main()`, après le bloc de l'administration et avant celui de l'écran de régie, ajouter :
 
@@ -723,16 +723,16 @@ Dans `main()`, après le bloc de l'administration et avant celui de l'écran de 
                 porte.close()
 ```
 
-- [ ] **Étape 2 : lancer le générateur**
+- [x] **Étape 2 : lancer le générateur**
 
 Run : `.venv/bin/python tools/captures.py`
 Attendu : `docs/img/connexion-dark.png` et `docs/img/connexion-light.png` sont écrits ; les captures existantes restent inchangées (`git status` ne doit pas les montrer modifiées).
 
-- [ ] **Étape 3 : regarder les deux images**
+- [x] **Étape 3 : regarder les deux images**
 
 Vérifier : identité à gauche, plaque en bas à gauche, saisie à droite, champ **non** cerclé de rouge au repos, texte lisible en thème clair.
 
-- [ ] **Étape 4 : committer**
+- [x] **Étape 4 : committer**
 
 ```bash
 git add tools/captures.py docs/img/connexion-dark.png docs/img/connexion-light.png
@@ -747,9 +747,34 @@ au repos ne fait tomber aucune assertion."
 
 ## Revue finale
 
-- [ ] `.venv/bin/python -m pytest -q` — attendu : **565 passed** (558 existants + 7 gardes ajoutées : 1 thème clair, 2 focus paramétrés, 1 focus mis en œuvre, 4 en tâche 2, 1 tactile, 1 code — recompter à l'exécution et corriger ce chiffre s'il diffère)
-- [ ] `.venv/bin/python -m pytest -q -m e2e` — attendu : **67 passed**
-- [ ] Les cinq états relus à l'œil, dans les deux thèmes, à 1440×900 et à 380×740
-- [ ] **Réserve de la spec à lever :** le clavier logiciel en PAYSAGE. `body.auth` porte `overflow: hidden` et seul `.auth-body` défile. Rendre `/admin/login` à 740×380 avec `has_touch=True`, mettre le focus dans le champ et vérifier que le bouton « Se connecter » reste atteignable. S'il ne l'est pas, la correction est `min-height: 0` sur la zone de formulaire — une piste, à confirmer par la mesure et non à appliquer d'office
-- [ ] Le logo client vérifié en conditions réelles : téléverser un PNG blanc, ouvrir la page en thème CLAIR, le logo doit rester lisible sur sa plaque
-- [ ] `git diff v1.2.0..HEAD -- static/js/auth.js` rend une sortie **vide** — c'est la preuve que la restructuration est restée une affaire de mise en page
+- [x] `.venv/bin/python -m pytest -q` — attendu : **565 passed** (558 existants + 7 gardes ajoutées : 1 thème clair, 2 focus paramétrés, 1 focus mis en œuvre, 4 en tâche 2, 1 tactile, 1 code — recompter à l'exécution et corriger ce chiffre s'il diffère)
+- [x] `.venv/bin/python -m pytest -q -m e2e` — attendu : **67 passed**
+- [x] Les cinq états relus à l'œil, dans les deux thèmes, à 1440×900 et à 380×740
+- [x] **Réserve de la spec à lever :** le clavier logiciel en PAYSAGE. `body.auth` porte `overflow: hidden` et seul `.auth-body` défile. Rendre `/admin/login` à 740×380 avec `has_touch=True`, mettre le focus dans le champ et vérifier que le bouton « Se connecter » reste atteignable. S'il ne l'est pas, la correction est `min-height: 0` sur la zone de formulaire — une piste, à confirmer par la mesure et non à appliquer d'office
+- [x] Le logo client vérifié en conditions réelles : téléverser un PNG blanc, ouvrir la page en thème CLAIR, le logo doit rester lisible sur sa plaque
+- [x] `git diff v1.2.0..HEAD -- static/js/auth.js` rend une sortie **vide** — c'est la preuve que la restructuration est restée une affaire de mise en page
+
+
+---
+
+## Journal d'exécution — 2026-08-11
+
+Le plan a été suivi tel quel, à deux exceptions près, l'une et l'autre nées d'une MESURE :
+
+**Tâche 4 retournée.** Les woff2 embarqués ne portent ni `zero` ni `ss02` (seul `tnum`
+survit au sous-ensemblage), donc la voie 1 était impossible. Mais surtout,
+`_gen_recovery_code` tire dans `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` : `I`, `O`, `0` et `1`
+en sont exclus depuis toujours. Les paires à désambiguïser NE PEUVENT PAS apparaître.
+Embarquer 8 Ko de monospace pour un risque inexistant a été abandonné ; l'alphabet est
+devenu une constante de module, verrouillée par une garde.
+
+**Deux défauts vus à l'écran, invisibles pour la suite de tests.** Le glyphe portait un
+`fill` quasi blanc EN DUR dans le SVG : le thème clair posé en tâche 1 l'a rendu invisible
+à toutes les largeurs. Il est devenu une silhouette masquée, teintée à l'accent. Et
+l'identité, collée en bas du flanc (`justify-content: flex-end`), laissait tout le haut en
+aplat ; centrée, elle répond à la colonne de saisie.
+
+**Réserves levées.** Paysage tactile 740×340 : le bouton reste dans le cadre (y=251), le
+corps n'a même pas besoin de défiler. Logo client en thème clair : fond calculé
+`rgb(14, 17, 25)`, la plaque s'applique. Contraste mesuré : 5,34:1 en clair, 5,54:1 en
+sombre. `static/js/auth.js` n'apparaît pas dans `git diff v1.2.0..HEAD --name-only`.
