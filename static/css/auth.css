@@ -192,6 +192,14 @@ a { color: var(--accent); text-decoration: none; }
    JAMAIS se couper (voir .auth-code). */
 .auth-col.wide { max-width: 560px; }
 
+/* Une seule animation, et elle est brève : la page n'est pas un spectacle. Le
+   bloc prefers-reduced-motion en tête de feuille la neutralise déjà. */
+@keyframes auth-arrivee {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+}
+.auth-col { animation: auth-arrivee 0.16s ease-out both; }
+
 .auth-title {
     font-size: 21px; font-weight: 600; letter-spacing: -0.01em;
     margin-bottom: 6px;
@@ -361,6 +369,11 @@ a { color: var(--accent); text-decoration: none; }
         background: none; border-bottom: 0;
     }
     .auth-glyph { width: 56px; height: 56px; }
+    /* La hiérarchie était plate — tout tenait entre 11,5 et 21 px. Le nom du
+       produit prend l'échelle d'une sérigraphie de face avant ; le titre du
+       formulaire garde ses 21 px, la distinction de rang fait le reste. */
+    .auth-name { font-size: 34px; letter-spacing: 0.10em; }
+    .auth-by { font-size: var(--ui); }
     /* Le logo client est un bitmap téléversé (132×21 à l'origine) : l'agrandir
        comme le glyphe vectoriel le rendrait flou. */
     .auth-mark { max-height: 40px; max-width: 240px; }
