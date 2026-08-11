@@ -153,6 +153,43 @@ def test_les_commandes_de_fichier_vivent_dans_le_dialogue_configs(auth_client):
     assert "import-label" not in html
 
 
+# --------------------------------------------------------------------------
+# Apparence de l'administration : le choix vient d'un cookie, donc de
+# l'utilisateur — il ne doit JAMAIS atterrir tel quel dans un attribut.
+# `re` et `pytest` sont déjà importés en tête de ce fichier.
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize("cookie,attendu", [
+    (None, "auto"),          # aucun choix : on suit le système
+    ("auto", "auto"),
+    ("day", "day"),
+    ("night", "night"),
+])
+def test_le_cookie_de_theme_pilote_l_attribut(auth_client, cookie, attendu):
+    if cookie:
+        auth_client.set_cookie("comroster_theme", cookie)
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert f'data-theme="{attendu}"' in html
+
+
+@pytest.mark.parametrize("hostile", [
+    'night" onload="alert(1)',        # évasion d'attribut
+    "<script>alert(1)</script>",
+    "jour",                            # simplement inconnue
+    "",
+    "DAY",                             # la casse n'est pas une valeur admise
+])
+def test_un_cookie_hostile_ou_inconnu_retombe_sur_auto(auth_client, hostile):
+    """Une valeur de cookie est une DONNÉE UTILISATEUR. Rendue sans liste blanche
+    dans un attribut HTML, elle en sort — Jinja échappe les guillemets, mais on ne
+    veut pas dépendre de cet échappement pour une valeur qui n'a que trois formes
+    légitimes. La liste blanche est la garde, l'échappement n'est que le filet."""
+    auth_client.set_cookie("comroster_theme", hostile)
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert 'data-theme="auto"' in html
+    assert "onload" not in html
+    assert "<script>alert" not in html
+
+
 def test_display_page_renders(client):
     r = client.get("/display")
     assert r.status_code == 200

@@ -10,9 +10,11 @@
      main.css ici : son héritage (polices, line-height, chrome) fausse la refonte. #}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
-{# `data-login` : l'adresse de reconnexion vient de Jinja et non d'une URL écrite en
-   dur dans admin.js — le bandeau « Session expirée » s'en sert. #}
-<body class="admin-page" data-theme="night" data-login="{{ url_for('auth.login') }}">
+{# `data-theme` vient du COOKIE, rendu ici par le serveur et non posé par le
+   JavaScript : la CSP interdit les scripts en ligne, et un script différé
+   ferait clignoter l'admin en sombre avant de basculer en clair. `data-login`
+   sert au bandeau « Session expirée ». #}
+<body class="admin-page" data-theme="{{ theme_ui }}" data-login="{{ url_for('auth.login') }}">
   <div class="admin-app">
 
     {# En-tête console : marque · fil d'Ariane (état publié en lecture) · onglets ·
