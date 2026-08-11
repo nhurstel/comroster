@@ -423,6 +423,17 @@ body:has(#configs-dialog[open]) #configs-btn {
 .block-actions .chip-btn { color: inherit; }
 .block-actions .chip-btn:hover:not(:disabled) { text-decoration: underline; }
 .block-actions .chip-btn.danger { opacity: 0.8; }
+/* Action en icône (« Trier par n° »). Le soulignement au survol est le retour visuel des
+   LIBELLÉS : sur un glyphe il tracerait un trait sous le dessin. C'est donc le glyphe
+   lui-même qui grandit, comme la case couleur du même en-tête. */
+.block-actions .chip-btn.icon { display: inline-flex; align-items: center; padding: 0; }
+.block-actions .chip-btn.icon:hover:not(:disabled) { text-decoration: none; }
+.chip-glyph {
+    width: 13px; height: 13px; flex: 0 0 auto;
+    fill: none; stroke: currentColor; stroke-width: 1.6;
+    stroke-linecap: round; stroke-linejoin: round; transition: transform 0.1s;
+}
+.chip-btn.icon:hover:not(:disabled) .chip-glyph { transform: scale(1.15); }
 
 .block-items { display: flex; flex-direction: column; flex: 1; }
 .block-items .drop-tile { margin-top: auto; }

@@ -13,6 +13,12 @@ from helpers import ajouter_beltpack, enter_admin
 
 pytestmark = pytest.mark.e2e
 
+#: L'action de retri se cible par son NOM ACCESSIBLE, pas par son texte : depuis le
+#: 2026-08-11 c'est une icône, le libellé en toutes lettres ne tenant pas dans l'en-tête
+#: d'un groupe. Le sélecteur vérifie donc aussi qu'une icône reste nommable — un bouton
+#: muet serait invisible au lecteur d'écran comme à ce test.
+_SELECTEUR_TRI = ".admin-block .block-actions button[aria-label='Trier par n°']"
+
 
 def _plateau(page):
     """Un groupe et trois beltpacks SAISIS DANS LE DÉSORDRE (30, 10, 20).
@@ -66,7 +72,7 @@ def test_ranger_a_la_main_fige_l_ordre_puis_trier_le_rend(page, live_server):
     # Le groupe est passé en manuel : l'action de retri APPARAÎT — elle n'existe que là,
     # ailleurs elle ne ferait rien qu'on puisse constater.
     page.hover(".admin-block .block-header")
-    trier = page.locator(".admin-block .block-actions button:has-text('Trier par n°')")
+    trier = page.locator(_SELECTEUR_TRI)
     assert trier.count() == 1
 
     trier.click()
@@ -74,8 +80,7 @@ def test_ranger_a_la_main_fige_l_ordre_puis_trier_le_rend(page, live_server):
     assert _numeros(page) == ["10", "20", "30"]
     # …et l'action disparaît, le groupe étant redevenu trié.
     page.hover(".admin-block .block-header")
-    assert page.locator(
-        ".admin-block .block-actions button:has-text('Trier par n°')").count() == 0
+    assert page.locator(_SELECTEUR_TRI).count() == 0
 
 
 def test_l_ecran_de_regie_montre_le_meme_ordre_que_l_administration(page, live_server):

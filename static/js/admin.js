@@ -524,7 +524,7 @@
       // « Trier par n° » n'apparaît que sur un groupe rangé à la main : ailleurs le tri
       // est déjà l'état courant, et le bouton ne ferait rien qu'on puisse constater.
       if (block.manual_order) {
-        actions.append(chip("Trier par n°", () => {
+        actions.append(chipIcone(ICONE_TRI, "Trier par n°", () => {
           block.manual_order = false; markDirty(); render();
         }));
       }
@@ -704,6 +704,28 @@
     b.className = "chip-btn" + (extra ? " " + extra : "");
     b.textContent = label;
     b.addEventListener("click", onClick);
+    return b;
+  }
+
+  /* Tri croissant : une flèche vers le bas, puis trois barres qui s'allongent en
+     descendant — « du plus petit au plus grand, dans le sens de la lecture ». C'est
+     bien 01, 02, 03 du haut vers le bas, pas une bascule : la double flèche ⇅ des
+     tableaux dit « inverser », or ici l'ordre visé est unique. */
+  const ICONE_TRI = '<path d="M4 3.5V12"/><path d="M1.8 9.2 4 12l2.2-2.8"/>'
+    + '<path d="M8.5 4h3"/><path d="M8.5 8h4.5"/><path d="M8.5 12h6"/>';
+
+  /* Variante icône de `chip` : le même bouton nu, un glyphe au lieu d'un mot. Née d'une
+     contrainte de place, pas d'un goût pour les pictogrammes — les actions d'un groupe
+     se déplient sur 14rem au survol (admin.css) et « Trier par n° » en toutes lettres
+     portait la rangée à ~16rem, où l'`overflow: hidden` la tranchait net. Le libellé
+     n'est pas perdu pour autant : il part en infobulle ET en `aria-label`, donc au
+     survol comme au lecteur d'écran. `innerHTML` sur une constante du fichier — jamais
+     sur une donnée de plateau, qui passe par `textContent` partout ailleurs. */
+  function chipIcone(glyphe, label, onClick, extra) {
+    const b = chip("", onClick, "icon" + (extra ? " " + extra : ""));
+    b.innerHTML = `<svg class="chip-glyph" viewBox="0 0 16 16" aria-hidden="true">${glyphe}</svg>`;
+    b.title = label;
+    b.setAttribute("aria-label", label);
     return b;
   }
 
