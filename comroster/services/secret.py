@@ -5,11 +5,18 @@ import secrets
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
+#: Alphabet du code de récupération, SANS caractères ambigus : ni I, ni O, ni 0,
+#: ni 1. C'est le seul texte du produit qu'un humain recopie à la main, et un
+#: caractère faux ferme le boîtier définitivement — la lisibilité tient donc à
+#: l'alphabet, à la source, plutôt qu'à la police qui l'affiche. Constante de
+#: module et non variable locale pour que cet invariant soit vérifiable.
+ALPHABET_CODE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
 def _gen_recovery_code():
-    # 4 groupes de 4 caractères, alphabet sans caractères ambigus, lisibles
-    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    # 4 groupes de 4 caractères, tirés de l'alphabet non ambigu ci-dessus.
     return "-".join(
-        "".join(secrets.choice(alphabet) for _ in range(4)) for _ in range(4)
+        "".join(secrets.choice(ALPHABET_CODE) for _ in range(4)) for _ in range(4)
     )
 
 

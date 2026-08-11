@@ -64,6 +64,10 @@
     --col: 372px;               /* largeur de la colonne de saisie */
 
     --f-ui: 'Outfit', 'Inter', sans-serif;
+    /* Inter à chasse tabulaire — pour des nombres ALIGNÉS (heure, version). Ce
+       n'est pas une monospace, et le nom du jeton ne doit pas le laisser croire.
+       Le code de récupération n'en a pas besoin : sa lisibilité vient de son
+       alphabet, qui exclut déjà I, O, 0 et 1 (services/secret.py). */
     --f-mono: 'Inter', ui-monospace, monospace;
 }
 

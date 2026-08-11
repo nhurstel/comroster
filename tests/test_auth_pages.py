@@ -225,3 +225,16 @@ def test_les_cibles_tactiles_atteignent_44px_au_pointeur_grossier():
     hauteurs = [int(v) for v in re.findall(r"height:\s*(\d+)px", bloc)]
     assert hauteurs, "le bloc tactile ne fixe aucune hauteur"
     assert min(hauteurs) >= 44, f"cible sous 44 px : {min(hauteurs)}px"
+
+
+def test_l_alphabet_du_code_exclut_les_caracteres_ambigus():
+    """La lisibilité du code tient à la SOURCE, pas à la police. Cette garde
+    remplace celle prévue au plan (désambiguïsation typographique) : la mesure
+    des woff2 embarqués a montré que ni « zero » ni « ss02 » n'y survivent, et
+    l'alphabet rend la question sans objet. Si quelqu'un « enrichit » un jour
+    l'alphabet, c'est ICI que ça doit casser — pas chez un client qui recopie
+    un O pour un 0 et se ferme définitivement l'accès."""
+    from comroster.services.secret import ALPHABET_CODE
+    for ambigu in "IO01":
+        assert ambigu not in ALPHABET_CODE, f"« {ambigu} » est ambigu à la main"
+    assert len(set(ALPHABET_CODE)) == len(ALPHABET_CODE), "alphabet avec doublons"
