@@ -361,7 +361,12 @@ tombent sur aucune des quatre intensités retenues (`/ 0.1`, `/ 0.12`, `/ 0.35`,
 proche — **sauf** si l'écart se voit à l'écran, auquel cas ajouter un jeton
 plutôt que de forcer.
 
-Remplacer les trois `#141005` par `var(--on-accent)` : c'est exactement sa valeur.
+**CORRIGÉ À L'EXÉCUTION — cette instruction était fausse.** Elle disait de remplacer les
+trois `#141005` par `var(--on-accent)` au motif que c'est exactement sa valeur. Deux d'entre
+eux portent l'encre calculée par `ink.js` d'après la couleur du GROUPE, invariante au thème :
+les convertir rend illisible un groupe de couleur claire dès que l'admin passe en clair. Seul
+celui de `.reboot-btn` se convertit. Classer une couleur sur sa valeur sans regarder ce qu'elle
+porte est précisément l'erreur contre laquelle l'étape 4 met en garde.
 
 - [ ] **Étape 4 : décider des huit ponctuelles, une par une**
 

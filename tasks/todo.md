@@ -2039,3 +2039,15 @@ déplacés sans une modification de corps. Deux helpers sont montés dans `helpe
 - `re.S` dans un motif de SUPPRESSION rend le point gourmand à travers les lignes
   (1479 lignes effacées d'un coup, sans erreur). Raisonner en lignes.
 - Ne jamais lancer deux suites e2e en parallèle : 59 faux échecs.
+
+## Dette d'accessibilité relevée le 2026-08-13 (revue finale du thème jour/nuit de l'admin)
+
+Deux boutons rouges portent un texte sous le seuil AA de 4,5:1. Préexistants au thème clair,
+non aggravés par lui, hors du périmètre de cette branche — mais réels et mesurés :
+
+- `.confirm-danger` (`admin.css`) : blanc sur `--error` = **3,60:1** en nuit (5,44:1 en jour).
+- `.selection-bar .danger-btn` (`admin.css`) : `--fg` sur `--error` = **3,18:1** en nuit,
+  3,29:1 en jour. Celui-ci échappe à toute garde, sa couleur passant par un jeton.
+
+Corriger les deux ensemble : assombrir le fond, ou passer l'encre en graisse ≥ 600 et taille
+≥ 18,66 px pour relever du seuil « texte large » (3:1).
