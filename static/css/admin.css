@@ -204,7 +204,9 @@ a.brand:hover { background: var(--voile-1); }
    donne l'accent du produit dans les deux thèmes ; le nom accessible du lien reste porté
    par le texte « ComRoster » voisin (.side-name). */
 .admin-badge {
-    display: block; width: 14px; height: 14px; flex: 0 0 auto;
+    /* 22 px et non 14 : à 14 le glyphe se lisait comme une puce, pas comme une
+       marque. L'en-tête fait 44 px, il l'absorbe sans se déformer. */
+    display: block; width: 22px; height: 22px; flex: 0 0 auto;
     background-color: var(--accent);
     -webkit-mask: url('../img/comroster-glyph.svg') center / contain no-repeat;
     mask: url('../img/comroster-glyph.svg') center / contain no-repeat;
@@ -817,7 +819,10 @@ body:has(#configs-dialog[open]) #configs-btn {
 .admin-status .st-dot { width: 6px; height: 6px; border-radius: 2px; background: var(--muted); flex: 0 0 auto; }
 .admin-status .status-sse[data-ok="1"] .st-dot { background: var(--success); }
 .admin-status .status-sse[data-ok="0"] .st-dot { background: var(--warning); }
-.admin-status .status-right { margin-left: auto; border-right: 0; border-left: 1px solid var(--border-soft); }
+/* La mention d'auteur ouvre la réglette : elle n'a donc plus de filet à gauche,
+   c'est le bord de la fenêtre. L'inverseur d'apparence tient l'autre extrémité
+   (voir sa règle plus bas, qui porte le `margin-left: auto`). */
+.admin-status .status-author { border-left: 0; }
 
 /* ---------- Vue filtrante de l'inventaire ---------- */
 /* Estompe (ne masque pas) les cartes hors vue : réversible, sans toucher aux données. */
@@ -1568,20 +1573,48 @@ body[data-session="lost"] .admin-app {
     filter: saturate(0.4);
 }
 
-/* ---------- Sélecteur d'apparence ---------- */
-.theme-switch { display: inline-flex; gap: 2px; }
-/* `.admin-status .s { gap: 7px }` (l.798) a une spécificité supérieure à `.theme-switch`
-   seul (deux classes contre une) : sans ce sélecteur plus spécifique, le `gap: 2px`
-   ci-dessus est mort, les trois boutons s'espacent de 7px et se lisent comme trois
-   boutons séparés plutôt que les trois segments voulus. */
-.admin-status .theme-switch { gap: 2px; }
-.theme-switch button {
-    padding: 2px 9px;
-    border: 1px solid var(--border-soft); border-radius: 5px;
-    background: none; color: var(--fg-subtle);
-    font: inherit; cursor: pointer;
+/* ---------- Inverseur d'apparence ----------
+   Un vrai interrupteur à trois positions, pas trois boutons : c'est le registre
+   de l'admin, une console. Le curseur GLISSE d'un cran à l'autre, et le mot à sa
+   droite dit l'état — trois crans muets se devineraient.
+   La cellule tient le bord droit de la réglette, la mention d'auteur tenant le
+   bord gauche. */
+.admin-status .theme-switch {
+    margin-left: auto;
+    border-right: 0; border-left: 1px solid var(--border-soft);
+    gap: 8px;
 }
-.theme-switch button:hover { color: var(--fg); border-color: var(--border-2); }
-.theme-switch button[aria-pressed="true"] {
-    background: var(--surface-3); color: var(--fg); border-color: var(--border-2);
+.tsw {
+    position: relative;
+    display: inline-flex; align-items: center;
+    box-sizing: content-box;
+    width: 36px; height: 10px; padding: 2px;
+    border: 1px solid var(--border-2); border-radius: 3px;
+    background: var(--inset);
+    flex: 0 0 auto;
 }
+/* Le curseur se DÉPLACE plutôt qu'il ne s'allume : c'est ce déplacement qui dit
+   qu'il n'y a qu'une position à la fois. */
+.tsw::before {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 10px; border-radius: 2px;
+    background: var(--accent);
+    transition: transform 0.14s ease;
+}
+.tsw[data-pos="day"]::before { transform: translateX(12px); }
+.tsw[data-pos="night"]::before { transform: translateX(24px); }
+/* Les trois crans sont des cibles transparentes posées SUR la glissière : ils
+   restent cliquables et focalisables, le curseur passe dessous. */
+.tsw button {
+    position: relative; z-index: 1;
+    width: 12px; height: 10px; padding: 0;
+    border: 0; background: none; cursor: pointer;
+}
+.tsw button::after {
+    content: ""; display: block;
+    width: 2px; height: 2px; margin: 0 auto;
+    border-radius: 50%; background: var(--fg-subtle);
+}
+.tsw button[aria-checked="true"]::after { background: var(--on-accent); }
+.tsw button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.admin-status .theme-switch b { color: var(--fg-subtle); font-weight: 400; }

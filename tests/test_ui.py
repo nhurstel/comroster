@@ -190,26 +190,60 @@ def test_un_cookie_hostile_ou_inconnu_retombe_sur_auto(auth_client, hostile):
     assert "<script>alert" not in html
 
 
-def test_le_pied_porte_un_selecteur_d_apparence_accessible(auth_client):
-    """Trois boutons nommés, pas trois pictogrammes : un soleil et une lune ne
-    disent pas laquelle est active."""
+def _cran(html, valeur):
+    """La balise ENTIÈRE du cran demandé. On remonte à l'ouverture du `<button>`
+    et non au seul `data-theme-choice` : les attributs sont répartis sur
+    plusieurs lignes, et certains — `role` notamment — le précèdent."""
+    repere = html.index(f'data-theme-choice="{valeur}"')
+    debut = html.rindex("<button", 0, repere)
+    return html[debut:html.index("</button>", debut)]
+
+
+def test_le_pied_porte_un_inverseur_d_apparence_accessible(auth_client):
+    """Un inverseur à trois positions EST un choix exclusif : `radiogroup` et
+    `radio`, pas un groupe de boutons-poussoirs. Les trois crans sont muets à
+    l'écran — c'est le curseur qui dit lequel est actif — donc chacun porte un nom
+    accessible, sans quoi un lecteur d'écran annoncerait trois boutons vides."""
     html = auth_client.get("/admin").get_data(as_text=True)
     pied = html[html.index('<footer class="admin-status"'):html.index("</footer>")]
     assert 'class="s theme-switch"' in pied
-    assert 'role="group"' in pied
-    assert "aria-label" in pied
+    assert 'role="radiogroup"' in pied
     for valeur, libelle in (("auto", "Auto"), ("day", "Clair"), ("night", "Sombre")):
-        assert f'data-theme-choice="{valeur}"' in pied
-        assert f">{libelle}<" in pied
+        cran = _cran(pied, valeur)
+        assert 'role="radio"' in cran
+        assert f'aria-label="{libelle}"' in cran
 
 
-def test_le_segment_actif_reflete_le_cookie(auth_client):
-    """aria-pressed doit dire la vérité dès le rendu serveur : sans cela, un
-    lecteur d'écran annonce trois boutons non pressés sur une page qui EST claire."""
+def test_l_inverseur_reflete_le_cookie_des_le_rendu_serveur(auth_client):
+    """`aria-checked`, la position du curseur et le mot affiché doivent dire la
+    vérité AVANT qu'aucun script ne tourne. La CSP interdit les scripts en ligne :
+    il n'existe aucune occasion de corriger l'état entre le rendu et l'affichage."""
     auth_client.set_cookie("comroster_theme", "day")
     html = auth_client.get("/admin").get_data(as_text=True)
-    assert 'data-theme-choice="day" aria-pressed="true"' in html
-    assert 'data-theme-choice="auto" aria-pressed="false"' in html
+    assert 'aria-checked="true"' in _cran(html, "day")
+    assert 'aria-checked="false"' in _cran(html, "auto")
+    # Un groupe radio n'expose qu'un seul arrêt de tabulation.
+    assert 'tabindex="0"' in _cran(html, "day")
+    assert 'tabindex="-1"' in _cran(html, "auto")
+    assert 'data-pos="day"' in html, "le curseur ne part pas au bon cran"
+    assert ">Clair</b>" in html, "le mot affiché ne dit pas l'état"
+
+
+def test_les_deux_reglages_de_luminosite_nomment_leur_objet(auth_client):
+    """L'admin porte DEUX réglages de luminosité : le sien, dans le pied, et celui
+    de l'écran de régie, dans Réglages → Écran. Tant qu'aucun des deux ne nommait
+    son objet, ils se confondaient.
+
+    Trois signaux se répondent, et aucun ne suffit seul : le libellé de portée du
+    pied, l'infobulle qui renvoie à l'autre réglage, et le nom explicite de celui
+    de l'écran. Cette garde empêche un futur nettoyage de libellés de rouvrir la
+    confusion."""
+    html = auth_client.get("/admin").get_data(as_text=True)
+    pied = html[html.index('<footer class="admin-status"'):html.index("</footer>")]
+    assert "cette interface" in pied, "le sélecteur du pied ne nomme pas sa portée"
+    assert "Réglages → Écran" in pied, "l'infobulle ne renvoie pas à l'autre réglage"
+    assert "Luminosité de l'écran de régie" in html, \
+        "le réglage de l'écran de régie ne nomme pas son objet"
 
 
 def test_display_page_renders(client):

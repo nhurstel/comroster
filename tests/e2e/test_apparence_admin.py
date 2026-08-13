@@ -26,8 +26,13 @@ def test_les_trois_modes_changent_reellement_la_palette(page, live_server):
     page.click('[data-theme-choice="day"]')
     clair = _fond(page)
     assert clair != sombre, "le mode clair ne change pas le fond réel"
-    assert page.get_attribute('[data-theme-choice="day"]', "aria-pressed") == "true"
-    assert page.get_attribute('[data-theme-choice="night"]', "aria-pressed") == "false"
+    # Sémantique d'inverseur : `radio`/`aria-checked`, pas bouton-poussoir.
+    assert page.get_attribute('[data-theme-choice="day"]', "aria-checked") == "true"
+    assert page.get_attribute('[data-theme-choice="night"]', "aria-checked") == "false"
+    # Les deux signaux VISIBLES doivent suivre : le curseur et le mot. Les trois
+    # crans sont muets à l'écran, ils ne disent rien à eux seuls.
+    assert page.get_attribute("#theme-track", "data-pos") == "day"
+    assert page.inner_text("#theme-label") == "Clair"
 
     # Le choix survit au rechargement — c'est le cookie, rendu par le serveur.
     page.reload()

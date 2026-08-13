@@ -215,7 +215,10 @@
                       <option value="lineaire">Linéaire</option>
                       <option value="grille">Grille</option>
                     </select></label>
-                  <label class="side-field"><span>Mode de luminosité</span>
+                  {# Nommé explicitement : l'admin porte un SECOND réglage de
+                     luminosité, celui de sa propre interface, dans le pied.
+                     Deux réglages anonymes se confondaient. #}
+                  <label class="side-field"><span>Luminosité de l'écran de régie</span>
                     <select id="theme-select">
                       <option value="night">Sombre</option>
                       <option value="day">Clair</option>
@@ -344,6 +347,7 @@
 
     {# Barre d'état (pied) : ce qui est réellement à l'antenne + écart du brouillon. #}
     <footer class="admin-status">
+      <span class="s status-author">par Nathan Hurstel</span>
       <span class="s status-sse" id="status-sse" title="Écrans de régie abonnés au flux temps réel">
         <i class="st-dot" aria-hidden="true"></i><span id="status-sse-text">SSE…</span></span>
       <span class="s" id="status-published">publié —</span>
@@ -352,15 +356,37 @@
       {# Pas de lien « aperçu écran » ici : le témoin « Affichage en cours » (coin
          bas-droit) est LE bouton de l'aperçu — un bouton par fonction. #}
       <span class="s" id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>
-      {# Trois segments plats — le vocabulaire de l'admin, qui a abandonné les
-         pilules. `aria-pressed` est posé PAR LE SERVEUR : il doit être vrai dès
-         le premier rendu, avant que le moindre script ne tourne. #}
-      <span class="s theme-switch" role="group" aria-label="Apparence de l'administration">
-        <button type="button" data-theme-choice="auto" aria-pressed="{{ 'true' if theme_ui == 'auto' else 'false' }}">Auto</button>
-        <button type="button" data-theme-choice="day" aria-pressed="{{ 'true' if theme_ui == 'day' else 'false' }}">Clair</button>
-        <button type="button" data-theme-choice="night" aria-pressed="{{ 'true' if theme_ui == 'night' else 'false' }}">Sombre</button>
+      {# Inverseur à trois positions — le registre du produit : l'admin est une
+         console, pas un site. Le curseur glisse d'un cran à l'autre et le mot à
+         sa droite dit toujours l'état, sans quoi trois crans muets se
+         devineraient.
+
+         `radiogroup` et non `group` : un inverseur à trois positions EST un
+         choix exclusif, et cette sémantique donne gratuitement les flèches
+         gauche/droite qu'un vrai interrupteur appelle. `aria-checked` et
+         `tabindex` sont posés PAR LE SERVEUR — ils doivent être vrais dès le
+         premier rendu, avant que le moindre script ne tourne.
+
+         « cette interface » n'est pas un ornement : l'admin porte DEUX réglages
+         de luminosité, celui-ci et celui de l'écran de régie (Réglages → Écran).
+         Chacun nomme désormais son objet, et l'infobulle renvoie à l'autre. #}
+      <span class="s theme-switch"
+            title="N'affecte que cette page. L'apparence de l'écran de régie se règle dans Réglages → Écran.">
+        cette interface
+        <span class="tsw" id="theme-track" role="radiogroup"
+              aria-label="Apparence de cette interface" data-pos="{{ theme_ui }}">
+          <button type="button" role="radio" data-theme-choice="auto" aria-label="Auto"
+                  aria-checked="{{ 'true' if theme_ui == 'auto' else 'false' }}"
+                  tabindex="{{ '0' if theme_ui == 'auto' else '-1' }}"></button>
+          <button type="button" role="radio" data-theme-choice="day" aria-label="Clair"
+                  aria-checked="{{ 'true' if theme_ui == 'day' else 'false' }}"
+                  tabindex="{{ '0' if theme_ui == 'day' else '-1' }}"></button>
+          <button type="button" role="radio" data-theme-choice="night" aria-label="Sombre"
+                  aria-checked="{{ 'true' if theme_ui == 'night' else 'false' }}"
+                  tabindex="{{ '0' if theme_ui == 'night' else '-1' }}"></button>
+        </span>
+        <b id="theme-label">{{ {'auto': 'Auto', 'day': 'Clair', 'night': 'Sombre'}[theme_ui] }}</b>
       </span>
-      <span class="s status-right">par Nathan Hurstel</span>
     </footer>
   </div>
 
