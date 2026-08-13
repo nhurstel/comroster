@@ -317,3 +317,48 @@ def test_le_theme_clair_redefinit_toutes_les_couleurs_du_sombre():
         return {n for n, v in _declarations(bloc) if v.strip().startswith(("#", "rgb"))}
     manquants = couleurs(_bloc(":root {")) - couleurs(_bloc('body[data-theme="day"]'))
     assert not manquants, f"jetons non redéfinis en clair : {sorted(manquants)}"
+
+
+#: Littéraux de couleur TOLÉRÉS hors du :root d'admin.css. La liste est CLOSE :
+#: en ajouter un fera échouer ce test, ce qui force la décision au moment de
+#: l'écriture. C'est la réponse directe à la leçon du 2026-08-11 — le thème clair
+#: des pages d'authentification a rendu invisible un glyphe dont la couleur était
+#: figée dans son fichier, sans qu'aucun des 636 tests ne bronche.
+LITTERAUX_TOLERES = {
+    # Encre calculée par static/js/ink.js (inkFor) : verdict "dark"/"light" tiré
+    # de la LUMINANCE de la couleur du groupe (--gel, palette fixe choisie par
+    # l'utilisateur), pas du thème de l'administration. La couleur d'un groupe
+    # ne change pas entre jour et nuit — l'encre qui la rend lisible ne doit
+    # donc pas suivre le thème non plus. Paire fixe : #141005 (encre sombre) /
+    # #F4F7FB (encre claire), utilisée par .admin-block[data-ink] et
+    # .board-table .bt-assign[data-ink].
+    "#141005",
+    "#F4F7FB",
+    # Bouton "confirm-danger" : texte blanc fixe sur fond --error. --error
+    # s'assombrit en clair (#F04D3E → #C0392B) mais reste assez sombre dans les
+    # deux thèmes pour qu'une encre blanche garde un contraste correct (vérifié
+    # par calcul de luminance relative) — ce n'est pas une valeur dérivée du
+    # thème, c'est un choix de bouton figé, comme l'encre ci-dessus.
+    "#FFFFFF",
+    # Trame de la feuille d'impression (.print-frame) : simule une page de
+    # papier, TOUJOURS blanche, quel que soit le thème de l'écran qui la montre.
+    "#ffffff",
+    # Fond des trois cadres d'aperçu de l'écran display (.screen-preview-frame,
+    # .preview-tile-frame, .preview-frame) : simule l'écran/kiosk réel derrière
+    # l'iframe pendant son chargement — un noir de "moniteur éteint", indépendant
+    # du thème de l'administration qui l'affiche.
+    "#000",
+}
+
+
+def test_aucune_couleur_en_dur_non_justifiee_dans_admin_css():
+    hors_root = ADMIN_CSS.replace(_bloc(":root {"), "")
+    hors_root = re.sub(r"/\*.*?\*/", "", hors_root, flags=re.S)   # les commentaires citent des couleurs
+    for bloc in ('body[data-theme="auto"]', 'body[data-theme="day"]'):
+        hors_root = hors_root.replace(_bloc(bloc), "")
+    trouvees = set(re.findall(r"#[0-9A-Fa-f]{3,8}\b|rgba?\([^)]*\)", hors_root))
+    surplus = trouvees - LITTERAUX_TOLERES
+    assert not surplus, (
+        "couleurs en dur non justifiées — les promouvoir en jetons pour "
+        "qu'elles suivent le thème, ou les ajouter à LITTERAUX_TOLERES avec "
+        f"un commentaire disant pourquoi elles n'en dépendent pas : {sorted(surplus)}")
