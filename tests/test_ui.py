@@ -334,11 +334,15 @@ LITTERAUX_TOLERES = {
     # .board-table .bt-assign[data-ink].
     "#141005",
     "#F4F7FB",
-    # Bouton "confirm-danger" : texte blanc fixe sur fond --error. --error
-    # s'assombrit en clair (#F04D3E → #C0392B) mais reste assez sombre dans les
-    # deux thèmes pour qu'une encre blanche garde un contraste correct (vérifié
-    # par calcul de luminance relative) — ce n'est pas une valeur dérivée du
-    # thème, c'est un choix de bouton figé, comme l'encre ci-dessus.
+    # Bouton "confirm-danger" : texte blanc fixe sur fond --error, préexistant à
+    # cette tâche. Il ne DÉPEND PAS du thème (raison de sa présence ici), mais il
+    # ne le RÉUSSIT pas pour autant : au seuil d'ink.js (0.179), la luminance de
+    # --error sombre (F04D3E, 0.24) appelle une encre SOMBRE, pas blanche — et le
+    # contraste réel (~3,6:1) est sous les 4,5:1 AA pour du texte courant. En
+    # clair (C0392B, luminance 0.14) le blanc passe (~5,4:1). Corriger ça change
+    # l'ALLURE d'un bouton établi (nouvelle encre à choisir), ce qui dépasse le
+    # cadre de cette tâche (faire suivre le thème à des littéraux) ; signalé
+    # pour un correctif d'accessibilité séparé, pas corrigé ici.
     "#FFFFFF",
     # Trame de la feuille d'impression (.print-frame) : simule une page de
     # papier, TOUJOURS blanche, quel que soit le thème de l'écran qui la montre.

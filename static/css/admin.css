@@ -58,7 +58,7 @@
     /* Voiles et ombres : ils s'INVERSENT avec le thème. Un blanc à 3 % éclaircit
        une surface sombre et disparaît sur une surface claire ; une ombre noire à
        50 % écrase une page claire. Jetons, donc — pas des littéraux. */
-    --voile-1: var(--voile-1); --voile-2: #ffffff0d; --voile-3: #ffffff14;
+    --voile-1: #ffffff08; --voile-2: #ffffff0d; --voile-3: #ffffff14;
     --ombre-faible: rgb(0 0 0 / 0.17); --ombre: rgb(0 0 0 / 0.3);
     --ombre-forte: rgb(0 0 0 / 0.5); --ombre-portee: rgb(0 0 0 / 0.25);
     /* Voile du fond de dialogue (::backdrop) : plus sombre (0.62 contre 0.5) et sur
@@ -111,7 +111,7 @@
         --erreur-a12: rgb(192 57 43 / 0.12); --erreur-a40: rgb(192 57 43 / 0.4);
         --warning-bg: #FBF0DC;
         --error-lt: #9A2E22;
-        --warning-lt: #B87A1E;
+        --warning-lt: #7B500D;
     }
 }
 
@@ -136,7 +136,7 @@ body[data-theme="day"] {
     --erreur-a12: rgb(192 57 43 / 0.12); --erreur-a40: rgb(192 57 43 / 0.4);
     --warning-bg: #FBF0DC;
     --error-lt: #9A2E22;
-    --warning-lt: #B87A1E;
+    --warning-lt: #7B500D;
 }
 
 /* ---------- Base (reset maquette) ---------- */
