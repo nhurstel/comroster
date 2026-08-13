@@ -88,7 +88,16 @@
    première copie sert le mode « auto » (le système décide), la seconde le mode
    forcé depuis le pied. Une garde exige qu'elles restent identiques.
 
-   Le mode « night » n'a pas de bloc : c'est le :root ci-dessus. */
+   Le mode « night » n'a pas de bloc : c'est le :root ci-dessus.
+
+   --primary/--primary-light sont redéclarés dans les deux blocs (alors qu'ils ne sont
+   que des ALIAS de --accent/--accent-lt, voir :root) : une propriété personnalisée qui
+   contient un var() le résout au calcul, sur l'élément qui la PORTE — pas sur celui qui
+   la consomme. Déclarés seulement sur :root (html), ils resteraient figés sur l'accent
+   SOMBRE partout, y compris ici. NE PAS commenter cette redéclaration À L'INTÉRIEUR des
+   blocs ci-dessous : test_aucune_couleur_en_dur_non_justifiee_dans_admin_css compare le
+   texte brut de ces blocs après avoir retiré les commentaires du reste du fichier — un
+   commentaire interne casse la correspondance et fait fuir tous les littéraux du bloc. */
 @media (prefers-color-scheme: light) {
     body[data-theme="auto"] {
         --bg: #F2F4F8; --inset: #FFFFFF; --surface: #FFFFFF;
@@ -99,6 +108,7 @@
         --success: #1B8B4A; --warning: #9A6410; --error: #C0392B;
         --danger: #B33322; --danger-line: #E7C3BD; --danger-bg: #FBEDEA;
         --accent: #B23F31; --accent-lt: #8F3227; --on-accent: #FFFFFF;
+        --primary: var(--accent); --primary-light: var(--accent-lt);
         --voile-1: #00000008; --voile-2: #0000000d; --voile-3: #00000014;
         --ombre-faible: rgb(0 0 0 / 0.06); --ombre: rgb(0 0 0 / 0.10);
         --ombre-forte: rgb(0 0 0 / 0.18); --ombre-portee: rgb(0 0 0 / 0.09);
@@ -124,6 +134,7 @@ body[data-theme="day"] {
     --success: #1B8B4A; --warning: #9A6410; --error: #C0392B;
     --danger: #B33322; --danger-line: #E7C3BD; --danger-bg: #FBEDEA;
     --accent: #B23F31; --accent-lt: #8F3227; --on-accent: #FFFFFF;
+    --primary: var(--accent); --primary-light: var(--accent-lt);
     --voile-1: #00000008; --voile-2: #0000000d; --voile-3: #00000014;
     --ombre-faible: rgb(0 0 0 / 0.06); --ombre: rgb(0 0 0 / 0.10);
     --ombre-forte: rgb(0 0 0 / 0.18); --ombre-portee: rgb(0 0 0 / 0.09);
@@ -187,7 +198,17 @@ a { color: var(--accent); text-decoration: none; }
 }
 a.brand:hover { background: var(--voile-1); }
 .side-name { text-transform: uppercase; }
-.admin-badge { width: 14px; height: 14px; flex: 0 0 auto; display: block; }
+/* Silhouette masquée plutôt qu'image (même parade que .auth-glyph, auth.css) : le SVG
+   porte un fill quasi blanc en dur — invisible sur .admin-top une fois son fond passé
+   à --surface: #FFFFFF en thème clair. Le masque la rend indépendante du fichier et lui
+   donne l'accent du produit dans les deux thèmes ; le nom accessible du lien reste porté
+   par le texte « ComRoster » voisin (.side-name). */
+.admin-badge {
+    display: block; width: 14px; height: 14px; flex: 0 0 auto;
+    background-color: var(--accent);
+    -webkit-mask: url('../img/comroster-glyph.svg') center / contain no-repeat;
+    mask: url('../img/comroster-glyph.svg') center / contain no-repeat;
+}
 .crumb {
     display: flex; align-items: center; gap: 8px; padding: 0 14px; min-width: 0;
     font-family: var(--f-mono); font-size: 12.5px; color: var(--fg-subtle);
@@ -463,7 +484,10 @@ body:has(#configs-dialog[open]) #configs-btn {
 .block-header {
     display: flex; align-items: center; gap: 9px;
     height: calc(var(--row) + 5px); padding: 0 11px;
-    border-bottom: 1px solid var(--ombre-faible);
+    /* Littéral, pas --ombre-faible : ce filet se pose sur --gel, la couleur du GROUPE
+       (donnée du plateau), invariante au thème — comme --on-gel deux lignes plus haut.
+       Valeur : celle qui valait en thème sombre avant jetonisation. */
+    border-bottom: 1px solid rgb(0 0 0 / 0.17);
 }
 .block-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; }
 .block-title[draggable="true"] { cursor: grab; }
@@ -480,7 +504,9 @@ body:has(#configs-dialog[open]) #configs-btn {
 /* Case couleur cliquable : clic → palette du groupe. */
 .color-swatch {
     width: 13px; height: 13px; border-radius: 4px;
-    border: 1px solid var(--ombre);
+    /* Littéral, pas --ombre : ce liseré se pose sur la couleur du GROUPE
+       (--swatch-color), invariante au thème. Valeur de thème sombre. */
+    border: 1px solid rgb(0 0 0 / 0.3);
     background: var(--swatch-color, var(--accent));
     flex: 0 0 auto; cursor: pointer; transition: transform 0.1s;
 }
@@ -527,8 +553,12 @@ body:has(#configs-dialog[open]) #configs-btn {
     display: flex; align-items: center; height: var(--row); padding: 0 11px;
     cursor: grab; flex: 0 0 auto;
 }
-.person + .person { border-top: 1px solid var(--ombre-faible); }   /* séparateurs : filets */
-.person:hover { background: var(--ombre-faible); }
+/* Littéraux, pas --ombre-faible : ces deux règles se posent sur --gel, la couleur du
+   GROUPE (donnée du plateau), invariante au thème. Valeurs de thème sombre — chacune la
+   SIENNE : elles avaient divergé avant la jetonisation (0.1 et 0.12), et les rabattre sur
+   un même jeton partagé (0.17) les avait toutes deux intensifiées de 40 à 70 %. */
+.person + .person { border-top: 1px solid rgb(0 0 0 / 0.1); }   /* séparateurs : filets */
+.person:hover { background: rgb(0 0 0 / 0.12); }
 .person.dragging { opacity: 0.45; cursor: grabbing; }
 /* Trait d'insertion pendant un rangement à la main (voir marquerInsertion). Un
    `box-shadow` plutôt qu'une bordure : il ne prend aucune place, donc les lignes ne
@@ -556,14 +586,18 @@ body:has(#configs-dialog[open]) #configs-btn {
 /* Indicateurs temps réel, à droite de la ligne. */
 .card-live { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .bp-batt { font-size: var(--ui-sm); font-weight: 700; color: inherit; opacity: 0.78; white-space: nowrap; }
-.bp-batt.low { color: var(--warning); }
+/* Littéral, pas --warning : cette ligne se lit sur --gel, la couleur du GROUPE,
+   invariante au thème. Valeur de thème sombre. */
+.bp-batt.low { color: #E8A13A; }
 /* Voyant : point 6 px (maquette .st). VERT quand connecté (décision retenue) — l'anneau
    sombre le fait tenir sur n'importe quel aplat. Sans antenne l'état est inconnu :
    point neutre discret. `display:none` quand décoché (un invisible qui occupe la place
    décale ses voisins — leçon 2026-07-23). */
 .bp-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; background: currentColor; opacity: 0.3; }
 .bp-dot.hidden { display: none; }
-.bp-dot.on { opacity: 1; background: var(--success); box-shadow: 0 0 0 1.5px var(--ombre); }
+/* Littéraux, pas --success/--ombre : ce voyant se pose sur --gel, la couleur du GROUPE,
+   invariante au thème. Valeurs de thème sombre. */
+.bp-dot.on { opacity: 1; background: #2ECC71; box-shadow: 0 0 0 1.5px rgb(0 0 0 / 0.3); }
 .bp-dot.down { opacity: 0.45; }
 
 /* Fente de dépôt (maquette .drop) : affordance ET bouton d'ajout. */
@@ -870,7 +904,12 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
     background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 12px;
     box-shadow: 0 24px 64px var(--ombre-forte); color: var(--fg);
 }
-.admin-dialog::backdrop { background: var(--ombre-scrim); }
+/* Repli littéral : ::backdrop n'hérite des propriétés personnalisées de son élément
+   d'origine que sur les moteurs de 2024+ (Chrome 122, Firefox 125, Safari 17.4). Sur un
+   Chromium plus ancien (poste de régie non mis à jour), `var(--ombre-scrim)` devient
+   invalide et le voile serait totalement transparent, dans les DEUX thèmes — un défaut
+   qu'aucun test Playwright (Chromium récent) ne peut attraper. */
+.admin-dialog::backdrop { background: var(--ombre-scrim, rgb(4 6 10 / 0.62)); }
 .admin-dialog form { padding: 20px; display: flex; flex-direction: column; gap: 13px; }
 .admin-dialog h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
 .dialog-hint { font-size: var(--ui); color: var(--fg-subtle); }
@@ -1277,7 +1316,11 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
    le pourtour + assombrissement franc. L'ancien voile turquoise à 14 % était invisible
    sur les gels colorés (signalé à l'usage). */
 .person.selected {
-    background: var(--ombre);
+    /* Littéral, pas --ombre : ce fond se pose sur --gel, la couleur du GROUPE
+       (donnée du plateau), invariante au thème. Valeur de thème sombre — le thème
+       clair, lui, ramenait --ombre à 10 %, reproduisant exactement le défaut de
+       l'ancien voile turquoise à 14 % déjà jugé invisible sur les gels colorés. */
+    background: rgb(0 0 0 / 0.3);
     box-shadow: inset 0 0 0 2px var(--accent);
 }
 /* Fantôme de glissement d'une sélection multiple. Positionné HORS CHAMP et non masqué :
@@ -1527,6 +1570,11 @@ body[data-session="lost"] .admin-app {
 
 /* ---------- Sélecteur d'apparence ---------- */
 .theme-switch { display: inline-flex; gap: 2px; }
+/* `.admin-status .s { gap: 7px }` (l.798) a une spécificité supérieure à `.theme-switch`
+   seul (deux classes contre une) : sans ce sélecteur plus spécifique, le `gap: 2px`
+   ci-dessus est mort, les trois boutons s'espacent de 7px et se lisent comme trois
+   boutons séparés plutôt que les trois segments voulus. */
+.admin-status .theme-switch { gap: 2px; }
 .theme-switch button {
     padding: 2px 9px;
     border: 1px solid var(--border-soft); border-radius: 5px;

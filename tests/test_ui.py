@@ -336,7 +336,11 @@ def test_le_theme_clair_redefinit_toutes_les_couleurs_du_sombre():
     """Un jeton oublié laisse un aplat sombre au milieu d'une page claire, et
     rien ne le signale — ni test, ni erreur, ni console."""
     def couleurs(bloc):
-        return {n for n, v in _declarations(bloc) if v.strip().startswith(("#", "rgb"))}
+        # "var" est inclus : un jeton défini en `var(--autre-jeton)` (--primary,
+        # alias de --accent) est une couleur au même titre qu'un littéral — la
+        # garde doit le voir passer si sa redéfinition claire manque, exactement
+        # le trou qui a laissé --primary figé sur l'accent sombre partout.
+        return {n for n, v in _declarations(bloc) if v.strip().startswith(("#", "rgb", "var"))}
     manquants = couleurs(_bloc(":root {")) - couleurs(_bloc('body[data-theme="day"]'))
     assert not manquants, f"jetons non redéfinis en clair : {sorted(manquants)}"
 
@@ -374,6 +378,31 @@ LITTERAUX_TOLERES = {
     # l'iframe pendant son chargement — un noir de "moniteur éteint", indépendant
     # du thème de l'administration qui l'affiche.
     "#000",
+    # Huit couleurs qui se posent sur --gel, la couleur du GROUPE (donnée du
+    # plateau choisie par l'utilisateur), invariante au thème — même raison que
+    # la paire d'encre #141005/#F4F7FB ci-dessus. Chacune restaurée à sa valeur
+    # de thème sombre : .block-header (filet), .person + .person (séparateur),
+    # .person:hover (survol), .person.selected (fond — l'ancien voile turquoise à
+    # 14 % était déjà jugé invisible sur les gels colorés, et le thème clair
+    # ramenait --ombre à 10 %, exactement ce défaut), .bp-dot.on (anneau et
+    # couleur), .bp-batt.low (couleur), .color-swatch (liseré). Les séparateur et
+    # survol avaient chacun leur propre intensité AVANT jetonisation (0.1 et
+    # 0.12) ; les rabattre sur le même jeton --ombre-faible (0.17) les avait
+    # toutes deux intensifiées de 40 à 70 % en thème nocturne — la garde ci-après
+    # empêche ce genre de dérive de repasser inaperçue.
+    "rgb(0 0 0 / 0.17)",
+    "rgb(0 0 0 / 0.3)",
+    "rgb(0 0 0 / 0.1)",
+    "rgb(0 0 0 / 0.12)",
+    "#E8A13A",
+    "#2ECC71",
+    # Repli de `.admin-dialog::backdrop { background: var(--ombre-scrim, …) }` : sur un
+    # moteur antérieur à 2024 (Chrome 122, Firefox 125, Safari 17.4), `::backdrop`
+    # n'hérite pas des propriétés personnalisées de son élément d'origine et
+    # `var(--ombre-scrim)` seul y serait invalide — voile totalement transparent, dans
+    # les deux thèmes. Littéral égal à la valeur NOCTURNE de --ombre-scrim : un vieux
+    # moteur n'aurait de toute façon pas appliqué la palette claire.
+    "rgb(4 6 10 / 0.62)",
 }
 
 

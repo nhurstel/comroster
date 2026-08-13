@@ -22,7 +22,11 @@
     <header class="admin-top">
       {# La marque ramène au plateau (retour au menu principal d'un clic). #}
       <a class="brand" href="{{ url_for('api.admin_page') }}" title="Retour aux affectations">
-        <img class="admin-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="" width="18" height="18">
+        {# Silhouette masquée plutôt qu'image : le SVG porte un fill quasi blanc en
+           dur, invisible dès qu'un fond clair existe (même défaut, même parade que
+           .auth-glyph — voir auth.css). Décoratif : le nom du produit le suit en
+           toutes lettres, qui porte le nom accessible du lien. #}
+        <span class="admin-badge" aria-hidden="true"></span>
         <span class="side-name">ComRoster</span>
       </a>
       <div class="crumb">
