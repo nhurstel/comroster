@@ -56,6 +56,37 @@
     --f-mono: 'Inter', ui-monospace, monospace;
 }
 
+/* ---------- Apparence claire ----------
+   ÉCRITE DEUX FOIS, et ce n'est pas une négligence : aucune construction CSS nu
+   ne partage un bloc de déclarations entre une media query et un sélecteur. La
+   première copie sert le mode « auto » (le système décide), la seconde le mode
+   forcé depuis le pied. Une garde exige qu'elles restent identiques.
+
+   Le mode « night » n'a pas de bloc : c'est le :root ci-dessus. */
+@media (prefers-color-scheme: light) {
+    body[data-theme="auto"] {
+        --bg: #F2F4F8; --inset: #FFFFFF; --surface: #FFFFFF;
+        --surface-2: #E9ECF3; --surface-3: #DFE4EE;
+        --border: #C8CEDA; --border-2: #B4BCCB; --border-3: #9AA4B6;
+        --border-soft: #DDE2EA;
+        --fg: #151922; --fg-muted: #3F4756; --fg-subtle: #5C6575; --muted: #7A8393;
+        --success: #1B8B4A; --warning: #9A6410; --error: #C0392B;
+        --danger: #B33322; --danger-line: #E7C3BD; --danger-bg: #FBEDEA;
+        --accent: #B23F31; --accent-lt: #8F3227; --on-accent: #FFFFFF;
+    }
+}
+
+body[data-theme="day"] {
+    --bg: #F2F4F8; --inset: #FFFFFF; --surface: #FFFFFF;
+    --surface-2: #E9ECF3; --surface-3: #DFE4EE;
+    --border: #C8CEDA; --border-2: #B4BCCB; --border-3: #9AA4B6;
+    --border-soft: #DDE2EA;
+    --fg: #151922; --fg-muted: #3F4756; --fg-subtle: #5C6575; --muted: #7A8393;
+    --success: #1B8B4A; --warning: #9A6410; --error: #C0392B;
+    --danger: #B33322; --danger-line: #E7C3BD; --danger-bg: #FBEDEA;
+    --accent: #B23F31; --accent-lt: #8F3227; --on-accent: #FFFFFF;
+}
+
 /* ---------- Base (reset maquette) ---------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 /* L'attribut hidden doit TOUJOURS masquer, même face à une règle display (leçon 2026-06-21). */

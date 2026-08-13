@@ -278,3 +278,42 @@ def test_reglages_regroupe_les_fonctions_boitier(auth_client):
     pied = _fragment(html, 'class="side-foot"', "</aside>")
     assert "logout-link" in pied
     assert "reboot-btn" in pied
+
+
+# --------------------------------------------------------------------------
+# Palette claire : deux fois pour garantir que les deux copies ne divergent
+# --------------------------------------------------------------------------
+ADMIN_CSS = (STATIC_CSS / "admin.css").read_text(encoding="utf-8")
+
+
+def _bloc(depart):
+    """Le bloc CSS ouvert à `depart`, jusqu'à son accolade fermante en colonne 0."""
+    d = ADMIN_CSS.index(depart)
+    return ADMIN_CSS[d:ADMIN_CSS.index("\n}", d)]
+
+
+def _declarations(bloc):
+    """Les paires jeton/valeur, mises à plat — l'indentation et les commentaires
+    diffèrent entre les deux copies, pas les valeurs."""
+    return re.findall(r"(--[a-z0-9-]+)\s*:\s*([^;]+);", bloc)
+
+
+def test_les_deux_palettes_claires_sont_identiques():
+    """La palette claire est écrite DEUX fois : sous la media query pour le mode
+    auto, sous l'attribut pour le mode forcé. Aucune construction CSS ne partage
+    un bloc entre une media query et un sélecteur — c'est le coût du CSS nu.
+
+    Deux copies qui divergent est le mode de panne garanti : cette garde est ce
+    qui rend la duplication tenable."""
+    auto = _declarations(_bloc('body[data-theme="auto"]'))
+    force = _declarations(_bloc('body[data-theme="day"]'))
+    assert auto == force, "les deux palettes claires ont divergé"
+
+
+def test_le_theme_clair_redefinit_toutes_les_couleurs_du_sombre():
+    """Un jeton oublié laisse un aplat sombre au milieu d'une page claire, et
+    rien ne le signale — ni test, ni erreur, ni console."""
+    def couleurs(bloc):
+        return {n for n, v in _declarations(bloc) if v.strip().startswith(("#", "rgb"))}
+    manquants = couleurs(_bloc(":root {")) - couleurs(_bloc('body[data-theme="day"]'))
+    assert not manquants, f"jetons non redéfinis en clair : {sorted(manquants)}"
