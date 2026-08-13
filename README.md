@@ -119,6 +119,16 @@ procédure de mise à jour : [deploy/raspberry-pi.md](deploy/raspberry-pi.md), s
    glisser-déposer dans les groupes, puis **Envoyer à l'affichage**.
 4. Ouvrir `/display` sur l'écran de régie — mise à jour en direct à chaque publication.
 
+### Apparence de l'administration
+
+Trois positions dans le pied : **Auto** (défaut), **Clair**, **Sombre**. Le choix est
+propre à ce navigateur — il ne modifie pas ce que voit la salle. Le mode de luminosité
+de l'écran de régie reste dans Réglages → Écran, et voyage avec l'état publié.
+
+> Depuis l'introduction de ce réglage, un poste dont le système est en clair ouvrira
+> l'administration **en clair** : c'est le mode Auto. Deux clics dans le pied suffisent
+> à forcer le sombre, et le choix est mémorisé.
+
 ![Écran de connexion, thème sombre](docs/img/connexion-dark.png)
 ![Écran de connexion, thème clair](docs/img/connexion-light.png)
 *La porte d'entrée, en régie et au bureau. Le thème suit la préférence du système :

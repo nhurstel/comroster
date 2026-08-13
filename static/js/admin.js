@@ -2902,6 +2902,22 @@
   tickClock();
   setInterval(tickClock, 1000);
 
+  /* ---------- Sélecteur d'apparence ----------
+     Le cookie, et non localStorage : c'est le SERVEUR qui rend `data-theme`, ce
+     qui supprime l'éclair de thème au chargement. La CSP interdisant les scripts
+     en ligne, aucun script ne peut s'exécuter avant le premier rendu. */
+  function poserTheme(choix) {
+    const an = 60 * 60 * 24 * 365;
+    document.cookie = `comroster_theme=${choix}; path=/; max-age=${an}; SameSite=Lax`;
+    document.body.dataset.theme = choix;      // bascule immédiate, sans rechargement
+    document.querySelectorAll("[data-theme-choice]").forEach((b) => {
+      b.setAttribute("aria-pressed", String(b.dataset.themeChoice === choix));
+    });
+  }
+  document.querySelectorAll("[data-theme-choice]").forEach((bouton) => {
+    bouton.addEventListener("click", () => poserTheme(bouton.dataset.themeChoice));
+  });
+
   /* ---------- Init ---------- */
   resetUndo();                // référence de départ : rien à annuler avant la 1re édition
   proposerReprise();          // un travail sauvé d'une session morte attend peut-être

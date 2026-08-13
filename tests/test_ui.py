@@ -190,6 +190,28 @@ def test_un_cookie_hostile_ou_inconnu_retombe_sur_auto(auth_client, hostile):
     assert "<script>alert" not in html
 
 
+def test_le_pied_porte_un_selecteur_d_apparence_accessible(auth_client):
+    """Trois boutons nommés, pas trois pictogrammes : un soleil et une lune ne
+    disent pas laquelle est active."""
+    html = auth_client.get("/admin").get_data(as_text=True)
+    pied = html[html.index('<footer class="admin-status"'):html.index("</footer>")]
+    assert 'class="s theme-switch"' in pied
+    assert 'role="group"' in pied
+    assert "aria-label" in pied
+    for valeur, libelle in (("auto", "Auto"), ("day", "Clair"), ("night", "Sombre")):
+        assert f'data-theme-choice="{valeur}"' in pied
+        assert f">{libelle}<" in pied
+
+
+def test_le_segment_actif_reflete_le_cookie(auth_client):
+    """aria-pressed doit dire la vérité dès le rendu serveur : sans cela, un
+    lecteur d'écran annonce trois boutons non pressés sur une page qui EST claire."""
+    auth_client.set_cookie("comroster_theme", "day")
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert 'data-theme-choice="day" aria-pressed="true"' in html
+    assert 'data-theme-choice="auto" aria-pressed="false"' in html
+
+
 def test_display_page_renders(client):
     r = client.get("/display")
     assert r.status_code == 200

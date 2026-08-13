@@ -348,6 +348,14 @@
       {# Pas de lien « aperçu écran » ici : le témoin « Affichage en cours » (coin
          bas-droit) est LE bouton de l'aperçu — un bouton par fonction. #}
       <span class="s" id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>
+      {# Trois segments plats — le vocabulaire de l'admin, qui a abandonné les
+         pilules. `aria-pressed` est posé PAR LE SERVEUR : il doit être vrai dès
+         le premier rendu, avant que le moindre script ne tourne. #}
+      <span class="s theme-switch" role="group" aria-label="Apparence de l'administration">
+        <button type="button" data-theme-choice="auto" aria-pressed="{{ 'true' if theme_ui == 'auto' else 'false' }}">Auto</button>
+        <button type="button" data-theme-choice="day" aria-pressed="{{ 'true' if theme_ui == 'day' else 'false' }}">Clair</button>
+        <button type="button" data-theme-choice="night" aria-pressed="{{ 'true' if theme_ui == 'night' else 'false' }}">Sombre</button>
+      </span>
       <span class="s status-right">par Nathan Hurstel</span>
     </footer>
   </div>

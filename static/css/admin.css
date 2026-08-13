@@ -1524,3 +1524,16 @@ body[data-session="lost"] .admin-app {
     opacity: 0.5;
     filter: saturate(0.4);
 }
+
+/* ---------- Sélecteur d'apparence ---------- */
+.theme-switch { display: inline-flex; gap: 2px; }
+.theme-switch button {
+    padding: 2px 9px;
+    border: 1px solid var(--border-soft); border-radius: 5px;
+    background: none; color: var(--fg-subtle);
+    font: inherit; cursor: pointer;
+}
+.theme-switch button:hover { color: var(--fg); border-color: var(--border-2); }
+.theme-switch button[aria-pressed="true"] {
+    background: var(--surface-3); color: var(--fg); border-color: var(--border-2);
+}
