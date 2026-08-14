@@ -153,6 +153,120 @@ def test_les_commandes_de_fichier_vivent_dans_le_dialogue_configs(auth_client):
     assert "import-label" not in html
 
 
+# --------------------------------------------------------------------------
+# Apparence de l'administration : le choix vient d'un cookie, donc de
+# l'utilisateur — il ne doit JAMAIS atterrir tel quel dans un attribut.
+# `re` et `pytest` sont déjà importés en tête de ce fichier.
+# --------------------------------------------------------------------------
+@pytest.mark.parametrize("cookie,attendu", [
+    (None, "auto"),          # aucun choix : on suit le système
+    ("auto", "auto"),
+    ("day", "day"),
+    ("night", "night"),
+])
+def test_le_cookie_de_theme_pilote_l_attribut(auth_client, cookie, attendu):
+    if cookie:
+        auth_client.set_cookie("comroster_theme", cookie)
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert f'data-theme="{attendu}"' in html
+
+
+@pytest.mark.parametrize("hostile", [
+    'night" onload="alert(1)',        # évasion d'attribut
+    "<script>alert(1)</script>",
+    "jour",                            # simplement inconnue
+    "",
+    "DAY",                             # la casse n'est pas une valeur admise
+])
+def test_un_cookie_hostile_ou_inconnu_retombe_sur_auto(auth_client, hostile):
+    """Une valeur de cookie est une DONNÉE UTILISATEUR. Rendue sans liste blanche
+    dans un attribut HTML, elle en sort — Jinja échappe les guillemets, mais on ne
+    veut pas dépendre de cet échappement pour une valeur qui n'a que trois formes
+    légitimes. La liste blanche est la garde, l'échappement n'est que le filet."""
+    auth_client.set_cookie("comroster_theme", hostile)
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert 'data-theme="auto"' in html
+    assert "onload" not in html
+    assert "<script>alert" not in html
+
+
+def _cran(html, valeur):
+    """La balise ENTIÈRE du cran demandé. On remonte à l'ouverture du `<button>`
+    et non au seul `data-theme-choice` : les attributs sont répartis sur
+    plusieurs lignes, et certains — `role` notamment — le précèdent."""
+    repere = html.index(f'data-theme-choice="{valeur}"')
+    debut = html.rindex("<button", 0, repere)
+    return html[debut:html.index("</button>", debut)]
+
+
+def test_le_pied_porte_un_inverseur_d_apparence_accessible(auth_client):
+    """Un inverseur à trois positions EST un choix exclusif : `radiogroup` et
+    `radio`, pas un groupe de boutons-poussoirs. Les trois crans sont muets à
+    l'écran — c'est le curseur qui dit lequel est actif — donc chacun porte un nom
+    accessible, sans quoi un lecteur d'écran annoncerait trois boutons vides."""
+    html = auth_client.get("/admin").get_data(as_text=True)
+    pied = html[html.index('<footer class="admin-status"'):html.index("</footer>")]
+    assert 'class="s theme-switch"' in pied
+    assert 'role="radiogroup"' in pied
+    for valeur, libelle in (("auto", "Auto"), ("day", "Clair"), ("night", "Sombre")):
+        cran = _cran(pied, valeur)
+        assert 'role="radio"' in cran
+        assert f'aria-label="{libelle}"' in cran
+
+
+def test_l_inverseur_reflete_le_cookie_des_le_rendu_serveur(auth_client):
+    """`aria-checked`, la position du curseur et le mot affiché doivent dire la
+    vérité AVANT qu'aucun script ne tourne. La CSP interdit les scripts en ligne :
+    il n'existe aucune occasion de corriger l'état entre le rendu et l'affichage."""
+    auth_client.set_cookie("comroster_theme", "day")
+    html = auth_client.get("/admin").get_data(as_text=True)
+    assert 'aria-checked="true"' in _cran(html, "day")
+    assert 'aria-checked="false"' in _cran(html, "auto")
+    # Un groupe radio n'expose qu'un seul arrêt de tabulation.
+    assert 'tabindex="0"' in _cran(html, "day")
+    assert 'tabindex="-1"' in _cran(html, "auto")
+    assert 'data-pos="day"' in html, "le curseur ne part pas au bon cran"
+    assert ">Clair</b>" in html, "le mot affiché ne dit pas l'état"
+
+
+def test_la_portee_des_deux_reglages_de_luminosite_est_levee_sans_libelle(auth_client):
+    """L'admin porte DEUX réglages de luminosité : le sien, dans le pied, et celui
+    de l'écran de régie, dans Réglages → Écran. Tant qu'aucun des deux ne disait
+    sur quoi il agissait, ils se confondaient.
+
+    La levée ne passe PAS par un libellé de portée collé à l'inverseur. Elle
+    repose sur trois choses, et cette garde tient les deux qui vivent dans le
+    balisage : le nom explicite du réglage de l'écran, et le renvoi posé sous lui
+    — là où l'on vient chercher « le mode sombre » et où l'on risque de croire
+    l'avoir trouvé. La troisième est le témoin « Affichage en cours », qui montre
+    l'écran de régie en direct : basculer l'inverseur et voir la vignette rester
+    telle quelle démontre l'indépendance au lieu de l'affirmer.
+
+    L'infobulle de l'inverseur reste le filet : invisible tant qu'on ne survole
+    pas, donc sans coût pour la réglette."""
+    html = auth_client.get("/admin").get_data(as_text=True)
+    pied = html[html.index('<footer class="admin-status"'):html.index("</footer>")]
+
+    assert "Luminosité de l'écran de régie" in html, \
+        "le réglage de l'écran de régie ne nomme pas son objet"
+    assert "se règle dans le pied" in html, \
+        "rien ne renvoie vers l'inverseur depuis le réglage qu'on risque de confondre avec lui"
+    assert "Réglages → Écran" in pied, "l'infobulle de l'inverseur ne renvoie pas à l'autre réglage"
+
+    # Et la contrepartie, qui est la décision : la réglette reste NUE À L'ŒIL. Un
+    # libellé de portée y serait une affirmation de plus dans une barre qui en
+    # porte déjà cinq.
+    #
+    # L'`aria-label`, lui, garde la portée et doit la garder : un lecteur d'écran
+    # n'a pas de vignette à regarder, la démonstration visuelle ne l'atteint pas.
+    # On ne vérifie donc que le TEXTE VISIBLE, attributs retirés.
+    visible = re.sub(r'="[^"]*"', "", pied)
+    assert "cette page" not in visible and "cette interface" not in visible, \
+        "un libellé de portée est revenu à l'écran dans le pied"
+    assert 'aria-label="Apparence de cette page"' in pied, \
+        "le nom accessible a perdu la portée, que rien ne remplace pour un lecteur d'écran"
+
+
 def test_display_page_renders(client):
     r = client.get("/display")
     assert r.status_code == 200
@@ -241,3 +355,120 @@ def test_reglages_regroupe_les_fonctions_boitier(auth_client):
     pied = _fragment(html, 'class="side-foot"', "</aside>")
     assert "logout-link" in pied
     assert "reboot-btn" in pied
+
+
+# --------------------------------------------------------------------------
+# Palette claire : deux fois pour garantir que les deux copies ne divergent
+# --------------------------------------------------------------------------
+ADMIN_CSS = (STATIC_CSS / "admin.css").read_text(encoding="utf-8")
+
+
+def _bloc(depart):
+    """Le bloc CSS ouvert à `depart`, jusqu'à son accolade fermante en colonne 0."""
+    d = ADMIN_CSS.index(depart)
+    return ADMIN_CSS[d:ADMIN_CSS.index("\n}", d)]
+
+
+def _declarations(bloc):
+    """Les paires jeton/valeur, mises à plat — l'indentation et les commentaires
+    diffèrent entre les deux copies, pas les valeurs."""
+    return re.findall(r"(--[a-z0-9-]+)\s*:\s*([^;]+);", bloc)
+
+
+def test_les_deux_palettes_claires_sont_identiques():
+    """La palette claire est écrite DEUX fois : sous la media query pour le mode
+    auto, sous l'attribut pour le mode forcé. Aucune construction CSS ne partage
+    un bloc entre une media query et un sélecteur — c'est le coût du CSS nu.
+
+    Deux copies qui divergent est le mode de panne garanti : cette garde est ce
+    qui rend la duplication tenable."""
+    auto = _declarations(_bloc('body[data-theme="auto"]'))
+    force = _declarations(_bloc('body[data-theme="day"]'))
+    assert auto == force, "les deux palettes claires ont divergé"
+
+
+def test_le_theme_clair_redefinit_toutes_les_couleurs_du_sombre():
+    """Un jeton oublié laisse un aplat sombre au milieu d'une page claire, et
+    rien ne le signale — ni test, ni erreur, ni console."""
+    def couleurs(bloc):
+        # "var" est inclus : un jeton défini en `var(--autre-jeton)` (--primary,
+        # alias de --accent) est une couleur au même titre qu'un littéral — la
+        # garde doit le voir passer si sa redéfinition claire manque, exactement
+        # le trou qui a laissé --primary figé sur l'accent sombre partout.
+        return {n for n, v in _declarations(bloc) if v.strip().startswith(("#", "rgb", "var"))}
+    manquants = couleurs(_bloc(":root {")) - couleurs(_bloc('body[data-theme="day"]'))
+    assert not manquants, f"jetons non redéfinis en clair : {sorted(manquants)}"
+
+
+#: Littéraux de couleur TOLÉRÉS hors du :root d'admin.css. La liste est CLOSE :
+#: en ajouter un fera échouer ce test, ce qui force la décision au moment de
+#: l'écriture. C'est la réponse directe à la leçon du 2026-08-11 — le thème clair
+#: des pages d'authentification a rendu invisible un glyphe dont la couleur était
+#: figée dans son fichier, sans qu'aucun des 636 tests ne bronche.
+LITTERAUX_TOLERES = {
+    # Encre calculée par static/js/ink.js (inkFor) : verdict "dark"/"light" tiré
+    # de la LUMINANCE de la couleur du groupe (--gel, palette fixe choisie par
+    # l'utilisateur), pas du thème de l'administration. La couleur d'un groupe
+    # ne change pas entre jour et nuit — l'encre qui la rend lisible ne doit
+    # donc pas suivre le thème non plus. Paire fixe : #141005 (encre sombre) /
+    # #F4F7FB (encre claire), utilisée par .admin-block[data-ink] et
+    # .board-table .bt-assign[data-ink].
+    "#141005",
+    "#F4F7FB",
+    # Bouton "confirm-danger" : texte blanc fixe sur fond --error, préexistant à
+    # cette tâche. Il ne DÉPEND PAS du thème (raison de sa présence ici), mais il
+    # ne le RÉUSSIT pas pour autant : au seuil d'ink.js (0.179), la luminance de
+    # --error sombre (F04D3E, 0.24) appelle une encre SOMBRE, pas blanche — et le
+    # contraste réel (~3,6:1) est sous les 4,5:1 AA pour du texte courant. En
+    # clair (C0392B, luminance 0.14) le blanc passe (~5,4:1). Corriger ça change
+    # l'ALLURE d'un bouton établi (nouvelle encre à choisir), ce qui dépasse le
+    # cadre de cette tâche (faire suivre le thème à des littéraux) ; signalé
+    # pour un correctif d'accessibilité séparé, pas corrigé ici.
+    "#FFFFFF",
+    # Trame de la feuille d'impression (.print-frame) : simule une page de
+    # papier, TOUJOURS blanche, quel que soit le thème de l'écran qui la montre.
+    "#ffffff",
+    # Fond des trois cadres d'aperçu de l'écran display (.screen-preview-frame,
+    # .preview-tile-frame, .preview-frame) : simule l'écran/kiosk réel derrière
+    # l'iframe pendant son chargement — un noir de "moniteur éteint", indépendant
+    # du thème de l'administration qui l'affiche.
+    "#000",
+    # Huit couleurs qui se posent sur --gel, la couleur du GROUPE (donnée du
+    # plateau choisie par l'utilisateur), invariante au thème — même raison que
+    # la paire d'encre #141005/#F4F7FB ci-dessus. Chacune restaurée à sa valeur
+    # de thème sombre : .block-header (filet), .person + .person (séparateur),
+    # .person:hover (survol), .person.selected (fond — l'ancien voile turquoise à
+    # 14 % était déjà jugé invisible sur les gels colorés, et le thème clair
+    # ramenait --ombre à 10 %, exactement ce défaut), .bp-dot.on (anneau et
+    # couleur), .bp-batt.low (couleur), .color-swatch (liseré). Les séparateur et
+    # survol avaient chacun leur propre intensité AVANT jetonisation (0.1 et
+    # 0.12) ; les rabattre sur le même jeton --ombre-faible (0.17) les avait
+    # toutes deux intensifiées de 40 à 70 % en thème nocturne — la garde ci-après
+    # empêche ce genre de dérive de repasser inaperçue.
+    "rgb(0 0 0 / 0.17)",
+    "rgb(0 0 0 / 0.3)",
+    "rgb(0 0 0 / 0.1)",
+    "rgb(0 0 0 / 0.12)",
+    "#E8A13A",
+    "#2ECC71",
+    # Repli de `.admin-dialog::backdrop { background: var(--ombre-scrim, …) }` : sur un
+    # moteur antérieur à 2024 (Chrome 122, Firefox 125, Safari 17.4), `::backdrop`
+    # n'hérite pas des propriétés personnalisées de son élément d'origine et
+    # `var(--ombre-scrim)` seul y serait invalide — voile totalement transparent, dans
+    # les deux thèmes. Littéral égal à la valeur NOCTURNE de --ombre-scrim : un vieux
+    # moteur n'aurait de toute façon pas appliqué la palette claire.
+    "rgb(4 6 10 / 0.62)",
+}
+
+
+def test_aucune_couleur_en_dur_non_justifiee_dans_admin_css():
+    hors_root = ADMIN_CSS.replace(_bloc(":root {"), "")
+    hors_root = re.sub(r"/\*.*?\*/", "", hors_root, flags=re.S)   # les commentaires citent des couleurs
+    for bloc in ('body[data-theme="auto"]', 'body[data-theme="day"]'):
+        hors_root = hors_root.replace(_bloc(bloc), "")
+    trouvees = set(re.findall(r"#[0-9A-Fa-f]{3,8}\b|rgba?\([^)]*\)", hors_root))
+    surplus = trouvees - LITTERAUX_TOLERES
+    assert not surplus, (
+        "couleurs en dur non justifiées — les promouvoir en jetons pour "
+        "qu'elles suivent le thème, ou les ajouter à LITTERAUX_TOLERES avec "
+        f"un commentaire disant pourquoi elles n'en dépendent pas : {sorted(surplus)}")

@@ -54,6 +54,100 @@
     /* Preset « base » : Outfit pour l'UI, Inter (tabulaire) pour les nombres. */
     --f-ui: 'Outfit', 'Inter', sans-serif;
     --f-mono: 'Inter', ui-monospace, monospace;
+
+    /* Voiles et ombres : ils s'INVERSENT avec le thème. Un blanc à 3 % éclaircit
+       une surface sombre et disparaît sur une surface claire ; une ombre noire à
+       50 % écrase une page claire. Jetons, donc — pas des littéraux. */
+    --voile-1: #ffffff08; --voile-2: #ffffff0d; --voile-3: #ffffff14;
+    --ombre-faible: rgb(0 0 0 / 0.17); --ombre: rgb(0 0 0 / 0.3);
+    --ombre-forte: rgb(0 0 0 / 0.5); --ombre-portee: rgb(0 0 0 / 0.25);
+    /* Voile du fond de dialogue (::backdrop) : plus sombre (0.62 contre 0.5) et sur
+       une base légèrement bleutée (4 6 10, pas du noir pur). Sur un aplat plein
+       écran, l'écart avec --ombre-forte se verrait — cinquième jeton, donc, plutôt
+       que de forcer sur l'une des quatre intensités retenues. */
+    --ombre-scrim: rgb(4 6 10 / 0.62);
+    /* Teintes dérivées de l'accent, du succès et de l'erreur : leurs bases
+       changent en clair, ces dérivées doivent suivre. */
+    --accent-a10: rgb(217 98 83 / 0.1); --accent-a12: rgb(217 98 83 / 0.12);
+    --accent-a14: rgb(217 98 83 / 0.14); --accent-a18: rgb(217 98 83 / 0.18);
+    --accent-a22: rgb(217 98 83 / 0.22); --accent-a32: rgb(217 98 83 / 0.32);
+    --succes-a24: rgb(46 204 113 / 0.24); --succes-a45: rgb(46 204 113 / 0.45);
+    --succes-a85: rgb(46 204 113 / 0.85);
+    --erreur-a12: rgb(240 77 62 / 0.12); --erreur-a40: rgb(240 77 62 / 0.4);
+    /* Ponctuelles promues (étape 4) : des surfaces de survol dont l'ÉTAT DE REPOS
+       suit déjà le thème (--warning, --error) — sans jeton, leur survol resterait
+       figé et sauterait au changement de thème au lieu de suivre sa base. */
+    --warning-bg: #2A1F14;   /* .nav-danger:hover — pendant ambre de --danger-bg */
+    --error-lt: #E2604F;     /* confirm-danger:hover — pendant de --accent-lt */
+    --warning-lt: #F2B457;   /* .reboot-btn:hover — pendant de --accent-lt */
+}
+
+/* ---------- Apparence claire ----------
+   ÉCRITE DEUX FOIS, et ce n'est pas une négligence : aucune construction CSS nu
+   ne partage un bloc de déclarations entre une media query et un sélecteur. La
+   première copie sert le mode « auto » (le système décide), la seconde le mode
+   forcé depuis le pied. Une garde exige qu'elles restent identiques.
+
+   Le mode « night » n'a pas de bloc : c'est le :root ci-dessus.
+
+   --primary/--primary-light sont redéclarés dans les deux blocs (alors qu'ils ne sont
+   que des ALIAS de --accent/--accent-lt, voir :root) : une propriété personnalisée qui
+   contient un var() le résout au calcul, sur l'élément qui la PORTE — pas sur celui qui
+   la consomme. Déclarés seulement sur :root (html), ils resteraient figés sur l'accent
+   SOMBRE partout, y compris ici. NE PAS commenter cette redéclaration À L'INTÉRIEUR des
+   blocs ci-dessous : test_aucune_couleur_en_dur_non_justifiee_dans_admin_css compare le
+   texte brut de ces blocs après avoir retiré les commentaires du reste du fichier — un
+   commentaire interne casse la correspondance et fait fuir tous les littéraux du bloc. */
+@media (prefers-color-scheme: light) {
+    body[data-theme="auto"] {
+        --bg: #F2F4F8; --inset: #FFFFFF; --surface: #FFFFFF;
+        --surface-2: #E9ECF3; --surface-3: #DFE4EE;
+        --border: #C8CEDA; --border-2: #B4BCCB; --border-3: #9AA4B6;
+        --border-soft: #DDE2EA;
+        --fg: #151922; --fg-muted: #3F4756; --fg-subtle: #5C6575; --muted: #7A8393;
+        --success: #1B8B4A; --warning: #9A6410; --error: #C0392B;
+        --danger: #B33322; --danger-line: #E7C3BD; --danger-bg: #FBEDEA;
+        --accent: #B23F31; --accent-lt: #8F3227; --on-accent: #FFFFFF;
+        --primary: var(--accent); --primary-light: var(--accent-lt);
+        --voile-1: #00000008; --voile-2: #0000000d; --voile-3: #00000014;
+        --ombre-faible: rgb(0 0 0 / 0.06); --ombre: rgb(0 0 0 / 0.10);
+        --ombre-forte: rgb(0 0 0 / 0.18); --ombre-portee: rgb(0 0 0 / 0.09);
+        --ombre-scrim: rgb(4 6 10 / 0.22);
+        --accent-a10: rgb(178 63 49 / 0.1); --accent-a12: rgb(178 63 49 / 0.12);
+        --accent-a14: rgb(178 63 49 / 0.14); --accent-a18: rgb(178 63 49 / 0.18);
+        --accent-a22: rgb(178 63 49 / 0.22); --accent-a32: rgb(178 63 49 / 0.32);
+        --succes-a24: rgb(27 139 74 / 0.24); --succes-a45: rgb(27 139 74 / 0.45);
+        --succes-a85: rgb(27 139 74 / 0.85);
+        --erreur-a12: rgb(192 57 43 / 0.12); --erreur-a40: rgb(192 57 43 / 0.4);
+        --warning-bg: #FBF0DC;
+        --error-lt: #9A2E22;
+        --warning-lt: #7B500D;
+    }
+}
+
+body[data-theme="day"] {
+    --bg: #F2F4F8; --inset: #FFFFFF; --surface: #FFFFFF;
+    --surface-2: #E9ECF3; --surface-3: #DFE4EE;
+    --border: #C8CEDA; --border-2: #B4BCCB; --border-3: #9AA4B6;
+    --border-soft: #DDE2EA;
+    --fg: #151922; --fg-muted: #3F4756; --fg-subtle: #5C6575; --muted: #7A8393;
+    --success: #1B8B4A; --warning: #9A6410; --error: #C0392B;
+    --danger: #B33322; --danger-line: #E7C3BD; --danger-bg: #FBEDEA;
+    --accent: #B23F31; --accent-lt: #8F3227; --on-accent: #FFFFFF;
+    --primary: var(--accent); --primary-light: var(--accent-lt);
+    --voile-1: #00000008; --voile-2: #0000000d; --voile-3: #00000014;
+    --ombre-faible: rgb(0 0 0 / 0.06); --ombre: rgb(0 0 0 / 0.10);
+    --ombre-forte: rgb(0 0 0 / 0.18); --ombre-portee: rgb(0 0 0 / 0.09);
+    --ombre-scrim: rgb(4 6 10 / 0.22);
+    --accent-a10: rgb(178 63 49 / 0.1); --accent-a12: rgb(178 63 49 / 0.12);
+    --accent-a14: rgb(178 63 49 / 0.14); --accent-a18: rgb(178 63 49 / 0.18);
+    --accent-a22: rgb(178 63 49 / 0.22); --accent-a32: rgb(178 63 49 / 0.32);
+    --succes-a24: rgb(27 139 74 / 0.24); --succes-a45: rgb(27 139 74 / 0.45);
+    --succes-a85: rgb(27 139 74 / 0.85);
+    --erreur-a12: rgb(192 57 43 / 0.12); --erreur-a40: rgb(192 57 43 / 0.4);
+    --warning-bg: #FBF0DC;
+    --error-lt: #9A2E22;
+    --warning-lt: #7B500D;
 }
 
 /* ---------- Base (reset maquette) ---------- */
@@ -102,9 +196,21 @@ a { color: var(--accent); text-decoration: none; }
     font-weight: 700; font-size: 12px; letter-spacing: 0.13em;
     color: inherit;                     /* la marque est un lien : retour au plateau */
 }
-a.brand:hover { background: #ffffff08; }
+a.brand:hover { background: var(--voile-1); }
 .side-name { text-transform: uppercase; }
-.admin-badge { width: 14px; height: 14px; flex: 0 0 auto; display: block; }
+/* Silhouette masquée plutôt qu'image (même parade que .auth-glyph, auth.css) : le SVG
+   porte un fill quasi blanc en dur — invisible sur .admin-top une fois son fond passé
+   à --surface: #FFFFFF en thème clair. Le masque la rend indépendante du fichier et lui
+   donne l'accent du produit dans les deux thèmes ; le nom accessible du lien reste porté
+   par le texte « ComRoster » voisin (.side-name). */
+.admin-badge {
+    /* 22 px et non 14 : à 14 le glyphe se lisait comme une puce, pas comme une
+       marque. L'en-tête fait 44 px, il l'absorbe sans se déformer. */
+    display: block; width: 22px; height: 22px; flex: 0 0 auto;
+    background-color: var(--accent);
+    -webkit-mask: url('../img/comroster-glyph.svg') center / contain no-repeat;
+    mask: url('../img/comroster-glyph.svg') center / contain no-repeat;
+}
 .crumb {
     display: flex; align-items: center; gap: 8px; padding: 0 14px; min-width: 0;
     font-family: var(--f-mono); font-size: 12.5px; color: var(--fg-subtle);
@@ -119,7 +225,7 @@ a.brand:hover { background: #ffffff08; }
     padding: 0 13px; font-size: var(--ui); font-weight: 600; letter-spacing: var(--track);
     color: var(--fg-muted); border-bottom: 2px solid transparent; margin-bottom: -1px;
 }
-.admin-tabs .tab:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
+.admin-tabs .tab:hover:not(:disabled) { color: var(--fg); background: var(--voile-1); }
 .admin-tabs .tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
 /* Panneau ouvert depuis un MENU (Journal, Santé) : l'onglet qui porte ce menu s'allume.
    Sans ce repère, on serait sur un panneau sans que rien dans l'en-tête ne le dise —
@@ -137,7 +243,7 @@ a.brand:hover { background: #ffffff08; }
     min-width: 190px; padding: 5px 0;
     display: flex; flex-direction: column;
     background: var(--surface-3); border: 1px solid var(--border);
-    border-radius: var(--rad); box-shadow: 0 10px 28px #00000088;
+    border-radius: var(--rad); box-shadow: 0 10px 28px var(--ombre-forte);
 }
 /* Même gabarit que les rangées de la latérale (d'où viennent quatre de ces six items) :
    le menu ne doit pas introduire un troisième registre de rangée cliquable. */
@@ -147,7 +253,7 @@ a.brand:hover { background: #ffffff08; }
     color: var(--fg-muted); font-size: calc(var(--ui) + 1px); font-weight: 600;
     letter-spacing: var(--track); text-align: left; white-space: nowrap; cursor: pointer;
 }
-.menu-item:hover:not(:disabled), .menu-item:focus-visible { background: #ffffff08; color: var(--fg); }
+.menu-item:hover:not(:disabled), .menu-item:focus-visible { background: var(--voile-1); color: var(--fg); }
 .menu-sep { height: 1px; margin: 5px 0; background: var(--border-soft); }
 
 /* Chips : segments plats séparés par des filets (pas de pilules).
@@ -161,7 +267,7 @@ a.brand:hover { background: #ffffff08; }
     font-size: calc(var(--ui) - 0.5px); font-weight: 500;
     color: var(--fg-muted); white-space: nowrap;
 }
-button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
+button.chip:hover:not(:disabled) { color: var(--fg); background: var(--voile-1); }
 .chip .dot { width: 6px; height: 6px; border-radius: 2px; flex: 0 0 auto; }
 .chip.clock {
     font-family: var(--f-mono); font-size: 12.5px; color: var(--fg-muted);
@@ -204,10 +310,10 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
     font-size: calc(var(--ui) + 0.5px); font-weight: 700;
     letter-spacing: var(--track); white-space: nowrap; transition: background 0.12s;
 }
-#publish-btn.publish-text:hover:not(:disabled) { background: #ffffff0d; color: var(--accent-lt); }
+#publish-btn.publish-text:hover:not(:disabled) { background: var(--voile-2); color: var(--accent-lt); }
 #publish-btn.publish-text kbd {
     font-family: var(--f-mono); font-size: 11.5px; font-weight: 500;
-    background: #ffffff14; padding: 2px 5px; border-radius: 3px; letter-spacing: 0;
+    background: var(--voile-3); padding: 2px 5px; border-radius: 3px; letter-spacing: 0;
 }
 
 /* ---------- Corps : latérale | espace de travail ---------- */
@@ -242,7 +348,7 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
 /* Rangée d'ajout de groupe : même gabarit, en retrait tant qu'on ne la vise pas. */
 .inv-item.inv-add { color: var(--fg-subtle); }
 .inv-item.inv-add:hover { color: var(--fg); }
-.inv-item:hover { background: #ffffff08; color: var(--fg); }
+.inv-item:hover { background: var(--voile-1); color: var(--fg); }
 .inv-item.active { background: var(--surface-3); color: var(--fg); }
 .inv-item .inv-dot { width: 3px; height: 14px; border-radius: 1px; background: transparent; }
 .inv-item .inv-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -258,8 +364,8 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: #ffffff08; }
     color: var(--fg-muted); font-size: calc(var(--ui) + 1px); font-weight: 600;
     text-align: left; white-space: nowrap; cursor: pointer;
 }
-.nav-item:hover:not(:disabled) { background: #ffffff08; color: var(--fg); }
-.nav-danger:hover:not(:disabled) { background: #2A1F14; color: var(--warning); }
+.nav-item:hover:not(:disabled) { background: var(--voile-1); color: var(--fg); }
+.nav-danger:hover:not(:disabled) { background: var(--warning-bg); color: var(--warning); }
 .nav-danger:disabled { opacity: 0.6; cursor: default; }
 .import-label input[type="file"] { display: none; }
 
@@ -285,7 +391,7 @@ body:has(#antenna-dialog[open]) #antenna-btn,
 body:has(#network-dialog[open]) #network-btn,
 body:has(#history-dialog[open]) #history-btn,
 body:has(#configs-dialog[open]) #configs-btn {
-    background: rgb(217 98 83 / 0.14); color: var(--fg);
+    background: var(--accent-a14); color: var(--fg);
     box-shadow: inset 2px 0 0 var(--accent);
 }
 
@@ -380,6 +486,9 @@ body:has(#configs-dialog[open]) #configs-btn {
 .block-header {
     display: flex; align-items: center; gap: 9px;
     height: calc(var(--row) + 5px); padding: 0 11px;
+    /* Littéral, pas --ombre-faible : ce filet se pose sur --gel, la couleur du GROUPE
+       (donnée du plateau), invariante au thème — comme --on-gel deux lignes plus haut.
+       Valeur : celle qui valait en thème sombre avant jetonisation. */
     border-bottom: 1px solid rgb(0 0 0 / 0.17);
 }
 .block-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; }
@@ -397,7 +506,9 @@ body:has(#configs-dialog[open]) #configs-btn {
 /* Case couleur cliquable : clic → palette du groupe. */
 .color-swatch {
     width: 13px; height: 13px; border-radius: 4px;
-    border: 1px solid rgb(0 0 0 / 0.35);
+    /* Littéral, pas --ombre : ce liseré se pose sur la couleur du GROUPE
+       (--swatch-color), invariante au thème. Valeur de thème sombre. */
+    border: 1px solid rgb(0 0 0 / 0.3);
     background: var(--swatch-color, var(--accent));
     flex: 0 0 auto; cursor: pointer; transition: transform 0.1s;
 }
@@ -444,6 +555,10 @@ body:has(#configs-dialog[open]) #configs-btn {
     display: flex; align-items: center; height: var(--row); padding: 0 11px;
     cursor: grab; flex: 0 0 auto;
 }
+/* Littéraux, pas --ombre-faible : ces deux règles se posent sur --gel, la couleur du
+   GROUPE (donnée du plateau), invariante au thème. Valeurs de thème sombre — chacune la
+   SIENNE : elles avaient divergé avant la jetonisation (0.1 et 0.12), et les rabattre sur
+   un même jeton partagé (0.17) les avait toutes deux intensifiées de 40 à 70 %. */
 .person + .person { border-top: 1px solid rgb(0 0 0 / 0.1); }   /* séparateurs : filets */
 .person:hover { background: rgb(0 0 0 / 0.12); }
 .person.dragging { opacity: 0.45; cursor: grabbing; }
@@ -473,14 +588,18 @@ body:has(#configs-dialog[open]) #configs-btn {
 /* Indicateurs temps réel, à droite de la ligne. */
 .card-live { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .bp-batt { font-size: var(--ui-sm); font-weight: 700; color: inherit; opacity: 0.78; white-space: nowrap; }
-.bp-batt.low { color: var(--warning); }
+/* Littéral, pas --warning : cette ligne se lit sur --gel, la couleur du GROUPE,
+   invariante au thème. Valeur de thème sombre. */
+.bp-batt.low { color: #E8A13A; }
 /* Voyant : point 6 px (maquette .st). VERT quand connecté (décision retenue) — l'anneau
    sombre le fait tenir sur n'importe quel aplat. Sans antenne l'état est inconnu :
    point neutre discret. `display:none` quand décoché (un invisible qui occupe la place
    décale ses voisins — leçon 2026-07-23). */
 .bp-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; background: currentColor; opacity: 0.3; }
 .bp-dot.hidden { display: none; }
-.bp-dot.on { opacity: 1; background: var(--success); box-shadow: 0 0 0 1.5px rgb(0 0 0 / 0.3); }
+/* Littéraux, pas --success/--ombre : ce voyant se pose sur --gel, la couleur du GROUPE,
+   invariante au thème. Valeurs de thème sombre. */
+.bp-dot.on { opacity: 1; background: #2ECC71; box-shadow: 0 0 0 1.5px rgb(0 0 0 / 0.3); }
 .bp-dot.down { opacity: 0.45; }
 
 /* Fente de dépôt (maquette .drop) : affordance ET bouton d'ajout. */
@@ -529,7 +648,7 @@ body:has(#configs-dialog[open]) #configs-btn {
 .board-table .bt-sort[data-dir="desc"]::after { content: "▼"; font-size: 8px; }
 .board-table .bt-row { height: var(--row); border-bottom: 1px solid var(--border-soft); cursor: pointer; }
 .board-table .bt-row:hover { background: var(--surface-2); }
-.board-table .bt-row.selected { background: rgb(217 98 83 / 0.1); box-shadow: inset 0 0 0 2px var(--accent); }
+.board-table .bt-row.selected { background: var(--accent-a10); box-shadow: inset 0 0 0 2px var(--accent); }
 .board-table .bt-row.view-dim { opacity: 0.22; pointer-events: none; }
 /* MAJ+clic sur une rangée déclenchait la SÉLECTION DE TEXTE du navigateur : les libellés
    se surlignaient en bleu par-dessus la sélection de beltpacks, les deux gestes se
@@ -700,7 +819,10 @@ body:has(#configs-dialog[open]) #configs-btn {
 .admin-status .st-dot { width: 6px; height: 6px; border-radius: 2px; background: var(--muted); flex: 0 0 auto; }
 .admin-status .status-sse[data-ok="1"] .st-dot { background: var(--success); }
 .admin-status .status-sse[data-ok="0"] .st-dot { background: var(--warning); }
-.admin-status .status-right { margin-left: auto; border-right: 0; border-left: 1px solid var(--border-soft); }
+/* La mention d'auteur ouvre la réglette : elle n'a donc plus de filet à gauche,
+   c'est le bord de la fenêtre. L'inverseur d'apparence tient l'autre extrémité
+   (voir sa règle plus bas, qui porte le `margin-left: auto`). */
+.admin-status .status-author { border-left: 0; }
 
 /* ---------- Vue filtrante de l'inventaire ---------- */
 /* Estompe (ne masque pas) les cartes hors vue : réversible, sans toucher aux données. */
@@ -771,7 +893,7 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
     background: var(--surface-2); border: 1px solid var(--border-2); color: var(--fg);
     padding: 9px 15px; border-radius: 8px;
     font-size: calc(var(--ui) + 1px); font-weight: 500;
-    box-shadow: 0 14px 36px rgb(0 0 0 / 0.55);
+    box-shadow: 0 14px 36px var(--ombre-forte);
     z-index: 2000; opacity: 0; pointer-events: none;
     transition: opacity 0.2s ease, transform 0.2s ease;
 }
@@ -785,9 +907,14 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
     /* Le reset `* { margin: 0 }` écrase le margin:auto natif des <dialog> modaux. */
     margin: auto; padding: 0;
     background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 12px;
-    box-shadow: 0 24px 64px rgb(0 0 0 / 0.5); color: var(--fg);
+    box-shadow: 0 24px 64px var(--ombre-forte); color: var(--fg);
 }
-.admin-dialog::backdrop { background: rgb(4 6 10 / 0.62); }
+/* Repli littéral : ::backdrop n'hérite des propriétés personnalisées de son élément
+   d'origine que sur les moteurs de 2024+ (Chrome 122, Firefox 125, Safari 17.4). Sur un
+   Chromium plus ancien (poste de régie non mis à jour), `var(--ombre-scrim)` devient
+   invalide et le voile serait totalement transparent, dans les DEUX thèmes — un défaut
+   qu'aucun test Playwright (Chromium récent) ne peut attraper. */
+.admin-dialog::backdrop { background: var(--ombre-scrim, rgb(4 6 10 / 0.62)); }
 .admin-dialog form { padding: 20px; display: flex; flex-direction: column; gap: 13px; }
 .admin-dialog h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
 .dialog-hint { font-size: var(--ui); color: var(--fg-subtle); }
@@ -818,9 +945,9 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .admin-dialog .dialog-actions .danger { margin-right: auto; }
 /* Redémarrage (action notable, non destructive) */
 .admin-dialog button.primary.confirm-danger { background: var(--error); color: #FFFFFF; }
-.admin-dialog button.primary.confirm-danger:hover:not(:disabled) { background: #E2604F; }
-.admin-dialog .reboot-btn { background: var(--warning); color: #141005; border-color: transparent; font-weight: 700; margin-right: auto; }
-.admin-dialog .reboot-btn:hover:not(:disabled) { background: #F2B457; border-color: transparent; }
+.admin-dialog button.primary.confirm-danger:hover:not(:disabled) { background: var(--error-lt); }
+.admin-dialog .reboot-btn { background: var(--warning); color: var(--on-accent); border-color: transparent; font-weight: 700; margin-right: auto; }
+.admin-dialog .reboot-btn:hover:not(:disabled) { background: var(--warning-lt); border-color: transparent; }
 
 /* Champs de formulaire des dialogues */
 .field { display: flex; flex-direction: column; gap: 5px; }
@@ -836,11 +963,11 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .admin-dialog input::placeholder { color: var(--muted); }
 .admin-dialog input:not([type="checkbox"]):not([type="radio"]):focus, .admin-dialog select:focus {
     outline: none; border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgb(217 98 83 / 0.18);
+    box-shadow: 0 0 0 2px var(--accent-a18);
 }
 /* Saisie du n° : préfixe accolé */
 .beltpack-input { display: flex; align-items: center; background: var(--inset); border: 1px solid var(--border); border-radius: var(--rad); overflow: hidden; }
-.beltpack-prefix { padding: 0 10px; font-size: var(--ui-sm); font-weight: 600; color: var(--fg-subtle); background: #131722; border-right: 1px solid var(--border); align-self: stretch; display: flex; align-items: center; }
+.beltpack-prefix { padding: 0 10px; font-size: var(--ui-sm); font-weight: 600; color: var(--fg-subtle); background: var(--bg); border-right: 1px solid var(--border); align-self: stretch; display: flex; align-items: center; }
 .beltpack-input input { border: none; background: transparent; box-shadow: none !important; }
 .beltpack-input input:focus { outline: none; box-shadow: none !important; }
 .beltpack-input:focus-within { border-color: var(--accent); }
@@ -851,10 +978,10 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .admin-dialog button.color-choice {
     width: 100%; aspect-ratio: 1; height: auto; min-height: 32px; padding: 0;
     border: 2px solid transparent; border-radius: var(--rad);
-    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25); transition: transform 0.1s;
+    box-shadow: inset 0 0 0 1px var(--ombre-portee); transition: transform 0.1s;
 }
 .admin-dialog button.color-choice:hover { transform: scale(1.08); border-color: transparent; }
-.admin-dialog button.color-choice.selected { border-color: var(--fg); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25), 0 0 0 2px var(--surface-2); }
+.admin-dialog button.color-choice.selected { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--ombre-portee), 0 0 0 2px var(--surface-2); }
 
 /* Grand aperçu de l'écran de régie : même résolution de rendu que le témoin —
    les deux doivent montrer exactement la même mise en page, colonnes comprises. */
@@ -879,13 +1006,13 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 
 /* Messages de statut / erreur */
 .auth-error {
-    padding: 8px 11px; background: rgba(240, 77, 62, 0.12);
-    border: 1px solid rgba(240, 77, 62, 0.4); border-radius: var(--rad);
+    padding: 8px 11px; background: var(--erreur-a12);
+    border: 1px solid var(--erreur-a40); border-radius: var(--rad);
     color: var(--danger); font-size: var(--ui); font-weight: 500;
 }
 .dialog-status {
-    padding: 8px 11px; background: rgb(217 98 83 / 0.1);
-    border: 1px solid rgb(217 98 83 / 0.32); border-radius: var(--rad);
+    padding: 8px 11px; background: var(--accent-a10);
+    border: 1px solid var(--accent-a32); border-radius: var(--rad);
     color: var(--fg-muted); font-size: var(--ui); line-height: 1.5;
 }
 .dialog-status b { color: var(--fg); }
@@ -965,7 +1092,7 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 }
 .wifi-row + .wifi-row { border-top: 1px solid var(--border-soft); }
 .wifi-row:hover { background: var(--surface-2); }
-.wifi-row.selected { background: rgb(217 98 83 / 0.12); box-shadow: inset 2px 0 0 var(--accent); }
+.wifi-row.selected { background: var(--accent-a12); box-shadow: inset 2px 0 0 var(--accent); }
 .wifi-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .wifi-name { flex: 1; min-width: 0; font-size: var(--ui); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Barres de signal : 4 traits montants, les « on » en pleine opacité. */
@@ -1180,7 +1307,7 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .context-menu {
     position: absolute; display: none; z-index: 1000; min-width: 190px;
     background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 8px;
-    box-shadow: 0 12px 32px rgb(0 0 0 / 0.5); padding: 4px;
+    box-shadow: 0 12px 32px var(--ombre-forte); padding: 4px;
 }
 .context-menu button {
     display: block; width: 100%; text-align: left;
@@ -1194,6 +1321,10 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
    le pourtour + assombrissement franc. L'ancien voile turquoise à 14 % était invisible
    sur les gels colorés (signalé à l'usage). */
 .person.selected {
+    /* Littéral, pas --ombre : ce fond se pose sur --gel, la couleur du GROUPE
+       (donnée du plateau), invariante au thème. Valeur de thème sombre — le thème
+       clair, lui, ramenait --ombre à 10 %, reproduisant exactement le défaut de
+       l'ancien voile turquoise à 14 % déjà jugé invisible sur les gels colorés. */
     background: rgb(0 0 0 / 0.3);
     box-shadow: inset 0 0 0 2px var(--accent);
 }
@@ -1209,7 +1340,7 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
     position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%);
     display: none; align-items: center; gap: 12px; padding: 8px 13px; z-index: 60;
     background: var(--surface-2); border: 1px solid var(--border-3); border-radius: 9px;
-    box-shadow: 0 8px 24px rgb(0 0 0 / 0.5); font-size: var(--ui);
+    box-shadow: 0 8px 24px var(--ombre-forte); font-size: var(--ui);
 }
 .selection-bar.active { display: flex; }
 
@@ -1218,7 +1349,7 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .admin-page #publish-btn.publish-text { position: relative; overflow: hidden; }
 .publish-text .pub-fill {
     position: absolute; inset: 0 auto 0 0; width: 0; z-index: 0;
-    background: rgb(217 98 83 / 0.22); pointer-events: none;
+    background: var(--accent-a22); pointer-events: none;
 }
 .publish-text .pub-label, .publish-text kbd { position: relative; z-index: 1; }
 /* Armé : cadre accent + coin arrondi pour signaler l'état « annulable ». */
@@ -1227,13 +1358,13 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 }
 .publish-text.arming kbd { display: none; }        /* ⌘↵ = envoyer maintenant : n'affiche plus le raccourci */
 /* Confirmation « envoyé » : balayage vert + libellé succès, bref cadre vert qui s'efface. */
-.publish-text.sent .pub-fill { background: rgb(46 204 113 / 0.24); }
+.publish-text.sent .pub-fill { background: var(--succes-a24); }
 .publish-text.sent .pub-label { color: var(--success); }
 .publish-text.sent kbd { display: none; }
 .admin-page #publish-btn.publish-text.sent { animation: pub-sent 1.3s ease; }
 @keyframes pub-sent {
-    0% { box-shadow: inset 0 0 0 1px rgb(46 204 113 / 0.85); }
-    70% { box-shadow: inset 0 0 0 1px rgb(46 204 113 / 0.45); }
+    0% { box-shadow: inset 0 0 0 1px var(--succes-a85); }
+    70% { box-shadow: inset 0 0 0 1px var(--succes-a45); }
     100% { box-shadow: inset 0 0 0 1px transparent; }
 }
 .selection-bar button {
@@ -1441,3 +1572,56 @@ body[data-session="lost"] .admin-app {
     opacity: 0.5;
     filter: saturate(0.4);
 }
+
+/* Renvoi d'un réglage vers son voisin homonyme. Discret par construction : il
+   informe qui lit le panneau, sans peser comme une alerte. */
+.side-renvoi {
+    margin: -2px 0 2px; padding: 0 2px;
+    font-size: 11px; line-height: 1.35; color: var(--muted);
+}
+
+/* ---------- Inverseur d'apparence ----------
+   Un vrai interrupteur à trois positions, pas trois boutons : c'est le registre
+   de l'admin, une console. Le curseur GLISSE d'un cran à l'autre, et le mot à sa
+   droite dit l'état — trois crans muets se devineraient.
+   La cellule tient le bord droit de la réglette, la mention d'auteur tenant le
+   bord gauche. */
+.admin-status .theme-switch {
+    margin-left: auto;
+    border-right: 0; border-left: 1px solid var(--border-soft);
+    gap: 8px;
+}
+.tsw {
+    position: relative;
+    display: inline-flex; align-items: center;
+    box-sizing: content-box;
+    width: 36px; height: 10px; padding: 2px;
+    border: 1px solid var(--border-2); border-radius: 3px;
+    background: var(--inset);
+    flex: 0 0 auto;
+}
+/* Le curseur se DÉPLACE plutôt qu'il ne s'allume : c'est ce déplacement qui dit
+   qu'il n'y a qu'une position à la fois. */
+.tsw::before {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 10px; border-radius: 2px;
+    background: var(--accent);
+    transition: transform 0.14s ease;
+}
+.tsw[data-pos="day"]::before { transform: translateX(12px); }
+.tsw[data-pos="night"]::before { transform: translateX(24px); }
+/* Les trois crans sont des cibles transparentes posées SUR la glissière : ils
+   restent cliquables et focalisables, le curseur passe dessous. */
+.tsw button {
+    position: relative; z-index: 1;
+    width: 12px; height: 10px; padding: 0;
+    border: 0; background: none; cursor: pointer;
+}
+.tsw button::after {
+    content: ""; display: block;
+    width: 2px; height: 2px; margin: 0 auto;
+    border-radius: 50%; background: var(--fg-subtle);
+}
+.tsw button[aria-checked="true"]::after { background: var(--on-accent); }
+.tsw button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.admin-status .theme-switch b { color: var(--fg-subtle); font-weight: 400; }

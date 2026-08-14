@@ -10,9 +10,11 @@
      main.css ici : son héritage (polices, line-height, chrome) fausse la refonte. #}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
-{# `data-login` : l'adresse de reconnexion vient de Jinja et non d'une URL écrite en
-   dur dans admin.js — le bandeau « Session expirée » s'en sert. #}
-<body class="admin-page" data-theme="night" data-login="{{ url_for('auth.login') }}">
+{# `data-theme` vient du COOKIE, rendu ici par le serveur et non posé par le
+   JavaScript : la CSP interdit les scripts en ligne, et un script différé
+   ferait clignoter l'admin en sombre avant de basculer en clair. `data-login`
+   sert au bandeau « Session expirée ». #}
+<body class="admin-page" data-theme="{{ theme_ui }}" data-login="{{ url_for('auth.login') }}">
   <div class="admin-app">
 
     {# En-tête console : marque · fil d'Ariane (état publié en lecture) · onglets ·
@@ -20,7 +22,11 @@
     <header class="admin-top">
       {# La marque ramène au plateau (retour au menu principal d'un clic). #}
       <a class="brand" href="{{ url_for('api.admin_page') }}" title="Retour aux affectations">
-        <img class="admin-badge" src="{{ url_for('static', filename='img/comroster-glyph.svg') }}" alt="" width="18" height="18">
+        {# Silhouette masquée plutôt qu'image : le SVG porte un fill quasi blanc en
+           dur, invisible dès qu'un fond clair existe (même défaut, même parade que
+           .auth-glyph — voir auth.css). Décoratif : le nom du produit le suit en
+           toutes lettres, qui porte le nom accessible du lien. #}
+        <span class="admin-badge" aria-hidden="true"></span>
         <span class="side-name">ComRoster</span>
       </a>
       <div class="crumb">
@@ -209,11 +215,18 @@
                       <option value="lineaire">Linéaire</option>
                       <option value="grille">Grille</option>
                     </select></label>
-                  <label class="side-field"><span>Mode de luminosité</span>
+                  {# Nommé explicitement, et suivi d'un renvoi : l'admin porte un
+                     SECOND réglage de luminosité, le sien, dans le pied. Deux
+                     réglages anonymes se confondaient. Le renvoi est ICI et non
+                     dans le pied, parce que c'est ici qu'on vient chercher « le
+                     mode sombre » et qu'on risque de croire l'avoir trouvé. #}
+                  <label class="side-field"><span>Luminosité de l'écran de régie</span>
                     <select id="theme-select">
                       <option value="night">Sombre</option>
                       <option value="day">Clair</option>
                     </select></label>
+                  <p class="side-renvoi">Ne concerne que l'écran de régie. L'apparence de
+                    cette administration se règle dans le pied, tout à droite.</p>
                   <label class="side-field"><span>Taille du texte</span>
                     <select id="meta-text-scale">
                       <option value="original">Originale</option>
@@ -338,6 +351,7 @@
 
     {# Barre d'état (pied) : ce qui est réellement à l'antenne + écart du brouillon. #}
     <footer class="admin-status">
+      <span class="s status-author">par Nathan Hurstel</span>
       <span class="s status-sse" id="status-sse" title="Écrans de régie abonnés au flux temps réel">
         <i class="st-dot" aria-hidden="true"></i><span id="status-sse-text">SSE…</span></span>
       <span class="s" id="status-published">publié —</span>
@@ -346,7 +360,43 @@
       {# Pas de lien « aperçu écran » ici : le témoin « Affichage en cours » (coin
          bas-droit) est LE bouton de l'aperçu — un bouton par fonction. #}
       <span class="s" id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>
-      <span class="s status-right">par Nathan Hurstel</span>
+      {# Inverseur à trois positions — le registre du produit : l'admin est une
+         console, pas un site. Le curseur glisse d'un cran à l'autre et le mot à
+         sa droite dit toujours l'état, sans quoi trois crans muets se
+         devineraient.
+
+         `radiogroup` et non `group` : un inverseur à trois positions EST un
+         choix exclusif, et cette sémantique donne gratuitement les flèches
+         gauche/droite qu'un vrai interrupteur appelle. `aria-checked` et
+         `tabindex` sont posés PAR LE SERVEUR — ils doivent être vrais dès le
+         premier rendu, avant que le moindre script ne tourne.
+
+         AUCUN libellé de portée ici, et c'est délibéré. L'admin porte deux
+         réglages de luminosité — celui-ci et celui de l'écran de régie — et la
+         tentation était d'écrire « cette page » à côté. Mais le témoin
+         « Affichage en cours », en bas à gauche, MONTRE l'écran de régie en
+         direct : basculer l'inverseur et voir la vignette rester telle quelle
+         est une démonstration, là où un libellé n'est qu'une affirmation de
+         plus dans une réglette qui en porte déjà cinq.
+         Restent l'infobulle, qui ne coûte rien tant qu'on ne survole pas, et
+         le renvoi posé de l'AUTRE côté, sous « Luminosité de l'écran de régie » —
+         la confusion se lève là où elle naît. #}
+      <span class="s theme-switch"
+            title="N'affecte que cette page. L'apparence de l'écran de régie se règle dans Réglages → Écran.">
+        <span class="tsw" id="theme-track" role="radiogroup"
+              aria-label="Apparence de cette page" data-pos="{{ theme_ui }}">
+          <button type="button" role="radio" data-theme-choice="auto" aria-label="Auto"
+                  aria-checked="{{ 'true' if theme_ui == 'auto' else 'false' }}"
+                  tabindex="{{ '0' if theme_ui == 'auto' else '-1' }}"></button>
+          <button type="button" role="radio" data-theme-choice="day" aria-label="Clair"
+                  aria-checked="{{ 'true' if theme_ui == 'day' else 'false' }}"
+                  tabindex="{{ '0' if theme_ui == 'day' else '-1' }}"></button>
+          <button type="button" role="radio" data-theme-choice="night" aria-label="Sombre"
+                  aria-checked="{{ 'true' if theme_ui == 'night' else 'false' }}"
+                  tabindex="{{ '0' if theme_ui == 'night' else '-1' }}"></button>
+        </span>
+        <b id="theme-label">{{ {'auto': 'Auto', 'day': 'Clair', 'night': 'Sombre'}[theme_ui] }}</b>
+      </span>
     </footer>
   </div>
 

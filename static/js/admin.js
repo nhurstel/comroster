@@ -2902,6 +2902,45 @@
   tickClock();
   setInterval(tickClock, 1000);
 
+  /* ---------- Sélecteur d'apparence ----------
+     Le cookie, et non localStorage : c'est le SERVEUR qui rend `data-theme`, ce
+     qui supprime l'éclair de thème au chargement. La CSP interdisant les scripts
+     en ligne, aucun script ne peut s'exécuter avant le premier rendu. */
+  const THEMES = ["auto", "day", "night"];
+  const THEME_MOT = { auto: "Auto", day: "Clair", night: "Sombre" };
+  const themeTrack = document.getElementById("theme-track");
+  const themeCrans = [...document.querySelectorAll("[data-theme-choice]")];
+
+  function poserTheme(choix, rendreLeFocus) {
+    const an = 60 * 60 * 24 * 365;
+    document.cookie = `comroster_theme=${choix}; path=/; max-age=${an}; SameSite=Lax`;
+    document.body.dataset.theme = choix;      // bascule immédiate, sans rechargement
+    if (themeTrack) themeTrack.dataset.pos = choix;   // déplace le curseur
+    const mot = document.getElementById("theme-label");
+    if (mot) mot.textContent = THEME_MOT[choix];
+    themeCrans.forEach((b) => {
+      const actif = b.dataset.themeChoice === choix;
+      b.setAttribute("aria-checked", String(actif));
+      // Tabulation ROULANTE : un groupe radio n'expose qu'un seul arrêt de
+      // tabulation, on y entre puis on circule aux flèches.
+      b.tabIndex = actif ? 0 : -1;
+      if (actif && rendreLeFocus) b.focus();
+    });
+  }
+
+  themeCrans.forEach((cran) => {
+    cran.addEventListener("click", () => poserTheme(cran.dataset.themeChoice));
+    // Les flèches déplacent le curseur, comme sur un vrai inverseur. Sans elles,
+    // `radiogroup` promettrait une navigation que le clavier ne rendrait pas.
+    cran.addEventListener("keydown", (e) => {
+      const pas = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
+      if (!pas) return;
+      e.preventDefault();
+      const ou = THEMES.indexOf(document.body.dataset.theme);
+      poserTheme(THEMES[(ou + pas + THEMES.length) % THEMES.length], true);
+    });
+  });
+
   /* ---------- Init ---------- */
   resetUndo();                // référence de départ : rien à annuler avant la 1re édition
   proposerReprise();          // un travail sauvé d'une session morte attend peut-être

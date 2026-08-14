@@ -44,10 +44,20 @@ def _error(exc):
     return jsonify({"error": str(exc), "code": exc.code}), _CODE_TO_HTTP.get(exc.code, 400)
 
 
+#: Les trois seules apparences admises. Le cookie est une donnée UTILISATEUR :
+#: elle ne va pas dans un attribut HTML sans passer par cette liste.
+THEMES_UI = ("auto", "day", "night")
+
+
 @bp.get("/admin")
 @login_required
 def admin_page():
-    return render_template("admin.html", initial_data=_storage().load_draft())
+    choix = request.cookies.get("comroster_theme", "auto")
+    return render_template(
+        "admin.html",
+        initial_data=_storage().load_draft(),
+        theme_ui=choix if choix in THEMES_UI else "auto",
+    )
 
 
 @bp.get("/admin/preview")
