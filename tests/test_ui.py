@@ -229,21 +229,42 @@ def test_l_inverseur_reflete_le_cookie_des_le_rendu_serveur(auth_client):
     assert ">Clair</b>" in html, "le mot affiché ne dit pas l'état"
 
 
-def test_les_deux_reglages_de_luminosite_nomment_leur_objet(auth_client):
+def test_la_portee_des_deux_reglages_de_luminosite_est_levee_sans_libelle(auth_client):
     """L'admin porte DEUX réglages de luminosité : le sien, dans le pied, et celui
-    de l'écran de régie, dans Réglages → Écran. Tant qu'aucun des deux ne nommait
-    son objet, ils se confondaient.
+    de l'écran de régie, dans Réglages → Écran. Tant qu'aucun des deux ne disait
+    sur quoi il agissait, ils se confondaient.
 
-    Trois signaux se répondent, et aucun ne suffit seul : le libellé de portée du
-    pied, l'infobulle qui renvoie à l'autre réglage, et le nom explicite de celui
-    de l'écran. Cette garde empêche un futur nettoyage de libellés de rouvrir la
-    confusion."""
+    La levée ne passe PAS par un libellé de portée collé à l'inverseur. Elle
+    repose sur trois choses, et cette garde tient les deux qui vivent dans le
+    balisage : le nom explicite du réglage de l'écran, et le renvoi posé sous lui
+    — là où l'on vient chercher « le mode sombre » et où l'on risque de croire
+    l'avoir trouvé. La troisième est le témoin « Affichage en cours », qui montre
+    l'écran de régie en direct : basculer l'inverseur et voir la vignette rester
+    telle quelle démontre l'indépendance au lieu de l'affirmer.
+
+    L'infobulle de l'inverseur reste le filet : invisible tant qu'on ne survole
+    pas, donc sans coût pour la réglette."""
     html = auth_client.get("/admin").get_data(as_text=True)
     pied = html[html.index('<footer class="admin-status"'):html.index("</footer>")]
-    assert "cette interface" in pied, "le sélecteur du pied ne nomme pas sa portée"
-    assert "Réglages → Écran" in pied, "l'infobulle ne renvoie pas à l'autre réglage"
+
     assert "Luminosité de l'écran de régie" in html, \
         "le réglage de l'écran de régie ne nomme pas son objet"
+    assert "se règle dans le pied" in html, \
+        "rien ne renvoie vers l'inverseur depuis le réglage qu'on risque de confondre avec lui"
+    assert "Réglages → Écran" in pied, "l'infobulle de l'inverseur ne renvoie pas à l'autre réglage"
+
+    # Et la contrepartie, qui est la décision : la réglette reste NUE À L'ŒIL. Un
+    # libellé de portée y serait une affirmation de plus dans une barre qui en
+    # porte déjà cinq.
+    #
+    # L'`aria-label`, lui, garde la portée et doit la garder : un lecteur d'écran
+    # n'a pas de vignette à regarder, la démonstration visuelle ne l'atteint pas.
+    # On ne vérifie donc que le TEXTE VISIBLE, attributs retirés.
+    visible = re.sub(r'="[^"]*"', "", pied)
+    assert "cette page" not in visible and "cette interface" not in visible, \
+        "un libellé de portée est revenu à l'écran dans le pied"
+    assert 'aria-label="Apparence de cette page"' in pied, \
+        "le nom accessible a perdu la portée, que rien ne remplace pour un lecteur d'écran"
 
 
 def test_display_page_renders(client):

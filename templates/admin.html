@@ -215,14 +215,18 @@
                       <option value="lineaire">Linéaire</option>
                       <option value="grille">Grille</option>
                     </select></label>
-                  {# Nommé explicitement : l'admin porte un SECOND réglage de
-                     luminosité, celui de sa propre interface, dans le pied.
-                     Deux réglages anonymes se confondaient. #}
+                  {# Nommé explicitement, et suivi d'un renvoi : l'admin porte un
+                     SECOND réglage de luminosité, le sien, dans le pied. Deux
+                     réglages anonymes se confondaient. Le renvoi est ICI et non
+                     dans le pied, parce que c'est ici qu'on vient chercher « le
+                     mode sombre » et qu'on risque de croire l'avoir trouvé. #}
                   <label class="side-field"><span>Luminosité de l'écran de régie</span>
                     <select id="theme-select">
                       <option value="night">Sombre</option>
                       <option value="day">Clair</option>
                     </select></label>
+                  <p class="side-renvoi">Ne concerne que l'écran de régie. L'apparence de
+                    cette administration se règle dans le pied, tout à droite.</p>
                   <label class="side-field"><span>Taille du texte</span>
                     <select id="meta-text-scale">
                       <option value="original">Originale</option>
@@ -367,14 +371,20 @@
          `tabindex` sont posés PAR LE SERVEUR — ils doivent être vrais dès le
          premier rendu, avant que le moindre script ne tourne.
 
-         « cette interface » n'est pas un ornement : l'admin porte DEUX réglages
-         de luminosité, celui-ci et celui de l'écran de régie (Réglages → Écran).
-         Chacun nomme désormais son objet, et l'infobulle renvoie à l'autre. #}
+         AUCUN libellé de portée ici, et c'est délibéré. L'admin porte deux
+         réglages de luminosité — celui-ci et celui de l'écran de régie — et la
+         tentation était d'écrire « cette page » à côté. Mais le témoin
+         « Affichage en cours », en bas à gauche, MONTRE l'écran de régie en
+         direct : basculer l'inverseur et voir la vignette rester telle quelle
+         est une démonstration, là où un libellé n'est qu'une affirmation de
+         plus dans une réglette qui en porte déjà cinq.
+         Restent l'infobulle, qui ne coûte rien tant qu'on ne survole pas, et
+         le renvoi posé de l'AUTRE côté, sous « Luminosité de l'écran de régie » —
+         la confusion se lève là où elle naît. #}
       <span class="s theme-switch"
             title="N'affecte que cette page. L'apparence de l'écran de régie se règle dans Réglages → Écran.">
-        cette interface
         <span class="tsw" id="theme-track" role="radiogroup"
-              aria-label="Apparence de cette interface" data-pos="{{ theme_ui }}">
+              aria-label="Apparence de cette page" data-pos="{{ theme_ui }}">
           <button type="button" role="radio" data-theme-choice="auto" aria-label="Auto"
                   aria-checked="{{ 'true' if theme_ui == 'auto' else 'false' }}"
                   tabindex="{{ '0' if theme_ui == 'auto' else '-1' }}"></button>

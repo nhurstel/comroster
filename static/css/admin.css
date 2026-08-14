@@ -1573,6 +1573,13 @@ body[data-session="lost"] .admin-app {
     filter: saturate(0.4);
 }
 
+/* Renvoi d'un réglage vers son voisin homonyme. Discret par construction : il
+   informe qui lit le panneau, sans peser comme une alerte. */
+.side-renvoi {
+    margin: -2px 0 2px; padding: 0 2px;
+    font-size: 11px; line-height: 1.35; color: var(--muted);
+}
+
 /* ---------- Inverseur d'apparence ----------
    Un vrai interrupteur à trois positions, pas trois boutons : c'est le registre
    de l'admin, une console. Le curseur GLISSE d'un cran à l'autre, et le mot à sa
