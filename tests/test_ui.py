@@ -463,7 +463,7 @@ LITTERAUX_TOLERES = {
 
 def test_aucune_couleur_en_dur_non_justifiee_dans_admin_css():
     hors_root = ADMIN_CSS.replace(_bloc(":root {"), "")
-    hors_root = re.sub(r"/\*.*?\*/", "", hors_root, flags=re.S)   # les commentaires citent des couleurs
+    hors_root = re.sub(r"/\*.*?\*/", "", hors_root, flags=re.DOTALL)   # les commentaires citent des couleurs
     for bloc in ('body[data-theme="auto"]', 'body[data-theme="day"]'):
         hors_root = hors_root.replace(_bloc(bloc), "")
     trouvees = set(re.findall(r"#[0-9A-Fa-f]{3,8}\b|rgba?\([^)]*\)", hors_root))

@@ -4,7 +4,6 @@ import secrets
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
-
 #: Alphabet du code de récupération, SANS caractères ambigus : ni I, ni O, ni 0,
 #: ni 1. C'est le seul texte du produit qu'un humain recopie à la main, et un
 #: caractère faux ferme le boîtier définitivement — la lisibilité tient donc à

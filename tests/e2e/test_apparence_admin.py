@@ -8,7 +8,6 @@ Exclus par défaut (marqueur `e2e`). Lancer :
     .venv/bin/pytest tests/e2e -m e2e
 """
 import pytest
-
 from helpers import enter_admin
 
 pytestmark = pytest.mark.e2e
