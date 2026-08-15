@@ -2094,7 +2094,7 @@
 
   /* Aperçu de l'onglet « Écran » : MÊME mécanique, mais servi par `?draft=1` — donc le
      BROUILLON, pas ce qui est à l'antenne. C'est la seule façon de juger une apparence,
-     une luminosité ou un nombre de colonnes sans publier pour voir. Il ne se recharge
+     un thème ou un nombre de colonnes sans publier pour voir. Il ne se recharge
      que lorsque l'onglet est visible : une iframe dans un panneau `hidden` mesure 0, elle
      ne pourrait pas être mise à l'échelle (et on paierait un rendu pour rien). */
   const screenPreviewFrame = () => document.getElementById("screen-preview");

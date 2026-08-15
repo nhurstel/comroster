@@ -46,7 +46,7 @@ SKINS = ("basique", "lineaire", "grille")
 def sanitize_skin(value):
     """Apparence de l'écran de diffusion (direction artistique).
 
-    Orthogonale à `theme`, qui reste le commutateur de luminosité (jour/nuit) :
+    Orthogonale à `theme`, qui reste le commutateur de thème (jour/nuit) :
     chaque apparence décline ses deux modes. Allowlist stricte — une valeur
     inconnue retomberait sur une feuille de style inexistante, donc un écran nu.
     """

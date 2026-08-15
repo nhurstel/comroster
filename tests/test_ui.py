@@ -248,16 +248,16 @@ def test_l_inverseur_reflete_le_cookie_des_le_rendu_serveur(auth_client):
 
 
 def test_la_portee_des_deux_reglages_de_luminosite_est_levee_sans_libelle(auth_client):
-    """L'admin porte DEUX réglages de luminosité : le sien, dans le pied, et celui de
+    """L'admin porte DEUX réglages de thème : le sien, dans le pied, et celui de
     l'affichage, dans l'onglet « Affichage ». Tant qu'aucun des deux ne disait sur quoi
     il agissait, ils se confondaient.
 
     La levée passe désormais par la STRUCTURE et non par de la prose : la carte de
     l'onglet nomme son objet (« Affichage »), et son champ n'est plus qu'un mot
-    (« Luminosité ») qui hérite de cette portée. Le paragraphe de renvoi a disparu — il
-    était en prime posé sous la mauvaise colonne, sous « Apparence » et non sous
-    « Luminosité ». Deux objets nommés ne se confondent pas ; il n'y a plus rien à
-    expliquer.
+    (« Thème ») qui hérite de cette portée. Le paragraphe de renvoi a disparu — il
+    était en prime posé sous la mauvaise colonne, sous « Apparence » et non sous le
+    champ qu'on risquait de confondre. Deux objets nommés ne se confondent pas ; il n'y
+    a plus rien à expliquer.
 
     Le pied, lui, reste NU à l'œil : sa portée se démontre par le témoin « Affichage en
     cours », qu'on voit ne pas bouger quand on bascule. L'infobulle est le filet —
@@ -266,8 +266,8 @@ def test_la_portee_des_deux_reglages_de_luminosite_est_levee_sans_libelle(auth_c
     pied = html[html.index('<footer class="admin-status"'):html.index("</footer>")]
 
     assert ">Affichage</div>" in html, "la carte de réglages ne nomme pas son objet"
-    assert "<span>Luminosité</span>" in html, \
-        "le champ de luminosité devrait tenir en un mot, sa portée venant du titre de carte"
+    assert "<span>Thème</span>" in html, \
+        "le champ de thème devrait tenir en un mot, sa portée venant du titre de carte"
     assert "se règle dans le pied" not in html, \
         "le paragraphe de renvoi est revenu — la structure devait suffire"
     assert "l'onglet « Affichage »" in pied, \

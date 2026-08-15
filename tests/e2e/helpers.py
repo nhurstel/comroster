@@ -121,7 +121,7 @@ def open_systeme(page, section="health"):
 def open_screen_tab(page):
     """Active l'onglet « Écran » et attend que ses champs soient réellement là.
 
-    Les réglages d'écran (apparence, luminosité, colonnes, indicateurs) y vivent depuis la
+    Les réglages d'écran (apparence, thème, colonnes, indicateurs) y vivent depuis la
     refonte admin : il faut l'activer avant d'agir sur eux, sinon Playwright refuse
     d'interagir avec des champs masqués.
 

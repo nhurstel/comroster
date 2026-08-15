@@ -70,7 +70,7 @@ def admin_preview():
     ce que le public voit pendant qu'il le prépare.
 
     `?draft=1` rend au contraire le BROUILLON : c'est l'aperçu de l'onglet « Écran »,
-    où régler une apparence, une luminosité ou un nombre de colonnes sans voir le
+    où régler une apparence, un thème ou un nombre de colonnes sans voir le
     résultat obligeait à publier pour juger. Les deux vues coexistent parce qu'elles
     répondent à deux questions distinctes — « qu'y a-t-il à l'antenne ? » et « à quoi
     ressemblera ce que je prépare ? » — ce n'est donc pas un doublon de fonction.
