@@ -38,6 +38,21 @@ def se_reconnecter(page, base):
     page.wait_for_selector("#add-block-btn")
 
 
+def ouvrir_ajout_beltpack(page):
+    """Clique « ajouter un beltpack », où qu'il soit.
+
+    La fonction n'a qu'UN accès à la fois, mais son emplacement suit l'état de la
+    réserve : au pied du panneau quand elle est ouverte, sur le rail quand elle s'est
+    repliée — ce qui arrive dès que tous les beltpacks sont affectés, c'est-à-dire dans
+    le cas nominal (refonte 2026-08-14). Un sélecteur en dur dans dix fichiers, c'est dix
+    corrections le jour où l'état change ; ce helper est le seul à connaître les deux.
+    """
+    if page.is_visible("#add-beltpack-pool"):
+        page.click("#add-beltpack-pool")
+    else:
+        page.click("#pool-rail-add")
+
+
 def ajouter_beltpack(page, numero, role, ouvrir="#add-beltpack-pool"):
     """Ajoute un beltpack par le VRAI geste : ouvrir la boîte, saisir, soumettre.
 
@@ -53,8 +68,17 @@ def ajouter_beltpack(page, numero, role, ouvrir="#add-beltpack-pool"):
 
     `ouvrir` sélectionne le point d'entrée : la réserve par défaut, ou la tuile de dépôt
     d'un groupe (`.block-items .drop-tile`) quand on veut affecter directement.
+
+    Depuis que la réserve se replie en rail quand tout est affecté (refonte 2026-08-14),
+    « ajouter un beltpack » a DEUX emplacements — le pied de la réserve ouverte, le « + »
+    du rail replié — dont un seul est visible à la fois. Le défaut par défaut vise donc
+    celui qui est réellement là, sinon le helper échoue dès que le plateau est complet,
+    c'est-à-dire dans le cas nominal.
     """
-    page.click(ouvrir)
+    if ouvrir == "#add-beltpack-pool":
+        ouvrir_ajout_beltpack(page)
+    else:
+        page.click(ouvrir)
     page.wait_for_selector("#person-dialog[open]")
     page.fill("#person-beltpack", numero)
     # L'application RÉAGIT au numéro : elle propose le rôle déjà connu pour ce beltpack
@@ -75,15 +99,23 @@ def ajouter_beltpack(page, numero, role, ouvrir="#add-beltpack-pool"):
     page.wait_for_selector(f".person .role:has-text('{role}')")
 
 
-def open_reglages(page):
-    """Ouvre le menu « Réglages » et attend que son panneau soit réellement visible.
+def open_systeme(page, section="health"):
+    """Ouvre l'onglet « Système » et va sur une de ses sept sections.
 
-    L'attente est explicite : le panneau est piloté par `hidden`, et un `wait_for_selector`
-    sans état attend `visible` par défaut — c'est ce qui a fait expirer deux attentes dans
-    ce dépôt (leçons 2026-07-23 et 2026-07-27).
+    Remplace `open_reglages` : le menu déroulant qu'elle ouvrait n'existe plus. Il
+    mélangeait deux panneaux et trois dialogues sous un nom qui ne contenait aucun des
+    réglages les plus manipulés — tout vit maintenant dans un rail, et chaque section
+    est un vrai panneau (refonte 2026-08-14).
+
+    L'attente est explicite : les panneaux sont pilotés par `hidden`, et un
+    `wait_for_selector` sans état attend `visible` par défaut — c'est ce qui a fait
+    expirer deux attentes dans ce dépôt (leçons 2026-07-23 et 2026-07-27).
     """
-    page.click("#settings-btn")
-    page.wait_for_selector("#settings-menu:not([hidden])", state="visible")
+    page.click('.admin-tabs .tab[data-famille="systeme"]')
+    page.wait_for_selector(".sys-rail", state="visible")
+    if section != "health":
+        page.click(f'.sys-rail .nav-item[data-tab="{section}"]')
+    page.wait_for_selector(f'.tab-panel[data-panel="{section}"]:not([hidden])', state="visible")
 
 
 def open_screen_tab(page):

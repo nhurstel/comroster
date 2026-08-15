@@ -103,7 +103,7 @@ def build_draft(payload):
     state = empty_state()
     state["title"] = (payload.get("title") or "").strip() or DEFAULT_TITLE
     state["subtitle"] = (payload.get("subtitle") or "").strip()
-    # Nom de la production : titre centré de l'écran de régie (facultatif, distinct du titre).
+    # Nom de la production : titre centré de l'affichage (facultatif, distinct du titre).
     state["production_name"] = (payload.get("production_name") or "").strip()
     state["theme"] = sanitize_theme(payload.get("theme"))
     state["skin"] = sanitize_skin(payload.get("skin"))

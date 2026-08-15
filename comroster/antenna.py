@@ -177,7 +177,7 @@ def public_live():
     """Variante publique en lecture seule pour l'affichage TV (pas de session).
 
     Seule route publique qui expose des données d'exploitation (numéros de beltpack,
-    niveaux de batterie) : c'est le prix à payer pour que l'écran de régie n'ait pas de
+    niveaux de batterie) : c'est le prix à payer pour que l'affichage n'ait pas de
     session. Bornée malgré tout — un écran l'appelle UNE fois au chargement puis reçoit
     tout par SSE, donc 60/min laisse une marge considérable au cas légitime tout en
     fermant la boucle serrée. Le cache de 3 s protégeait l'antenne, pas le pool de threads.

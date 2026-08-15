@@ -11,7 +11,7 @@ import pytest
 
 # `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
 # pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
-from helpers import enter_admin, open_reglages, open_screen_tab
+from helpers import enter_admin, open_screen_tab, open_systeme, ouvrir_ajout_beltpack
 
 pytestmark = pytest.mark.e2e
 
@@ -30,15 +30,15 @@ def _collect_console(page):
     return erreurs, vus
 
 
-# ---------- A. L'admin ne se compte pas comme afficheur ----------
+# ---------- A. L'admin ne se compte pas comme écran connecté ----------
 
-def test_l_admin_seul_n_annonce_aucun_afficheur(page, live_server):
+def test_l_admin_seul_n_annonce_aucun_ecran_connecte(page, live_server):
     erreurs, _ = _collect_console(page)
     enter_admin(page, live_server)
     # La barre d'état lit /api/status. Sans le correctif, l'admin comptait son propre
-    # flux SSE et affichait « 1 afficheur » sans le moindre écran branché.
+    # flux SSE et affichait « 1 écran connecté » sans le moindre écran branché.
     page.wait_for_function(
-        "() => document.getElementById('status-sse-text')?.textContent.trim() === 'aucun afficheur'",
+        "() => document.getElementById('status-sse-text')?.textContent.trim() === 'aucun écran connecté'",
         timeout=10000)
     assert erreurs == []
 
@@ -51,7 +51,7 @@ def test_un_vrai_ecran_est_bien_compte(page, live_server):
     ecran.goto(live_server + "/display")
     ecran.wait_for_selector("#display-grid", state="attached")
     page.wait_for_function(
-        "() => /1 afficheur/.test(document.getElementById('status-sse-text')?.textContent || '')",
+        "() => /1 écran connecté/.test(document.getElementById('status-sse-text')?.textContent || '')",
         timeout=15000)
     ecran.close()
 
@@ -87,9 +87,7 @@ def test_l_import_conserve_le_nom_de_production_et_la_taille_du_texte(page, live
 def test_changer_le_mot_de_passe_depuis_l_admin(page, live_server):
     erreurs, _ = _collect_console(page)
     enter_admin(page, live_server)
-    open_reglages(page)
-    page.click("#password-btn")
-    page.wait_for_selector("#password-dialog[open]")
+    open_systeme(page, "password")
     page.fill("#pw-current", "motdepasse8")
     page.fill("#pw-new", "nouveau-mdp")
     page.fill("#pw-confirm", "pas-pareil")
@@ -98,7 +96,7 @@ def test_changer_le_mot_de_passe_depuis_l_admin(page, live_server):
 
     page.fill("#pw-confirm", "nouveau-mdp")
     page.click("#password-form button[type=submit]")
-    page.wait_for_selector("#password-dialog:not([open])", state="attached")
+    page.wait_for_selector("#pw-current", state="visible")
 
     page.click("#logout-link")
     page.wait_for_selector("input[name=password]")
@@ -118,9 +116,7 @@ def test_sauvegarder_puis_restaurer_le_boitier(page, live_server):
     page.click("#block-form button[type=submit]")
     page.wait_for_selector("#blocks-container >> text=Lumière")
 
-    open_reglages(page)
-    page.click("#backup-btn")
-    page.wait_for_selector("#backup-dialog[open]")
+    open_systeme(page, "backup")
     page.fill("#bk-pass", "phrase-de-passe")
     with page.expect_download() as dl:
         page.click("#bk-create")
@@ -129,7 +125,7 @@ def test_sauvegarder_puis_restaurer_le_boitier(page, live_server):
     assert fichier.suggested_filename.endswith(".rostbak")
 
     # On efface le groupe, puis on restaure l'archive téléchargée.
-    page.click("#backup-dialog [data-close='backup-dialog']")
+    page.click('.admin-tabs .tab[data-tab="board"]')
     # Le survol est le GESTE RÉEL : les actions d'un bloc sont repliées (largeur nulle)
     # tant qu'on ne le survole pas, pour ne pas manger le nom du groupe. Sans ce hover,
     # le clic viserait le centre d'une boîte de 0 px et l'en-tête l'intercepterait — le
@@ -139,9 +135,7 @@ def test_sauvegarder_puis_restaurer_le_boitier(page, live_server):
     page.click("#confirm-ok")
     page.wait_for_selector(".admin-block", state="detached")
 
-    open_reglages(page)
-    page.click("#backup-btn")
-    page.wait_for_selector("#backup-dialog[open]")
+    open_systeme(page, "backup")
     page.set_input_files("#bk-file", chemin)
     page.fill("#bk-restore-pass", "phrase-de-passe")
     page.click("#bk-inspect")
@@ -166,8 +160,7 @@ def test_sauvegarder_puis_restaurer_le_boitier(page, live_server):
 
 def test_une_mauvaise_phrase_de_passe_le_dit_et_ne_restaure_rien(page, live_server):
     enter_admin(page, live_server)
-    open_reglages(page)
-    page.click("#backup-btn")
+    open_systeme(page, "backup")
     page.fill("#bk-pass", "phrase-de-passe")
     with page.expect_download() as dl:
         page.click("#bk-create")
@@ -186,7 +179,7 @@ def test_une_mauvaise_phrase_de_passe_le_dit_et_ne_restaure_rien(page, live_serv
 
 def test_nommer_et_epingler_une_publication(page, live_server):
     enter_admin(page, live_server)
-    page.click("#add-beltpack-pool")
+    ouvrir_ajout_beltpack(page)
     # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
     # non encore affiché part en silence et soumet un formulaire incomplet.
     page.wait_for_selector("#person-dialog[open]")
@@ -196,8 +189,8 @@ def test_nommer_et_epingler_une_publication(page, live_server):
     page.keyboard.press("Control+Enter")
     page.wait_for_selector("#sync-label:has-text('À jour')")
 
-    page.click("#history-btn")
-    page.wait_for_selector("#history-dialog[open] .hi-row")
+    page.click("#versions-btn")
+    page.wait_for_selector("#versions-dialog[open] .hi-row")
     page.click(".hi-row .hi-label")
     page.fill(".hi-row .hi-label input", "Générale")
     page.keyboard.press("Enter")
@@ -207,7 +200,7 @@ def test_nommer_et_epingler_une_publication(page, live_server):
     page.wait_for_selector(".hi-row.pinned")
     page.reload()
     page.wait_for_selector("#add-block-btn")
-    page.click("#history-btn")
+    page.click("#versions-btn")
     page.wait_for_selector(".hi-row.pinned .hi-label:has-text('Générale')")
 
 
@@ -218,7 +211,7 @@ def test_la_feuille_imprimable_s_ouvre_et_liste_les_affectations(page, live_serv
     page.click("#add-block-btn")
     page.fill("#block-name", "Son")
     page.click("#block-form button[type=submit]")
-    page.click("#add-beltpack-pool")
+    ouvrir_ajout_beltpack(page)
     # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
     # non encore affiché part en silence et soumet un formulaire incomplet.
     page.wait_for_selector("#person-dialog[open]")
@@ -252,7 +245,7 @@ def test_la_decouverte_propose_sans_remplacer_la_saisie_manuelle(page, live_serv
     erreurs, _ = _collect_console(page)
     enter_admin(page, live_server)
     page.click("#antenna-btn")
-    page.wait_for_selector("#antenna-dialog[open]")
+    page.wait_for_selector('.tab-panel[data-panel="intercom"]:not([hidden])')
     # En mode dev le serveur rend un jeu fictif : la liste doit se remplir seule.
     page.wait_for_selector(".ant-row", timeout=10000)
 
@@ -285,7 +278,7 @@ def test_le_dialogue_ne_vole_pas_le_focus_a_qui_saisit_deja(page, live_server):
         window.requestAnimationFrame = (cb) => { window.__rafs.push(cb); return 0; };
     """)
     enter_admin(page, live_server)
-    page.click("#add-beltpack-pool")
+    ouvrir_ajout_beltpack(page)
     page.wait_for_selector("#person-dialog[open]")
 
     # L'utilisateur vise le rôle et tape, AVANT que la frame différée ne s'exécute.

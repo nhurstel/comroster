@@ -26,7 +26,7 @@ STATIC_CSS = os.path.join(
 #: feuille : tant qu'il portait aussi main.css, un jeton emprunté à la feuille globale
 #: passait le test, et c'est précisément l'emprunt que le découplage supprime.
 GROUPES = {
-    "écran de régie": ["main.css", "display.css", "skins.css"],
+    "affichage": ["main.css", "display.css", "skins.css"],
     "administration": ["admin.css"],
     "connexion": ["auth.css"],
     "impression": ["print.css"],

@@ -119,7 +119,7 @@ def events():
     storage = current_app.extensions["storage"]
 
     # `?role=admin` : la page d'administration s'abonne au même flux, mais n'affiche rien
-    # en salle. Le type sert à deux choses — ne pas la compter comme un écran de régie, et
+    # en salle. Le type sert à deux choses — ne pas la compter comme un affichage, et
     # l'empêcher d'affamer les vrais écrans (réserve ci-dessous). Allowlist : toute valeur
     # inconnue retombe sur « écran », le cas le plus prudent.
     kind = pubsub.sanitize_kind(request.args.get("role"))
@@ -133,7 +133,7 @@ def events():
     # RÉSERVE : les onglets d'administration sont bornés bien en dessous du cap total.
     # Sans elle, quelques onglets admin laissés ouverts consommeraient les créneaux des
     # écrans, et c'est la SALLE qui perdrait l'affichage — l'inverse exact de la priorité
-    # voulue. Un admin dégradé se resynchronise au rechargement ; un écran de régie noir,
+    # voulue. Un admin dégradé se resynchronise au rechargement ; un affichage noir,
     # lui, se voit du fond de la salle.
     if kind == pubsub.ADMIN and broker.count(pubsub.ADMIN) >= current_app.config["SSE_ADMIN_MAX"]:
         return Response("Trop d'onglets d'administration ouverts", status=503,

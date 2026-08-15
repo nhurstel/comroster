@@ -1,7 +1,7 @@
-"""Diffusion d'évènements aux abonnés SSE (écrans de régie et pages d'administration).
+"""Diffusion d'évènements aux abonnés SSE (affichages et pages d'administration).
 
 Les abonnés sont TYPÉS. Sans cette distinction, la page d'administration — qui ouvre elle
-aussi un flux `/events` pour se resynchroniser — se comptait comme un écran de régie :
+aussi un flux `/events` pour se resynchroniser — se comptait comme un affichage :
 ouvrir l'admin sans le moindre écran branché affichait « 1 afficheur », dans la barre
 d'état ET dans la ligne de vie de la page Santé, celle qui répond à « puis-je lancer le
 show ? ». Un écran d'état qui invente un afficheur est pire qu'un écran d'état absent
@@ -10,14 +10,14 @@ show ? ». Un écran d'état qui invente un afficheur est pire qu'un écran d'é
 Deux compteurs, deux usages distincts :
   • `subscriber_count` (TOTAL) borne l'occupation du pool de threads gunicorn — chaque
     flux en occupe un en continu, quel que soit son type.
-  • `display_count` répond à « combien d'écrans de régie affichent réellement ? ». C'est
+  • `display_count` répond à « combien d'affichages affichent réellement ? ». C'est
     lui, et lui seul, qui a le droit d'aller à l'écran.
 """
 import contextlib
 import queue
 import threading
 
-#: Écran de régie (/display, kiosk). C'est le DÉFAUT : un abonné non qualifié est traité
+#: Affichage (/display, kiosk). C'est le DÉFAUT : un abonné non qualifié est traité
 #: comme un écran — l'hypothèse la plus prudente, pour le cap comme pour l'affichage.
 DISPLAY = "display"
 #: Page d'administration. Occupe un thread, mais n'affiche rien en salle.
@@ -54,7 +54,7 @@ class Broker:
         """Pousse le nouveau nombre d'écrans à tous les abonnés.
 
         Sans cette annonce, la barre d'état de l'admin restait figée sur le compte du
-        chargement : brancher un écran de régie ne se voyait qu'à la publication
+        chargement : brancher un affichage ne se voyait qu'à la publication
         suivante. C'est le corollaire de la leçon du 2026-06-22 pour un changement
         DISTANT — il n'y a ici aucune action locale après laquelle rafraîchir, c'est donc
         au serveur d'annoncer.
@@ -86,5 +86,5 @@ class Broker:
 
     @property
     def display_count(self):
-        """Écrans de régie seuls : la seule valeur qu'on ait le droit d'afficher."""
+        """Affichages seuls : la seule valeur qu'on ait le droit d'afficher."""
         return self.count(DISPLAY)

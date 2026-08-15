@@ -11,7 +11,13 @@ import pytest
 
 # `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
 # pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
-from helpers import enter_admin, open_board_tab, open_screen_tab, wait_saved
+from helpers import (
+    enter_admin,
+    open_board_tab,
+    open_screen_tab,
+    ouvrir_ajout_beltpack,
+    wait_saved,
+)
 
 pytestmark = pytest.mark.e2e
 
@@ -52,7 +58,7 @@ def _publish_one_group(page, base, name="Plateau", beltpack="42", role="Régie",
     page.fill("#block-name", name)
     page.click("#block-form button[type=submit]")
     page.wait_for_selector(f"#blocks-container >> text={name}")
-    page.click("#add-beltpack-pool")
+    ouvrir_ajout_beltpack(page)
     # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
     # non encore affiché part en silence et soumet un formulaire incomplet.
     page.wait_for_selector("#person-dialog[open]")

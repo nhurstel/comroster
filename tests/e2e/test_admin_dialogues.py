@@ -11,7 +11,13 @@ import pytest
 
 # `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
 # pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
-from helpers import enter_admin, open_reglages, open_screen_tab, wait_saved
+from helpers import (
+    enter_admin,
+    open_screen_tab,
+    open_systeme,
+    ouvrir_ajout_beltpack,
+    wait_saved,
+)
 
 pytestmark = pytest.mark.e2e
 
@@ -19,7 +25,7 @@ pytestmark = pytest.mark.e2e
 def test_available_filter(page, live_server):
     enter_admin(page, live_server)
     for num, role in [("11", "Regie"), ("22", "Lumiere")]:
-        page.click("#add-beltpack-pool")
+        ouvrir_ajout_beltpack(page)
         # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
         # non encore affiché part en silence et soumet un formulaire incomplet.
         page.wait_for_selector("#person-dialog[open]")
@@ -50,9 +56,7 @@ def test_indicator_toggles_persist(page, live_server):
 
 def test_network_dialog_sets_static_ip(page, live_server):
     enter_admin(page, live_server)
-    open_reglages(page)
-    page.click("#network-btn")
-    page.wait_for_selector("#network-dialog[open]")
+    open_systeme(page, "network")
     page.select_option("#net-mode", "static")
     page.wait_for_selector("#net-static-fields:not([hidden])")
     page.fill("#net-address", "192.168.1.50")

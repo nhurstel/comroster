@@ -142,7 +142,7 @@
 
     /* Carte d'identité du logiciel. Elle précède les durées : « quel code tourne ici ? »
        vient avant « depuis combien de temps ». C'est le SEUL endroit qui montre le
-       commit et l'éventuelle péremption — le pied de l'écran de régie, lui, est vu par
+       commit et l'éventuelle péremption — le pied de l'affichage, lui, est vu par
        le client. */
     const ver = d.version || {};
     facts.push({ heading: "version du logiciel" });

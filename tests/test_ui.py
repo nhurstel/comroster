@@ -103,14 +103,20 @@ def test_admin_un_bouton_par_fonction(auth_client):
     assert ">Historique<" in html                   # entrée latérale des publications passées
 
 
-def test_admin_has_antenna_panel(auth_client):
+def test_intercom_est_un_panneau_et_le_voyant_y_mene(auth_client):
+    """L'intercom vivait dans un <dialog> ouvert PAR-DESSUS le plateau : on connectait
+    l'antenne dans une fenêtre modale. C'est une section du Système, et le voyant de
+    l'en-tête n'est plus qu'une porte vers elle — un témoin d'état peut mener quelque
+    part sans être un onglet."""
     html = auth_client.get("/admin").get_data(as_text=True)
     assert 'id="antenna-btn"' in html
-    assert 'id="antenna-dialog"' in html
+    assert 'data-panel="intercom"' in html
     assert "antenna-wizard" in html
     assert "antenna-dashboard" in html
+    # L'import reste un DIALOGUE : c'est un acte ponctuel, pas un lieu où l'on séjourne.
     assert "import-dialog" in html
-    assert "settings-dialog" not in html      # ancien dialog retiré
+    assert 'id="antenna-dialog"' not in html
+    assert "settings-dialog" not in html
 
 
 def test_admin_color_palette_replaces_native_picker(auth_client):
@@ -120,17 +126,25 @@ def test_admin_color_palette_replaces_native_picker(auth_client):
     assert 'type="color"' not in html            # plus de sélecteur natif illisible
 
 
-def test_admin_has_configs_and_selection(auth_client):
+def test_admin_has_presets_and_selection(auth_client):
+    """Les « Configurations » sont devenues des PRESETS, et elles ont rejoint
+    l'historique et les fichiers dans un dialogue unique : trois volets pour une seule
+    question, « je reprends quel état ? »."""
     html = auth_client.get("/admin").get_data(as_text=True)
-    assert "configs-dialog" in html
-    assert 'id="configs-btn"' in html
+    assert 'id="versions-dialog"' in html
+    assert 'id="versions-btn"' in html
+    assert 'data-verspanel="presets"' in html
     assert "ranges-list" in html
     assert "selection-bar" in html           # sélection par clic direct (plus de bouton dédié)
     assert 'id="selection-delete"' in html
+    # Les deux anciennes rangées de latérale n'existent plus, ni leurs dialogues.
+    assert "configs-dialog" not in html
+    assert "history-dialog" not in html
+    assert 'id="history-btn"' not in html and 'id="configs-btn"' not in html
 
 
-def test_les_commandes_de_fichier_vivent_dans_le_dialogue_configs(auth_client):
-    """Importer / Exporter sont DANS le dialogue « Configurations », plus dans la latérale.
+def test_les_commandes_de_fichier_vivent_dans_le_dialogue_versions(auth_client):
+    """Importer / Exporter sont DANS le dialogue « Historique et presets », plus dans la latérale.
 
     Assertion d'APPARTENANCE, pas de présence : un `assert 'id="export-btn"' in html`
     resterait vert si le bouton était resté dans la barre latérale, et ne garderait donc
@@ -138,8 +152,8 @@ def test_les_commandes_de_fichier_vivent_dans_le_dialogue_configs(auth_client):
     dedans, puis dans le reste du document.
     """
     html = auth_client.get("/admin").get_data(as_text=True)
-    dialogue = re.search(r'<dialog id="configs-dialog".*?</dialog>', html, re.DOTALL)
-    assert dialogue, "dialogue Configurations introuvable"
+    dialogue = re.search(r'<dialog id="versions-dialog".*?</dialog>', html, re.DOTALL)
+    assert dialogue, "dialogue « Historique et presets » introuvable"
     dedans = dialogue.group(0)
     dehors = html.replace(dedans, "")
 
@@ -151,6 +165,10 @@ def test_les_commandes_de_fichier_vivent_dans_le_dialogue_configs(auth_client):
     assert 'type="file"' in dedans
     # La latérale « Données » n'a plus ses deux rangées de fichier.
     assert "import-label" not in html
+    # Et ils vivent dans le volet « Fichier », pas en vrac dans le dialogue : c'est ce
+    # volet qui répond à « je veux emporter le plateau ailleurs ».
+    assert 'data-verspanel="fichier"' in dedans
+    assert dedans.index('data-verspanel="fichier"') < dedans.index('id="import-btn"')
 
 
 # --------------------------------------------------------------------------
@@ -230,28 +248,30 @@ def test_l_inverseur_reflete_le_cookie_des_le_rendu_serveur(auth_client):
 
 
 def test_la_portee_des_deux_reglages_de_luminosite_est_levee_sans_libelle(auth_client):
-    """L'admin porte DEUX réglages de luminosité : le sien, dans le pied, et celui
-    de l'écran de régie, dans Réglages → Écran. Tant qu'aucun des deux ne disait
-    sur quoi il agissait, ils se confondaient.
+    """L'admin porte DEUX réglages de luminosité : le sien, dans le pied, et celui de
+    l'affichage, dans l'onglet « Affichage ». Tant qu'aucun des deux ne disait sur quoi
+    il agissait, ils se confondaient.
 
-    La levée ne passe PAS par un libellé de portée collé à l'inverseur. Elle
-    repose sur trois choses, et cette garde tient les deux qui vivent dans le
-    balisage : le nom explicite du réglage de l'écran, et le renvoi posé sous lui
-    — là où l'on vient chercher « le mode sombre » et où l'on risque de croire
-    l'avoir trouvé. La troisième est le témoin « Affichage en cours », qui montre
-    l'écran de régie en direct : basculer l'inverseur et voir la vignette rester
-    telle quelle démontre l'indépendance au lieu de l'affirmer.
+    La levée passe désormais par la STRUCTURE et non par de la prose : la carte de
+    l'onglet nomme son objet (« Affichage »), et son champ n'est plus qu'un mot
+    (« Luminosité ») qui hérite de cette portée. Le paragraphe de renvoi a disparu — il
+    était en prime posé sous la mauvaise colonne, sous « Apparence » et non sous
+    « Luminosité ». Deux objets nommés ne se confondent pas ; il n'y a plus rien à
+    expliquer.
 
-    L'infobulle de l'inverseur reste le filet : invisible tant qu'on ne survole
-    pas, donc sans coût pour la réglette."""
+    Le pied, lui, reste NU à l'œil : sa portée se démontre par le témoin « Affichage en
+    cours », qu'on voit ne pas bouger quand on bascule. L'infobulle est le filet —
+    invisible tant qu'on ne survole pas, donc sans coût pour la réglette."""
     html = auth_client.get("/admin").get_data(as_text=True)
     pied = html[html.index('<footer class="admin-status"'):html.index("</footer>")]
 
-    assert "Luminosité de l'écran de régie" in html, \
-        "le réglage de l'écran de régie ne nomme pas son objet"
-    assert "se règle dans le pied" in html, \
-        "rien ne renvoie vers l'inverseur depuis le réglage qu'on risque de confondre avec lui"
-    assert "Réglages → Écran" in pied, "l'infobulle de l'inverseur ne renvoie pas à l'autre réglage"
+    assert ">Affichage</div>" in html, "la carte de réglages ne nomme pas son objet"
+    assert "<span>Luminosité</span>" in html, \
+        "le champ de luminosité devrait tenir en un mot, sa portée venant du titre de carte"
+    assert "se règle dans le pied" not in html, \
+        "le paragraphe de renvoi est revenu — la structure devait suffire"
+    assert "l'onglet « Affichage »" in pied, \
+        "l'infobulle de l'inverseur ne renvoie pas à l'autre réglage"
 
     # Et la contrepartie, qui est la décision : la réglette reste NUE À L'ŒIL. Un
     # libellé de portée y serait une affirmation de plus dans une barre qui en
@@ -323,38 +343,55 @@ def _fragment(html, debut, fin):
     return html[i:html.index(fin, i)]
 
 
-def test_reglages_regroupe_les_fonctions_boitier(auth_client):
-    """Les six fonctions du boîtier vivent dans le menu, et NULLE PART AILLEURS.
+def test_systeme_regroupe_les_fonctions_boitier(auth_client):
+    """Les sept fonctions du boîtier vivent dans le rail du Système, et NULLE PART
+    AILLEURS.
 
-    Le comptage à 1 est le cœur du test : il échoue aussi bien si une fonction est
-    perdue (0) que si un ancien accès survit ou revient (2). C'est exactement le
-    défaut relevé à la revue du 2026-07-25 (« Système » ouvrait le dialogue de
-    « Réseau », l'aperçu était accessible à deux endroits).
+    Le comptage est le cœur du test : il échoue aussi bien si une fonction est perdue
+    que si un ancien accès survit ou revient. C'est le défaut relevé à la revue du
+    2026-07-25 (« Système » ouvrait le dialogue de « Réseau », l'aperçu était accessible
+    à deux endroits) — et, à la revue du 2026-08-14, celui de la dispersion : six
+    conteneurs de navigation pour treize destinations, avec trois comportements
+    d'ouverture différents.
     """
     html = auth_client.get("/admin").get_data(as_text=True)
 
-    menu = _fragment(html, 'id="settings-menu"', "</nav>")
-    for cible in ('id="network-btn"', 'id="backup-btn"',
-                  'id="password-btn"', ">Santé<", ">Journal<"):
-        assert cible in menu, f"{cible} absent du menu Réglages"
-        assert html.count(cible) == 1, f"{cible} a {html.count(cible)} accès, il en faut 1"
-    # Redémarrer, lui, RESTE au pied de la latérale (choix Nathan) : il voisine l'autre
-    # action de sortie, et une action destructrice ne traîne pas dans un menu qu'on parcourt.
-    assert 'id="reboot-btn"' not in menu
+    rail = _fragment(html, 'class="sys-rail"', "</nav>")
+    fonctions = ('data-tab="health"', 'data-tab="journal"', 'data-tab="network"',
+                 'data-tab="intercom"', 'data-tab="backup"', 'data-tab="password"',
+                 'data-tab="reboot"')
+    for cible in fonctions:
+        assert cible in rail, f"{cible} absent du rail du Système"
+
+    # Hors du rail, il ne reste QUE la barre d'onglets : trois onglets plus « Système »,
+    # qui pointe la première section de sa famille. C'est la porte de la famille, pas un
+    # second accès à Diagnostic — et le seul doublon toléré de tout le fichier.
+    dehors = html.replace(rail, "")
+    assert dehors.count("data-tab=") == 4, \
+        f"{dehors.count('data-tab=')} entrées de navigation hors du rail, il en faut 4"
+    assert 'data-tab="health" data-famille="systeme"' in dehors, \
+        "l'onglet « Système » ne déclare pas sa famille : il s'éteindrait dès la 2e section"
+
+    # Le menu « Réglages » n'existe plus : il mélangeait deux panneaux et trois dialogues
+    # sous un nom qui ne contenait aucun des réglages les plus manipulés.
+    assert "settings-menu" not in html and "settings-btn" not in html
+    assert "tab-menu" not in html
+
+    # Les deux sorties ont quitté le pied de la latérale, mais PAS au même endroit :
+    # elles n'ont pas le même profil. « Redémarrer » est rare et coupe l'affichage une
+    # minute — deux clics sont le bon prix, et c'est là que la phrase qui dit ce qu'on
+    # risque peut l'accompagner. « Déconnexion » est fréquente et sans risque : elle doit
+    # rester à UN clic depuis les dix panneaux, donc dans un chrome PERMANENT. La latérale
+    # n'en est plus un, le rail non plus (il vit dans un panneau) ; la barre d'état, si.
+    assert 'class="side-foot"' not in html, "le pied de la latérale devrait avoir disparu"
+    assert 'id="logout-link"' not in rail, "la déconnexion est enfermée dans un panneau"
+    pied = _fragment(html, '<footer class="admin-status"', "</footer>")
+    assert 'id="logout-link"' in pied, "la déconnexion n'est pas dans le chrome permanent"
+    assert html.count('id="logout-link"') == 1
     assert html.count('id="reboot-btn"') == 1
-
-    # Le déclencheur annonce son panneau, et le panneau part fermé.
-    assert 'id="settings-btn"' in html
-    assert 'aria-expanded="false"' in html
-    assert 'aria-controls="settings-menu"' in html
-    assert 'id="settings-menu" role="menu" hidden' in html
-
-    # Anciens emplacements : la section « Boîtier » de la latérale n'existe plus, et le
-    # pied ne garde que la déconnexion.
-    assert "Boîtier" not in html
-    pied = _fragment(html, 'class="side-foot"', "</aside>")
-    assert "logout-link" in pied
-    assert "reboot-btn" in pied
+    # Et elle ne voisine pas « Publier » : un clic manqué déconnecterait au lieu de publier.
+    entete = _fragment(html, '<header class="admin-top"', "</header>")
+    assert "logout" not in entete
 
 
 # --------------------------------------------------------------------------
