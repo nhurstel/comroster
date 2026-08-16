@@ -8,6 +8,18 @@ on:
 # requirements-dev.txt : un linter est une dépendance, pas un outil ambiant. `ubuntu-24.04`
 # plutôt qu'`ubuntu-latest` pour que GitHub ne change pas l'image sous nos pieds.
 # Pour reproduire la CI en local : `deploy/lint-local.sh`.
+#
+# Les actions sont épinglées au SHA, même raison encore. `@v4` n'est pas une version, c'est
+# une ÉTIQUETTE MOBILE que GitHub déplace : les actions bougeaient donc sous nos pieds
+# exactement comme `ubuntu-latest` le faisait. C'est ce qui a fait apparaître, sans qu'une
+# ligne du dépôt ne change, l'avertissement « target Node.js 20 but are being forced to run
+# on Node.js 24 » — checkout@v4 et setup-python@v5 déclarent `using: node20` dans leur
+# propre action.yml, or GitHub retire Node 20 de ses runners. Ce Node-là n'a rien à voir
+# avec le nôtre (`node-version: "22"` plus bas) : c'est celui qui exécute les actions
+# elles-mêmes, qui sont des programmes JavaScript fournis par GitHub.
+#
+# Le commentaire à droite de chaque SHA dit à quelle version il correspond — sans lui,
+# l'épinglage devient illisible et personne ne le met plus à jour.
 env:
   SHELLCHECK_VERSION: "0.9.0"
 
@@ -16,8 +28,8 @@ jobs:
     name: Lint (ruff + shellcheck)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7.0.0
         with:
           python-version: "3.12"
           cache: pip
@@ -51,8 +63,8 @@ jobs:
     name: Tests unitaires & intégration
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7.0.0
         with:
           python-version: "3.12"
           cache: pip
@@ -71,8 +83,8 @@ jobs:
     name: Tests JavaScript (logique pure)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020   # v7.0.0
         with:
           node-version: "22"
           cache: npm
@@ -88,8 +100,8 @@ jobs:
     name: Tests bout-en-bout (Playwright)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7.0.0
         with:
           python-version: "3.12"
           cache: pip
