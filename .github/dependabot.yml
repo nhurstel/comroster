@@ -1,0 +1,65 @@
+# Surveillance des dépendances.
+#
+# C'est la contrepartie indispensable de deux décisions prises ailleurs :
+#
+#   1. Les actions de ci.yml sont épinglées au SHA. Un SHA ne bouge jamais — c'est tout
+#      l'intérêt (reproductibilité, et immunité si quelqu'un déplaçait une étiquette vers
+#      du code malveillant), mais ça veut dire que les correctifs n'arrivent plus tout
+#      seuls. Dependabot remplace le SHA ET réécrit le commentaire de version à droite :
+#      sans lui, l'épinglage devient une corvée qu'on oublie pendant deux ans.
+#
+#   2. requirements.txt porte désormais des bornes hautes. Une majeure ne peut donc plus
+#      entrer d'elle-même sur le boîtier ; il faut que quelqu'un relève la borne. Ce
+#      « quelqu'un » est ici : Dependabot ouvre une PR, la CI tourne dessus, on lit le
+#      journal des changements, on fusionne ou pas. Le changement redevient une décision.
+#
+# ATTENTION — ce fichier n'active QUE les mises à jour de version. Les ALERTES de sécurité
+# sont un réglage séparé du dépôt, et elles étaient désactivées au 2026-08-16 (l'API
+# répondait « Dependabot alerts are disabled »). Sans elles, rien ne signale une faille
+# publiée dans Flask ou cryptography. Réglage à faire une fois, dans l'interface :
+# Settings ▸ Advanced Security ▸ Dependabot alerts + Dependabot security updates.
+
+version: 2
+updates:
+  # --- Actions GitHub -------------------------------------------------------------
+  # Groupées : elles bougent ensemble, et une PR par action noierait le signal. Rythme
+  # mensuel, parce qu'une action qui prend un mois de retard ne casse rien — au contraire
+  # de ce qu'a montré Node 20, où c'est l'IMMOBILITÉ qui avait fini par alerter.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions-github:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
+
+  # --- Python ---------------------------------------------------------------------
+  # Couvre requirements.txt ET requirements-dev.txt : Dependabot lit les deux.
+  # Correctifs et mineures groupés en une PR — c'est du bruit, il se relit d'un bloc.
+  # Les MAJEURES sortent seules, délibérément : ce sont elles qui franchissent les bornes
+  # hautes du fichier, donc celles qui méritent qu'on ouvre le journal des changements.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      python-mineures:
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: "deps"
+
+  # --- npm ------------------------------------------------------------------------
+  # Outillage de test uniquement : rien de ce paquet ne part sur le boîtier (cf. la
+  # description de package.json). D'où le rythme mensuel — l'enjeu est faible.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      js-dev:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps"

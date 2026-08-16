@@ -1,6 +1,25 @@
-Flask>=3.0
-Flask-WTF>=1.2
-Flask-Limiter>=3.5
-cryptography>=42
-gunicorn>=21
-segno>=1.6
+# Dépendances de PRODUCTION — installées telles quelles sur le boîtier par
+# deploy/setup-pi.sh (l. 62/67), et par la CI.
+#
+# Bornes HAUTES obligatoires. Elles n'y étaient pas, et le résultat était mesurable :
+# `cryptography>=42` installait 50.0.0 (huit majeures plus loin), `gunicorn>=21`
+# installait 26.0.0, et `Flask-Limiter>=3.5` avait franchi un changement de MAJEURE
+# jusqu'à 4.1.1 — sans qu'une ligne du dépôt ne change, sans que personne ne le décide.
+#
+# Ce n'est pas un détail d'hygiène : le boîtier installe depuis ce fichier. Sans borne
+# haute, deux installations à un mois d'écart ne donnent pas le même logiciel, et l'écart
+# se découvre en spectacle. C'est exactement la leçon déjà écrite à côté de `ruff` dans
+# requirements-dev.txt (ruff 0.16.0 a cassé `main` le 2026-07-26 sans changement de code) ;
+# elle n'avait simplement jamais été appliquée ici.
+#
+# Convention : plancher = la version VÉRIFIÉE (597 unitaires + 76 e2e passés dessus le
+# 2026-08-16), plafond = la majeure suivante. Un changement de majeure devient donc une
+# décision, prise en relisant le journal des changements — ce que Dependabot proposera en
+# ouvrant une PR, au lieu que ça arrive tout seul au prochain déploiement.
+
+Flask>=3.1,<4
+Flask-WTF>=1.3,<2
+Flask-Limiter>=4.1,<5
+cryptography>=50,<51        # cadence de majeures rapide, et retire des API : une seule majeure
+gunicorn>=26,<27
+segno>=1.6,<2
