@@ -21,7 +21,7 @@ on:
 # Le commentaire à droite de chaque SHA dit à quelle version il correspond — sans lui,
 # l'épinglage devient illisible et personne ne le met plus à jour.
 env:
-  SHELLCHECK_VERSION: "0.9.0"
+  SHELLCHECK_VERSION: "0.11.0"
 
 jobs:
   lint:
@@ -60,13 +60,23 @@ jobs:
           "shellcheck-v$SHELLCHECK_VERSION/shellcheck" deploy/*.sh run-dev.sh
 
   unit:
-    name: Tests unitaires & intégration
+    # MATRICE, et son premier cran n'est pas décoratif : le boîtier est un Raspberry Pi OS
+    # Bookworm (deploy/raspberry-pi.md), et setup-pi.sh l. 65 crée son venv avec le
+    # `python3` du système, soit Python 3.11. La CI testait 3.12 — elle n'avait donc JAMAIS
+    # testé la version qui tourne chez le client. 3.12 et 3.13 suivent pour voir venir la
+    # bascule de Pi OS vers Trixie. 3.14 est volontairement écarté : le boîtier ne l'aura
+    # pas, et tester ce que personne n'exécute ne prouve rien.
+    name: Tests unitaires & intégration (py${{ matrix.python }})
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false          # un échec sur 3.13 ne doit pas masquer l'état de 3.11
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7.0.0
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
           cache: pip
       - name: Dépendances
         run: pip install -r requirements.txt -r requirements-dev.txt
@@ -103,7 +113,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7.0.0
         with:
-          python-version: "3.12"
+          # 3.11, pas de matrice : c'est la version du boîtier, donc la seule dont l'échec
+          # signifie « cassé chez le client ». Trois fois trois minutes de navigateur pour
+          # couvrir des versions que personne n'exécute serait payer cher un renseignement
+          # que la matrice unitaire donne déjà.
+          python-version: "3.11"
           cache: pip
       - name: Dépendances
         run: pip install -r requirements.txt -r requirements-dev.txt
