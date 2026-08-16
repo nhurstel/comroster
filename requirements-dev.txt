@@ -1,9 +1,21 @@
-# Dépendances de développement (hors production).
-pytest>=8
-playwright>=1.61
-pytest-playwright>=0.5
-ruff==0.16.0        # lint Python — version ÉPINGLÉE, source unique (la CI l'installe d'ici).
-                    # Une borne ouverte (>=) rend le lint non reproductible : une nouvelle
+# Dépendances de développement (hors production) — jamais installées sur le boîtier :
+# deploy/setup-pi.sh ne lit que requirements.txt.
+#
+# Mêmes bornes hautes qu'en production, et pour la même raison : `pytest>=8` avait laissé
+# entrer pytest 9 (changement de majeure) sans que ce soit décidé, et `playwright>=1.61`
+# suivait chaque publication. Un outil de test qui bouge tout seul transforme un échec de
+# suite en énigme : on cherche dans son propre code ce qui a changé chez l'outil.
+
+pytest>=9.1,<10
+playwright>=1.62,<2         # le navigateur suit la bibliothèque : une bascule impose un
+                            # `playwright install`, elle se décide donc (vécu le 2026-08-16).
+pytest-playwright>=0.9,<1
+
+# Ces deux-là restent au point FIXE, pas à la fourchette : ils PRODUISENT un verdict de CI.
+# Une borne, même étroite, laisserait ce verdict varier sans qu'on ait rien changé.
+ruff==0.16.3        # lint Python — version ÉPINGLÉE, source unique (la CI l'installe d'ici).
+                    # Une borne ouverte rend le lint non reproductible : une nouvelle
                     # version élargit ses règles et casse `main` sans changement de code.
-coverage==7.15.2    # couverture des tests. Épinglée pour la même raison : un SEUIL de CI
+                    # C'est exactement ce qu'a fait ruff 0.16.0 le 2026-07-26.
+coverage==7.15.4    # couverture des tests. Épinglée pour la même raison : un SEUIL de CI
                     # n'a de sens que si l'outil qui le mesure ne bouge pas tout seul.
