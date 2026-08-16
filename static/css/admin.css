@@ -26,6 +26,9 @@
     --fg: #EEF1F7; --fg-muted: #C3C8D2; --fg-subtle: #939AA7; --muted: #737A88;
     --success: #2ECC71; --warning: #E8A13A; --error: #F04D3E;
     --danger: #F0857A; --danger-line: #4A2A2E; --danger-bg: #2E1C1F;
+    /* Encre des boutons PLEINS en --error. Même règle que --on-accent et que ink.js :
+       L(#F04D3E) = 0.242 > 0.179 → encre sombre. Le blanc n'y tenait que 3,60:1. */
+    --on-error: #141005;
 
     /* Accent ROUGE OCRE (choix 2026-07-25, ex-turquoise jugé froid ; #D2694A jugé trop
        orangé → #D96253, plus rouge). Tient ≈ 4.4:1 sur les surfaces sombres (texte
@@ -107,6 +110,7 @@
         --fg: #151922; --fg-muted: #3F4756; --fg-subtle: #5C6575; --muted: #7A8393;
         --success: #1B8B4A; --warning: #9A6410; --error: #C0392B;
         --danger: #B33322; --danger-line: #E7C3BD; --danger-bg: #FBEDEA;
+        --on-error: #FFFFFF;
         --accent: #B23F31; --accent-lt: #8F3227; --on-accent: #FFFFFF;
         --primary: var(--accent); --primary-light: var(--accent-lt);
         --voile-1: #00000008; --voile-2: #0000000d; --voile-3: #00000014;
@@ -133,6 +137,7 @@ body[data-theme="day"] {
     --fg: #151922; --fg-muted: #3F4756; --fg-subtle: #5C6575; --muted: #7A8393;
     --success: #1B8B4A; --warning: #9A6410; --error: #C0392B;
     --danger: #B33322; --danger-line: #E7C3BD; --danger-bg: #FBEDEA;
+    --on-error: #FFFFFF;
     --accent: #B23F31; --accent-lt: #8F3227; --on-accent: #FFFFFF;
     --primary: var(--accent); --primary-light: var(--accent-lt);
     --voile-1: #00000008; --voile-2: #0000000d; --voile-3: #00000014;
@@ -935,7 +940,7 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
    de sortie. Dans une rangée de liste, il décollerait « Supprimer » de ses voisins. */
 .admin-dialog .dialog-actions .danger { margin-right: auto; }
 /* Redémarrage (action notable, non destructive) */
-.admin-dialog button.primary.confirm-danger { background: var(--error); color: #FFFFFF; }
+.admin-dialog button.primary.confirm-danger { background: var(--error); color: var(--on-error); }
 .admin-dialog button.primary.confirm-danger:hover:not(:disabled) { background: var(--error-lt); }
 .admin-dialog .reboot-btn { background: var(--warning); color: var(--on-accent); border-color: transparent; font-weight: 700; margin-right: auto; }
 .admin-dialog .reboot-btn:hover:not(:disabled) { background: var(--warning-lt); border-color: transparent; }
@@ -1364,7 +1369,7 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
     font-size: var(--ui); font-weight: 600;
 }
 .selection-bar button:hover:not(:disabled) { border-color: var(--border-3); }
-.selection-bar .danger-btn { background: var(--error); color: var(--fg); border-color: transparent; }
+.selection-bar .danger-btn { background: var(--error); color: var(--on-error); border-color: transparent; }
 /* Réaffectation en lot : même chrome que les boutons de la barre, chevron dessiné
    (pas de `data:` URI — CSP `default-src 'self'`), comme les réglages de l'onglet Écran. */
 .selection-assign { display: flex; align-items: center; gap: 7px; }

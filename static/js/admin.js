@@ -1936,7 +1936,23 @@
     }
   }
 
+  /* Un PANNEAU s'affiche avant d'être rempli — le dialogue d'avant, lui, n'apparaissait
+     qu'une fois sa configuration lue. Entre l'affichage et la réponse de l'API, il existe
+     donc une fenêtre où l'opérateur peut saisir quelque chose que le remplissage écrasera
+     sans un mot. La refonte panneau (2026-08-14) a ouvert cette fenêtre ; la CI, plus
+     lente que cette machine, l'a trouvée deux fois de suite. Un boîtier réel la trouvera.
+
+     On inhibe donc les commandes le temps de la lecture : on ne saisit pas dans un
+     formulaire qui n'est pas encore rempli. Effet second, gratuit : Playwright attend
+     l'état « enabled » avant d'agir, les tests se synchronisent sans `wait` artificiel. */
+  function formeEnAttente(selecteur, attend) {
+    document.querySelectorAll(`${selecteur} input, ${selecteur} select, ${selecteur} button`)
+      .forEach((c) => { c.disabled = attend; });
+  }
+  const PANNEAU_INTERCOM = '.tab-panel[data-panel="intercom"]';
+
   async function openAntenna(aller = true) {
+    formeEnAttente(PANNEAU_INTERCOM, true);
     const settings = await apiSend("GET", "/api/settings");
     currentRanges = (settings.antenna_ranges || []).map((r) => [r[0], r[1]]);
     document.getElementById("dash-autosync").checked = !!settings.auto_sync;
@@ -1963,6 +1979,7 @@
       document.getElementById("dash-refresh-btn").hidden = !online;
       onRangesChanged = null;                 // le tableau de bord n'a pas d'aperçu live
       showScope("dash-scope", "dash-ranges-wrap", "dash-ranges-list");
+      formeEnAttente(PANNEAU_INTERCOM, false);
     } else {
       document.getElementById("antenna-dashboard").hidden = true;
       document.getElementById("antenna-wizard").hidden = false;
@@ -1970,6 +1987,9 @@
       document.getElementById("wiz-password").value = "";
       document.getElementById("wiz-error").hidden = true;
       wizGo(1);
+      // Rendre la main AVANT de chercher : scanAntennas() désarme son propre bouton le
+      // temps de la recherche, et un réarmement global le rallumerait en pleine course.
+      formeEnAttente(PANNEAU_INTERCOM, false);
       // Boîtier jamais apparié : on cherche d'emblée. C'est le moment où la question
       // « quelle est l'adresse de l'antenne ? » se pose vraiment.
       scanAntennas();
@@ -2289,6 +2309,9 @@
   async function openNetwork(aller = true) {
     document.getElementById("net-error").hidden = true;
     document.getElementById("net-result").hidden = true;
+    // Voir formeEnAttente() : sans cette inhibition, choisir « Statique » pendant la
+    // lecture était annulé une fraction de seconde plus tard par le remplissage.
+    formeEnAttente("#network-form", true);
     let cfg;
     try { cfg = await apiSend("GET", "/api/network"); } catch { cfg = { mode: "link-local" }; }
     document.getElementById("net-link").value = cfg.link || "ethernet";
@@ -2305,7 +2328,10 @@
     document.getElementById("net-dns").value = (cfg.dns || []).join(", ");
     wifiScanned = false;                 // scan neuf à chaque ouverture
     wifiListEl.innerHTML = "";
-    loadNetCurrent();                    // état réel du boîtier, en tête du dialogue
+    // Le formulaire est rempli : il redevient manipulable. Avant scanWifi(), qui désarme
+    // son propre bouton — un réarmement après lui le rallumerait en pleine recherche.
+    formeEnAttente("#network-form", false);
+    loadNetCurrent();                    // état réel du boîtier, en tête du panneau
     toggleNetFields();
     if ((cfg.link || "ethernet") === "wifi") scanWifi();   // déjà en Wi-Fi : scanner d'emblée
     if (aller) selectTab("network");

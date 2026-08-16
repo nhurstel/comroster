@@ -2302,9 +2302,72 @@ programmatique, pas à l'œil), elle n'est ni dans le rail ni dans l'en-tête.
 
 ### Reste à faire
 - **Faire relire par Nathan**, puis committer : rien n'est commité, la branche est à lui.
-- Les deux libellés DÉDUITS sans arbitrage tiennent toujours à confirmation : l'onglet
-  **Affichage** et le titre de carte **AFFICHAGE** + champ **Luminosité**.
-- La dette d'accessibilité du 2026-08-13 (`.confirm-danger`, `.selection-bar .danger-btn`)
-  n'est PAS traitée : hors périmètre, toujours ouverte.
-- `design/maquette-admin-8-navigation.html` est resté en arrière de l'implémentation
-  (elle a divergé sur les quatre défauts ci-dessus). À rafraîchir ou à archiver.
+- ~~Les deux libellés DÉDUITS sans arbitrage tiennent toujours à confirmation~~ →
+  **Affichage** confirmé par Nathan le 2026-08-16. Le champ est devenu **Thème**.
+- ~~La dette d'accessibilité du 2026-08-13~~ → **réglée le 2026-08-16** (lot ci-dessous) :
+  jeton `--on-error`, 5,28:1 en nuit et 5,44:1 en jour, garde de contraste ajoutée.
+- ~~`design/maquette-admin-8-navigation.html` est resté en arrière de l'implémentation~~ →
+  **supprimée le 2026-08-16**. Elle reste lisible dans `cd8bb3d` ; l'arbitrage qu'elle
+  servait est écrit en toutes lettres plus haut, c'est lui qui avait de la valeur.
+
+---
+
+# LOT 2026-08-16 — Dette d'accessibilité, maquette, et la course du panneau réseau
+
+Trois demandes de Nathan en une passe : régler la dette d'accessibilité du 2026-08-13,
+supprimer la maquette divergente, et comprendre les erreurs GitHub des derniers envois.
+
+## 1. Les deux boutons rouges — ce n'est pas un arbitrage, c'est une règle non appliquée
+
+`admin.css` énonce déjà sa règle d'encre (l. 30-34, décision du 2026-07-25) : **luminance
+> 0,179 ⇒ encre SOMBRE sur bouton plein**, la même que `ink.js` pour l'écran. Mesuré :
+
+| Jeton | Luminance | Encre due | Encre posée | Contraste |
+|---|---|---|---|---|
+| `--accent` nuit `#D96253` | 0,2411 | sombre | sombre ✓ | — |
+| `--error` **nuit** `#F04D3E` | **0,2418** | **sombre** | `#FFFFFF` ✗ | **3,60:1** |
+| `--error` **jour** `#C0392B` | 0,1431 | claire | `var(--fg)` ✗ | **3,23:1** |
+| `--warning` nuit `#E8A13A` | 0,4295 | sombre | sombre ✓ | 8,67:1 |
+
+`--error` nuit a la MÊME luminance que `--accent` (0,2418 vs 0,2411) : les deux boutons
+rouges étaient simplement les seuls à ne pas suivre la règle du projet. `.reboot-btn`,
+juste à côté, la suit et passe dans les deux thèmes — la norme, ce sont eux.
+
+**Correctif** : un jeton `--on-error` par thème, dérivé de la règle et non d'un goût.
+Nuit `#141005` (l'encre de `--on-accent`), jour `#FFFFFF`. Aucune couleur inventée,
+`--error` intact partout ailleurs. Résultat : **5,28:1** en nuit, **5,44:1** en jour,
+survols compris (5,44 et 7,53).
+
+Garde ajoutée (`tests/test_contraste_admin.py`) : le contraste est CALCULÉ depuis les
+jetons, pour les deux thèmes. Aucun test ne mesurait de contraste jusqu'ici — c'est
+précisément pourquoi `.selection-bar .danger-btn` a survécu, sa couleur passant par un
+jeton là où la garde anti-couleurs-en-dur ne cherche que des littéraux.
+
+## 2. La maquette — supprimée
+
+`design/maquette-admin-8-navigation.html` a divergé de l'implémentation sur les cinq
+défauts corrigés en route. Elle n'est pas perdue : `cd8bb3d` la contient, et l'arbitrage
+qu'elle servait est écrit en toutes lettres dans le lot 2026-08-14 ci-dessus. Garder un
+fichier ouvrable qui rejouerait ces cinq défauts, c'est fabriquer un piège.
+
+## 3. Les erreurs GitHub — une régression, pas un aléa
+
+Les échecs du 11 et du 14 août étaient le job **Lint**, déjà réglé par `6beed0a`.
+Les deux derniers (15 et 16 août) sont le MÊME test, deux fois :
+`test_network_dialog_sets_static_ip` — `#net-static-fields` reste masqué.
+
+**Cause racine.** `openNetwork()` est `async` et s'attache à `panneau-affiche` : le
+panneau est AFFICHÉ avant que sa configuration soit lue. Entre les deux, l'opérateur
+peut choisir « Statique » — puis la réponse de `/api/network` arrive, réécrit `#net-mode`
+et `toggleNetFields()` remasque les champs. Le dialogue d'avant n'avait pas ce trou :
+il n'apparaissait qu'une fois rempli. **La refonte panneau a ouvert la fenêtre.**
+
+Ce n'est pas un test capricieux : c'est un vrai défaut produit, que le CI voit parce que
+sa machine est plus lente, et qu'un Raspberry Pi verrait aussi. Vert ici ≠ vert ailleurs.
+
+**Correctif** : les commandes du formulaire sont inhibées le temps de la lecture. Un
+opérateur ne peut plus saisir dans un formulaire pas encore rempli — et Playwright, qui
+attend l'état « enabled », se synchronise sans qu'aucun `wait` artificiel soit ajouté.
+
+`openAntenna()` porte le MÊME défaut (il remet `#wiz-ip` et `#wiz-password` à vide après
+son `await`) : corrigé pareil, sans attendre qu'un test le découvre.
