@@ -81,7 +81,7 @@ document.getElementById("print-now").addEventListener("click", () => window.prin
 //
 // Le bandeau prend l'APLAT de la couleur du groupe (demande Nathan, 2026-08-05 : « mettre
 // plus en avant les couleurs, rappeler l'interface du soft ») — c'est le langage de
-// l'apparence « grille » de l'écran de régie, où le bloc EST la couleur.
+// l'apparence « grille » de l'affichage, où le bloc EST la couleur.
 //
 // Poser du texte sur une couleur choisie par l'utilisateur n'est sûr que parce que DEUX
 // garde-fous existent déjà : le nuancier des groupes est borné à 12 teintes calibrées

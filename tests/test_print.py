@@ -165,7 +165,7 @@ def test_l_admin_nomme_la_fonction_impression(auth_client):
     html = auth_client.get("/admin").get_data(as_text=True)
     # L'entrée est devenue un <button> qui bascule un panneau (elle n'ouvre plus de page) :
     # c'est le LIBELLÉ que cette garde protège, pas la balise qui le porte.
-    assert ">Impression</button>" in html
+    assert '<span class="tab-nom">Impression</span>' in html
     assert "Feuille imprimable" not in html
 
 

@@ -149,7 +149,7 @@ def snapshot(app):
             "system_s": parse_uptime(_read_file("/proc/uptime")),
             "app_s": int(time.time() - _APP_START),
         },
-        # Écrans de régie SEULS. La page Santé répond à « puis-je lancer le show ? » :
+        # Affichages SEULS. La page Santé répond à « puis-je lancer le show ? » :
         # compter l'onglet d'administration ici affirmait qu'un écran diffusait alors
         # qu'aucun n'était branché — un faux positif sur le seul écran censé ne pas
         # mentir (audit 2026-07-28).

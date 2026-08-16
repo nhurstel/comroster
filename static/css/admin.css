@@ -220,41 +220,37 @@ a.brand:hover { background: var(--voile-1); }
 .crumb .crumb-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .admin-tabs { margin-left: auto; display: flex; align-items: stretch; }
+/* Onglet = un GLYPHE surmontant son nom. Le pictogramme se reconnaît de loin et à
+   l'oblique — l'admin se pilote debout, de biais, parfois dans le noir — pendant que le
+   mot reste là pour lever toute ambiguïté : une icône seule se devine, jamais.
+   Le nom passe en capitales resserrées et plus petit : il devient une LÉGENDE du glyphe,
+   pas un libellé qui se lit mot à mot. L'ensemble tient dans les 53 px de --top-h
+   (18 + 3 + 10 = 31 px de contenu), l'en-tête ne bouge donc pas d'un pixel. */
 .admin-tabs .tab {
-    display: flex; align-items: center; gap: 7px;
-    padding: 0 13px; font-size: var(--ui); font-weight: 600; letter-spacing: var(--track);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 0 15px;
+    font-weight: 600; letter-spacing: var(--track);
     color: var(--fg-muted); border-bottom: 2px solid transparent; margin-bottom: -1px;
 }
+/* `fill:none` + `stroke:currentColor` : le trait suit la couleur du texte, donc l'état
+   (repos, survol, actif) et le thème, sans qu'aucune règle n'ait à le redire. */
+.tab-glyph {
+    width: 18px; height: 18px; flex: 0 0 auto;
+    fill: none; stroke: currentColor; stroke-width: 1.5;
+    stroke-linecap: round; stroke-linejoin: round;
+}
+.tab-nom { font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; line-height: 1; }
 .admin-tabs .tab:hover:not(:disabled) { color: var(--fg); background: var(--voile-1); }
 .admin-tabs .tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
-/* Panneau ouvert depuis un MENU (Journal, Santé) : l'onglet qui porte ce menu s'allume.
-   Sans ce repère, on serait sur un panneau sans que rien dans l'en-tête ne le dise —
-   c'est le seul point où « comme Affectations et Écran » demandait plus qu'une bascule. */
+/* Section d'une FAMILLE (les sept du Système) : l'onglet qui porte cette famille reste
+   allumé sur toutes. Sans ce repère, « Système » s'éteindrait dès qu'on quitte la
+   section qu'il pointe, et rien dans l'en-tête ne dirait plus où l'on est. */
 .admin-tabs .tab[data-active] { color: var(--fg); border-bottom-color: var(--accent); }
 
-/* Menu « Réglages » : tout ce qui concerne le BOÎTIER sous une entrée unique.
-   Le panneau est piloté par l'attribut [hidden] — la règle d'affichage cible donc
-   `:not([hidden])` et AUCUN display inconditionnel n'est posé ici (leçon 2026-06-21,
-   où un `display:flex` inconditionnel écrasait `hidden` et laissait l'élément visible). */
-.tab-menu { position: relative; display: flex; align-items: stretch; }
-.tab-chev { font-size: 9px; line-height: 1; opacity: 0.7; }
-#settings-menu:not([hidden]) {
-    position: absolute; top: 100%; right: 0; z-index: 40;
-    min-width: 190px; padding: 5px 0;
-    display: flex; flex-direction: column;
-    background: var(--surface-3); border: 1px solid var(--border);
-    border-radius: var(--rad); box-shadow: 0 10px 28px var(--ombre-forte);
-}
-/* Même gabarit que les rangées de la latérale (d'où viennent quatre de ces six items) :
-   le menu ne doit pas introduire un troisième registre de rangée cliquable. */
-.menu-item {
-    display: flex; align-items: center;
-    width: 100%; height: calc(var(--row) - 3px); padding: 0 var(--pad);
-    color: var(--fg-muted); font-size: calc(var(--ui) + 1px); font-weight: 600;
-    letter-spacing: var(--track); text-align: left; white-space: nowrap; cursor: pointer;
-}
-.menu-item:hover:not(:disabled), .menu-item:focus-visible { background: var(--voile-1); color: var(--fg); }
-.menu-sep { height: 1px; margin: 5px 0; background: var(--border-soft); }
+/* La CSS du menu « Réglages » (.tab-menu, .tab-chev, #settings-menu, .menu-item,
+   .menu-sep) a été retirée le 2026-08-14 avec le menu lui-même : ses six entrées
+   mélangeaient deux panneaux et trois dialogues sous un nom qui ne contenait aucun des
+   réglages les plus manipulés. Tout vit désormais dans le rail de l'onglet Système. */
 
 /* Chips : segments plats séparés par des filets (pas de pilules).
    Ordre imposé : onglets · horloge · état · Publier. Les témoins restent donc entre le
@@ -369,15 +365,10 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: var(--voile-1);
 .nav-danger:disabled { opacity: 0.6; cursor: default; }
 .import-label input[type="file"] { display: none; }
 
-.side-foot { flex: 0 0 auto; border-top: 1px solid var(--border-soft); padding-top: 6px; margin-top: 6px; }
-.side-foot-row { display: flex; align-items: stretch; }
-.side-foot-row .nav-item { width: auto; flex: 0 0 auto; padding: 0 var(--pad); }
-.logout-link {
-    display: flex; align-items: center; flex: 1; min-width: 0;
-    height: calc(var(--row) - 3px); padding: 0 var(--pad) 0 calc(var(--pad) + 12px);
-    color: var(--danger); font-size: calc(var(--ui) + 1px); font-weight: 600; white-space: nowrap;
-}
-.logout-link:hover { background: var(--danger-bg); }
+/* `.side-foot`, `.side-foot-row` et l'ancien gabarit de `.logout-link` ont été retirés
+   le 2026-08-15 avec le pied de la latérale : « Redémarrer » est parti dans Système ›
+   Agir, et « Déconnexion » dans la barre d'état, seul chrome permanent du bas. Sa règle
+   vit désormais avec elle, en fin de feuille. */
 
 /* Rangée surlignée tant que SON panneau est affiché — même repère de contexte que
    ci-dessous pour les dialogues, appliqué aux entrées qui ouvrent un panneau
@@ -805,9 +796,9 @@ body:has(#configs-dialog[open]) #configs-btn {
 
 /* ---------- Barre d'état (maquette .status) ---------- */
 .admin-status {
-    flex: 0 0 25px; display: flex; align-items: stretch;
+    flex: 0 0 32px; display: flex; align-items: stretch;
     background: var(--surface); border-top: 1px solid var(--border);
-    font-family: var(--f-mono); font-size: 11.5px;
+    font-family: var(--f-mono); font-size: 12px;
 }
 .admin-status .s {
     display: flex; align-items: center; gap: 7px; padding: 0 11px;
@@ -983,7 +974,7 @@ button.preview-tile-hit:focus-visible { outline: 2px solid var(--accent); outlin
 .admin-dialog button.color-choice:hover { transform: scale(1.08); border-color: transparent; }
 .admin-dialog button.color-choice.selected { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--ombre-portee), 0 0 0 2px var(--surface-2); }
 
-/* Grand aperçu de l'écran de régie : même résolution de rendu que le témoin —
+/* Grand aperçu de l'affichage : même résolution de rendu que le témoin —
    les deux doivent montrer exactement la même mise en page, colonnes comprises. */
 .preview-dialog { max-width: min(94vw, 1100px); }
 .preview-frame {
@@ -1625,3 +1616,155 @@ body[data-session="lost"] .admin-app {
 .tsw button[aria-checked="true"]::after { background: var(--on-accent); }
 .tsw button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 .admin-status .theme-switch b { color: var(--fg-subtle); font-weight: 400; }
+
+/* =====================================================================
+   ONGLET SYSTÈME — rail de sections + corps (refonte 2026-08-14)
+   Ce qui vivait dans quatre <dialog> (réseau, intercom, sauvegarde, mot de passe)
+   vit désormais dans des PANNEAUX. Conséquence directe : les champs et les boutons
+   perdaient tout leur chrome, `.admin-dialog` étant leur seul habilleur. Les champs
+   reprennent `.side-field`/`.side-check` (déjà autonomes, cf. onglet Affichage) ;
+   seuls les boutons demandaient une règle, faute d'un bouton de base habillé.
+   ===================================================================== */
+.famille-stage { flex: 1; min-height: 0; display: flex; }
+.sys-rail {
+    width: 190px; flex: 0 0 190px;
+    border-right: 1px solid var(--border);
+    padding: 14px 10px; display: flex; flex-direction: column; gap: 2px;
+    overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.sys-rail .nav-label { margin: 12px 6px 4px; }
+.sys-rail .nav-label:first-child { margin-top: 0; }
+/* Mesure de lecture bornée, alignée à gauche : au-delà, l'œil perd la ligne entre le
+   libellé d'un champ et son contrôle — même raison que `.readout` du Diagnostic. */
+.sys-body {
+    flex: 1; min-height: 0; overflow-y: auto;
+    padding: 18px var(--pad) 44px; max-width: 660px;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.sys-body > .dialog-hint { margin-bottom: 14px; }
+.sys-section { padding: 16px 0 4px; border-top: 1px solid var(--border-soft); }
+.sys-section:first-child { border-top: 0; padding-top: 0; }
+.sys-section > h2 {
+    font-size: calc(var(--role) + 1px); font-weight: 700;
+    letter-spacing: -0.01em; margin-bottom: 8px;
+}
+.sys-section .wiz-count { font-size: var(--ui-sm); font-weight: 600; color: var(--fg-subtle); margin-left: 6px; }
+.sys-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+/* Le bouton de base du produit est NU (aucun `button {}` global) : hors dialogue, il
+   faut donc l'habiller ici, avec les valeurs de `.admin-dialog button` — mêmes jetons,
+   même géométrie, pour qu'un bouton ne change pas d'allure selon son conteneur. */
+.sys-actions button, .sys-body .danger-btn {
+    height: 30px; padding: 0 12px;
+    background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--rad);
+    color: var(--fg); font-size: var(--ui); font-weight: 600; letter-spacing: var(--track);
+    transition: background 0.12s, border-color 0.12s; white-space: nowrap;
+}
+.sys-actions button:hover:not(:disabled) { border-color: var(--border-3); }
+.sys-actions button.primary {
+    background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 700;
+}
+.sys-actions button.primary:hover:not(:disabled) { background: var(--accent-lt); }
+.sys-actions button:disabled { opacity: 0.55; }
+.sys-body .danger-btn { color: var(--danger); border-color: var(--danger-line); background: var(--danger-bg); }
+.sys-body .import-summary { margin-top: 12px; }
+.sys-body .conn-progress { margin-top: 10px; }
+
+/* Le voyant Intercom quitte la barre d'onglets pour le groupe des témoins : il DIT
+   quelque chose en permanence, il ne désigne pas un lieu. Cliqué, il mène à sa section —
+   un témoin peut être une porte sans être un onglet. */
+.chip-porte { cursor: pointer; }
+.chip-porte:hover { background: var(--surface-3); border-color: var(--border-2); }
+
+/* ---------- Réserve repliée en rail ----------
+   242 px permanents pour une liste VIDE — et elle l'est dans le cas nominal — c'est un
+   cinquième de la largeur d'un 13 pouces. Sans la règle `:has` ci-dessous, replier ne
+   rendrait RIEN : `.admin-layout` réserve `1fr var(--pool-w)` en dur, la colonne
+   resterait large de 242 px avec un rail de 46 px dedans. C'est la largeur rendue qui
+   est l'objet du repli, pas le rail. */
+.admin-layout:has(> #pool-rail:not([hidden])) { grid-template-columns: 1fr 46px; }
+.pool-rail {
+    border-left: 1px solid var(--border); background: transparent;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px 0;
+}
+.pool-rail .pr-open {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 12px;
+    color: inherit; cursor: pointer;
+}
+.pool-rail .pr-open:hover { color: var(--fg); }
+.pool-rail[data-dragover="true"] { background: var(--accent-a12); }
+.pool-rail .pr-count {
+    font-family: var(--f-mono); font-size: var(--mono); font-weight: 600;
+    color: var(--fg); font-variant-numeric: tabular-nums;
+}
+.pool-rail .pr-label {
+    writing-mode: vertical-rl; font-size: var(--ui-sm); font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-subtle);
+}
+
+/* ---------- Dialogue « Historique et presets » ----------
+   Trois volets pour une seule question. La largeur se pose sur le <dialog> (borné à
+   440 px par `.admin-dialog`), jamais sur son formulaire : posée sur le formulaire,
+   elle déborde de son propre dialogue. */
+.admin-dialog.versions-dialog { max-width: min(94vw, 620px); }
+.versions-dialog .tb-seg { align-self: flex-start; }
+.versions-dialog .history-list, .versions-dialog .configs-list { max-height: 46vh; overflow-y: auto; }
+.vers-foot { display: flex; justify-content: flex-end; margin-top: 10px; }
+.vers-foot .danger { color: var(--danger); font-size: var(--ui); font-weight: 600; }
+.vers-foot .danger:hover { color: var(--error); }
+
+/* ---------- La carte beltpack montre ce qu'on peut lui faire ----------
+   Elle portait cinq gestes souris, tous invisibles, et n'était pas focalisable. Le
+   bouton apparaît au survol ET au focus : au clavier, il faut qu'il se voie sans
+   pointeur. `currentColor` : la carte vit sur l'aplat du groupe, l'encre est déjà
+   calculée pour cet aplat (--on-gel). */
+.person { outline-offset: -2px; }
+.person:focus-visible { outline: 2px solid var(--on-gel, var(--accent)); }
+.card-menu {
+    flex: 0 0 auto; width: 20px; height: 20px; border-radius: 4px;
+    color: inherit; font-size: 13px; line-height: 1;
+    display: grid; place-items: center;
+    opacity: 0; transition: opacity 0.12s;
+}
+.person:hover .card-menu, .person:focus-within .card-menu { opacity: 0.75; }
+.card-menu:hover, .card-menu:focus-visible { opacity: 1; background: rgb(0 0 0 / 0.17); }
+.panel-pool .card-menu:hover, .panel-pool .card-menu:focus-visible { background: var(--voile-3); }
+
+/* ---------- Le voyant intercom EST son glyphe ----------
+   Une pastille de 6 px flottait à côté du mot ; le glyphe porte maintenant l'état
+   lui-même. Un objet de moins pour la même information, et le témoin s'aligne sur le
+   registre des onglets voisins. La couleur ne dit jamais seule : le titre et le nom
+   accessible du bouton portent l'état en toutes lettres (cf. ETATS_ANTENNE). */
+.chip.chip-porte {
+    flex-direction: column; justify-content: center; gap: 3px; padding: 0 13px;
+}
+.ant-glyph { stroke: var(--muted); transition: stroke 0.15s; }
+.ant-glyph[data-etat="online"]  { stroke: var(--success); }
+.ant-glyph[data-etat="offline"] { stroke: var(--warning); }
+.pool-rail .pr-plus {
+    flex: 0 0 auto; width: 26px; height: 26px; border-radius: var(--rad);
+    display: grid; place-items: center; cursor: pointer;
+    font-size: 16px; font-weight: 700; color: var(--fg-subtle);
+}
+.pool-rail .pr-plus:hover, .pool-rail .pr-plus:focus-visible {
+    color: var(--fg); background: var(--voile-2);
+}
+/* La déconnexion vit dans la barre d'état, tout à droite : elle prend le gabarit des
+   segments voisins (`.s`) et n'ajoute qu'un curseur et un survol. Teinte NORMALE et non
+   `--danger` : se déconnecter ne détruit rien, et une alerte permanente dans une barre
+   qu'on lit en continu s'use jusqu'à ne plus rien signaler. */
+.admin-status .logout-link {
+    cursor: pointer; gap: 6px;
+    color: var(--fg-muted); font-weight: 600;
+    background: var(--voile-1); border-right: 0;
+}
+.admin-status .logout-link:hover, .admin-status .logout-link:focus-visible {
+    color: var(--fg); background: var(--voile-3);
+}
+/* Même famille de tracé que les glyphes d'onglet : `currentColor`, donc il suit l'encre
+   du lien au repos comme au survol, sans une règle de couleur de plus. */
+.admin-status .logout-glyph {
+    width: 14px; height: 14px; flex: 0 0 auto;
+    fill: none; stroke: currentColor; stroke-width: 1.7;
+    stroke-linecap: round; stroke-linejoin: round;
+}

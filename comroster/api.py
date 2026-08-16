@@ -63,14 +63,14 @@ def admin_page():
 @bp.get("/admin/preview")
 @login_required
 def admin_preview():
-    """Report de l'écran de régie : rend l'état PUBLIÉ par défaut, comme /display.
+    """Report de l'affichage : rend l'état PUBLIÉ par défaut, comme /display.
 
     C'est un témoin de ce qui est réellement affiché en salle, pas un aperçu du
     brouillon — l'admin travaille sur le brouillon, il a donc surtout besoin de voir
     ce que le public voit pendant qu'il le prépare.
 
     `?draft=1` rend au contraire le BROUILLON : c'est l'aperçu de l'onglet « Écran »,
-    où régler une apparence, une luminosité ou un nombre de colonnes sans voir le
+    où régler une apparence, un thème ou un nombre de colonnes sans voir le
     résultat obligeait à publier pour juger. Les deux vues coexistent parce qu'elles
     répondent à deux questions distinctes — « qu'y a-t-il à l'antenne ? » et « à quoi
     ressemblera ce que je prépare ? » — ce n'est donc pas un doublon de fonction.
@@ -255,7 +255,7 @@ def get_state():
 def get_status():
     """Ce qui est réellement à l'antenne, pour la barre d'état de l'admin.
 
-    - `displays` : nombre d'ÉCRANS DE RÉGIE abonnés au flux SSE. Deux exclusions, pour
+    - `displays` : nombre d'AFFICHAGES abonnés au flux SSE. Deux exclusions, pour
       deux raisons distinctes : les aperçus de l'admin n'ouvrent jamais de flux (ils
       n'apparaissent donc nulle part), et la page d'administration en ouvre bien un mais
       s'annonce `?role=admin` — sans quoi elle se comptait comme un écran, et l'admin

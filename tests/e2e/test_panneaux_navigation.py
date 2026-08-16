@@ -9,7 +9,7 @@ import pytest
 
 # `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
 # pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
-from helpers import enter_admin, open_reglages
+from helpers import enter_admin, open_systeme, ouvrir_ajout_beltpack
 
 pytestmark = pytest.mark.e2e
 
@@ -37,22 +37,26 @@ def test_le_panneau_souvre_sans_quitter_l_administration(page, live_server, pann
     _marquer_le_document(page)
 
     if panneau == "print":
-        page.click('[data-tab="print"]')          # rangée « Impression » de la latérale
+        page.click('[data-tab="print"]')          # onglet « Impression » de l'en-tête
     else:
-        open_reglages(page)
-        page.click(f'[data-tab="{panneau}"]')     # items « Santé » / « Journal » du menu
+        open_systeme(page)
+        page.click(f'.sys-rail [data-tab="{panneau}"]')     # rangée du rail du Système
 
     page.wait_for_selector(f'.tab-panel[data-panel="{panneau}"]:not([hidden])')
     page.wait_for_selector(ancre)
     assert _document_intact(page), "la page a été rechargée : ce n'est pas un panneau"
-    # L'en-tête et la latérale sont TOUJOURS là — c'est la demande, mot pour mot.
+    # L'en-tête est TOUJOURS là — c'est la demande, mot pour mot : on ne quitte pas
+    # l'administration. La LATÉRALE, elle, appartient au plateau depuis la refonte du
+    # 2026-08-14 : son inventaire de groupes n'a rien à faire sur Journal ou Diagnostic,
+    # et la masquer rend 204 px au panneau.
     assert page.is_visible(".admin-top")
     assert page.is_visible("#publish-btn")
-    assert page.is_visible(".admin-side")
+    assert page.is_hidden(".admin-side"), "la latérale du plateau suit encore les autres panneaux"
     # …et l'administration reste vivante derrière : le plateau répond encore.
     page.click('[data-tab="board"]')
     page.wait_for_selector('.tab-panel[data-panel="board"]:not([hidden])')
     assert page.is_visible("#add-block-btn")
+    assert page.is_visible(".admin-side"), "la latérale n'est pas revenue avec le plateau"
 
 
 def test_l_entree_du_menu_allume_l_onglet_qui_la_porte(page, live_server):
@@ -62,17 +66,17 @@ def test_l_entree_du_menu_allume_l_onglet_qui_la_porte(page, live_server):
     saurait ce qu'on regarde, jamais comment y revenir ni d'où l'on vient.
     """
     enter_admin(page, live_server)
-    assert page.get_attribute("#settings-btn", "data-active") is None
-    open_reglages(page)
-    page.click('[data-tab="journal"]')
+    assert page.get_attribute('.tab[data-famille="systeme"]', "data-active") is None
+    open_systeme(page)
+    page.click('.sys-rail [data-tab="journal"]')
     page.wait_for_selector('.tab-panel[data-panel="journal"]:not([hidden])')
-    assert page.get_attribute("#settings-btn", "data-active") is not None
+    assert page.get_attribute('.tab[data-famille="systeme"]', "data-active") is not None
     # Et l'onglet « Affectations » a rendu la main.
     assert page.get_attribute('[data-tab="board"]', "aria-selected") == "false"
 
     page.click('[data-tab="board"]')
     page.wait_for_selector('.tab-panel[data-panel="board"]:not([hidden])')
-    assert page.get_attribute("#settings-btn", "data-active") is None
+    assert page.get_attribute('.tab[data-famille="systeme"]', "data-active") is None
 
 
 def test_le_volet_technique_du_journal_ne_touche_pas_au_plateau(page, live_server):
@@ -89,8 +93,8 @@ def test_le_volet_technique_du_journal_ne_touche_pas_au_plateau(page, live_serve
     page.click("#block-form button[type=submit]")
     page.wait_for_selector("#blocks-container >> text=Lumière")
 
-    open_reglages(page)
-    page.click('[data-tab="journal"]')
+    open_systeme(page)
+    page.click('.sys-rail [data-tab="journal"]')
     page.wait_for_selector('.tab-panel[data-panel="journal"]:not([hidden])')
     page.click('[data-jtab="logs"]')
     page.wait_for_selector("#log-list:not([hidden])")
@@ -109,7 +113,7 @@ def test_la_feuille_a_imprimer_sait_quelle_est_en_trame(page, live_server):
     la contient.
     """
     enter_admin(page, live_server)
-    page.click("#add-beltpack-pool")
+    ouvrir_ajout_beltpack(page)
     # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
     # non encore affiché part en silence et soumet un formulaire incomplet.
     page.wait_for_selector("#person-dialog[open]")
@@ -142,7 +146,7 @@ def test_la_feuille_est_refaite_a_chaque_passage(page, live_server):
     page.fill("#block-name", "Plateau")
     page.click("#block-form button[type=submit]")
     page.wait_for_selector("#blocks-container >> text=Plateau")
-    page.click("#add-beltpack-pool")
+    ouvrir_ajout_beltpack(page)
     # Le dialogue doit être OUVERT avant qu'on écrive dedans : remplir un champ
     # non encore affiché part en silence et soumet un formulaire incomplet.
     page.wait_for_selector("#person-dialog[open]")
@@ -181,8 +185,8 @@ def test_un_panneau_ferme_n_interroge_pas_le_boitier(page, live_server):
 
     # Ouvert, le panneau se relève IMMÉDIATEMENT — sans attendre son prochain battement,
     # sinon on lirait pendant 4 s des mesures vieilles du dernier passage.
-    open_reglages(page)
-    page.click('[data-tab="health"]')
+    open_systeme(page)
+    page.click('.sys-rail [data-tab="health"]')
     page.wait_for_selector('.tab-panel[data-panel="health"]:not([hidden])')
     page.wait_for_selector(".verdict")
     assert any("/api/health" in u for u in sondes)
@@ -205,7 +209,11 @@ def test_l_onglet_ecran_replie_le_temoin_sans_effacer_la_preference(page, live_s
     page.wait_for_selector('#preview-dock[data-open="1"]')
 
     page.click('[data-tab="screen"]')
-    page.wait_for_selector('#preview-dock[data-open="0"]')
+    # `state="attached"` et non le `visible` implicite : depuis que la latérale appartient
+    # au plateau (refonte 2026-08-14), le témoin n'est plus AFFICHÉ hors des Affectations.
+    # Ce que ce test garde n'a jamais été sa visibilité, mais son ÉTAT — et un `visible`
+    # implicite sur un conteneur masqué expire sans rien prouver (leçon 2026-07-23).
+    page.wait_for_selector('#preview-dock[data-open="0"]', state="attached")
     assert page.evaluate("localStorage.getItem('comroster.preview-dock')") != "0", (
         "le repli contextuel a écrasé la préférence de l'utilisateur"
     )

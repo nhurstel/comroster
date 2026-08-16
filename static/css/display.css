@@ -43,7 +43,7 @@ body.display-page {
   color: var(--d-fg);
   font-family: var(--font-body);
 }
-/* ---------- Thème CLAIR (mode luminosité « Clair ») : bascule des jetons --d-* ---------- */
+/* ---------- Thème CLAIR (réglage « Thème » → Clair) : bascule des jetons --d-* ---------- */
 body.display-page[data-theme="day"] {
   --d-bg: #EDF0F5;           /* fond clair, neutre froid */
   --d-surface: #FFFFFF;      /* surface des blocs */

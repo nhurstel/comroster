@@ -1,7 +1,7 @@
 /* ============================================================================
    Feuille d'affectation à imprimer.
 
-   Registre volontairement DIFFÉRENT de l'écran de régie : encre noire sur blanc et
+   Registre volontairement DIFFÉRENT de l'affichage : encre noire sur blanc et
    pas d'indicateur temps réel — le papier ne se met pas à jour, prétendre le
    contraire serait mentir.
 
@@ -258,7 +258,7 @@
 [data-mono="oui"] .sheet-rule { display: none; }
 
 /* Encre décidée par la LUMINANCE de la couleur du groupe (ink.js, seuil .179) — la même
-   règle que l'écran de régie et l'admin, jamais une seconde implémentation. */
+   règle que l'affichage et l'admin, jamais une seconde implémentation. */
 [data-ink="dark"] { color: var(--ink); }
 [data-ink="light"] { color: var(--paper); }
 /* Sur un bandeau devenu couleur, le filet ferait doublon : il annonçait cette couleur

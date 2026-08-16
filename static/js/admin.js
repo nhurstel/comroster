@@ -384,7 +384,24 @@
     const dot = document.createElement("span");
     dot.className = "bp-dot";
     dot.dataset.bp = person.beltpack;
-    live.append(batt, dot);
+    /* Cinq gestes vivaient sur cette carte — clic, double-clic sur le n°, double-clic
+       sur le nom, clic droit, glisser — tous à la souris, aucun signalé autrement que par
+       une infobulle. Et l'élément était un <article draggable> SANS tabindex ni role :
+       l'objet central du produit n'était pas atteignable au clavier. Un bouton visible au
+       survol ouvre le même menu ; le `tabindex` rend la carte focalisable, et le menu
+       s'ouvre alors sous elle plutôt qu'au pointeur. */
+    const menuBtn = document.createElement("button");
+    menuBtn.type = "button";
+    menuBtn.className = "card-menu";
+    menuBtn.textContent = "···";
+    menuBtn.setAttribute("aria-label", `Actions sur le beltpack ${person.beltpack}`);
+    menuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const r = menuBtn.getBoundingClientRect();
+      ouvrirMenuCarte(person.id, blockId, r.right + scrollX - 170, r.bottom + scrollY + 4);
+    });
+    live.append(batt, dot, menuBtn);
+    card.tabIndex = 0;
     card.append(bp, who, live);
 
     // Clic = (dé)sélection (MAJ+clic = plage). Le drag déplace la sélection si l'item
@@ -410,10 +427,7 @@
     card.addEventListener("dragend", () => { card.classList.remove("dragging"); state.drag = null; });
     card.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      state.context = { userId: person.id, blockId: blockId || null };
-      el.contextMenu.style.display = "block";
-      el.contextMenu.style.left = e.pageX + "px";
-      el.contextMenu.style.top = e.pageY + "px";
+      ouvrirMenuCarte(person.id, blockId, e.pageX, e.pageY);
     });
     // Double-clic directement sur le numéro ou le nom → édition sur place.
     bp.title = "Double-cliquez pour changer le numéro";
@@ -424,6 +438,17 @@
   }
 
   // Case « + » ajoutée en fin de liste pour créer un beltpack (remplace le bouton dédié).
+  /* Un seul chemin d'ouverture du menu, quel que soit le geste : clic droit, bouton
+     « ··· », ou clavier. Recopier les quatre lignes à chaque appelant, c'était garantir
+     qu'un jour l'un d'eux oublie de poser `state.context`. */
+  function ouvrirMenuCarte(userId, blockId, x, y) {
+    state.context = { userId, blockId: blockId || null };
+    el.contextMenu.style.display = "block";
+    el.contextMenu.style.left = x + "px";
+    el.contextMenu.style.top = y + "px";
+    el.contextMenu.querySelector("button")?.focus();
+  }
+
   function addTile(onClick) {
     // Zone de dépôt pointillée (registre maquette) : le bloc est déjà cible de
     // glisser-déposer ; ce même encart sert aussi à ajouter un beltpack au clic.
@@ -495,6 +520,32 @@
     }
     // L'ajout se fait par le bouton de pied « + Ajouter un beltpack » (pas de tuile dans
     // la liste : elle ferait doublon).
+    refletRail(all.length);
+  }
+
+  /* La réserve est VIDE dans le cas nominal — tous les beltpacks affectés. Lui garder
+     242 px en permanence coûtait une colonne de groupes entière à 1180 px. Repliée, elle
+     devient un rail de 46 px qui garde ses deux fonctions : dire le compte, et rester
+     une cible de dépôt pour retirer un beltpack de son groupe.
+     `state.poolOuvert` est une préférence de SESSION, pas une donnée : rouvrir le rail
+     à la main ne doit pas se faire refermer au premier rendu suivant, mais un
+     rechargement repart du cas nominal. */
+  function refletRail(nbDisponibles) {
+    const rail = document.getElementById("pool-rail");
+    const panneau = document.getElementById("panel-pool");
+    if (!rail || !panneau) return;
+    /* Le repli demande DEUX conditions, pas une. « Zéro disponible » a deux sens
+       opposés : tout est affecté (cas nominal, la réserve ne sert à rien pour l'instant)
+       ou le roster est VIDE (boîtier neuf, on n'a encore rien créé). Or « + Ajouter un
+       beltpack » est le seul accès à cette fonction, et il vit dans la réserve : replier
+       sur un roster vide cachait l'unique porte d'entrée du produit, au moment précis où
+       l'on en a besoin. Défaut trouvé par trois e2e, pas à l'œil. */
+    const rosterVide = !state.data.people.length;
+    const replie = nbDisponibles === 0 && !rosterVide && !state.poolOuvert;
+    rail.hidden = !replie;
+    panneau.hidden = replie;
+    document.getElementById("pool-rail-open").setAttribute("aria-expanded", String(!replie));
+    document.getElementById("pool-rail-count").textContent = nbDisponibles;
   }
   document.getElementById("available-filter").addEventListener("input", (e) => {
     state.filter = e.target.value;
@@ -541,7 +592,7 @@
       const gel = sanitizeColor(block.color);
       wrap.style.setProperty("--block-accent", gel || "var(--primary)");
       // Aplat plein : le bloc EST la couleur du groupe. L'encre suit la luminance
-      // réelle de cette couleur (static/js/ink.js, la même que l'écran de régie) ;
+      // réelle de cette couleur (static/js/ink.js, la même que l'affichage) ;
       // sans verdict — couleur absente ou non littérale — la CSS garde son fond sombre.
       wrap.style.setProperty("--gel", gel || "");
       const ink = window.ComRoster.inkFor(gel);
@@ -820,6 +871,12 @@
   }
 
   function render() {
+    // Heure humaine dès le chargement, comme après un enregistrement : la barre
+    // portait « publié 19:44 » à côté d'un « 2026-08-13T17:44:04Z » brut.
+    if (el.lastUpdated && state.data?.updated_at) {
+      el.lastUpdated.textContent =
+        "Dernier enregistrement : " + new Date(state.data.updated_at).toLocaleString("fr-FR");
+    }
     document.title = "Administration · " + (state.data.title || "ComRoster");
     if (el.title) el.title.textContent = state.data.title || "Affectation Intercom";
     if (el.subtitle) {
@@ -878,7 +935,7 @@
         + row('data-view="low"', "", `Batterie < ${LOW_BATTERY} %`, c.low, "inv-warn")
       : "";
     host.innerHTML =
-      `<div class="nav-label">Groupes</div>`
+      `<div class="nav-label">Filtrer par groupe</div>`
       + groups.map((g) => row(`data-group="${g.id}"`, sanitizeColor(g.color) || "var(--primary)",
                               g.name, state.data.people.filter((p) => p.group_id === g.id).length)).join("")
       + `<a class="inv-item inv-add" data-add-group role="button" tabindex="0">`
@@ -888,8 +945,17 @@
     const addRow = host.querySelector("[data-add-group]");
     addRow.addEventListener("click", openCreateBlock);
     addRow.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCreateBlock(); } });
-    host.querySelectorAll("[data-group]").forEach((a) =>
-      a.addEventListener("click", () => goToGroup(a.dataset.group)));
+    /* Ces rangées étaient `tabindex="0"` et annoncées « bouton », mais SANS gestionnaire
+       clavier : focalisables, inertes à Entrée — alors que leurs voisines juste en dessous
+       (« + Ajouter un groupe », les vues) en avaient un, dans cette même fonction. Un <a>
+       sans href n'a aucune activation native : l'omission ne se voyait qu'au clavier. */
+    host.querySelectorAll("[data-group]").forEach((a) => {
+      const act = () => goToGroup(a.dataset.group);
+      a.addEventListener("click", act);
+      a.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); act(); }
+      });
+    });
     host.querySelectorAll("[data-view]").forEach((a) => {
       const act = () => toggleView(a.dataset.view);
       a.addEventListener("click", act);
@@ -1439,7 +1505,7 @@
       if (savePending || saveTimer) await saveDraft();
       await apiSend("POST", "/api/publish");
       setUnpublished(false);
-      reloadPreview();                 // le témoin suit l'écran de régie, il vient de changer
+      reloadPreview();                 // le témoin suit l'affichage, il vient de changer
       refreshStatus();                 // nouveau résumé publié → écart remis à zéro
       flashSent();                     // confirmation « envoyé » discrète, au niveau du bouton
     } catch (err) {
@@ -1498,7 +1564,7 @@
         { title: "Importer un fichier", okLabel: "Remplacer" })) return;
       state.data = Board.draftFromImport(json);
       markDirty(); render();
-      document.getElementById("configs-dialog").close();
+      versionsDialog.close();
       toast("Plateau importé");
     };
     reader.onerror = () => toast("Lecture du fichier impossible.", true);
@@ -1548,7 +1614,7 @@
         state.data = await apiSend("POST", `/api/history/${b.dataset.restore}/restore`);
         setUnpublished(true);
         render();
-        document.getElementById("history-dialog").close();
+        versionsDialog.close();
         setStatus("Snapshot restauré dans le brouillon", "updated");
         setTimeout(() => { if (el.syncStatus?.dataset.state === "updated") { el.syncStatus.dataset.state = "idle"; renderStatusBar(); } }, 2500);
       } catch { toast("Restauration impossible.", true); }
@@ -1588,10 +1654,6 @@
     input.addEventListener("click", (e) => e.stopPropagation());
   }
 
-  async function openHistory() {
-    await refreshHistory();
-    document.getElementById("history-dialog").showModal();
-  }
   async function clearHistory() {
     if (!await confirmDialog("Supprimer toutes les publications passées ? Action irréversible.",
                              { title: "Vider les publications", okLabel: "Tout supprimer", danger: true })) return;
@@ -1617,6 +1679,28 @@
   document.addEventListener("click", (e) => { if (!el.contextMenu.contains(e.target)) hideContextMenu(); });
   document.addEventListener("scroll", hideContextMenu, true);
 
+  /* ---------- Réserve repliée : rouvrir, et rester une cible de dépôt ---------- */
+  const poolRail = document.getElementById("pool-rail");
+  document.getElementById("pool-rail-open")?.addEventListener("click", () => {
+    state.poolOuvert = true;
+    renderAvailable();
+    document.getElementById("available-filter")?.focus();
+  });
+  // Le « + » du rail ouvre DIRECTEMENT le dialogue d'ajout, sans passer par la réserve :
+  // c'est la même fonction que « + Ajouter un beltpack », pas un raccourci vers lui.
+  document.getElementById("pool-rail-add")?.addEventListener("click", () => openPersonDialog(null, null));
+  // Déposer un beltpack sur le rail le retire de son groupe, exactement comme un dépôt
+  // dans la réserve ouverte : replier ne doit RIEN retirer de ce qu'on pouvait faire.
+  poolRail?.addEventListener("dragover", (e) => { e.preventDefault(); poolRail.dataset.dragover = "true"; });
+  poolRail?.addEventListener("dragleave", () => { delete poolRail.dataset.dragover; });
+  poolRail?.addEventListener("drop", (e) => {
+    e.preventDefault();
+    delete poolRail.dataset.dragover;
+    if (!state.drag) return;
+    if (state.drag.multi) removeManyFromGroup(state.drag.ids.filter((id) => { const p = findPerson(id); return p && p.group_id; }));
+    else if (state.drag.source === "block") removeFromGroup(state.drag.userId);
+  });
+
   /* ---------- Zone "disponibles" comme drop pour retirer ---------- */
   el.available.addEventListener("dragover", (e) => { e.preventDefault(); el.available.dataset.dragover = "true"; });
   el.available.addEventListener("dragleave", () => { delete el.available.dataset.dragover; });
@@ -1632,6 +1716,11 @@
   // Déconnexion en POST (CSRF) via le formulaire caché — pas de onclick inline (CSP).
   document.getElementById("logout-link")?.addEventListener("click", (e) => {
     e.preventDefault();
+    // Le panneau mémorisé ne survit pas à la déconnexion : la session suivante n'est pas
+    // forcément le même opérateur, et rien ne justifie de l'accueillir sur « Mot de
+    // passe » ou « Sauvegarde complète » parce que le précédent y était passé. La
+    // mémorisation sert à survivre à un RAFRAÎCHISSEMENT, pas à un changement de main.
+    try { localStorage.removeItem(TAB_KEY); } catch { /* mode privé */ }
     document.getElementById("logout-form").submit();
   });
   document.getElementById("add-block-btn").addEventListener("click", openCreateBlock);
@@ -1656,57 +1745,33 @@
   // sélecteur de fichiers, mais un <input type=file> ne se style pas comme un bouton.
   document.getElementById("import-btn").addEventListener("click", () => el.importInput.click());
   el.importInput.addEventListener("change", importConfig);
-  document.getElementById("history-btn").addEventListener("click", openHistory);
   document.getElementById("history-clear").addEventListener("click", clearHistory);
-  document.getElementById("history-close").addEventListener("click", () => document.getElementById("history-dialog").close());
   document.querySelectorAll("button[data-close]").forEach((b) =>
     b.addEventListener("click", () => document.getElementById(b.dataset.close)?.close()));
-  // ---------- Menu « Réglages » (fonctions du boîtier) ----------
-  // Ce n'est PAS un <dialog> : il ne prend pas le focus à l'ouverture et ne bloque pas
-  // la page. Déclaré AVANT le handler clavier global, qui s'en sert dès la ligne suivante.
-  const settingsBtn = document.getElementById("settings-btn");
-  const settingsMenu = document.getElementById("settings-menu");
-  const settingsOpen = () => !settingsMenu.hidden;
-  function setSettings(open) {
-    settingsMenu.hidden = !open;
-    settingsBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  /* ---------- Dialogue « Historique et presets » ----------
+     Trois volets pour UNE seule question : « je reprends quel état ? ». Avant, deux
+     rangées de latérale y répondaient séparément, et les fichiers étaient enfouis dans
+     l'une d'elles — au point que deux boutons « Exporter » s'y répondaient. Le volet
+     d'arrivée est un paramètre : la latérale ouvre sur l'historique. */
+  const versionsDialog = document.getElementById("versions-dialog");
+  function showVersPanel(nom) {
+    versionsDialog.querySelectorAll("[data-vers]").forEach((b) =>
+      b.setAttribute("aria-pressed", String(b.dataset.vers === nom)));
+    versionsDialog.querySelectorAll("[data-verspanel]").forEach((p) => {
+      p.hidden = p.dataset.verspanel !== nom;
+    });
   }
-  function closeSettings({ focus = false } = {}) {
-    if (!settingsOpen()) return false;
-    setSettings(false);
-    if (focus) settingsBtn.focus();
-    return true;
+  versionsDialog.querySelectorAll("[data-vers]").forEach((b) =>
+    b.addEventListener("click", () => showVersPanel(b.dataset.vers)));
+
+  async function openVersions(volet = "historique") {
+    showVersPanel(volet);
+    // Les deux listes sont relues à CHAQUE ouverture : une publication partie entre-temps
+    // ou un preset enregistré depuis un autre onglet ne doit pas manquer à l'appel.
+    await Promise.all([refreshHistory(), refreshConfigs()]);
+    if (!versionsDialog.open) versionsDialog.showModal();
   }
-  settingsBtn.addEventListener("click", (ev) => {
-    // Sans stopPropagation, l'écouteur « clic extérieur » ci-dessous refermerait
-    // aussitôt ce que ce clic vient d'ouvrir.
-    ev.stopPropagation();
-    setSettings(!settingsOpen());
-  });
-  // Choisir un item referme : les trois dialogues laisseraient sinon le menu ouvert
-  // DERRIÈRE eux, et les deux liens quittent la page de toute façon.
-  settingsMenu.addEventListener("click", (ev) => {
-    if (ev.target.closest(".menu-item")) closeSettings();
-  });
-  document.addEventListener("click", (ev) => {
-    if (settingsOpen() && !ev.target.closest(".tab-menu")) closeSettings();
-  });
-  // ↓ depuis le déclencheur ouvre et entre dans le menu ; Entrée et Espace n'ont besoin
-  // de rien, ce sont des <button> et des <a> — le navigateur les active nativement.
-  settingsBtn.addEventListener("keydown", (ev) => {
-    if (ev.key !== "ArrowDown") return;
-    ev.preventDefault();
-    setSettings(true);
-    settingsMenu.querySelector(".menu-item")?.focus();
-  });
-  settingsMenu.addEventListener("keydown", (ev) => {
-    if (ev.key !== "ArrowDown" && ev.key !== "ArrowUp") return;
-    ev.preventDefault();
-    const items = [...settingsMenu.querySelectorAll(".menu-item")];
-    const i = items.indexOf(document.activeElement);
-    const suivant = (ev.key === "ArrowDown" ? i + 1 : i - 1 + items.length) % items.length;
-    items[suivant].focus();
-  });
+  document.getElementById("versions-btn").addEventListener("click", () => openVersions());
 
   window.addEventListener("keydown", (e) => {
     const mod = e.ctrlKey || e.metaKey;
@@ -1717,17 +1782,10 @@
     // Un menu ouvert compte comme « pas sur le plateau » : la condition vit ICI, dans le
     // seul prédicat partagé, jamais recopiée dans les branches — une liste d'exclusions
     // dupliquée se périme au premier raccourci ajouté (leçon 2026-07-27).
-    const onBoard = !/INPUT|TEXTAREA|SELECT/.test(tag) && !document.querySelector("dialog[open]")
-      && !settingsOpen();
+    const onBoard = !/INPUT|TEXTAREA|SELECT/.test(tag) && !document.querySelector("dialog[open]");
     // Échap pendant le décompte = annuler l'envoi. Il PRIME sur la sortie de sélection :
     // une publication en cours est l'action la plus conséquente à pouvoir rattraper.
     if (e.key === "Escape" && publishTimer) { e.preventDefault(); cancelPublish(); return; }
-    // Échap ferme le menu « Réglages ». Le rang QUI COMPTE est celui-ci : APRÈS le décompte
-    // de publication, qui reste l'action la plus conséquente à pouvoir rattraper (rang
-    // décidé le 2026-07-27) et qui, lui, ne dépend pas d'`onBoard`. Face à la sortie de
-    // sélection en dessous, l'ordre est redondant — `onBoard` exclut déjà le menu ouvert,
-    // donc la sélection survit de toute façon ; on garde cet ordre pour la lecture.
-    if (e.key === "Escape" && closeSettings({ focus: true })) { e.preventDefault(); return; }
     // Échap = quitter la sélection multiple (le bouton « Annuler » de la barre reste,
     // mais le réflexe clavier ne doit pas obliger à viser à la souris).
     if (e.key === "Escape" && state.selection.size && onBoard) { e.preventDefault(); exitSelection(); return; }
@@ -1752,7 +1810,6 @@
   });
 
   /* ---------- Antenne : pastille, assistant, tableau de bord ---------- */
-  const antennaDialog = document.getElementById("antenna-dialog");
   let currentRanges = [];
   let rangesListEl = null;
 
@@ -1765,11 +1822,26 @@
     ].join("");
   }
 
+  //: Les trois états du réseau intercom, et ce qu'ils disent EN TOUTES LETTRES. La
+  //: couleur du glyphe ne peut pas les porter seule : un daltonien, un écran de régie mal
+  //: calibré ou un simple coup d'œil de biais ne la lisent pas (WCAG 1.4.1).
+  const ETATS_ANTENNE = {
+    online: "connecté",
+    offline: "antenne enregistrée, hors ligne",
+    off: "non configuré",
+  };
+
   async function refreshAntennaBadge() {
     const dot = document.getElementById("antenna-dot");
     let st;
     try { st = await apiSend("GET", "/api/antenna/status"); } catch { return; }
-    dot.className = "dot " + (st.connected ? "online" : st.ip ? "offline" : "off");
+    // `dataset` et non `className` : l'élément est un <svg>, dont `className` est un
+    // SVGAnimatedString en lecture seule — l'affectation y serait silencieusement perdue.
+    const etat = st.connected ? "online" : st.ip ? "offline" : "off";
+    dot.dataset.etat = etat;
+    const btn = document.getElementById("antenna-btn");
+    btn.title = `Réseau intercom : ${ETATS_ANTENNE[etat]} — ouvre Système › Intercom`;
+    btn.setAttribute("aria-label", `Réseau intercom : ${ETATS_ANTENNE[etat]}`);
     return st;
   }
 
@@ -1854,7 +1926,7 @@
   }
 
   function wizGo(step) {
-    antennaDialog.querySelectorAll(".wiz-step").forEach((s) => { s.hidden = +s.dataset.step !== step; });
+    document.getElementById("antenna-wizard").querySelectorAll(".wiz-step").forEach((s) => { s.hidden = +s.dataset.step !== step; });
     if (step === 2) {
       showScope("wiz-scope", "wiz-ranges-wrap", "wiz-ranges-list");
       onRangesChanged = refreshWizPreview;   // ré-aperçu à chaque changement de portée
@@ -1864,7 +1936,7 @@
     }
   }
 
-  async function openAntenna() {
+  async function openAntenna(aller = true) {
     const settings = await apiSend("GET", "/api/settings");
     currentRanges = (settings.antenna_ranges || []).map((r) => [r[0], r[1]]);
     document.getElementById("dash-autosync").checked = !!settings.auto_sync;
@@ -1902,9 +1974,16 @@
       // « quelle est l'adresse de l'antenne ? » se pose vraiment.
       scanAntennas();
     }
-    if (!antennaDialog.open) antennaDialog.showModal();
+    if (aller) selectTab("intercom");
   }
-  document.getElementById("antenna-btn").addEventListener("click", openAntenna);
+  // Le voyant de l'en-tête est une PORTE : il mène à la section au lieu d'ouvrir une
+  // fenêtre par-dessus le plateau.
+  document.getElementById("antenna-btn").addEventListener("click", () => openAntenna());
+  // Arriver par le rail — ou par une adresse `?panneau=intercom` — doit remplir la même
+  // chose que le voyant, sinon la section s'ouvrirait vide. `false` coupe la navigation :
+  // sans lui, remplir redemanderait d'aller là où l'on est déjà, en boucle.
+  document.querySelector('.tab-panel[data-panel="intercom"]')
+    ?.addEventListener("panneau-affiche", () => openAntenna(false));
 
   document.getElementById("wiz-connect-btn").addEventListener("click", async (ev) => {
     const btn = ev.currentTarget;
@@ -1932,7 +2011,7 @@
   document.getElementById("wiz-import-btn").addEventListener("click", async () => {
     try {
       await apiSend("POST", "/api/antenna/import/apply");
-      antennaDialog.close();
+      await openAntenna(false);
       setUnpublished(true);
       await load();
       await refreshAntennaBadge();
@@ -1958,7 +2037,7 @@
   });
   document.getElementById("dash-disconnect-btn").addEventListener("click", async () => {
     try { await apiSend("POST", "/api/antenna/disconnect"); } finally {
-      antennaDialog.close();
+      await openAntenna(false);        // la section repasse à l'assistant
       await refreshAntennaBadge();
       await pollLive();                 // efface les pastilles immédiatement
     }
@@ -1983,7 +2062,7 @@
     try {
       await apiSend("POST", "/api/antenna/import/apply");
       document.getElementById("import-dialog").close();
-      antennaDialog.close();
+      await openAntenna(false);
       setUnpublished(true);
       await load();
       await refreshAntennaBadge();
@@ -1992,7 +2071,7 @@
     } catch { toast("Import impossible", true); }
   });
 
-  /* ---------- Report de l'écran de régie ----------
+  /* ---------- Report de l'affichage ----------
      Une iframe sur /admin/preview : c'est la VRAIE page display servant l'état PUBLIÉ,
      avec son vrai CSS et son vrai JS. Aucun moteur de rendu parallèle à maintenir, donc
      aucune dérive possible. Rendue à 1920x1080 (résolution du kiosk) puis mise à l'échelle.
@@ -2005,7 +2084,7 @@
   const dockToggle = document.getElementById("preview-dock-toggle");
 
   // L'échelle se déduit de la largeur de rendu déclarée en CSS (`offsetWidth`, insensible
-  // au transform) : la résolution de l'écran de régie n'est écrite qu'à un seul endroit.
+  // au transform) : la résolution de l'affichage n'est écrite qu'à un seul endroit.
   function fitPreview(frame) {
     const box = frame?.parentElement;
     if (!box || !box.clientWidth || !frame.offsetWidth) return;
@@ -2015,7 +2094,7 @@
 
   /* Aperçu de l'onglet « Écran » : MÊME mécanique, mais servi par `?draft=1` — donc le
      BROUILLON, pas ce qui est à l'antenne. C'est la seule façon de juger une apparence,
-     une luminosité ou un nombre de colonnes sans publier pour voir. Il ne se recharge
+     un thème ou un nombre de colonnes sans publier pour voir. Il ne se recharge
      que lorsque l'onglet est visible : une iframe dans un panneau `hidden` mesure 0, elle
      ne pourrait pas être mise à l'échelle (et on paierait un rendu pour rien). */
   const screenPreviewFrame = () => document.getElementById("screen-preview");
@@ -2094,7 +2173,6 @@
   fitPreview(previewFrame);
 
   /* ---------- Réseau du boîtier ---------- */
-  const networkDialog = document.getElementById("network-dialog");
   function toggleNetFields() {
     const link = document.getElementById("net-link").value;
     const modeSel = document.getElementById("net-mode");
@@ -2208,7 +2286,7 @@
     box.hidden = false;
   }
 
-  async function openNetwork() {
+  async function openNetwork(aller = true) {
     document.getElementById("net-error").hidden = true;
     document.getElementById("net-result").hidden = true;
     let cfg;
@@ -2230,9 +2308,10 @@
     loadNetCurrent();                    // état réel du boîtier, en tête du dialogue
     toggleNetFields();
     if ((cfg.link || "ethernet") === "wifi") scanWifi();   // déjà en Wi-Fi : scanner d'emblée
-    networkDialog.showModal();
+    if (aller) selectTab("network");
   }
-  document.getElementById("network-btn").addEventListener("click", openNetwork);
+  document.querySelector('.tab-panel[data-panel="network"]')
+    ?.addEventListener("panneau-affiche", () => openNetwork(false));
 
   document.getElementById("network-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -2381,8 +2460,10 @@
     } catch { toast("Suppression impossible", true); }
   });
 
-  /* ---------- Configurations ---------- */
-  async function openConfigs() {
+  /* ---------- Presets (ex-« Configurations ») ----------
+     La fonction ne fait plus qu'EMPLIR : l'ouverture appartient au dialogue qui les
+     héberge désormais avec l'historique et les fichiers. */
+  async function refreshConfigs() {
     const items = await apiSend("GET", "/api/configs");
     const ul = document.getElementById("configs-list");
     ul.innerHTML = items.length
@@ -2395,7 +2476,7 @@
       if (!await confirmDialog(`Charger « ${b.dataset.load} » ? Le Roster actuel sera remplacé et l'antenne déconnectée.`,
                                { title: "Charger la configuration", okLabel: "Charger" })) return;
       await apiSend("POST", `/api/configs/${encodeURIComponent(b.dataset.load)}/load`);
-      document.getElementById("configs-dialog").close();
+      versionsDialog.close();
       setUnpublished(true);
       await load();
       toast("Configuration chargée");
@@ -2414,11 +2495,9 @@
     ul.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
       if (!await confirmDialog(`Supprimer « ${b.dataset.del} » ?`, { okLabel: "Supprimer", danger: true })) return;
       await apiSend("DELETE", `/api/configs/${encodeURIComponent(b.dataset.del)}`);
-      openConfigs();
+      refreshConfigs();
     }));
-    document.getElementById("configs-dialog").showModal();
   }
-  document.getElementById("configs-btn").addEventListener("click", openConfigs);
   document.getElementById("config-save-btn").addEventListener("click", async () => {
     const name = document.getElementById("config-name").value.trim();
     if (!name) return;
@@ -2426,7 +2505,7 @@
       await apiSend("POST", "/api/configs", { name });
     } catch (e) { toast(e.payload?.error || "Sauvegarde impossible", true); return; }
     document.getElementById("config-name").value = "";
-    openConfigs();
+    refreshConfigs();
     toast("Configuration sauvegardée");
   });
 
@@ -2435,7 +2514,6 @@
      + configurations + mot de passe, dans une archive CHIFFRÉE (elle contient le mot de
      passe Wi-Fi en clair). Le fichier transite en base64 dans du JSON : la protection
      CSRF et le traitement d'erreur du reste de l'API s'appliquent sans cas particulier. */
-  const backupDialog = document.getElementById("backup-dialog");
   let backupPayloadB64 = null;      // archive examinée, en attente de confirmation
 
   function bkError(msg) {
@@ -2450,12 +2528,14 @@
     bkError("");
   }
 
-  document.getElementById("backup-btn").addEventListener("click", () => {
+  // Ce que l'ouverture du dialogue faisait, l'arrivée sur le panneau le fait : les
+  // mots de passe saisis ne survivent pas à une sortie, et l'examen d'une sauvegarde
+  // chargée ne doit pas rester affiché pour une autre.
+  document.querySelector('.tab-panel[data-panel="backup"]')?.addEventListener("panneau-affiche", () => {
     document.getElementById("bk-pass").value = "";
     document.getElementById("bk-restore-pass").value = "";
     document.getElementById("bk-file").value = "";
     bkResetInspection();
-    backupDialog.showModal();
   });
 
   document.getElementById("bk-create").addEventListener("click", async (ev) => {
@@ -2552,7 +2632,7 @@
     try {
       const res = await apiSend("POST", "/api/backup/restore",
                                 { passphrase, content: backupPayloadB64 });
-      backupDialog.close();
+      selectTab("board");            // restaurer remplace le plateau : on va le voir
       await load();
       refreshStatus();
       refreshAntennaBadge();
@@ -2571,11 +2651,9 @@
      Le code de récupération n'est PAS consommé ici : c'est toute la différence avec
      « mot de passe oublié ». Un boîtier prêté d'une production à l'autre doit pouvoir
      tourner sa clé sans rediffuser un nouveau code à toute l'équipe. */
-  const passwordDialog = document.getElementById("password-dialog");
-  document.getElementById("password-btn").addEventListener("click", () => {
+  document.querySelector('.tab-panel[data-panel="password"]')?.addEventListener("panneau-affiche", () => {
     document.getElementById("password-form").reset();
     document.getElementById("pw-error").hidden = true;
-    passwordDialog.showModal();
   });
   document.getElementById("password-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -2592,7 +2670,7 @@
     }
     try {
       await apiSend("POST", "/admin/password", { current, new: nouveau });
-      passwordDialog.close();
+      document.getElementById("password-form").reset();
       toast("Mot de passe changé — votre code de récupération reste valable");
     } catch (ex) {
       err.textContent = ex.payload?.error || "Changement impossible.";
@@ -2672,7 +2750,7 @@
       // État live des beltpacks poussé par le serveur (même flux `live` que l'affichage) :
       // remplace l'ancien polling périodique. L'admin restant abonné, le poller publie.
       es.addEventListener("live", (e) => { try { applyLiveData(JSON.parse(e.data)); } catch { /* ignore */ } });
-      // Nombre d'écrans de régie, poussé par le serveur à chaque branchement/débranchement.
+      // Nombre d'affichages, poussé par le serveur à chaque branchement/débranchement.
       // Sans cette annonce, la barre d'état restait figée sur le compte du chargement :
       // brancher un écran ne se voyait qu'à la publication suivante.
       es.addEventListener("displays", (e) => {
@@ -2698,8 +2776,11 @@
     const skinLabel = { basique: "Basique", lineaire: "Linéaire", grille: "Grille" };
     const setTxt = (id, v) => { const n = document.getElementById(id); if (n) n.textContent = v; };
     if (displays != null) {
-      setTxt("status-sse-text", displays === 0 ? "aucun afficheur"
-        : displays + " afficheur" + (displays > 1 ? "s" : ""));
+      // Les mots du Diagnostic, à la lettre (« écrans connectés : 0 ») : la même chose
+      // se dit deux fois dans le produit, autant qu'elle se dise pareil. « afficheur »
+      // ne se retrouvait nulle part ailleurs — ni dans les onglets, ni dans les réglages.
+      setTxt("status-sse-text", displays === 0 ? "aucun écran connecté"
+        : displays + " écran" + (displays > 1 ? "s" : "") + " connecté" + (displays > 1 ? "s" : ""));
     }
     setTxt("status-published", publishedSummary ? "publié " + hhmm(publishedSummary.updated_at) : "jamais publié");
     setTxt("status-skin", skinLabel[state.data.skin] || "Basique");
@@ -2743,9 +2824,10 @@
      Les CINQ sections de l'admin — Affectations, Écran, Journal, Santé, Impression —
      sont des panneaux d'un même document : l'en-tête, la latérale et la barre d'état
      ne bougent jamais. Leurs points d'entrée, eux, vivent là où leur fonction les a
-     rangés (onglet de l'en-tête, item du menu « Réglages », rangée de la latérale) :
-     ce code ne connaît que l'attribut `data-tab`, jamais l'endroit où il est posé.
-     Antenne et réseau, eux, ne sont pas des panneaux — ils ouvrent un dialogue. */
+     rangés (onglet de l'en-tête, rangée du rail du Système) : ce code ne connaît que
+     l'attribut `data-tab`, jamais l'endroit où il est posé.
+     Depuis la refonte, TOUT est panneau — réseau, intercom, sauvegarde et mot de passe
+     compris. Le dialogue est redevenu l'acte ponctuel, pas le lieu de séjour. */
   const TAB_KEY = "comroster.admin.tab";
   const tabEntries = () => document.querySelectorAll("[data-tab]");
   function selectTab(name) {
@@ -2779,6 +2861,24 @@
     // Symétrique de « panneau-affiche » : ce qu'un panneau allume en arrivant, il doit
     // pouvoir l'éteindre en partant — sans quoi la restauration se réécrirait ici sous
     // forme de cas particuliers, ce que ce signal existe précisément pour éviter.
+    /* Les sept sections du Système partagent un rail et UN onglet d'en-tête. Le lien
+       est lu dans le DOM (`data-famille`), jamais déclaré une seconde fois à côté : le
+       conteneur du rail s'affiche quand le panneau montré appartient à sa famille, et
+       l'onglet qui porte la même famille reste allumé sur les sept.
+       Sans ça, « Système » s'éteindrait dès qu'on quitte Diagnostic — exactement le
+       défaut qu'on répare, où l'indicateur « vous êtes ici » sautait d'une surface à
+       l'autre selon la destination. */
+    const famille = montre?.dataset.famille || null;
+    document.querySelectorAll(".famille-stage").forEach((st) => {
+      st.hidden = st.dataset.famille !== famille;
+    });
+    document.querySelectorAll(".admin-tabs .tab[data-famille]").forEach((t) =>
+      t.toggleAttribute("data-active", t.dataset.famille === famille));
+    /* La latérale appartient au PLATEAU : son inventaire de groupes n'a rien à faire
+       sur Affichage, Impression ou Système. La masquer rend 204 px au panneau — et
+       supprime la question « pourquoi cette liste, ici ? ». */
+    const side = document.getElementById("admin-side");
+    if (side) side.hidden = name !== "board";
     partants.forEach((p) => p.dispatchEvent(new CustomEvent("panneau-cache")));
     montre?.dispatchEvent(new CustomEvent("panneau-affiche"));
   }

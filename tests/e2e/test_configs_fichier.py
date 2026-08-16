@@ -31,8 +31,10 @@ def _ajouter_beltpack(page, numero, role):
 
 
 def _ouvrir_configs(page):
-    page.click("#configs-btn")
-    page.wait_for_selector("#configs-dialog[open]")
+    page.click("#versions-btn")
+    page.wait_for_selector("#versions-dialog[open]")
+    page.click('#versions-dialog [data-vers="presets"]')
+    page.wait_for_selector('[data-verspanel="presets"]:not([hidden])')
 
 
 def _roles_a_l_ecran(page):
@@ -82,8 +84,8 @@ def test_exporter_une_configuration_sort_l_etat_enregistre(page, live_server):
     page.fill("#config-name", "Jour 2")
     page.click("#config-save-btn")
     page.wait_for_selector("#configs-list [data-export='Jour 2']")
-    page.click("#configs-dialog button[data-close='configs-dialog']")
-    page.wait_for_selector("#configs-dialog:not([open])", state="attached")
+    page.click("#versions-dialog button[data-close='versions-dialog']")
+    page.wait_for_selector("#versions-dialog:not([open])", state="attached")
 
     _ajouter_beltpack(page, "7", "Après coup")
 
@@ -101,18 +103,26 @@ def test_exporter_une_configuration_sort_l_etat_enregistre(page, live_server):
     assert "Après coup" not in roles          # l'écran a changé, le fichier non
 
     # Exporter ne touche à rien : le dialogue reste ouvert, le plateau garde son ajout.
-    assert page.is_visible("#configs-dialog")
+    assert page.is_visible("#versions-dialog")
     etat = page.evaluate("async () => await (await fetch('/api/state')).json()")
     assert "Après coup" in [p["role"] for p in etat["people"]]
 
 
-def test_exporter_le_plateau_courant_depuis_le_pied(page, live_server):
-    """Le pied « Fichier » exporte ce qui est À L'ÉCRAN."""
+def test_exporter_le_plateau_courant_depuis_le_volet_fichier(page, live_server):
+    """Le volet « Fichier » exporte ce qui est À L'ÉCRAN.
+
+    Il vivait au pied du dialogue « Configurations », où deux boutons « Exporter » se
+    répondaient — celui d'une configuration enregistrée et celui du plateau courant —
+    sans qu'on sache lequel prenait quoi. Ils sont désormais dans deux volets distincts.
+    """
     enter_admin(page, live_server)
     _ajouter_beltpack(page, "5", "Régie")
 
-    _ouvrir_configs(page)
     with page.expect_download() as telechargement:
+        page.click("#versions-btn")
+        page.wait_for_selector("#versions-dialog[open]")
+        page.click('#versions-dialog [data-vers="fichier"]')
+        page.wait_for_selector('[data-verspanel="fichier"]:not([hidden])')
         page.click("#export-btn")
     fichier = telechargement.value
     assert fichier.suggested_filename.startswith("comroster-")

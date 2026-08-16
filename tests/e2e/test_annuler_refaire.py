@@ -12,7 +12,7 @@ import pytest
 
 # `helpers` s'importe en ABSOLU : tests/e2e n'est pas un package (aucun __init__.py),
 # pytest insère donc ce dossier dans sys.path et un import relatif échouerait.
-from helpers import enter_admin, open_board_tab, open_reglages, open_screen_tab
+from helpers import enter_admin, open_board_tab, open_screen_tab, open_systeme
 
 pytestmark = pytest.mark.e2e
 
@@ -26,16 +26,14 @@ def test_undo_redo_scoped_to_the_draft(page, live_server):
     doit être intacte après.
     """
     enter_admin(page, live_server)
-    open_reglages(page)
-    page.click("#network-btn")
-    page.wait_for_selector("#network-dialog[open]")
+    open_systeme(page, "network")
     page.select_option("#net-mode", "static")
     page.wait_for_selector("#net-static-fields:not([hidden])")
     page.fill("#net-address", "192.168.1.50")
     page.click("#network-form button[type=submit]")
     page.wait_for_selector("#net-result:not([hidden])")
-    page.click('#network-dialog button[data-close="network-dialog"]')
-    page.wait_for_selector("#network-dialog:not([open])", state="attached")
+    page.click('.admin-tabs .tab[data-tab="board"]')
+    page.wait_for_selector("#add-block-btn", state="visible")
 
     for name in ("Plateau", "Lumière"):
         page.click("#add-block-btn")
@@ -51,9 +49,7 @@ def test_undo_redo_scoped_to_the_draft(page, live_server):
     page.wait_for_selector("#blocks-container >> text=Lumière")
 
     # La config du boîtier n'a pas bougé d'un iota au passage.
-    open_reglages(page)
-    page.click("#network-btn")
-    page.wait_for_selector("#network-dialog[open]")
+    open_systeme(page, "network")
     assert page.input_value("#net-address") == "192.168.1.50"
     assert page.input_value("#net-mode") == "static"
 

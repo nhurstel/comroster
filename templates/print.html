@@ -2,7 +2,7 @@
    d'impression. Le dupliquer aurait garanti qu'un des deux dérive.
 
    SVG INLINE et non <img> : `comroster-glyph.svg` est peint en #EEF1F7, un blanc cassé
-   fait pour le fond SOMBRE de l'écran de régie — donc invisible sur du papier ou sur le
+   fait pour le fond SOMBRE de l'affichage — donc invisible sur du papier ou sur le
    fond clair de cette feuille. Inline, il hérite de `currentColor`. #}
 {% macro glyphe(classe) -%}
   {%- if brand.active -%}
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Impression · {{ state.production_name or state.title or 'ComRoster' }}</title>
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/comroster-badge.svg') }}">
-  {# Feuille dédiée : la conduite papier n'a rien à voir avec l'écran de régie (encre
+  {# Feuille dédiée : la conduite papier n'a rien à voir avec l'affichage (encre
      noire sur blanc, pas de couleur d'aplat à imprimer, pas d'indicateur temps réel). #}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/print.css') }}">
 </head>
@@ -177,7 +177,7 @@
     {%- if brand.active %} · Propulsé par ComRoster{% endif %}
   </footer>
 
-  {# ink.js porte la règle de luminance partagée avec l'écran de régie et l'admin.
+  {# ink.js porte la règle de luminance partagée avec l'affichage et l'admin.
      Chargé AVANT le module : il expose window.ComRoster.inkFor, que print.js consomme.
      Le réimplémenter ici ferait juger la lisibilité différemment d'un support à
      l'autre, et personne ne le verrait — on ne compare jamais les deux au même

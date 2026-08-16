@@ -35,40 +35,84 @@
         <span class="crumb-sub" id="board-subtitle" {% if not initial_data.subtitle %}hidden{% endif %}>{{ initial_data.subtitle or '' }}</span>
       </div>
 
+      {# QUATRE onglets, UN SEUL comportement : chacun change de panneau. Aucun n'ouvre
+         de dialogue, aucun n'ouvre de menu. L'en-tête répond à « où suis-je », et à ça
+         seulement — avant, l'indicateur d'onglet actif SAUTAIT dans la latérale dès
+         qu'on ouvrait Impression, et « Réglages » restait souligné sur Santé sans jamais
+         dire où l'on était.
+         « Système » pointe la PREMIÈRE section de sa famille (Diagnostic) ; son
+         `data-famille` la lui fait garder allumée sur les six autres. #}
       <nav class="admin-tabs" role="tablist" aria-label="Sections de l'administration">
-        {# Affectations et Écran sont des panneaux. UN accès par fonction : l'antenne passe
-           par son onglet-voyant, et ce qui concerne le boîtier lui-même — consultation
-           (Santé, Journal) et configuration (Réseau, Sauvegarde, Mot de passe) — passe par
-           « Réglages ». Redémarrer, lui, vit au pied de la latérale, avec Déconnexion. #}
-        <button type="button" class="tab" data-tab="board" role="tab" aria-selected="true">Affectations</button>
-        <button type="button" class="tab" data-tab="screen" role="tab" aria-selected="false">Écran</button>
-        {# Intercom garde son accès direct : il PORTE le voyant d'état en direct, et un
-           voyant enfermé dans un menu fermé n'informe de rien. #}
-        <button type="button" class="tab" id="antenna-btn" title="Connexion au réseau intercom">
-          <span class="dot off" id="antenna-dot"></span>Intercom</button>
-        <div class="tab-menu">
-          <button type="button" class="tab" id="settings-btn" aria-haspopup="true"
-                  aria-expanded="false" aria-controls="settings-menu">Réglages<span class="tab-chev" aria-hidden="true">▾</span></button>
-          {# Deux blocs : on consulte (panneaux), puis on configure (dialogues). Les ids sont
-             ceux d'avant le déplacement — les addEventListener d'admin.js, branchés par id,
-             n'ont donc rien eu à changer.
-             Santé et Journal étaient des LIENS vers des pages : on quittait l'admin, l'en-tête
-             et la latérale disparaissaient, et il fallait revenir. Ce sont désormais des
-             panneaux du même document, comme Affectations et Écran — d'où des `data-tab`. #}
-          <div class="menu-pop" id="settings-menu" role="menu" hidden>
-            <button type="button" class="menu-item" role="menuitem" data-tab="health">Santé</button>
-            <button type="button" class="menu-item" role="menuitem" data-tab="journal">Journal</button>
-            <div class="menu-sep" role="separator"></div>
-            <button type="button" class="menu-item" role="menuitem" id="network-btn"
-                    title="Configuration réseau du ComRoster">Réseau</button>
-            <button type="button" class="menu-item" role="menuitem" id="backup-btn"
-                    title="Archive complète : plateau, réseau, antenne, configurations, mot de passe">Sauvegarde</button>
-            <button type="button" class="menu-item" role="menuitem" id="password-btn">Mot de passe</button>
-          </div>
-        </div>
+        {# Chaque onglet porte un GLYPHE surmontant son nom. Le pictogramme se reconnaît
+           de loin et à l'oblique — l'admin se pilote debout, de biais, parfois dans le
+           noir — et le mot dessous lève l'ambiguïté qu'une icône seule laisserait
+           toujours. Les tracés sont EN LIGNE et non en <img> : la CSP est
+           `default-src 'self'`, et surtout `stroke="currentColor"` leur fait suivre la
+           couleur du texte, donc l'état de l'onglet et le thème, sans une règle de plus.
+           `aria-hidden` : le nom accessible du bouton est déjà son texte. #}
+        <button type="button" class="tab" role="tab" data-tab="board"
+                aria-selected="true" aria-controls="panneau-board">
+          {# Quatre blocs : le plateau EST une grille de groupes en aplat. #}
+          <svg class="tab-glyph" viewBox="0 0 20 20" aria-hidden="true">
+            <rect x="2.5" y="2.5" width="6.5" height="6.5" rx="1.4"/>
+            <rect x="11" y="2.5" width="6.5" height="6.5" rx="1.4"/>
+            <rect x="2.5" y="11" width="6.5" height="6.5" rx="1.4"/>
+            <rect x="11" y="11" width="6.5" height="6.5" rx="1.4"/>
+          </svg>
+          <span class="tab-nom">Affectations</span></button>
+
+        <button type="button" class="tab" role="tab" data-tab="screen"
+                aria-selected="false" aria-controls="panneau-screen">
+          {# Un écran sur pied : ce que l'équipe a sous les yeux. #}
+          <svg class="tab-glyph" viewBox="0 0 20 20" aria-hidden="true">
+            <rect x="2" y="3.5" width="16" height="11" rx="1.6"/>
+            <path d="M7.5 17.5h5M10 14.5v3"/>
+          </svg>
+          <span class="tab-nom">Affichage</span></button>
+
+        <button type="button" class="tab" role="tab" data-tab="print"
+                aria-selected="false" aria-controls="panneau-print">
+          {# Une imprimante : la feuille qui survit à la panne du boîtier. #}
+          <svg class="tab-glyph" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M5.5 7.5V2.5h9v5"/>
+            <path d="M5.5 14.5H4a1.5 1.5 0 0 1-1.5-1.5V9a1.5 1.5 0 0 1 1.5-1.5h12A1.5 1.5 0 0 1 17.5 9v4a1.5 1.5 0 0 1-1.5 1.5h-1.5"/>
+            <rect x="5.5" y="12" width="9" height="5.5" rx="1.2"/>
+          </svg>
+          <span class="tab-nom">Impression</span></button>
+
+        <button type="button" class="tab" role="tab" data-tab="health" data-famille="systeme"
+                aria-selected="false" aria-controls="panneau-health">
+          {# Un écrou : la machine, l'objet qu'on ouvre pour la régler ou la dépanner. #}
+          <svg class="tab-glyph" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M10 1.9l6.2 3.55v7.1L10 16.1l-6.2-3.55v-7.1z"/>
+            <circle cx="10" cy="9" r="3.1"/>
+          </svg>
+          <span class="tab-nom">Système</span></button>
       </nav>
 
       <div class="top-right">
+        {# Le voyant intercom quitte la barre d'onglets pour le groupe des témoins : il
+           DIT quelque chose en permanence, il ne désigne pas un lieu. Cliqué, il mène à
+           Système › Intercom — un témoin peut être une porte sans être un onglet. #}
+        <button type="button" class="chip chip-porte" id="antenna-btn"
+                title="Réseau intercom — ouvre Système › Intercom">
+          {# Le glyphe EST le témoin : le casque prend la couleur de l'état plutôt que
+             de traîner une pastille à côté. Un objet de moins pour la même information,
+             et le registre s'aligne sur les onglets voisins (glyphe + légende).
+             Un CASQUE et non des ondes (arbitrage Nathan, 2026-08-15) : les ondes
+             parlaient du tuyau et se lisaient « Wi-Fi ». Le casque nomme l'intercom
+             lui-même — ce que l'équipe porte — et en vert il dit « ça parle », qui est
+             exactement l'information portée par le témoin.
+             La couleur ne porte JAMAIS seule le sens (WCAG 1.4.1) : refreshAntennaBadge
+             réécrit aussi le titre et le nom accessible du bouton. #}
+          <svg class="tab-glyph ant-glyph" id="antenna-dot" data-etat="off"
+               viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M3.6 12.5v-2.6a6.4 6.4 0 0 1 12.8 0v2.6"/>
+            <rect x="2.2" y="11.4" width="3.2" height="4.6" rx="1.5"/>
+            <rect x="14.6" y="11.4" width="3.2" height="4.6" rx="1.5"/>
+            <path d="M16.2 16v.5a2 2 0 0 1-2 2h-2.4"/>
+          </svg>
+          <span class="tab-nom">Intercom</span></button>
         <span class="chip clock" id="admin-clock" aria-hidden="true">--:--:--</span>
         <div class="status-badge" id="sync-status" role="status" aria-live="polite">
           <span class="pulse" aria-hidden="true"></span>
@@ -89,30 +133,28 @@
 
     <div class="admin-body">
       {# Barre latérale : inventaire des groupes (rendu par le JS) + actions sur les
-         données du plateau + témoin de l'écran de régie. #}
-      <aside class="admin-side">
+         données du plateau + témoin de l'affichage.
+         Elle appartient au PLATEAU : selectTab la masque sur Affichage, Impression et
+         Système, où un inventaire des groupes n'a rien à faire. #}
+      <aside class="admin-side" id="admin-side">
         <div class="side-scroll">
           <nav class="side-nav" id="group-inventory"></nav>
 
           {# Rangées textuelles pures (registre maquette). Il ne reste ici que « Données »,
              c'est-à-dire le CONTENU du plateau : tout ce qui touche à la machine est parti
-             dans le menu « Réglages » de l'en-tête. #}
+             dans l'onglet « Système ». #}
           <nav class="side-nav">
             <div class="nav-label">Données</div>
-            <button type="button" id="history-btn" class="nav-item" title="Restaurer une publication passée">Historique</button>
-            {# Importer / Exporter vivaient ici, en rangées voisines. Ils manipulent le
-               MÊME objet que « Configurations » — l'état du plateau — seule la destination
-               change (le boîtier ou un fichier) : ils sont passés dans son dialogue. #}
-            <button type="button" id="configs-btn" class="nav-item">Configurations</button>
-            {# La feuille papier est le filet quand le boîtier tombe : une conduite
-               imprimée survit à une panne d'alimentation, pas un écran.
-               Elle s'ouvrait dans un onglet du NAVIGATEUR, où l'on perdait l'admin de vue ;
-               elle vit maintenant dans un panneau, chargée en trame (cf. panneau « print »). #}
-            <button type="button" class="nav-item" data-tab="print"
-                    title="Feuille d'affectation à imprimer">Impression</button>
+            {# UNE entrée là où il y en avait deux (« Historique », « Configurations ») qui
+               répondaient à la même question — « je reprends quel état ? » — plus deux
+               boutons « Exporter » qui se répondaient à l'intérieur de l'une d'elles.
+               « Impression » est partie en ONGLET : elle n'était ici que par accident
+               d'historique. #}
+            <button type="button" id="versions-btn" class="nav-item"
+                    title="Publications passées, presets enregistrés, fichiers">Historique · Presets…</button>
           </nav>
 
-          {# Témoin permanent de l'écran de régie (état publié), dans le fil du menu —
+          {# Témoin permanent de l'affichage (état publié), dans le fil du menu —
              ouvert par défaut, repliable (mémorisé) ; clic sur la vignette = grand aperçu. #}
           <aside class="preview-dock" id="preview-dock" data-open="1">
             <button type="button" class="dock-toggle" id="preview-dock-toggle" aria-expanded="true"
@@ -121,31 +163,24 @@
               Affichage en cours
             </button>
             <div class="preview-tile-frame" id="preview-dock-body">
-              <iframe id="preview-mini" name="preview-mini" title="Report réduit de l'écran de régie"
+              <iframe id="preview-mini" name="preview-mini" title="Report réduit de l'affichage"
                       src="about:blank" tabindex="-1"></iframe>
               <button type="button" id="preview-btn" class="preview-tile-hit"
-                      aria-label="Agrandir le report de l'écran de régie"></button>
+                      aria-label="Agrandir le report de l'affichage"></button>
             </div>
           </aside>
         </div>
-        <div class="side-foot">
-          <div class="side-foot-row">
-            {# Redémarrer reste ici (choix Nathan) : il voisine l'autre action de SORTIE,
-               et une action destructrice n'a pas à traîner dans un menu qu'on parcourt. #}
-            <a class="logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">Déconnexion</a>
-            <button type="button" id="reboot-btn" class="nav-item nav-danger" title="Redémarre le Raspberry Pi (écran et admin indisponibles ~1 min)">Redémarrer</button>
-          </div>
-          <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          </form>
-        </div>
+        {# Le pied de la latérale a disparu : « Redémarrer » est parti dans Système › Agir
+           — une action destructrice n'a rien à faire dans la rangée qu'on parcourt pour
+           sortir — et « Déconnexion » dans la barre d'état, qui est permanente. #}
       </aside>
 
       <main class="admin-main">
 
         {# Onglet Affectations : plan de travail (grille de blocs) + réserve. #}
-        <section class="tab-panel" data-panel="board">
-          <div class="admin-layout">
+        <section class="tab-panel" data-panel="board" id="panneau-board" role="tabpanel"
+                 aria-label="Affectations">
+          <div class="admin-layout" id="admin-layout">
             <section class="admin-panel panel-board">
               <div class="board-toolbar">
                 <div class="tb-filter">
@@ -153,7 +188,7 @@
                   <input type="search" id="board-filter" placeholder="n° · nom · groupe" autocomplete="off">
                   <kbd>/</kbd>
                 </div>
-                <div class="tb-seg" role="tablist" aria-label="Mode d'affichage">
+                <div class="tb-seg" role="group" aria-label="Mode d'affichage">
                   <button type="button" class="seg-btn" data-view-mode="blocs" aria-pressed="true">Blocs</button>
                   {# Le libellé dit « Tableau » ; la VALEUR reste `table` — elle est
                      persistée en localStorage, la renommer perdrait la préférence. #}
@@ -169,7 +204,29 @@
               <div class="board-grid" id="blocks-container"></div>
               <div class="board-table" id="blocks-table" hidden></div>
             </section>
-            <section class="admin-panel panel-pool" aria-labelledby="available-heading">
+
+            {# Réserve repliée en RAIL quand elle est vide — et elle l'est dans le cas
+               nominal, tous les beltpacks étant affectés. 242 px permanents pour une
+               liste vide, c'est un cinquième de la largeur d'un 13 pouces ; à 1180 px le
+               plateau y perdait une colonne entière. Le rail reste une cible de dépôt et
+               affiche le compte. #}
+            <div class="pool-rail" id="pool-rail" hidden>
+              <button type="button" class="pr-open" id="pool-rail-open"
+                      aria-expanded="false" aria-controls="panel-pool"
+                      title="Ouvrir la réserve">
+                <span class="pr-count" id="pool-rail-count">0</span>
+                <span class="pr-label">Disponibles</span>
+              </button>
+              {# « + Ajouter un beltpack » n'a QU'UN accès dans tout le produit, et il vit
+                 dans la réserve. Replier la réserve le faisait donc disparaître — d'abord
+                 sur un boîtier neuf, puis dès que tous les beltpacks étaient affectés,
+                 c'est-à-dire dans le cas nominal. Le rail porte la fonction lui-même
+                 plutôt que d'y mener : un bouton par fonction, où que soit l'état. #}
+              <button type="button" class="pr-plus" id="pool-rail-add"
+                      title="Ajouter un beltpack" aria-label="Ajouter un beltpack">+</button>
+            </div>
+
+            <section class="admin-panel panel-pool" id="panel-pool" aria-labelledby="available-heading">
               <div class="pool-head">
                 <h3 id="available-heading" class="nav-label">Disponibles <span class="badge" id="available-count"></span></h3>
                 <div class="pool-find">
@@ -185,18 +242,19 @@
           </div>
         </section>
 
-        {# Onglet Écran : réglages de l'affichage de régie, à GAUCHE en cartes, et à
-           droite un aperçu qui rend le BROUILLON en direct — sans lui, choisir une
-           apparence ou un nombre de colonnes se faisait à l'aveugle.
+        {# Onglet Affichage : réglages de l'affichage, à GAUCHE en cartes, et à droite un
+           aperçu qui rend le BROUILLON en direct — sans lui, choisir une apparence ou un
+           nombre de colonnes se faisait à l'aveugle.
            ⚠️ Les id des champs sont ceux d'avant : bindSettings/syncSettingsInputs
            et les tests e2e continuent de fonctionner sans y toucher. #}
-        <section class="tab-panel" data-panel="screen" hidden>
+        <section class="tab-panel" data-panel="screen" id="panneau-screen" role="tabpanel"
+                 aria-label="Affichage" hidden>
           <div class="screen-layout">
             <div class="screen-rail">
               <section class="settings-card">
                 <div class="nav-label">Texte</div>
-                {# « Nom de la production » = titre centré de l'écran ; « Titre » + « Sous-titre »
-                   = paire en haut à gauche. #}
+                {# « Nom de la production » = titre centré de l'affichage ; « Titre » +
+                   « Sous-titre » = paire en haut à gauche. #}
                 <label class="side-field"><span>Nom de la production</span>
                   <input type="text" id="meta-production" maxlength="120" autocomplete="off"
                          placeholder="au centre de l'écran"></label>
@@ -206,8 +264,13 @@
                   <input type="text" id="meta-subtitle" maxlength="120" autocomplete="off"></label>
               </section>
 
+              {# La carte NOMME son objet : la portée du réglage vient du TITRE, plus d'un
+                 paragraphe de renvoi en dessous — qui, en prime, était posé sous la
+                 mauvaise colonne. Le pendant, dans le pied, ne nomme rien : sa portée se
+                 DÉMONTRE (basculer, voir la vignette « Affichage en cours » rester telle
+                 quelle) au lieu de s'écrire une cinquième fois dans la réglette. #}
               <section class="settings-card">
-                <div class="nav-label">Apparence de l'écran</div>
+                <div class="nav-label">Affichage</div>
                 <div class="field-pair">
                   <label class="side-field"><span>Apparence</span>
                     <select id="skin-select">
@@ -215,18 +278,11 @@
                       <option value="lineaire">Linéaire</option>
                       <option value="grille">Grille</option>
                     </select></label>
-                  {# Nommé explicitement, et suivi d'un renvoi : l'admin porte un
-                     SECOND réglage de luminosité, le sien, dans le pied. Deux
-                     réglages anonymes se confondaient. Le renvoi est ICI et non
-                     dans le pied, parce que c'est ici qu'on vient chercher « le
-                     mode sombre » et qu'on risque de croire l'avoir trouvé. #}
-                  <label class="side-field"><span>Luminosité de l'écran de régie</span>
+                  <label class="side-field"><span>Thème</span>
                     <select id="theme-select">
                       <option value="night">Sombre</option>
                       <option value="day">Clair</option>
                     </select></label>
-                  <p class="side-renvoi">Ne concerne que l'écran de régie. L'apparence de
-                    cette administration se règle dans le pied, tout à droite.</p>
                   <label class="side-field"><span>Taille du texte</span>
                     <select id="meta-text-scale">
                       <option value="original">Originale</option>
@@ -272,66 +328,11 @@
               </div>
               <div class="screen-preview-stage">
                 <div class="screen-preview-frame" id="screen-preview-box">
-                  <iframe id="screen-preview" title="Aperçu de l'écran de régie tel qu'il sera publié"
+                  <iframe id="screen-preview" title="Aperçu de l'affichage tel qu'il sera publié"
                           src="about:blank" tabindex="-1"></iframe>
                 </div>
               </div>
             </section>
-          </div>
-        </section>
-
-        {# Onglet Journal : deux volets — les ÉVÉNEMENTS (ce que l'opérateur a fait, journal
-           persistant) et le TECHNIQUE (ce que le système raconte, logs en mémoire, pour le
-           debug). Contenu repris tel quel de l'ancienne page dédiée ; ce qui vivait dans SON
-           en-tête et SON pied (heure de relève, phrase d'état) est descendu dans la barre
-           d'outils du panneau — l'en-tête et le pied appartiennent maintenant à l'admin. #}
-        <section class="tab-panel" data-panel="journal" hidden>
-          <div class="journal-body">
-            <div class="journal-toolbar">
-              <div class="tb-seg" role="tablist" aria-label="Volets du journal">
-                <button type="button" class="seg-btn" data-jtab="events" aria-pressed="true">Événements</button>
-                <button type="button" class="seg-btn" data-jtab="logs" aria-pressed="false">Technique</button>
-              </div>
-              <div class="tb-filter">
-                <span class="tb-grep">Filtrer</span>
-                <input type="search" id="journal-filter" placeholder="texte…" autocomplete="off">
-              </div>
-              <div class="level-chips" id="level-chips" hidden>
-                <button type="button" data-level="INFO" aria-pressed="true">info</button>
-                <button type="button" data-level="WARNING" aria-pressed="true">avert.</button>
-                <button type="button" data-level="ERROR" aria-pressed="true">erreurs</button>
-              </div>
-              <div class="tb-right">
-                {# UN seul témoin d'état. La phrase de l'ancien pied (« 2 événements · 0 ligne
-                   technique en mémoire ») a sauté : à côté du compteur, elle affichait deux
-                   fois le même nombre — défaut vu à la capture, pas dans le code. Ce qu'elle
-                   portait d'irremplaçable, « serveur injoignable », est passé ici. #}
-                <span class="tb-count" id="journal-count"></span>
-                <span class="tb-note" id="journal-updated" title="Dernière actualisation · toutes les 5 s">—</span>
-                <button type="button" class="tb-act" id="refresh-btn">Actualiser</button>
-                <button type="button" class="tb-act" id="download-btn">Télécharger</button>
-              </div>
-            </div>
-            <div class="journal-scroll">
-              <ul class="journal-list" id="events-list"></ul>
-              <div class="log-list" id="log-list" hidden></div>
-            </div>
-          </div>
-        </section>
-
-        {# Onglet Santé : verdict, puis relevé. La barre d'outils est NOUVELLE — sur sa page
-           dédiée, le fil d'Ariane disait « Santé du boîtier » ; ici le fil d'Ariane porte le
-           titre du plateau, donc le panneau doit se nommer lui-même. #}
-        <section class="tab-panel" data-panel="health" hidden>
-          <div class="journal-toolbar">
-            <span class="tb-title">Santé du ComRoster</span>
-            <div class="tb-right">
-              <span class="tb-note" id="health-status">chargement…</span>
-              <span class="tb-note" id="health-updated" title="Dernière actualisation · toutes les 4 s">—</span>
-            </div>
-          </div>
-          <div class="health-body">
-            <div class="health-report" id="health-report"></div>
           </div>
         </section>
 
@@ -342,24 +343,374 @@
            est chargée par admin.js à l'affichage du panneau, et RECHARGÉE à chaque fois —
            la feuille est rendue par le serveur, elle serait sinon figée au premier passage.
            `embed=1` retire de la feuille son lien de retour, qui n'a aucun sens en trame. #}
-        <section class="tab-panel" data-panel="print" hidden>
+        <section class="tab-panel" data-panel="print" id="panneau-print" role="tabpanel"
+                 aria-label="Impression" hidden>
           <iframe class="print-frame" id="print-frame" title="Feuille d'affectation à imprimer"
                   data-src="{{ url_for('api.admin_print') }}" src="about:blank"></iframe>
         </section>
+
+        {# ================= ONGLET SYSTÈME =================
+           LA porte unique du boîtier. Ce qui était réparti sur un menu déroulant (cinq
+           entrées, dont trois ouvraient des dialogues), un bouton d'en-tête (un dialogue)
+           et un pied de latérale (une action destructrice) vit ici, dans UN SEUL registre :
+           un rail à gauche, une section à droite.
+
+           Plus aucun réglage n'est enfermé dans une fenêtre modale — le dialogue redevient
+           ce qu'il doit être, l'acte ponctuel (créer un groupe, éditer un beltpack,
+           choisir une version, confirmer une destruction).
+
+           Chaque section est un VRAI `.tab-panel` : elle hérite ainsi de tout le mécanisme
+           existant — mémorisation de l'onglet, adresses `?panneau=`, et surtout le signal
+           « panneau-affiche » sur lequel journal.js et health.js branchent leur relève.
+           C'est pourquoi les valeurs `data-panel="health"` et `"journal"` ne changent PAS :
+           seuls leurs libellés le font (« Santé » → « Diagnostic »). #}
+        <div class="famille-stage" data-famille="systeme" id="systeme-stage" hidden>
+          <nav class="sys-rail" aria-label="Sections du système">
+            <div class="nav-label">Consulter</div>
+            <button type="button" class="nav-item" data-tab="health">Diagnostic</button>
+            <button type="button" class="nav-item" data-tab="journal">Journal</button>
+            <div class="nav-label">Configurer</div>
+            <button type="button" class="nav-item" data-tab="network">Réseau</button>
+            <button type="button" class="nav-item" data-tab="intercom">Intercom</button>
+            <button type="button" class="nav-item" data-tab="backup">Sauvegarde complète</button>
+            <button type="button" class="nav-item" data-tab="password">Mot de passe</button>
+            {# « Redémarrer » seul : rare, et il coupe l'affichage une minute. Deux clics
+               sont le bon prix pour ça — et c'est ici, et nulle part ailleurs, que la
+               phrase qui dit ce qu'on risque peut l'accompagner.
+               « Déconnexion », elle, est repartie dans la barre d'état (arbitrage Nathan,
+               2026-08-15) : fréquente, sans risque, elle doit rester à UN clic depuis les
+               dix panneaux — ce qu'un conteneur conditionnel ne peut pas garantir. #}
+            <div class="nav-label">Agir</div>
+            <button type="button" class="nav-item nav-danger" data-tab="reboot">Redémarrer</button>
+          </nav>
+
+          {# ---- Diagnostic (ex-« Santé ») ----
+             « État » était candidat et a été écarté : le mot est DÉJÀ pris cinq fois dans
+             le produit (état publié, état de travail, barre d'état, témoin d'état, état du
+             plateau). Lui donner un sixième sens dans un lot dont l'objet est justement de
+             lever les collisions aurait été une faute. #}
+          <section class="tab-panel" data-panel="health" id="panneau-health" role="tabpanel"
+                   data-famille="systeme" aria-label="Diagnostic" hidden>
+            <div class="journal-toolbar">
+              <span class="tb-title">Diagnostic du ComRoster</span>
+              <div class="tb-right">
+                <span class="tb-note" id="health-status">chargement…</span>
+                <span class="tb-note" id="health-updated" title="Dernière actualisation · toutes les 4 s">—</span>
+              </div>
+            </div>
+            <div class="health-body">
+              <div class="health-report" id="health-report"></div>
+            </div>
+          </section>
+
+          {# ---- Journal : deux volets — les ÉVÉNEMENTS (ce que l'opérateur a fait,
+             journal persistant) et le TECHNIQUE (ce que le système raconte, logs en
+             mémoire, pour le debug). #}
+          <section class="tab-panel" data-panel="journal" id="panneau-journal" role="tabpanel"
+                   data-famille="systeme" aria-label="Journal" hidden>
+            <div class="journal-body">
+              <div class="journal-toolbar">
+                <div class="tb-seg" role="group" aria-label="Volets du journal">
+                  <button type="button" class="seg-btn" data-jtab="events" aria-pressed="true">Événements</button>
+                  <button type="button" class="seg-btn" data-jtab="logs" aria-pressed="false">Technique</button>
+                </div>
+                <div class="tb-filter">
+                  <span class="tb-grep">Filtrer</span>
+                  <input type="search" id="journal-filter" placeholder="texte…" autocomplete="off">
+                </div>
+                <div class="level-chips" id="level-chips" hidden>
+                  <button type="button" data-level="INFO" aria-pressed="true">info</button>
+                  <button type="button" data-level="WARNING" aria-pressed="true">avert.</button>
+                  <button type="button" data-level="ERROR" aria-pressed="true">erreurs</button>
+                </div>
+                <div class="tb-right">
+                  {# UN seul témoin d'état. Ce qu'il porte d'irremplaçable — « serveur
+                     injoignable » — vit ici. #}
+                  <span class="tb-count" id="journal-count"></span>
+                  <span class="tb-note" id="journal-updated" title="Dernière actualisation · toutes les 5 s">—</span>
+                  <button type="button" class="tb-act" id="refresh-btn">Actualiser</button>
+                  <button type="button" class="tb-act" id="download-btn">Télécharger</button>
+                </div>
+              </div>
+              <div class="journal-scroll">
+                <ul class="journal-list" id="events-list"></ul>
+                <div class="log-list" id="log-list" hidden></div>
+              </div>
+            </div>
+          </section>
+
+          {# ---- Réseau du boîtier ---- #}
+          <section class="tab-panel" data-panel="network" id="panneau-network" role="tabpanel"
+                   data-famille="systeme" aria-label="Réseau" hidden>
+            <div class="journal-toolbar"><span class="tb-title">Réseau du ComRoster</span></div>
+            <div class="sys-body">
+              <form id="network-form" class="sys-section">
+                {# État courant : la première question est « à quelle adresse suis-je
+                   joignable, là ? ». Rempli par openNetwork() depuis GET /api/network/status. #}
+                <div class="net-current" id="net-current" hidden></div>
+                <label class="side-field"><span>Liaison</span>
+                  <select id="net-link">
+                    <option value="ethernet">Filaire (RJ45)</option>
+                    <option value="wifi">Wi-Fi (point d'accès du réseau intercom)</option>
+                  </select></label>
+                <div id="net-wifi-fields" hidden>
+                  {# Sélecteur : réseaux à proximité (scan lecture seule). Cliquer un réseau
+                     remplit le SSID ci-dessous — qui reste saisissable pour un réseau masqué
+                     ou si le scan n'aboutit pas. #}
+                  <div class="side-field wifi-picker">
+                    <div class="wifi-picker-head">
+                      <span>Réseaux à proximité</span>
+                      <button type="button" id="net-scan-btn" class="tb-act">Rechercher</button>
+                    </div>
+                    <ul id="net-wifi-list" class="wifi-list" aria-live="polite"></ul>
+                  </div>
+                  <label class="side-field"><span>Nom du réseau (SSID)</span>
+                    <input type="text" id="net-ssid" maxlength="32" autocomplete="off"></label>
+                  <label class="side-field"><span>Mot de passe Wi-Fi (WPA2)</span>
+                    <input type="password" id="net-psk" minlength="8" maxlength="63" autocomplete="new-password"></label>
+                  <p class="dialog-hint">La prise RJ45 reste un port de service : un câble direct
+                    vers un ordinateur ouvre toujours cette page (comroster.local).</p>
+                </div>
+                <label class="side-field"><span>Attribution de l'adresse IP</span>
+                  <select id="net-mode">
+                    <option value="link-local">Link-local (sans DHCP)</option>
+                    <option value="dhcp">DHCP</option>
+                    <option value="static">Adresse IP fixe</option>
+                  </select></label>
+                <div id="net-static-fields" hidden>
+                  <label class="side-field"><span>Adresse IP</span>
+                    <input type="text" id="net-address" inputmode="decimal" placeholder="192.168.1.50" autocomplete="off"></label>
+                  <label class="side-field"><span>Masque de sous-réseau</span>
+                    {# Deux écritures du même masque : le préfixe (/24) à gauche, les octets à
+                       droite. Éditer l'un met l'autre à jour. Le formulaire n'envoie que le préfixe. #}
+                    <div class="mask-row">
+                      <span class="mask-cidr"><span>/</span><input type="number" id="net-prefix" min="1" max="32" value="24"></span>
+                      <input type="text" id="net-mask" inputmode="decimal" placeholder="255.255.255.0" autocomplete="off">
+                    </div></label>
+                  <label class="side-field"><span>Passerelle <em>(facultatif)</em></span>
+                    <input type="text" id="net-gateway" placeholder="aucune (switch)" autocomplete="off"></label>
+                  <p class="dialog-hint">Laisser vide en l'absence de passerelle sur le réseau.</p>
+                  <label class="side-field"><span>DNS <em>(facultatif)</em></span>
+                    <input type="text" id="net-dns" placeholder="ex. 192.168.1.1" autocomplete="off"></label>
+                </div>
+                <div id="net-progress" class="conn-progress" hidden></div>
+                <p id="net-error" class="auth-error" hidden></p>
+                <p id="net-result" class="dialog-status" hidden></p>
+                <p class="dialog-hint">« Enregistrer » prend effet au prochain redémarrage.
+                  « Appliquer maintenant » (proposé ensuite) bascule tout de suite.</p>
+                <div class="sys-actions">
+                  <button type="submit" class="primary">Enregistrer</button>
+                  <button type="button" id="net-apply-btn" class="reboot-btn" hidden>Appliquer maintenant</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          {# ---- Intercom : assistant de première connexion, puis tableau de bord.
+             L'assistant en deux étapes reste le chemin de la première connexion — mais il
+             se déroule ICI, dans le fil du panneau, et non plus par-dessus le plateau. #}
+          <section class="tab-panel" data-panel="intercom" id="panneau-intercom" role="tabpanel"
+                   data-famille="systeme" aria-label="Intercom" hidden>
+            <div class="journal-toolbar"><span class="tb-title">Réseau intercom</span></div>
+            <div class="sys-body">
+              <div id="antenna-wizard" hidden>
+                {# Progression en compteur discret dans le titre : des points flottants
+                   au-dessus ressemblaient à des voyants d'état. #}
+                <section class="sys-section wiz-step" data-step="1">
+                  <h2>Connexion au réseau intercom <span class="wiz-count">1/2</span></h2>
+                  <p class="dialog-hint">État : non connecté.</p>
+                  {# Découverte : elle PROPOSE, elle ne connecte jamais seule. Le champ
+                     d'adresse reste le chemin de référence — réseau segmenté, VLAN dédié ou
+                     antenne hors sous-réseau, il n'y a que lui qui marche. Cliquer un
+                     résultat REMPLIT le champ, il ne le remplace pas. #}
+                  <div class="side-field ant-picker">
+                    <div class="ant-picker-head">
+                      <span>Antennes détectées sur le réseau</span>
+                      <button type="button" id="ant-scan-btn" class="tb-act">Rechercher</button>
+                    </div>
+                    <ul id="ant-list" class="ant-list" aria-live="polite"></ul>
+                  </div>
+                  <label class="side-field"><span>Adresse IP</span>
+                    <input type="text" id="wiz-ip" placeholder="192.168.1.11" autocomplete="off"></label>
+                  <label class="side-field"><span>Mot de passe</span>
+                    <input type="password" id="wiz-password" autocomplete="off"></label>
+                  <div id="wiz-progress" class="conn-progress" hidden></div>
+                  <p id="wiz-error" class="auth-error" hidden></p>
+                  <div class="sys-actions">
+                    <button type="button" id="wiz-connect-btn" class="primary">Connecter</button>
+                  </div>
+                </section>
+                <section class="sys-section wiz-step" data-step="2" hidden>
+                  <h2>Importer les beltpacks <span class="wiz-count">2/2</span></h2>
+                  <p class="dialog-hint">Les beltpacks du réseau intercom sont ajoutés au roster ; ceux déjà présents sont mis à jour.</p>
+                  {# Portée de l'import : « Tous » par défaut (plages vides côté serveur) ;
+                     « Certains numéros » révèle l'éditeur de plages. #}
+                  <div class="scope" id="wiz-scope">
+                    <div class="tb-seg" role="group" aria-label="Quels beltpacks importer">
+                      <button type="button" class="seg-btn" data-scope="all" aria-pressed="true">Tous</button>
+                      <button type="button" class="seg-btn" data-scope="some" aria-pressed="false">Certains numéros</button>
+                    </div>
+                    <div class="ranges-editor" id="wiz-ranges-wrap" hidden>
+                      <div id="wiz-ranges-list"></div>
+                      <button type="button" id="wiz-add-range" class="tb-act">+ Ajouter des numéros</button>
+                    </div>
+                  </div>
+                  <ul id="wiz-summary" class="import-summary"></ul>
+                  <div class="sys-actions">
+                    <button type="button" id="wiz-import-btn" class="primary">Importer</button>
+                    <button type="button" id="wiz-back-2">Retour</button>
+                  </div>
+                </section>
+              </div>
+
+              <div id="antenna-dashboard" hidden>
+                <section class="sys-section">
+                  <div class="nav-label">État</div>
+                  <div id="dash-state"></div>
+                </section>
+                <section class="sys-section">
+                  <div class="nav-label">Beltpacks importés</div>
+                  <div class="scope" id="dash-scope">
+                    <div class="tb-seg" role="group" aria-label="Quels beltpacks importer">
+                      <button type="button" class="seg-btn" data-scope="all" aria-pressed="true">Tous</button>
+                      <button type="button" class="seg-btn" data-scope="some" aria-pressed="false">Certains numéros</button>
+                    </div>
+                    <div class="ranges-editor" id="dash-ranges-wrap" hidden>
+                      <div id="dash-ranges-list"></div>
+                      <button type="button" id="dash-add-range" class="tb-act">+ Ajouter des numéros</button>
+                    </div>
+                  </div>
+                  <label class="side-check">
+                    <input type="checkbox" id="dash-autosync">
+                    <span class="check-text">Mise à jour automatique depuis le réseau
+                      <em>reflète en continu les changements, dans le périmètre des plages</em></span>
+                  </label>
+                </section>
+                <div class="sys-actions">
+                  <button type="button" id="dash-refresh-btn" class="primary">Actualiser depuis le réseau</button>
+                  <button type="button" id="dash-reconnect-btn" hidden>Reconnecter</button>
+                  <button type="button" id="dash-disconnect-btn">Déconnecter</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {# ---- Sauvegarde complète ----
+             L'export .rost ne couvre que le plateau : un boîtier mort emporte le réseau,
+             l'antenne, les presets et le mot de passe. L'archive est TOUJOURS chiffrée,
+             elle contient le mot de passe Wi-Fi en clair.
+             Le mot « Sauvegarde » redevient libre parce que les états nommés s'appellent
+             désormais des PRESETS : plus rien ne s'appelle « Sauvegarder » côté plateau,
+             donc plus de collision à une lettre près. #}
+          <section class="tab-panel" data-panel="backup" id="panneau-backup" role="tabpanel"
+                   data-famille="systeme" aria-label="Sauvegarde complète" hidden>
+            <div class="journal-toolbar"><span class="tb-title">Sauvegarde complète</span></div>
+            <div class="sys-body">
+              <p class="dialog-hint">Chiffrée. Contenu : plateau, affichage, réseau, intercom,
+                presets, mot de passe.</p>
+
+              <section class="sys-section">
+                <div class="nav-label">Créer une sauvegarde</div>
+                <label class="side-field"><span>Mot de passe <em>(8 caractères minimum)</em></span>
+                  <input type="password" id="bk-pass" autocomplete="new-password" minlength="8"></label>
+                <div class="sys-actions">
+                  <button type="button" id="bk-create" class="primary">Générer la sauvegarde</button>
+                </div>
+                {# L'avertissement vient APRÈS l'action : intercalé entre le champ et son
+                   bouton, il coupait la séquence de lecture (saisir → valider). #}
+                <p class="dialog-hint"><b>Notez ce mot de passe avec le fichier</b> : sans lui,
+                  la sauvegarde est irrécupérable.</p>
+              </section>
+
+              <section class="sys-section">
+                <div class="nav-label">Restaurer</div>
+                {# Sélecteur de fichier maison. Le contrôle natif s'affichait en clair et EN
+                   ANGLAIS (« Choose File / No file chosen ») : son bouton et son texte ne sont
+                   ni stylables ni traduisibles, ils suivent la locale du navigateur. L'input
+                   reste dans le document (focusable, accessible), seul son rendu est remplacé. #}
+                <div class="side-field"><span>Fichier de sauvegarde</span>
+                  <div class="bk-pick">
+                    <input type="file" id="bk-file" accept=".rostbak,application/json" class="bk-pick-input">
+                    <label class="bk-pick-btn" for="bk-file">Choisir un fichier…</label>
+                    <span class="bk-pick-name" id="bk-file-name">aucun fichier choisi</span>
+                  </div>
+                </div>
+                <label class="side-field"><span>Mot de passe de cette sauvegarde</span>
+                  <input type="password" id="bk-restore-pass" autocomplete="off"></label>
+                <div class="sys-actions">
+                  <button type="button" id="bk-inspect" class="primary">Charger une sauvegarde</button>
+                </div>
+                {# On annonce ce qu'on s'apprête à écraser AVANT de le faire : restaurer
+                   remplace le réseau et le mot de passe. « Restaurer » ne s'active
+                   qu'après l'examen. #}
+                <ul id="bk-summary" class="import-summary" hidden></ul>
+                <p id="bk-error" class="auth-error" hidden></p>
+                <button type="button" id="bk-restore" class="danger-btn" hidden>Restaurer ce contenu</button>
+              </section>
+            </div>
+          </section>
+
+          {# ---- Mot de passe d'administration ----
+             Le code de récupération n'est PAS consommé ici : c'est toute la différence avec
+             la page « mot de passe oublié ». Un boîtier prêté d'une production à l'autre
+             doit pouvoir tourner sa clé sans rediffuser un nouveau code à toute l'équipe. #}
+          <section class="tab-panel" data-panel="password" id="panneau-password" role="tabpanel"
+                   data-famille="systeme" aria-label="Mot de passe" hidden>
+            <div class="journal-toolbar"><span class="tb-title">Mot de passe d'administration</span></div>
+            <div class="sys-body">
+              <form id="password-form" class="sys-section">
+                <p class="dialog-hint">Le code de récupération n'est pas régénéré.</p>
+                <label class="side-field"><span>Mot de passe actuel</span>
+                  <input type="password" id="pw-current" autocomplete="current-password" required></label>
+                <label class="side-field"><span>Nouveau mot de passe</span>
+                  <input type="password" id="pw-new" autocomplete="new-password" required minlength="4"></label>
+                <label class="side-field"><span>Confirmer le nouveau mot de passe</span>
+                  <input type="password" id="pw-confirm" autocomplete="new-password" required></label>
+                <p id="pw-error" class="auth-error" hidden></p>
+                <div class="sys-actions">
+                  <button type="submit" class="primary">Changer le mot de passe</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          {# ---- Redémarrer ----
+             Il vivait au pied de la latérale, à côté de « Déconnexion » : une action
+             destructrice logée dans la rangée qu'on parcourt pour SORTIR. Elle est ici,
+             sous son propre intertitre « Agir », avec ce qu'on veut savoir avant de
+             cliquer — combien de temps, et est-ce que je perds mon travail. #}
+          <section class="tab-panel" data-panel="reboot" id="panneau-reboot" role="tabpanel"
+                   data-famille="systeme" aria-label="Redémarrer" hidden>
+            <div class="journal-toolbar"><span class="tb-title">Redémarrer le ComRoster</span></div>
+            <div class="sys-body">
+              <section class="sys-section">
+                <p class="dialog-hint">Indisponible environ une minute. Le brouillon est conservé.</p>
+                <div class="sys-actions">
+                  <button type="button" id="reboot-btn" class="reboot-btn"
+                          title="Redémarre le Raspberry Pi">Redémarrer maintenant</button>
+                </div>
+              </section>
+            </div>
+          </section>
+        </div>
       </main>
     </div>
 
-    {# Barre d'état (pied) : ce qui est réellement à l'antenne + écart du brouillon. #}
+    {# Barre d'état (pied) : ce qui est réellement à l'antenne + écart du brouillon.
+       La signature « par Nathan Hurstel » est partie dans Système › Diagnostic, sous
+       « Logiciel » : elle occupait la première place en permanence pour une valeur
+       opérationnelle nulle, et c'est là qu'on vient chercher « c'est quoi, ce logiciel,
+       et dans quelle version ». Ne restent ici que des TÉMOINS et un contrôle. #}
     <footer class="admin-status">
-      <span class="s status-author">par Nathan Hurstel</span>
-      <span class="s status-sse" id="status-sse" title="Écrans de régie abonnés au flux temps réel">
+      {# « aucun écran connecté » reprend mot pour mot le libellé du Diagnostic
+         (« écrans connectés : 0 ») : la même chose se dit deux fois dans le produit,
+         autant qu'elle se dise pareil. « afficheur » ne se retrouvait nulle part ailleurs. #}
+      <span class="s status-sse" id="status-sse" title="Écrans connectés au flux temps réel">
         <i class="st-dot" aria-hidden="true"></i><span id="status-sse-text">SSE…</span></span>
       <span class="s" id="status-published">publié —</span>
       <span class="s pend" id="dirty-indicator"></span>
       <span class="s">apparence <b id="status-skin">—</b></span>
-      {# Pas de lien « aperçu écran » ici : le témoin « Affichage en cours » (coin
-         bas-droit) est LE bouton de l'aperçu — un bouton par fonction. #}
-      <span class="s" id="last-updated">Dernier enregistrement : {{ initial_data.updated_at }}</span>
+      <span class="s" id="last-updated">Dernier enregistrement : —</span>
       {# Inverseur à trois positions — le registre du produit : l'admin est une
          console, pas un site. Le curseur glisse d'un cran à l'autre et le mot à
          sa droite dit toujours l'état, sans quoi trois crans muets se
@@ -371,18 +722,15 @@
          `tabindex` sont posés PAR LE SERVEUR — ils doivent être vrais dès le
          premier rendu, avant que le moindre script ne tourne.
 
-         AUCUN libellé de portée ici, et c'est délibéré. L'admin porte deux
-         réglages de luminosité — celui-ci et celui de l'écran de régie — et la
-         tentation était d'écrire « cette page » à côté. Mais le témoin
-         « Affichage en cours », en bas à gauche, MONTRE l'écran de régie en
-         direct : basculer l'inverseur et voir la vignette rester telle quelle
-         est une démonstration, là où un libellé n'est qu'une affirmation de
-         plus dans une réglette qui en porte déjà cinq.
-         Restent l'infobulle, qui ne coûte rien tant qu'on ne survole pas, et
-         le renvoi posé de l'AUTRE côté, sous « Luminosité de l'écran de régie » —
-         la confusion se lève là où elle naît. #}
+         AUCUN libellé de portée ici, et c'est délibéré : le témoin « Affichage
+         en cours », en bas à gauche, MONTRE l'affichage en direct — basculer
+         l'inverseur et voir la vignette rester telle quelle est une
+         démonstration, là où un libellé n'est qu'une affirmation de plus dans
+         une réglette qui en porte déjà quatre. En face, la carte de l'onglet
+         Affichage nomme SON objet : deux objets nommés ne se confondent pas,
+         il n'y a plus rien à expliquer. #}
       <span class="s theme-switch"
-            title="N'affecte que cette page. L'apparence de l'écran de régie se règle dans Réglages → Écran.">
+            title="N'affecte que cette page. L'apparence de l'affichage se règle dans l'onglet « Affichage ».">
         <span class="tsw" id="theme-track" role="radiogroup"
               aria-label="Apparence de cette page" data-pos="{{ theme_ui }}">
           <button type="button" role="radio" data-theme-choice="auto" aria-label="Auto"
@@ -397,11 +745,28 @@
         </span>
         <b id="theme-label">{{ {'auto': 'Auto', 'day': 'Clair', 'night': 'Sombre'}[theme_ui] }}</b>
       </span>
+      {# La barre d'état est le seul chrome permanent du BAS : c'est donc le seul endroit
+         où la déconnexion garde le geste appris (bas de l'écran, un clic) tout en restant
+         atteignable depuis les dix panneaux. Elle voisine l'inverseur d'apparence, l'autre
+         contrôle de la console — et rien de destructeur, contrairement à un voisinage avec
+         « Publier ». Le POST passe par le formulaire caché ci-dessous : la déconnexion
+         change l'état du serveur, elle ne peut pas être un simple lien (CSRF). #}
+      <a class="s logout-link" id="logout-link" href="{{ url_for('auth.logout') }}">
+        {# Glyphe d'alimentation : il signale un CONTRÔLE au milieu de quatre témoins en
+           lecture seule. Sans lui, la déconnexion se lisait comme un cinquième afficheur —
+           et on ne clique pas ce qu'on prend pour un affichage. #}
+        <svg class="logout-glyph" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M8 2v6"/>
+          <path d="M12.2 4.3a5.6 5.6 0 1 1-8.4 0"/>
+        </svg>Déconnexion</a>
     </footer>
+    <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" hidden>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    </form>
   </div>
 
   {# Palette bornée des couleurs de groupe : chaque teinte est calibrée pour rester
-     lisible sur l'aplat de l'écran de régie (contraste ≥ 4.5:1 avec l'encre calculée).
+     lisible sur l'aplat de l'affichage (contraste ≥ 4.5:1 avec l'encre calculée).
      Remplace le sélecteur de couleur natif, qui laissait choisir des teintes illisibles. #}
   <dialog id="color-dialog" class="admin-dialog color-dialog">
     <form method="dialog">
@@ -447,7 +812,7 @@
 
   <dialog id="preview-dialog" class="admin-dialog preview-dialog">
     <form method="dialog">
-      <h2>Écran de régie — état publié</h2>
+      <h2>Affichage — état publié</h2>
       <div class="preview-frame">
         {# tabindex=-1 : sinon le focus d'ouverture atterrit DANS l'iframe et Échap y est
            absorbé par son document — impossible de fermer le dialogue au clavier. #}
@@ -462,248 +827,61 @@
     </form>
   </dialog>
 
-  <dialog id="history-dialog" class="admin-dialog history-dialog">
+  {# ---- Historique · Presets · Fichier ----
+     UN SEUL lieu pour la question « je reprends quel état ? ». Il remplace deux rangées
+     de latérale (« Historique », « Configurations ») qui y répondaient toutes les deux,
+     et il fait remonter Importer/Exporter, qui étaient enfouis dans la seconde — au point
+     que deux boutons « Exporter » s'y répondaient sans qu'on sache lequel prenait quoi.
+
+     Reste un DIALOGUE et non un panneau : choisir une version est un acte ponctuel, pas
+     un lieu où l'on séjourne. C'est la règle du lot — le panneau pour ce qu'on habite,
+     le dialogue pour ce qu'on fait puis quitte. #}
+  <dialog id="versions-dialog" class="admin-dialog versions-dialog">
     <form method="dialog">
-      <h2>Historique des publications</h2>
+      <h2>Historique et presets</h2>
+      <div class="tb-seg" role="group" aria-label="Volets">
+        <button type="button" class="seg-btn" data-vers="historique" aria-pressed="true">Historique</button>
+        <button type="button" class="seg-btn" data-vers="presets" aria-pressed="false">Presets</button>
+        <button type="button" class="seg-btn" data-vers="fichier" aria-pressed="false">Fichier</button>
+      </div>
+
       {# Nommer et épingler : une équipe pense ses publications en « Filage », « Générale »,
          « Première », pas en horodatages. L'épingle met le repère à l'abri de la purge —
          sans elle, la configuration de la première ne survit pas à 30 jours de filages. #}
-      <p class="dialog-hint">Restaurer recharge la publication choisie comme brouillon.
-        Conservation : 30 jours — sauf les repères <b>épinglés</b>, conservés indéfiniment.</p>
-      <ul id="history-list" class="history-list"></ul>
-      <div class="dialog-actions">
-        <button type="button" id="history-clear" class="danger">Supprimer l'historique</button>
-        <button type="button" id="history-close">Fermer</button>
-      </div>
-    </form>
-  </dialog>
-
-  {# ---- Sauvegarde complète du boîtier ----
-     L'export .rost ne couvre que le plateau : un boîtier mort emporte le réseau,
-     l'antenne, les configurations et le mot de passe. L'archive est TOUJOURS chiffrée,
-     elle contient le mot de passe Wi-Fi en clair. #}
-  <dialog id="backup-dialog" class="admin-dialog backup-dialog">
-    <form method="dialog">
-      <h2>Sauvegarde du ComRoster</h2>
-      <p class="dialog-hint">Une archive unique, réinjectable sur un autre ComRoster :
-        plateau, réglages d'écran, réseau, identifiants du réseau intercom,
-        configurations enregistrées et mot de passe d'administration.</p>
-
-      <section class="bk-block">
-        <div class="nav-label">Créer une sauvegarde</div>
-        <label class="field"><span>Mot de passe <em>(8 caractères minimum)</em></span>
-          <input type="password" id="bk-pass" autocomplete="new-password" minlength="8"></label>
-        <button type="button" id="bk-create" class="primary">Générer la sauvegarde</button>
-        {# L'avertissement vient APRÈS l'action : intercalé entre le champ et son bouton,
-           il coupait la séquence de lecture (saisir → valider) par trois lignes de prose. #}
-        <p class="dialog-hint">L'archive est chiffrée — elle contient le mot de passe Wi-Fi
-          et l'empreinte du mot de passe admin. <b>Notez ce mot de passe avec le
-          fichier</b> : sans lui, l'archive est irrécupérable.</p>
-      </section>
-
-      <section class="bk-block">
-        <div class="nav-label">Restaurer</div>
-        {# Sélecteur de fichier maison. Le contrôle natif s'affichait en clair et EN
-           ANGLAIS (« Choose File / No file chosen ») : son bouton et son texte ne sont ni
-           stylables ni traduisibles, ils suivent la locale du navigateur. L'input reste
-           dans le document (focusable, accessible), seul son rendu est remplacé — même
-           parti que les <select> restylés au lot du 2026-07-27. #}
-        <div class="field"><span>Fichier de sauvegarde</span>
-          <div class="bk-pick">
-            <input type="file" id="bk-file" accept=".rostbak,application/json" class="bk-pick-input">
-            <label class="bk-pick-btn" for="bk-file">Choisir un fichier…</label>
-            <span class="bk-pick-name" id="bk-file-name">aucun fichier choisi</span>
-          </div>
+      <div class="vers-panel" data-verspanel="historique">
+        <p class="dialog-hint">Conservation : 30 jours — sauf les repères <b>épinglés</b>,
+          conservés indéfiniment.</p>
+        <ul id="history-list" class="history-list"></ul>
+        <div class="vers-foot">
+          <button type="button" id="history-clear" class="danger">Supprimer l'historique</button>
         </div>
-        <label class="field"><span>Mot de passe de cette archive</span>
-          <input type="password" id="bk-restore-pass" autocomplete="off"></label>
-        {# Même poids que « Générer » : chacun est l'action principale de son bloc. #}
-        <button type="button" id="bk-inspect" class="primary">Charger une sauvegarde</button>
-        {# On annonce ce qu'on s'apprête à écraser AVANT de le faire : restaurer remplace
-           le réseau et le mot de passe. « Restaurer » ne s'active qu'après l'examen. #}
-        <ul id="bk-summary" class="import-summary" hidden></ul>
-        <p id="bk-error" class="auth-error" hidden></p>
-        <button type="button" id="bk-restore" class="danger-btn" hidden>Restaurer ce contenu</button>
-      </section>
+      </div>
+
+      {# Aucun sous-titre : le champ nommé et son bouton portent tout le sens. Un
+         sous-titre qui n'existerait que pour distinguer ce volet de son voisin
+         définirait l'objet par ce qu'il n'EST PAS — c'est la structure qui doit le dire. #}
+      <div class="vers-panel" data-verspanel="presets" hidden>
+        <div class="save-row">
+          <input type="text" id="config-name" placeholder="Nom (ex. Jour 2)" maxlength="60">
+          <button type="button" id="config-save-btn" class="primary">Enregistrer un preset</button>
+        </div>
+        <ul id="configs-list" class="configs-list"></ul>
+      </div>
+
+      {# Le même plateau, mais rangé DEHORS : un fichier .rost sur une clé se transporte
+         d'un boîtier à l'autre. L'input reste un input — c'est le seul moyen d'ouvrir le
+         sélecteur de fichiers — mais c'est le bouton qui porte l'apparence. #}
+      <div class="vers-panel" data-verspanel="fichier" hidden>
+        <p class="dialog-hint">Un fichier <b>.rost</b> se transporte d'un boîtier à l'autre.</p>
+        <div class="cfg-file">
+          <button type="button" id="import-btn">Importer…</button>
+          <button type="button" id="export-btn">Exporter le plateau</button>
+          <input type="file" id="import-input" accept=".rost,application/json" hidden>
+        </div>
+      </div>
 
       <div class="dialog-actions">
-        <button type="button" data-close="backup-dialog">Fermer</button>
-      </div>
-    </form>
-  </dialog>
-
-  {# ---- Mot de passe d'administration ----
-     Le code de récupération n'est PAS consommé ici : c'est toute la différence avec la
-     page « mot de passe oublié ». Un boîtier prêté d'une production à l'autre doit
-     pouvoir tourner sa clé sans rediffuser un nouveau code à toute l'équipe. #}
-  <dialog id="password-dialog" class="admin-dialog">
-    <form id="password-form" method="dialog">
-      <h2>Changer le mot de passe</h2>
-      <label class="field"><span>Mot de passe actuel</span>
-        <input type="password" id="pw-current" autocomplete="current-password" required></label>
-      <label class="field"><span>Nouveau mot de passe</span>
-        <input type="password" id="pw-new" autocomplete="new-password" required minlength="4"></label>
-      <label class="field"><span>Confirmer le nouveau mot de passe</span>
-        <input type="password" id="pw-confirm" autocomplete="new-password" required></label>
-      <p class="dialog-hint">Votre code de récupération reste valable : il n'est pas
-        régénéré par ce changement.</p>
-      <p id="pw-error" class="auth-error" hidden></p>
-      <div class="dialog-actions">
-        <button type="submit" class="primary">Changer le mot de passe</button>
-        <button type="button" data-close="password-dialog">Annuler</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="antenna-dialog" class="admin-dialog antenna-dialog">
-    <div id="antenna-wizard" hidden>
-      {# Progression en compteur discret dans le titre : des points flottants au-dessus
-         ressemblaient à des voyants d'état. #}
-      <section class="wiz-step" data-step="1">
-        <h2>Connexion au réseau intercom <span class="wiz-count">1/2</span></h2>
-        {# Découverte : elle PROPOSE, elle ne connecte jamais seule. Le champ d'adresse
-           reste le chemin de référence — réseau segmenté, VLAN dédié ou antenne hors
-           sous-réseau, il n'y a que lui qui marche. Cliquer un résultat REMPLIT le champ,
-           il ne le remplace pas. #}
-        <div class="field ant-picker">
-          <div class="ant-picker-head">
-            <span>Antennes détectées sur le réseau</span>
-            <button type="button" id="ant-scan-btn" class="tb-act">Rechercher</button>
-          </div>
-          <ul id="ant-list" class="ant-list" aria-live="polite"></ul>
-        </div>
-        <label class="field"><span>Adresse IP</span>
-          <input type="text" id="wiz-ip" placeholder="192.168.1.11" autocomplete="off"></label>
-        <label class="field"><span>Mot de passe</span>
-          <input type="password" id="wiz-password" autocomplete="off"></label>
-        <div id="wiz-progress" class="conn-progress" hidden></div>
-        <p id="wiz-error" class="auth-error" hidden></p>
-        <div class="dialog-actions">
-          <button type="button" data-close="antenna-dialog">Annuler</button>
-          <button type="button" id="wiz-connect-btn" class="primary">Connecter</button>
-        </div>
-      </section>
-      <section class="wiz-step" data-step="2" hidden>
-        <h2>Importer les beltpacks <span class="wiz-count">2/2</span></h2>
-        <p class="dialog-hint">Les beltpacks du réseau intercom sont ajoutés au roster ; ceux déjà présents sont mis à jour.</p>
-        {# Portée de l'import : « Tous » par défaut (plages vides côté serveur) ; « Certains
-           numéros » révèle l'éditeur de plages. #}
-        <div class="scope" id="wiz-scope">
-          <div class="tb-seg" role="group" aria-label="Quels beltpacks importer">
-            <button type="button" class="seg-btn" data-scope="all" aria-pressed="true">Tous</button>
-            <button type="button" class="seg-btn" data-scope="some" aria-pressed="false">Certains numéros</button>
-          </div>
-          <div class="ranges-editor" id="wiz-ranges-wrap" hidden>
-            <div id="wiz-ranges-list"></div>
-            <button type="button" id="wiz-add-range" class="tb-act">+ Ajouter des numéros</button>
-          </div>
-        </div>
-        <ul id="wiz-summary" class="import-summary"></ul>
-        <div class="dialog-actions">
-          <button type="button" id="wiz-back-2">Retour</button>
-          <button type="button" id="wiz-import-btn" class="primary">Importer</button>
-        </div>
-      </section>
-    </div>
-
-    <div id="antenna-dashboard" hidden>
-      <h2>Réseau intercom</h2>
-      <div class="dash-grid">
-        <section class="dash-card">
-          <div class="dash-card-title">État</div>
-          <div id="dash-state"></div>
-        </section>
-        <section class="dash-card">
-          <div class="dash-card-title">Beltpacks importés</div>
-          <div class="scope" id="dash-scope">
-            <div class="tb-seg" role="group" aria-label="Quels beltpacks importer">
-              <button type="button" class="seg-btn" data-scope="all" aria-pressed="true">Tous</button>
-              <button type="button" class="seg-btn" data-scope="some" aria-pressed="false">Certains numéros</button>
-            </div>
-            <div class="ranges-editor" id="dash-ranges-wrap" hidden>
-              <div id="dash-ranges-list"></div>
-              <button type="button" id="dash-add-range" class="tb-act">+ Ajouter des numéros</button>
-            </div>
-          </div>
-        </section>
-      </div>
-      <div class="dash-autosync">
-        <label class="side-check">
-          <input type="checkbox" id="dash-autosync">
-          <span>Mise à jour automatique depuis le réseau</span>
-        </label>
-        <p class="dialog-hint">Reflète en continu les changements du réseau intercom,
-          dans le périmètre des plages.</p>
-      </div>
-      <div class="dialog-actions">
-        <button type="button" id="dash-reconnect-btn" hidden>Reconnecter</button>
-        <button type="button" id="dash-refresh-btn" class="primary">Actualiser depuis le réseau</button>
-        <button type="button" id="dash-disconnect-btn">Déconnecter</button>
-        <button type="button" data-close="antenna-dialog">Fermer</button>
-      </div>
-    </div>
-  </dialog>
-
-  <dialog id="network-dialog" class="admin-dialog">
-    <form id="network-form" method="dialog">
-      <h2>Réseau du ComRoster</h2>
-      {# État courant : la première question est « à quelle adresse suis-je joignable, là ? ».
-         Rempli par openNetwork() depuis GET /api/network/status. #}
-      <div class="net-current" id="net-current" hidden></div>
-      <label class="field"><span>Liaison</span>
-        <select id="net-link">
-          <option value="ethernet">Filaire (RJ45)</option>
-          <option value="wifi">Wi-Fi (point d'accès du réseau intercom)</option>
-        </select></label>
-      <div id="net-wifi-fields" hidden>
-        {# Sélecteur : réseaux à proximité (scan lecture seule). Cliquer un réseau remplit
-           le SSID ci-dessous — qui reste saisissable pour un réseau masqué ou si le scan
-           n'aboutit pas. #}
-        <div class="field wifi-picker">
-          <div class="wifi-picker-head">
-            <span>Réseaux à proximité</span>
-            <button type="button" id="net-scan-btn" class="tb-act">Rechercher</button>
-          </div>
-          <ul id="net-wifi-list" class="wifi-list" aria-live="polite"></ul>
-        </div>
-        <label class="field"><span>Nom du réseau (SSID)</span>
-          <input type="text" id="net-ssid" maxlength="32" autocomplete="off"></label>
-        <label class="field"><span>Mot de passe Wi-Fi (WPA2)</span>
-          <input type="password" id="net-psk" minlength="8" maxlength="63" autocomplete="new-password"></label>
-        <p class="dialog-hint">La prise RJ45 reste un port de service : un câble direct
-          vers un ordinateur ouvre toujours cette page (comroster.local).</p>
-      </div>
-      <label class="field"><span>Attribution de l'adresse IP</span>
-        <select id="net-mode">
-          <option value="link-local">Link-local (sans DHCP)</option>
-          <option value="dhcp">DHCP</option>
-          <option value="static">Adresse IP fixe</option>
-        </select></label>
-      <div id="net-static-fields" hidden>
-        <label class="field"><span>Adresse IP</span>
-          <input type="text" id="net-address" inputmode="decimal" placeholder="192.168.1.50" autocomplete="off"></label>
-        <label class="field"><span>Masque de sous-réseau</span>
-          {# Deux écritures du même masque : le préfixe (/24) à gauche, les octets à droite.
-             Éditer l'un met l'autre à jour. Le formulaire n'envoie que le préfixe. #}
-          <div class="mask-row">
-            <span class="mask-cidr"><span>/</span><input type="number" id="net-prefix" min="1" max="32" value="24"></span>
-            <input type="text" id="net-mask" inputmode="decimal" placeholder="255.255.255.0" autocomplete="off">
-          </div></label>
-        <label class="field"><span>Passerelle <em>(facultatif)</em></span>
-          <input type="text" id="net-gateway" placeholder="aucune (switch)" autocomplete="off"></label>
-        <p class="dialog-hint">Laisser vide en l'absence de passerelle sur le réseau.</p>
-        <label class="field"><span>DNS <em>(facultatif)</em></span>
-          <input type="text" id="net-dns" placeholder="ex. 192.168.1.1" autocomplete="off"></label>
-      </div>
-      <div id="net-progress" class="conn-progress" hidden></div>
-      <p id="net-error" class="auth-error" hidden></p>
-      <p id="net-result" class="dialog-status" hidden></p>
-      <p class="dialog-hint">« Enregistrer » prend effet au prochain redémarrage. « Appliquer maintenant »
-        (proposé ensuite) bascule tout de suite.</p>
-      <div class="dialog-actions">
-        <button type="button" id="net-apply-btn" class="reboot-btn" hidden>Appliquer maintenant</button>
-        <button type="submit" class="primary">Enregistrer</button>
-        <button type="button" data-close="network-dialog">Fermer</button>
+        <button type="button" data-close="versions-dialog" id="versions-close">Fermer</button>
       </div>
     </form>
   </dialog>
@@ -716,30 +894,6 @@
         <button type="button" id="import-apply-btn" class="primary">Appliquer</button>
         <button type="button" data-close="import-dialog">Annuler</button>
       </div>
-    </form>
-  </dialog>
-
-  <dialog id="configs-dialog" class="admin-dialog">
-    <form method="dialog">
-      <h2>Configurations</h2>
-      <div class="save-row">
-        <input type="text" id="config-name" placeholder="Nom (ex. Jour 2)" maxlength="60">
-        <button type="button" id="config-save-btn" class="primary">Sauvegarder</button>
-      </div>
-      <ul id="configs-list" class="configs-list"></ul>
-      {# Le même plateau, mais rangé DEHORS : un fichier .rost sur une clé se transporte
-         d'un boîtier à l'autre, une configuration enregistrée non. L'étiquette « Exporter
-         le plateau » nomme sa source — sans elle, deux boutons « Exporter » se répondent
-         dans le même dialogue (celui-ci et celui de chaque rangée) sans qu'on sache
-         lequel prend quoi. L'input reste un input : c'est le seul moyen d'ouvrir le
-         sélecteur de fichiers, mais c'est le bouton qui porte l'apparence. #}
-      <div class="cfg-file">
-        <span class="cfg-file-label">Fichier</span>
-        <button type="button" id="import-btn">Importer…</button>
-        <button type="button" id="export-btn">Exporter</button>
-        <input type="file" id="import-input" accept=".rost,application/json" hidden>
-      </div>
-      <div class="dialog-actions"><button type="button" data-close="configs-dialog">Fermer</button></div>
     </form>
   </dialog>
 
@@ -787,9 +941,9 @@
   <script src="{{ url_for('static', filename='js/ink.js') }}"></script>
   <script src="{{ url_for('static', filename='js/board.js') }}"></script>
   <script src="{{ url_for('static', filename='js/netmask.js') }}"></script>
-  {# Journal et Santé AVANT admin.js : ils se branchent sur « panneau-affiche », et c'est
-     admin.js qui émet le premier — celui du panneau rétabli au chargement. Chargés après,
-     ils rateraient ce signal et un rechargement sur leur panneau l'afficherait vide. #}
+  {# Journal et Diagnostic AVANT admin.js : ils se branchent sur « panneau-affiche », et
+     c'est admin.js qui émet le premier — celui du panneau rétabli au chargement. Chargés
+     après, ils rateraient ce signal et un rechargement sur leur panneau l'afficherait vide. #}
   <script src="{{ url_for('static', filename='js/journal.js') }}"></script>
   <script src="{{ url_for('static', filename='js/health.js') }}"></script>
   <script src="{{ url_for('static', filename='js/admin.js') }}"></script>

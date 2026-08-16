@@ -2051,3 +2051,260 @@ non aggravés par lui, hors du périmètre de cette branche — mais réels et m
 
 Corriger les deux ensemble : assombrir le fond, ou passer l'encre en graisse ≥ 600 et taille
 ≥ 18,66 px pour relever du seuil « texte large » (3:1).
+
+---
+
+# LOT 2026-08-14 — La carte des fonctions (navigation de l'admin) — À ARBITRER
+
+Origine : Nathan demande un avis extérieur, honnête et complet, sur l'organisation de
+l'admin — « pas très claire, un peu tirée par les cheveux ». Revue faite application
+LANCÉE (copie de `instance/` dans un dossier temporaire, port 8099, arrêté et nettoyé),
+chaque panneau et chaque dialogue parcouru en 1512 px puis en 1180 px.
+
+**Le diagnostic tient en une phrase : le problème n'est pas l'apparence, c'est la carte
+des fonctions.** L'artisanat visuel est au-dessus de la moyenne ; l'interface expose une
+quinzaine de destinations au même niveau, dans quatre systèmes de navigation qui n'ont ni
+le même comportement ni le même indicateur d'état. Ce n'est pas la carte du métier d'un
+régisseur, c'est la sédimentation de l'historique des lots : chaque fonction a atterri là
+où il restait de la place.
+
+## Ce que la revue a établi — mesuré, pas supposé
+
+- **Six conteneurs de navigation, treize destinations, trois comportements d'ouverture**
+  (panneau / modal / menu). La règle « un bouton par fonction » (leçon 2026-07-25) est
+  tenue — elle ne dit rien sur OÙ poser le bouton, et c'est là que ça s'est joué.
+- **L'indicateur « vous êtes ici » saute d'une surface à l'autre.** Preuve : sur le
+  panneau Impression, AUCUN onglet de l'en-tête n'est actif — l'état est passé dans la
+  latérale. Sur Santé, c'est « Réglages » qui est souligné, un mot qui ne dit pas où on est.
+- **« Réglages » ne contient pas les réglages** : il porte Santé et Journal (de la
+  consultation) pendant que les réglages réels vivent à CINQ endroits — onglet Écran,
+  barre d'état, menu Réglages, intérieur du modal Intercom, barre de la trame Impression.
+- **38 % de la largeur en chrome à 1180 px** (latérale 204 + réserve 242 sur 1180), dont
+  la réserve VIDE dans le cas nominal (« Tous les beltpacks sont affectés »). Le plateau
+  tombe de 4 colonnes à 2.
+- **L'inventaire des groupes ne fait que défiler** : `goToGroup()` = `scrollIntoView` +
+  flash 900 ms. Sept rangées permanentes qui redisent les en-têtes visibles à côté.
+- **Cinq mécanismes de persistance, six mots**, dont « Sauvegarde » (menu Réglages) et
+  « Sauvegarder » (dialogue Configurations) — deux choses sans rapport, à une lettre près.
+  Et deux boutons « Exporter » simultanés dans le même dialogue.
+- **L'objet central n'a aucune affordance** : la carte beltpack est un
+  `<article draggable="true">` SANS `tabindex` ni `role`, avec cinq gestes souris tous
+  invisibles (clic = sélection, double-clic n° = édition, double-clic nom = édition,
+  clic droit = menu, glisser = déplacer). Aucun chemin clavier vers l'objet principal ;
+  le seul parcours accessible est la vue Tableau, présentée comme une préférence.
+- **Les rangées `[data-group]` de l'inventaire sont focalisables et annoncées
+  « bouton », mais aucun `keydown` n'y est branché** — alors que leurs voisines
+  (`[data-add-group]`, `[data-view]`) en ont un, dans la MÊME fonction. Entrée n'y fait rien.
+- **Le motif ARIA des onglets est à moitié posé** : `role="tablist"` contient 2 vrais
+  `role="tab"`, un bouton sans rôle et une `<div>` ; les cinq panneaux n'ont pas
+  `role="tabpanel"` et les onglets pas d'`aria-controls`.
+- **L'interface compense par du texte ce que la structure a mal placé** : « Ne concerne
+  que l'écran de régie… » (posé sous la MAUVAISE colonne), l'étiquette « Fichier » pour
+  départager deux « Exporter », l'infobulle de portée sur l'inverseur. Quand il faut une
+  phrase pour dire où est un objet, c'est que l'objet est au mauvais endroit.
+
+## La maquette
+
+`design/maquette-admin-8-navigation.html` — charge la VRAIE `admin.css` et `ink.js` en
+chemins relatifs (fidélité de rendu, pas un dessin approximatif) ; navigation cliquable :
+quatre onglets, rail du panneau Système, dialogue à trois volets, filtre par groupe, rail
+de la réserve, inverseur d'apparence dans les deux thèmes. Rien de l'application n'est
+touché ; le fichier n'est référencé par rien (Flask sert `templates/` et `static/`).
+
+Gain mesuré à 1180 px, réserve repliée et latérale absente hors du plateau :
+plateau **734 → 930 px (+27 %)**, **2 → 3 colonnes**, chrome 38 % → 21 %.
+
+## Les six changements
+
+1. **Quatre onglets, un seul comportement** — `Affectations · Affichage · Impression ·
+   Système`. Aucun n'ouvre de modal, aucun n'ouvre de menu. L'en-tête répond à « où
+   suis-je », et à ça seulement.
+2. **Tout le boîtier derrière UNE porte, qui est un PANNEAU** — rail à gauche
+   (Consulter : Diagnostic, Journal · Configurer : Réseau, Intercom, Sauvegarde complète,
+   Mot de passe · Agir : Redémarrer), section à droite. Plus aucun réglage dans une
+   fenêtre modale ; le modal redevient l'acte ponctuel (créer un groupe, éditer un
+   beltpack, confirmer).
+3. **Le voyant Intercom redevient un témoin** — il rejoint l'horloge et la chip d'état à
+   droite, et MÈNE à Système › Intercom au lieu d'ouvrir un assistant par-dessus le plateau.
+4. **Un seul lieu pour revenir en arrière** — rangée « Historique · Presets… », dialogue
+   à trois volets. Remplace Historique + Configurations + les deux « Exporter ».
+5. **La place rendue** — réserve repliée en rail quand elle est vide, latérale masquée
+   hors du plateau, inventaire des groupes transformé en FILTRE (ce qu'il aurait dû être).
+6. **La carte beltpack montre ce qu'on peut lui faire** — bouton « ··· » visible au
+   survol et au focus, `tabindex`, clic droit conservé. Et `keydown` sur les rangées du
+   filtre.
+
+## Nomenclature — ARBITRÉE point par point avec Nathan le 2026-08-14
+
+| Objet | Retenu | Écarté |
+|---|---|---|
+| Onglets | `Affectations · Affichage · Impression · Système` | Écran, Boîtier |
+| Écran diffusé, PARTOUT | **l'affichage** | **« écran de régie » — trop situé, « 0 Pro »** |
+| Section diagnostic | **Diagnostic** | Santé, État, Supervision |
+| Archive complète du boîtier | **Sauvegarde complète** | Archive du boîtier, Clone, Copie de secours |
+| Retour en arrière | rangée **« Historique · Presets… »** → dialogue **« Historique et presets »** | Versions, Reprendre un état, Plateaux |
+| Volets | **Historique · Presets · Fichier** | Publications, Mes préparations, Import/Export |
+| États nommés | **presets** (et bouton « Enregistrer un preset ») | Configurations, préparations |
+| Latérale du plateau | **Filtrer par groupe** (+ section « Vues » à part) | Groupes, Filtres |
+| Témoin du pied | **aucun écran connecté** (mots du Diagnostic) | aucun afficheur, aucun écran abonné |
+| Inverseur d'apparence | **« Sombre » seul**, sans mot de portée | Console, Cette page, Administration |
+| Intertitres du rail Système | **Consulter · Configurer · Agir** | Diagnostic/Réglages/Actions, Lire/Régler/Agir |
+
+**« Presets » règle « Sauvegarde » gratuitement** : les états nommés n'étant plus des
+« Configurations », leur bouton n'est plus « Sauvegarder ». Le mot « Sauvegarde » redevient
+libre et « complète » dit sa portée. L'arbitrage de Nathan est plus économe que ma
+proposition (« Archive du boîtier »).
+
+Deux libellés DÉDUITS, non soumis, à confirmer : l'onglet **Affichage** (suivait le terme
+générique — il s'appelait « Écran ») et le titre de carte **AFFICHAGE** dans cet onglet,
+avec le champ réduit à **Luminosité**.
+
+## Registre des sous-titres — RÈGLE
+
+**Ligne de spec, jamais de pédagogie.** Verdict de Nathan sur mes premiers jets : « trop
+verbeux, pas assez pro, trop long, on dirait que je prends le client pour un bébé ».
+
+- Proscrit : l'explication PAR CONTRASTE (« …, un preset non »), qui définit un objet par
+  ce qu'il n'est pas ; le cas d'usage donné en exemple ; la reformulation du titre.
+- Retenu : `Conservation : 30 jours — sauf les repères épinglés, conservés indéfiniment.`
+  · `Chiffrée. Contenu : plateau, affichage, réseau, intercom, presets, mot de passe.`
+  · `Indisponible environ une minute. Le brouillon est conservé.` · `État : non connecté.`
+  · `Un fichier .rost se transporte d'un boîtier à l'autre.` · `117 événements · dernier
+  hier à 19:44` · `Le code de récupération n'est pas régénéré.`
+- **Presets : AUCUN sous-titre** — le champ nommé et son bouton portent tout le sens.
+
+## Découpage — par ordre d'exécution
+
+**Lot 1 · « régie » quitte le produit.** Préalable, mécanique, sans risque fonctionnel —
+mais il touche des fichiers déjà livrés, donc il passe AVANT d'écrire les nouveaux
+panneaux. ~30 chaînes visibles : `admin.html` (16), `admin.js` (6), `print.html` (3),
+`health.js` (2), `login.html`, `auth_base.html` ; plus une trentaine d'occurrences en
+commentaire (`pubsub.py`, `display.py`, `discovery.py`…). ⚠️ Distinguer le VOCABULAIRE
+d'interface des DONNÉES de test : `test_parcours_complet.py:50` et
+`test_impression_papier.py:157` cherchent « régie » comme NOM DE GROUPE — ne pas y toucher.
+
+**Lot 2 · Le panneau Système.** Le plus gros gain par unité de risque : il ne touche ni au
+plateau, ni à la publication, ni aux e2e du plateau. Coût réel identifié à la maquette :
+`admin.css` n'habille les champs et les boutons QUE dans un `<dialog>` (l. 924-967) —
+sortir la configuration des modaux demande une passe de GÉNÉRALISATION des sélecteurs, pas
+une duplication.
+
+**Lot 3 · Historique · Presets · Fichier.**
+
+**Lot 4 · Les quatre onglets + la latérale contextuelle** (masquée hors du plateau) +
+l'ARIA du motif d'onglets (`role="tabpanel"`, `aria-controls`, sortir le voyant et le menu
+du `tablist`).
+
+**Lot 5 · La réserve repliable.** ⚠️ `.admin-layout` réserve `1fr var(--pool-w)` en dur
+(`admin.css:405`) : sans une règle qui rend la colonne, replier la réserve ne rend RIEN au
+plateau. C'est tout l'objet du lot — la largeur rendue, pas le rail.
+
+**Lot 6 · La carte beltpack** (`tabindex`, bouton « ··· », chemin clavier) + `keydown` sur
+les rangées `[data-group]`.
+
+## Tests qui tomberont — RELEVÉ, pas supposé
+
+- `tests/test_ui.py:250-251` — `assert "Luminosité de l'écran de régie" in html` (lots 1 et 2).
+- `tests/test_ui.py:254` — `assert "Réglages → Écran" in pied` : l'infobulle disparaît (lot 4).
+- `tests/test_ui.py:338-339` — le menu Réglages doit contenir `>Santé<`, `>Journal<`,
+  `id="password-btn"` : le menu n'existe plus (lot 2).
+- `tests/test_ui.py:133-142` — dialogue « Configurations » (lot 3).
+- `tests/test_css_tokens.py:29` — clé `"écran de régie"` d'un dict de garde : renommage
+  cosmétique, pas une casse.
+- `tests/e2e/test_reglages_menu.py` — **fichier entier** : comportement clavier et souris
+  d'un menu qui disparaît. Lignes 124/126 : `activeElement.textContent == "Santé"` /
+  `"Journal"`. À réécrire en test du RAIL, pas à supprimer.
+- `tests/e2e/test_panneaux_navigation.py:195-201` — « arriver sur Écran replie Affichage
+  en cours » : l'onglet change de nom.
+- `tests/test_panneaux.py`, `tests/test_version.py:492` — assertions sur l'onglet « Santé ».
+
+Rappel de la leçon 2026-07-26 : **chercher le libellé dans les tests AVANT de le
+renommer**, et ne jamais enchaîner un `git commit` derrière un `pytest | tail` (le pipe
+masque le code retour).
+
+## Ce que ce lot ne fait PAS
+
+- Il ne touche pas au modèle de données, ni à la publication, ni au protocole SSE.
+- Il ne redessine rien : jetons, palette de groupes, typographie, feuille imprimée,
+  bouton Publier et son décompte — tout est conservé tel quel.
+- Il ne résorbe pas la dette d'accessibilité du 2026-08-13 (`.confirm-danger`,
+  `.selection-bar .danger-btn`) : c'est un lot à part, déjà décrit plus haut.
+
+## Vérifications exigées à chaque lot
+
+1. `pytest` unitaires, `pytest tests/e2e`, `ruff` — trois commandes SÉPARÉES, résultat lu,
+   PUIS commit à la main.
+2. Après chaque lot : capture à 1512 ET à 1180 px, dans les DEUX thèmes.
+3. Après le lot 5 : mesurer la largeur du plateau et le nombre de colonnes (attendu à
+   1180 px : 930 px, 3 colonnes). Une mesure, pas un coup d'œil.
+4. Après le lot 6 : parcourir l'admin ENTIÈREMENT au clavier, sans souris.
+5. Aucun serveur de dev laissé en fond (leçon 2026-07-26) : `lsof -ti tcp:PORT | xargs kill`.
+
+## LIVRÉ (2026-08-15) — branche `refonte-navigation-admin`, NON commitée
+
+**Vérifié : 585 unitaires · 75 e2e · 43 JS · ruff propre.** Trois commandes séparées,
+résultats lus, aucun `&&` derrière un `pytest | tail` (leçon 2026-07-26). Serveur de
+vérification arrêté et instances temporaires supprimées (leçon 2026-07-26).
+
+Les six lots sont livrés en une passe plutôt qu'en six, leurs périmètres s'étant révélés
+inséparables dès le premier : sortir les dialogues du boîtier obligeait à refaire la barre
+d'onglets, qui obligeait à rendre la latérale contextuelle, qui décidait du sort de la
+réserve. Le découpage tenait pour PLANIFIER, pas pour exécuter.
+
+### Ce qui a changé
+- **Onglets** `Affectations · Affichage · Impression · Système`, chacun un GLYPHE
+  surmontant sa légende (demande de Nathan) — grille, écran, imprimante, écrou. Tracés en
+  ligne, `stroke="currentColor"` : ils suivent l'état et le thème sans une règle de plus.
+  L'en-tête n'a pas bougé d'un pixel (53 px, mesuré).
+- **Voyant Intercom** : le glyphe (antenne + ondes) EST le témoin, teinté par
+  `--success` / `--warning` / `--muted`. Une pastille de moins pour la même information.
+  La couleur ne dit jamais seule : `title` et `aria-label` portent l'état en toutes
+  lettres (`ETATS_ANTENNE`).
+- **Panneau Système** : rail `Consulter · Configurer · Agir`, sept sections, toutes de
+  vrais `.tab-panel` — d'où l'héritage gratuit de `?panneau=`, de la mémorisation et du
+  signal `panneau-affiche`. **Plus aucun réglage dans un dialogue modal** (contrôlé : les
+  neuf `showModal()` restants sont tous des actes ponctuels).
+- **Historique · Presets · Fichier** en un dialogue à trois volets.
+- **Latérale contextuelle**, **réserve repliable** (plateau 734 → 930 px, 2 → 3 colonnes
+  à 1180 px, mesuré), **carte beltpack** focalisable avec bouton « ··· ».
+- **« régie » retiré du produit** : 43 occurrences, 16 fichiers, au profit d'« affichage ».
+
+### Quatre défauts trouvés par les e2e — tous corrigés dans le PRODUIT
+1. Le repli de la réserve cachait « + Ajouter un beltpack », son unique accès. Le rail
+   porte désormais la fonction lui-même (`#pool-rail-add`), et ne se replie jamais sur un
+   roster vide.
+2. « Déconnexion », restée dans la latérale, devenait inatteignable depuis sept panneaux.
+   Elle rejoint « Redémarrer » sous « Agir » — les deux sorties, comme avant.
+3. La mémorisation d'onglet survivait à la déconnexion : la session suivante s'ouvrait sur
+   « Mot de passe ». Elle est oubliée à la sortie.
+4. `test_systeme_rail.py` sans `pytestmark` : dix tests dans la mauvaise suite, deux
+   suites vertes pour de mauvaises raisons.
+
+### Correction du 2026-08-15 (retour de Nathan à l'usage)
+« Déconnexion et Redémarrer ne sont plus accessibles comme avant, et c'est un problème. »
+Juste : la rangée d'avant était visible en PERMANENCE, un clic depuis n'importe où ; les
+avoir mises dans Système › Agir imposait deux clics ET un changement de panneau qui fait
+perdre ce qu'on regardait.
+
+Les deux ont été séparées, parce qu'elles n'ont pas le même profil :
+- **Déconnexion** — fréquente, sans risque, elle doit rester à UN clic depuis les dix
+  panneaux. Elle vit dans la **barre d'état, tout à droite** : le seul chrome permanent du
+  BAS, donc le seul qui conserve le geste appris. Elle y voisine l'inverseur d'apparence,
+  l'autre contrôle de la console — et rien de destructeur, contrairement à un voisinage
+  avec « Publier ». Teinte et graisse de ses voisines (`--muted`, 400) : c'est un segment
+  de la barre, pas une alerte ; la découvrabilité passe par le survol.
+- **Redémarrer** — rare, et il coupe l'affichage une minute. Il **reste dans Système ›
+  Agir** : deux clics sont le bon prix, et c'est le seul endroit où la phrase qui dit ce
+  qu'on risque peut l'accompagner.
+
+Vérifié dans le navigateur : la déconnexion est visible sur les **dix** panneaux (relevé
+programmatique, pas à l'œil), elle n'est ni dans le rail ni dans l'en-tête.
+
+### Reste à faire
+- **Faire relire par Nathan**, puis committer : rien n'est commité, la branche est à lui.
+- Les deux libellés DÉDUITS sans arbitrage tiennent toujours à confirmation : l'onglet
+  **Affichage** et le titre de carte **AFFICHAGE** + champ **Luminosité**.
+- La dette d'accessibilité du 2026-08-13 (`.confirm-danger`, `.selection-bar .danger-btn`)
+  n'est PAS traitée : hors périmètre, toujours ouverte.
+- `design/maquette-admin-8-navigation.html` est resté en arrière de l'implémentation
+  (elle a divergé sur les quatre défauts ci-dessus). À rafraîchir ou à archiver.

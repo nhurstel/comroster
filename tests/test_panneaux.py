@@ -39,10 +39,20 @@ def test_chaque_entree_a_son_panneau(admin_html):
     )
 
 
-def test_les_cinq_sections_sont_des_panneaux(admin_html):
-    """Ce que Nathan a demandé : Journal, Santé et Impression ne quittent plus l'admin."""
+def test_les_dix_sections_sont_des_panneaux(admin_html):
+    """Journal, Diagnostic et Impression ne quittent plus l'admin — et depuis la refonte
+    de la navigation (2026-08-14), les quatre fonctions du boîtier non plus.
+
+    Réseau, intercom, sauvegarde et mot de passe vivaient dans des <dialog> ouverts
+    par-dessus le plateau : on configurait la machine dans une fenêtre modale. Ce sont
+    des panneaux, tous membres de la famille « systeme », donc tous servis par le même
+    mécanisme — mémorisation de l'onglet, adresses `?panneau=`, signal « panneau-affiche ».
+    L'ensemble EXACT est vérifié, pas une inclusion : c'est ce qui échoue aussi bien si
+    un panneau disparaît que si un se rajoute sans qu'on l'ait décidé."""
     panneaux = set(re.findall(r'data-panel="([a-z]+)"', admin_html))
-    assert panneaux == {"board", "screen", "journal", "health", "print"}
+    assert panneaux == {"board", "screen", "print",
+                        "health", "journal", "network", "intercom",
+                        "backup", "password", "reboot"}
 
 
 def test_aucun_identifiant_en_double(admin_html):

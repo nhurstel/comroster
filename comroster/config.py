@@ -31,7 +31,7 @@ class Config:
                 setattr(self, key, value)
         # Part du cap réservée aux onglets d'administration (`/events?role=admin`). Ils
         # occupent un thread comme les autres mais n'affichent rien en salle : sans
-        # plafond propre, quelques onglets oubliés évinceraient les écrans de régie.
+        # plafond propre, quelques onglets oubliés évinceraient les affichages.
         # Un tiers, au moins 1 — les deux tiers restants sont garantis aux écrans.
         # DÉRIVÉE APRÈS les surcharges : abaisser SSE_MAX_CLIENTS (test, petit boîtier)
         # doit faire suivre la réserve, sinon elle resterait calée sur le défaut de 12.
