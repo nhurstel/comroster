@@ -17,7 +17,7 @@
 # décision, prise en relisant le journal des changements — ce que Dependabot proposera en
 # ouvrant une PR, au lieu que ça arrive tout seul au prochain déploiement.
 
-Flask>=3.1,<4
+Flask>=3.1.3,<4
 Flask-WTF>=1.3,<2
 Flask-Limiter>=4.1,<5
 cryptography>=50,<51        # cadence de majeures rapide, et retire des API : une seule majeure
