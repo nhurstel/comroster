@@ -2371,3 +2371,75 @@ attend l'état « enabled », se synchronise sans qu'aucun `wait` artificiel soi
 
 `openAntenna()` porte le MÊME défaut (il remet `#wiz-ip` et `#wiz-password` à vide après
 son `await`) : corrigé pareil, sans attendre qu'un test le découvre.
+
+---
+
+# LOT 2026-08-16 (2) — Mise à niveau, verrouillage et surveillance des dépendances
+
+Nathan : « pourquoi on n'utiliserait pas le dernier python ? Mets à jour, optimise et
+sécurise tout ce qui doit l'être. Go dependabot. Go pour tout. »
+
+## La question Python se retourne
+
+Le boîtier est un **Raspberry Pi OS Bookworm** (`deploy/raspberry-pi.md`,
+`deploy/build-image.md`) et `setup-pi.sh` l. 55/65 crée son venv avec le `python3` du
+système — soit **Python 3.11**, ce que Debian Bookworm embarque. La CI teste sur 3.12.
+
+**Elle n'a donc jamais testé la version qui tourne en production.** Prendre 3.14 (dernière
+stable) éloignerait la CI du boîtier au lieu de l'en rapprocher : ce serait tester ce que
+personne n'exécute. La bonne réponse n'est pas « la plus récente », c'est « celle du
+boîtier, plus les suivantes pour voir venir ».
+
+→ Matrice sur les tests unitaires : **3.11** (vérité du boîtier), **3.12**, **3.13**.
+→ e2e sur **3.11** seule : c'est la seule version dont l'échec signifie « cassé chez le
+   client », et une matrice e2e coûterait trois fois 3 minutes pour rien.
+→ 3.14 volontairement écarté : aucune roue Debian, et le boîtier ne l'aura pas avant que
+   Pi OS ne passe à Trixie. À réexaminer ce jour-là.
+
+## Les six dépendances de production flottent
+
+Bornes ouvertes : la CI et le boîtier installent « la dernière au moment du `pip install ».
+Écart constaté entre ce qui est déclaré et ce que la CI a réellement installé :
+`cryptography>=42` → 50.0.0 (8 majeures), `gunicorn>=21` → 26.0.0 (5), `Flask-Limiter>=3.5`
+→ 4.1.1 (changement de majeure). Personne n'a décidé ça, et **un déploiement d'aujourd'hui
+n'installe pas ce qu'installait un déploiement du mois dernier.**
+
+C'est la leçon déjà écrite à côté de `ruff` dans requirements-dev.txt, jamais appliquée aux
+dépendances de production. Ordre retenu : METTRE À JOUR d'abord, VÉRIFIER, PUIS figer —
+figer sur un état non vérifié ne ferait que graver une inconnue.
+
+## Les quatre chantiers
+
+1. Matrice Python en CI (3.11/3.12/3.13), e2e sur 3.11.
+2. `.venv` local resynchronisé sur ce que la CI installe, suites relancées dessus — c'est
+   l'écart local/CI qui a valu deux CI rouges cette semaine.
+3. Bornes hautes sur les six dépendances de production (`>=x,<y+1`), après vérification.
+4. `dependabot.yml` (pip + npm + github-actions) : c'est lui qui rend l'épinglage au SHA
+   tenable, et les alertes de sécurité sont aujourd'hui DÉSACTIVÉES sur le dépôt (403).
+5. shellcheck 0.9.0 → 0.11.0, avertissements nouveaux traités.
+
+## Vérification exigée
+
+Suites complètes sur le venv REMIS À NIVEAU (pas l'ancien), puis CI sur branche avant
+fusion. Une mise à jour de dépendances ne se valide pas en lisant un numéro de version.
+
+## LIVRÉ (2026-08-16) — branche `maj-dependances-et-python`
+
+CI verte sur la branche AVANT fusion, six jobs : **py3.11 · py3.12 · py3.13**, e2e sur
+3.11, lint, JS. C'est la première fois que la version du boîtier est testée.
+
+- Python : matrice 3.11/3.12/3.13, e2e sur 3.11. 3.14 écarté (le boîtier ne l'aura pas).
+- Six dépendances de production bornées, après mise à niveau ET vérification :
+  597 unitaires, 76 e2e, couverture 89 %, ruff 0.16.3 propre.
+- `.venv` local resynchronisé (il avait trois paquets de retard, dont Playwright 1.60
+  contre 1.62 en CI — d'où le confort trompeur des e2e de cette semaine).
+- shellcheck 0.9.0 → 0.11.0, aucun avertissement nouveau. `lint-local.sh` lit sa version
+  dans `ci.yml`, la divergence local/CI qu'il signalait en en-tête disparaît.
+- `dependabot.yml` : pip hebdomadaire (majeures isolées), actions et npm mensuels groupés.
+- **Alertes de sécurité du dépôt ACTIVÉES** (elles étaient coupées), plus les correctifs
+  de sécurité automatiques.
+
+### Reste ouvert
+- `pyproject.toml` n'a pas de section `[project]`, donc aucun `requires-python` ne déclare
+  les versions supportées : la matrice CI est aujourd'hui la seule trace de cette décision.
+- Python 3.14 : à réexaminer quand Pi OS passera à Trixie (Python 3.13 côté système).
