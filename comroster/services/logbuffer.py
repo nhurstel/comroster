@@ -11,7 +11,7 @@ append/lecture (verrou GIL), et `logging` sérialise déjà les emit par handler
 """
 import collections
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 #: Journaux d'ACCÈS HTTP : une ligne par requête, fichiers statiques compris. Un seul
 #: chargement de page en produit plusieurs dizaines, qui chassent du tampon les lignes
@@ -40,7 +40,7 @@ class LogBuffer(logging.Handler):
         except Exception:      # noqa: BLE001 — jamais de crash depuis un handler de log
             message = "<message informatable>"
         self.records.append({
-            "ts": datetime.fromtimestamp(record.created, timezone.utc)
+            "ts": datetime.fromtimestamp(record.created, UTC)
                   .isoformat(timespec="seconds").replace("+00:00", "Z"),
             "level": record.levelname,
             "logger": record.name,

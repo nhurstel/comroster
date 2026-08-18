@@ -6,7 +6,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from cryptography.fernet import Fernet
 
@@ -200,7 +200,7 @@ class AntennaClient:
     def _persist(self):
         token = self._fernet().encrypt(self._password.encode()).decode() if self._password else ""
         payload = {"ip": self._ip, "password_enc": token, "info": self._info,
-                   "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+                   "updated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")}
         fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(json.dumps(payload, ensure_ascii=False, indent=2))

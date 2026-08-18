@@ -20,7 +20,7 @@ def history(app):
 def _vieillir(history, ts, jours):
     """Ré-horodate un instantané dans le passé, nom de fichier compris."""
     ancien = os.path.join(history.dir, f"{ts}.json")
-    vieux_dt = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=jours)
+    vieux_dt = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=jours)
     neuf_ts = vieux_dt.strftime("%Y%m%dT%H%M%S%fZ")
     os.rename(ancien, os.path.join(history.dir, f"{neuf_ts}.json"))
     index = history._index()

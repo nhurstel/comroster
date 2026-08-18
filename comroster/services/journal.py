@@ -18,7 +18,7 @@ import json
 import logging
 import os
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class Journal:
 
     def record(self, event, detail=""):
         entry = {
-            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+            "ts": datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
             "event": str(event),
             "detail": str(detail),
         }

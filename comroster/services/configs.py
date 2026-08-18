@@ -2,7 +2,7 @@ import json
 import os
 import re
 import unicodedata
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def _slug(name):
@@ -51,7 +51,7 @@ class Configs:
                     "choisissez un nom plus distinct."
                 )
         payload = {"name": name,
-                   "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                   "updated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
                    "state": state}
         self.storage.atomic_write(path, payload)
 

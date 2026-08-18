@@ -1,3 +1,26 @@
+[project]
+# ComRoster n'est pas distribué comme paquet : il est déployé par `git clone` +
+# deploy/setup-pi.sh. Cette section n'existe donc que pour UNE ligne, `requires-python`,
+# qui manquait — la matrice de ci.yml était jusqu'ici la seule trace des versions
+# supportées, et une matrice de CI ne se lit pas depuis le code.
+#
+# Le plancher n'est pas une préférence : Raspberry Pi OS Bookworm, cible documentée dans
+# deploy/raspberry-pi.md, embarque Python 3.11, et deploy/setup-pi.sh crée le venv du
+# boîtier avec le `python3` du système. Descendre sous 3.11 n'aurait pas de sens ; y
+# renoncer non plus, tant que des boîtiers Bookworm tournent.
+#
+# Effet second, dans le sens INVERSE de ce qu'on croit : sans `requires-python`, ruff
+# retombe sur une cible ANCIENNE et se tait sur les modernisations. En le déclarant, il
+# vise py311 et a immédiatement signalé 14 `datetime.timezone.utc` remplaçables par
+# `datetime.UTC` (ajouté en 3.11) — corrigés le 2026-08-16. Déclarer un plancher ne bride
+# donc pas le lint, ça le débloque : il ne pouvait pas deviner ce qu'on s'autorisait.
+#
+# Les dépendances restent dans requirements.txt et n'ont RIEN à faire ici : c'est ce
+# fichier-là qu'installe le boîtier, et deux listes finiraient par diverger.
+name = "comroster"
+version = "0.0.0"          # jamais publié ; la version qui compte est le SHA git
+requires-python = ">=3.11"
+
 [tool.pytest.ini_options]
 # SOURCE UNIQUE de la configuration pytest. Un `pytest.ini` a coexisté avec cette section :
 # or pytest.ini l'emporte TOUJOURS sur pyproject.toml, celle-ci n'était donc jamais lue —
@@ -35,7 +58,10 @@ exclude_also = [
 select = [
     "E4", "E7", "E9", "F",  # défauts historiques : erreurs réelles, imports et noms inconnus
     "I",                    # tri des imports (déterministe, corrigé automatiquement)
-    "UP",                   # modernisation — le projet est 3.12 uniquement, pas de rétro-compat
+    "UP",                   # modernisation, bornée par `requires-python` : ruff en déduit
+                            # py311 et ne propose donc rien que le boîtier ne saurait
+                            # exécuter. (Avant, sans plancher déclaré, il visait la
+                            # dernière version qu'il connaissait.)
     "B",                    # pièges courants (bugbear)
     "C4",                   # compréhensions inutiles
     "SIM",                  # simplifications lisibles

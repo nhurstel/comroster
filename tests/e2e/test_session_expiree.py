@@ -42,7 +42,13 @@ def test_une_session_morte_avertit_gele_et_ne_perd_rien(page, live_server):
 
     page.context.clear_cookies()
     _creer_groupe(page, "Plateau")
-    page.wait_for_selector(".session-lost", timeout=5000)
+    # 15 s comme le reste de la suite, et non 5 comme à l'écriture de ce fichier : ce qu'on
+    # affirme, c'est que le bandeau APPARAÎT, pas qu'il apparaît en moins de cinq secondes.
+    # La chaîne compte un anti-rebond de 900 ms (SAVE_DEBOUNCE_MS) plus un aller-retour
+    # HTTP ; sur un runner partagé, ce budget a fini par manquer et a fait rougir la CI le
+    # 2026-08-18 sans qu'aucun code n'ait bougé. Un test qui échoue au hasard coûte plus
+    # cher que le défaut qu'il surveille : on cesse de le croire.
+    page.wait_for_selector(".session-lost", timeout=15000)
 
     # AVERTIR — un bandeau, pas un libellé de 11 px.
     bandeau = page.locator(".session-lost")
@@ -75,12 +81,12 @@ def test_le_travail_rescape_est_propose_puis_enregistre(page, live_server):
     # Puis la session meurt, et un second groupe part dans le vide.
     page.context.clear_cookies()
     _creer_groupe(page, "Lumière")
-    page.wait_for_selector(".session-lost", timeout=5000)
+    page.wait_for_selector(".session-lost", timeout=15000)
 
     # On se reconnecte, comme le ferait l'utilisateur depuis le bandeau.
     se_reconnecter(page, live_server)
 
-    page.wait_for_selector(".session-rescue", timeout=5000)
+    page.wait_for_selector(".session-rescue", timeout=15000)
     assert "Travail non enregistré retrouvé" in page.locator(".session-rescue").inner_text()
     assert page.locator("#blocks-container .admin-block").count() == 1, \
         "tant que l'utilisateur n'a pas choisi, on montre le brouillon SERVEUR, pas le rescapé"
@@ -88,12 +94,12 @@ def test_le_travail_rescape_est_propose_puis_enregistre(page, live_server):
     page.click(".session-rescue-yes")
     page.wait_for_function(
         "() => document.querySelectorAll('#blocks-container .admin-block').length === 2",
-        timeout=5000)
+        timeout=15000)
     page.wait_for_timeout(1600)          # laisse l'enregistrement partir
 
     # La reprise est allée jusqu'au SERVEUR, pas seulement à l'écran.
     page.reload()
-    page.wait_for_selector("#blocks-container .admin-block", timeout=5000)
+    page.wait_for_selector("#blocks-container .admin-block", timeout=15000)
     assert page.locator("#blocks-container .admin-block").count() == 2, \
         "le travail restauré n'a pas été réenregistré côté serveur"
     assert page.locator(".session-rescue").count() == 0, \
