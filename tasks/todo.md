@@ -2443,3 +2443,22 @@ CI verte sur la branche AVANT fusion, six jobs : **py3.11 · py3.12 · py3.13**,
 - `pyproject.toml` n'a pas de section `[project]`, donc aucun `requires-python` ne déclare
   les versions supportées : la matrice CI est aujourd'hui la seule trace de cette décision.
 - Python 3.14 : à réexaminer quand Pi OS passera à Trixie (Python 3.13 côté système).
+
+## LIVRÉ (2026-08-18) — branche `versions-supportees-ancrees`
+
+La fragilité relevée au lot précédent est levée : `requires-python = ">=3.11"` dans
+`pyproject.toml`, et `tests/test_versions_supportees.py` (4 tests) ancre le plancher à la
+CIBLE DE DÉPLOIEMENT plutôt qu'à une préférence. Éprouvé en désaccordant le plancher :
+trois assertions sur quatre tombent avec un message qui dit quoi faire.
+
+- **Python 3.14 : mesuré compatible**, pas seulement supposé — venv 3.14.5 jetable,
+  dépendances installées, 597 unitaires verts. Entré dans la matrice comme vigie.
+- Matrice : 3.11 (boîtier Bookworm) · 3.12 · 3.13 (boîtier Trixie de demain) · 3.14 (vigie).
+- Job lint ramené de 3.12 à 3.11, comme les e2e.
+- 14 `datetime.timezone.utc` → `datetime.UTC`, débloqués par la déclaration du plancher.
+- Vérifié : 601 unitaires, 76 e2e, 43 JS, ruff propre, couverture 89 %.
+
+### Trixie, pour mémoire
+Raspberry Pi OS Trixie (octobre 2025) rebase sur Debian 13 et fait passer le Python
+système de 3.11 à **3.13**. Le jour où `deploy/raspberry-pi.md` visera Trixie, la garde
+réclamera un plancher à 3.13 — c'est exactement ce qu'elle est là pour faire.
