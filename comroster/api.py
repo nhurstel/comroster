@@ -1,6 +1,6 @@
 import base64
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from flask import (
     Blueprint,
@@ -206,7 +206,7 @@ def admin_print():
         brouillon_distinct=_brouillon_distinct(brouillon, publie),
         embed=request.args.get("embed") == "1",
         updated_fr=_date_fr(state.get("updated_at")),
-        printed_at=datetime.now(timezone.utc).astimezone().strftime("%d/%m/%Y à %H:%M"),
+        printed_at=datetime.now(UTC).astimezone().strftime("%d/%m/%Y à %H:%M"),
     )
 
 

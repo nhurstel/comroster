@@ -1,3 +1,5 @@
+from datetime import UTC
+
 import pytest
 
 from comroster.services import model
@@ -51,9 +53,9 @@ def test_history_clear(tmp_path):
 
 def test_history_prunes_snapshots_older_than_30_days(tmp_path):
     import os
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
     h = History(Storage(str(tmp_path)))
-    old_ts = (datetime.now(timezone.utc) - timedelta(days=History.RETENTION_DAYS + 5)).strftime("%Y%m%dT%H%M%S%fZ")
+    old_ts = (datetime.now(UTC) - timedelta(days=History.RETENTION_DAYS + 5)).strftime("%Y%m%dT%H%M%S%fZ")
     with open(os.path.join(h.dir, f"{old_ts}.json"), "w") as fh:
         fh.write("{}")
     recent_ts = h.archive(model.empty_state())      # déclenche la purge

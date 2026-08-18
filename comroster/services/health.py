@@ -11,14 +11,14 @@ import os
 import shutil
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 # Import ≈ démarrage du process → sert d'origine pour l'uptime applicatif.
 _APP_START = time.time()
 
 
 def _now_iso():
-    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 # ---------- Parseurs purs (testables sans Pi) ----------

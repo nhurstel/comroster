@@ -14,7 +14,7 @@ instantané reste un état pur, restaurable sans nettoyage, et la purge n'a qu'u
 tenir à jour.
 """
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 TS_FORMAT = "%Y%m%dT%H%M%S%fZ"
 
@@ -80,7 +80,7 @@ class History:
 
     # ---------- cycle de vie ----------
     def archive(self, state, label="", pinned=False):
-        ts = datetime.now(timezone.utc).strftime(TS_FORMAT)
+        ts = datetime.now(UTC).strftime(TS_FORMAT)
         self.storage.atomic_write(os.path.join(self.dir, f"{ts}.json"), state)
         if label or pinned:
             index = self._index()
@@ -104,7 +104,7 @@ class History:
         """Purge par ÂGE puis par NOMBRE. Les repères épinglés traversent les deux :
         c'est exactement ce qu'on leur demande."""
         index = self._index()
-        cutoff = datetime.now(timezone.utc) - timedelta(days=self.RETENTION_DAYS)
+        cutoff = datetime.now(UTC) - timedelta(days=self.RETENTION_DAYS)
         supprimes = []
         kept = []
         for fname in self._snapshots():
@@ -146,7 +146,7 @@ class History:
     @staticmethod
     def _parse_ts(ts):
         try:
-            return datetime.strptime(ts, TS_FORMAT).replace(tzinfo=timezone.utc)
+            return datetime.strptime(ts, TS_FORMAT).replace(tzinfo=UTC)
         except ValueError:
             return None
 
@@ -175,7 +175,7 @@ class History:
             # Le « Z » du format est un littéral : strptime rendrait un datetime naïf.
             # On rattache UTC explicitement — l'affichage est inchangé, mais la valeur
             # devient comparable sans piège si elle sert un jour à autre chose.
-            dt = datetime.strptime(ts, TS_FORMAT).replace(tzinfo=timezone.utc)
+            dt = datetime.strptime(ts, TS_FORMAT).replace(tzinfo=UTC)
             return dt.strftime("%Y-%m-%d %H:%M:%S")
         except ValueError:
             return ts

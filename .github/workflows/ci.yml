@@ -31,7 +31,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7.0.0
         with:
-          python-version: "3.12"
+          # 3.11 comme les e2e : la version du boîtier. Toute version FIGÉE dans ce fichier
+          # doit être celle-là — tests/test_versions_supportees.py le vérifie, sinon une
+          # version se met à vivre sa vie dans un coin du workflow.
+          python-version: "3.11"
           cache: pip
       - name: ruff (Python)
         # Tout le dépôt, pas seulement le paquet : les tests et scripts étaient hors
@@ -60,18 +63,26 @@ jobs:
           "shellcheck-v$SHELLCHECK_VERSION/shellcheck" deploy/*.sh run-dev.sh
 
   unit:
-    # MATRICE, et son premier cran n'est pas décoratif : le boîtier est un Raspberry Pi OS
-    # Bookworm (deploy/raspberry-pi.md), et setup-pi.sh l. 65 crée son venv avec le
-    # `python3` du système, soit Python 3.11. La CI testait 3.12 — elle n'avait donc JAMAIS
-    # testé la version qui tourne chez le client. 3.12 et 3.13 suivent pour voir venir la
-    # bascule de Pi OS vers Trixie. 3.14 est volontairement écarté : le boîtier ne l'aura
-    # pas, et tester ce que personne n'exécute ne prouve rien.
+    # MATRICE, et chaque cran répond à une question précise :
+    #
+    #   3.11  le boîtier D'AUJOURD'HUI. Raspberry Pi OS Bookworm (deploy/raspberry-pi.md),
+    #         dont setup-pi.sh l. 65 prend le `python3` système. La CI testait 3.12 : elle
+    #         n'avait JAMAIS testé ce qui tourne chez le client. C'est le plancher déclaré
+    #         par `requires-python` dans pyproject.toml, et tests/test_versions_supportees.py
+    #         interdit aux deux de diverger.
+    #   3.12  la version de transition, encore installée sur les postes de dev.
+    #   3.13  le boîtier de DEMAIN. Raspberry Pi OS Trixie (octobre 2025) embarque Debian 13
+    #         et son Python 3.13 : c'est la version que prendra la prochaine réinstallation.
+    #   3.14  vigie. Mesurée compatible le 2026-08-16 (597 unitaires verts sous 3.14.5), donc
+    #         gratuite à surveiller : si elle rougit un jour, ce sera une DÉPENDANCE qui
+    #         décroche, et on le saura avant que Pi OS n'y arrive.
+    #
     name: Tests unitaires & intégration (py${{ matrix.python }})
     runs-on: ubuntu-24.04
     strategy:
-      fail-fast: false          # un échec sur 3.13 ne doit pas masquer l'état de 3.11
+      fail-fast: false          # un échec sur 3.14 ne doit pas masquer l'état de 3.11
       matrix:
-        python: ["3.11", "3.12", "3.13"]
+        python: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7.0.0
