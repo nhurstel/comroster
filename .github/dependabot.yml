@@ -45,6 +45,20 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Ne proposer une montée que si la version publiée SORT de la fourchette déclarée.
+    # Sans ça, Dependabot a ouvert quatre PR le 2026-08-16 pour faire passer `flask>=3.1`
+    # à `>=3.1.3` — un plancher relevé vers une version que la fourchette autorisait déjà,
+    # donc sans rien changer à ce qui s'installe. Quatre PR vertes et vides, c'est du
+    # bruit, et le bruit finit par faire fermer les PR sans les lire.
+    #
+    # Avec cette stratégie, une PR veut dire quelque chose de précis : « la nouvelle
+    # version franchit ton plafond, c'est une décision ». Ce qui reste DANS la fourchette
+    # continue d'être installé par pip sans rien demander — c'est le compromis assumé de
+    # requirements.txt : les majeures se décident, les mineures suivent.
+    #
+    # Les failles ne passent pas par ici mais par les alertes Dependabot du dépôt,
+    # activées le 2026-08-16, qui ouvrent une PR quel que soit ce réglage.
+    versioning-strategy: increase-if-necessary
     groups:
       python-mineures:
         update-types: ["minor", "patch"]
