@@ -6,7 +6,7 @@
 # suivait chaque publication. Un outil de test qui bouge tout seul transforme un échec de
 # suite en énigme : on cherche dans son propre code ce qui a changé chez l'outil.
 
-pytest>=9.1,<10
+pytest>=9.1.1,<10
 playwright>=1.62,<2         # le navigateur suit la bibliothèque : une bascule impose un
                             # `playwright install`, elle se décide donc (vécu le 2026-08-16).
 pytest-playwright>=0.9,<1
