@@ -2462,3 +2462,27 @@ trois assertions sur quatre tombent avec un message qui dit quoi faire.
 Raspberry Pi OS Trixie (octobre 2025) rebase sur Debian 13 et fait passer le Python
 système de 3.11 à **3.13**. Le jour où `deploy/raspberry-pi.md` visera Trixie, la garde
 réclamera un plancher à 3.13 — c'est exactement ce qu'elle est là pour faire.
+
+## LIVRÉ (2026-08-19) — ménage
+
+- **Dependabot** passe en `versioning-strategy: increase-if-necessary`. Ses quatre
+  premières PR relevaient un plancher vers une version que la fourchette autorisait déjà
+  (`flask>=3.1` → `>=3.1.3`) : rien de ce qui s'installe n'aurait changé. Fermées avec
+  l'explication. Le risque n'était pas le travail, c'était l'habitude — quatre PR sans
+  enjeu et on ferme sans lire, y compris la cinquième.
+- **Neuf branches distantes supprimées**, après contrôle que chacune ne portait aucun
+  commit absent de `main` (`git rev-list --count origin/main..origin/<b>` = 0). Le distant
+  ne porte plus que `main`.
+
+### Nuance à ne pas perdre
+Les bornes hautes empêchent une MAJEURE d'arriver seule sur le boîtier, pas une mineure :
+ce qui reste dans la fourchette continue d'être installé sans rien demander. Figer à
+l'octet près demanderait un fichier de verrouillage avec empreintes — chantier non ouvert,
+et non nécessaire tant que les majeures sont tenues.
+
+### Trixie — écarté le 2026-08-19
+Décision de Nathan : on n'y va pas. Le code est prêt (py3.13 vert en continu), mais la
+migration porterait sur l'APPLIANCE — `cage`/`chromium` en kiosque Wayland, `/boot/firmware`,
+`nmcli` —, tout ce qui a été validé sur vrai matériel serait à revalider, et aucun besoin
+ne l'exige. La garde `test_versions_supportees.py` réclamera le plancher 3.13 le jour où
+`deploy/raspberry-pi.md` visera Trixie : la bascule est préparée, pas engagée.
