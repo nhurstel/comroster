@@ -96,7 +96,13 @@ def test_changer_le_mot_de_passe_depuis_l_admin(page, live_server):
 
     page.fill("#pw-confirm", "nouveau-mdp")
     page.click("#password-form button[type=submit]")
-    page.wait_for_selector("#pw-current", state="visible")
+    # Attendre le TOAST, seul signal prouvant que le serveur a répondu. La ligne
+    # précédente attendait `#pw-current` visible — un champ qui l'est en permanence, donc
+    # une attente qui rendait la main aussitôt : on se déconnectait AVANT que le POST
+    # /admin/password ne parte (tracé le 2026-08-20 : il arrivait 1,5 s plus tard). Le
+    # mot de passe n'était pas changé, la reconnexion échouait, et le test ne tenait que
+    # par la chance du calendrier — la moindre variation de rendu le faisait tomber.
+    page.wait_for_selector(".cr-toast:has-text('Mot de passe changé')")
 
     page.click("#logout-link")
     page.wait_for_selector("input[name=password]")

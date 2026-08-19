@@ -318,6 +318,42 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: var(--voile-1);
 }
 
 /* ---------- Corps : latérale | espace de travail ---------- */
+/* ---------- Entrée de l'administration ----------
+   L'écran entier surgissait d'un bloc après la connexion. Une cascade courte donne à
+   l'œil le temps de situer les trois régions — bandeau, plateau, pied — au lieu de les
+   découvrir simultanément.
+
+   Ancrée sur ces trois conteneurs parce qu'ils sont STABLES. Les poser sur les panneaux
+   serait une faute : ils sont pilotés par `hidden`, donc par `display`, et l'animation
+   rejouerait à chaque changement d'onglet — une interface qui refait son entrée à chaque
+   clic devient fatigante en une demi-journée de régie.
+
+   OPACITÉ SEULE, sans `translateY`, et c'est une contrainte mesurée plutôt qu'un choix
+   d'esthète. Une translation déplace la boîte englobante ; or Playwright n'agit sur un
+   élément qu'une fois celle-ci immobile deux images de suite. Avec six pixels de montée,
+   la suite e2e passait de 157 s à 266 s (+51 % mesuré sur un sous-ensemble) : chaque
+   chargement de page faisait attendre sa propre cascade, 76 fois de suite.
+
+   Émuler le mouvement réduit dans les tests a été essayé, puis abandonné : posé sur le
+   contexte, `reduced_motion` neutralise `emulate_media(color_scheme=…)` et faisait tomber
+   les tests d'apparence. Laisser une décision cosmétique déformer la suite de tests aurait
+   été payer trop cher un déplacement de six pixels.
+
+   L'opacité ne coûte rien : elle ne modifie aucune géométrie, donc n'ajoute aucune attente.
+   Le fondu décalé suffit à donner l'ordre de lecture — bandeau, plateau, pied.
+
+   `backwards` : l'élément tient son état initial pendant son retard, et rien ne persiste
+   après l'animation. Budget total 110 + 200 = 310 ms, dernier élément compris ; les
+   contrôles restent cliquables pendant toute la cascade. */
+@keyframes admin-entree { from { opacity: 0; } }
+
+.admin-top,
+.admin-body,
+.admin-status { animation: admin-entree 200ms ease-out backwards; }
+.admin-top    { animation-delay: 0ms; }
+.admin-body   { animation-delay: 60ms; }
+.admin-status { animation-delay: 110ms; }
+
 .admin-body { flex: 1; min-height: 0; display: flex; }
 
 /* ---------- Barre latérale : rangées plates bord à bord (maquette .side) ---------- */
