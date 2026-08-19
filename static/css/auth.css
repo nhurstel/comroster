@@ -214,9 +214,13 @@ a { color: var(--accent); text-decoration: none; }
 
 /* Une seule animation, et elle est brève : la page n'est pas un spectacle. Le
    bloc prefers-reduced-motion en tête de feuille la neutralise déjà. */
+/* Opacité seule : une translation déplacerait la boîte englobante, et Playwright n'agit
+   sur un élément qu'une fois celle-ci immobile deux images de suite — six pixels de montée
+   coûtaient +51 % à la suite e2e (mesuré le 2026-08-19). Même raison que `admin-entree`,
+   où le raisonnement complet est écrit. */
 @keyframes auth-arrivee {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: none; }
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 .auth-col { animation: auth-arrivee 0.16s ease-out both; }
 
