@@ -2490,3 +2490,86 @@ migration porterait sur l'APPLIANCE — `cage`/`chromium` en kiosque Wayland, `/
 `nmcli` —, tout ce qui a été validé sur vrai matériel serait à revalider, et aucun besoin
 ne l'exige. La garde `test_versions_supportees.py` réclamera le plancher 3.13 le jour où
 `deploy/raspberry-pi.md` visera Trixie : la bascule est préparée, pas engagée.
+
+---
+
+# LOT 2026-08-19 — Les entrées : rendre l'arrivée des écrans perceptible
+
+Nathan : « j'aimerai un peu plus d'animations pour rendre l'interface sympa ». Option
+retenue après relevé : **sobre — les entrées, bien faites**. L'écran n'est pas touché.
+
+## Ce que le relevé a montré
+
+Les trois surfaces ne sont pas au même point, et la demande ne portait pas là où je
+croyais :
+
+- **L'écran est déjà le mieux servi** : `block-in` + `text-in`, 260 ms, décalage par rang
+  (`--anim-i`), plafonné (`--anim-cap`), supprimé en mode performance, et testé
+  (`test_transitions_affichage.py`). Rien à ajouter — on n'y touche pas.
+- **La connexion est animée sur le papier seulement** : `auth-arrivee` dure **0,16 s**,
+  sous le seuil de perception. Elle existe sans se voir.
+- **L'admin n'a AUCUNE animation d'arrivée.** Des animations ponctuelles oui (`block-up`,
+  `inv-flash`, `pub-sent`), mais l'écran entier surgit d'un bloc. C'est le vrai manque.
+- **`display.css` est la seule des quatre feuilles à ignorer `prefers-reduced-motion`.**
+  Ce n'est pas une question de goût : corrigé quoi qu'il arrive.
+
+## Le principe
+
+Une animation d'ARRIVÉE est gratuite : elle joue une fois, sur un écran qu'on découvre,
+et personne n'attend derrière. Une animation qui RETARDE un contrôle en régie est hostile.
+Donc : soigner les entrées, ne jamais ralentir un geste. Budget total sous 400 ms.
+
+## Ce qui est fait
+
+1. **Admin** — cascade sur les trois conteneurs STABLES : `header.admin-top` →
+   `div.admin-body` → `footer.admin-status`. Ancrer sur les panneaux serait une faute :
+   ils sont pilotés par `hidden`, l'animation rejouerait à chaque changement d'onglet.
+2. **Connexion** — `.auth-col` allongé, puis décalage de ses enfants via `> :nth-child()`.
+   Par position et non par classe : les trois gabarits (login, setup, recover) n'ont pas
+   la même liste d'enfants, une règle positionnelle les couvre tous sans les énumérer.
+3. **`display.css`** — bloc `prefers-reduced-motion` aligné sur les trois autres feuilles.
+4. **Garde** — un test vérifie que toute feuille qui anime respecte `prefers-reduced-motion`,
+   et que le budget d'entrée reste sous 400 ms.
+
+## Deux pièges écartés
+
+- `transform` sur un conteneur crée un bloc englobant et casserait `position: fixed` chez
+  ses descendants. Vérifié : les trois éléments fixes (`.cr-toast`, `.drag-ghost`,
+  `.selection-bar`) sont HORS `.admin-body`. Et `backwards` — non `forwards` — fait que la
+  transformation ne survit pas à l'animation : la fenêtre de risque est nulle.
+- Pas de nouveaux jetons CSS pour les durées : les timings du dépôt sont déjà littéraux
+  (`block-up 0.3s`, `inv-flash 0.9s`), et un jeton non couleur dans `:root` irait se
+  heurter aux gardes de thème.
+
+## CORRECTION en cours de lot — `display.css` n'avait pas de manque
+
+Le plan ci-dessus affirmait que `display.css` « est la seule des quatre feuilles à ignorer
+`prefers-reduced-motion` ». **C'est faux, et je l'ai vérifié trop tard** : `display.html`
+charge `main.css` (l. 9) AVANT elle, et la règle qui s'y trouve porte sur `*` en
+`!important` — la cascade des blocs et le fondu des textes étaient déjà couverts.
+
+L'erreur de raisonnement : j'ai compté les feuilles au lieu de compter les PAGES.
+`admin.css`, `auth.css` et `print.css` sont autonomes (elles ne chargent pas `main.css`,
+c'est un découplage voulu et testé), donc elles doivent porter la règle. `display.css` ne
+l'est pas : elle n'a pas à se suffire.
+
+Le bloc ajouté a été retiré, remplacé par un commentaire qui dit POURQUOI il n'y en a pas
+— sans quoi le prochain lecteur referait le même « correctif ».
+
+Ce qui reste de l'épisode, et qui valait le détour : `tests/test_mouvement.py` raisonne
+par GROUPE de feuilles chargées ensemble, découpage repris de `test_css_tokens.py`. Une
+garde fichier par fichier aurait signalé un manque inexistant à chaque exécution — et une
+garde qui crie à tort finit désactivée.
+
+## LIVRÉ (2026-08-19)
+
+- **Admin** : cascade `admin-entree` sur `.admin-top` → `.admin-body` → `.admin-status`.
+  MESURÉ dans le navigateur via `getAnimations()` : retards 0 / 60 / 110 ms, durée 200 ms,
+  dernier élément arrivé à **310 ms**.
+- **Connexion** : `auth-arrivee` passe de 0,16 s (imperceptible) à 240 ms, avec décalage
+  positionnel des enfants — 40 / 90 / 130 / 160 ms, plafonné au 4e.
+- **Écran** : non touché, sa cascade était déjà la meilleure des trois.
+- **Garde** : `tests/test_mouvement.py`, 6 tests + 1 ignoré à raison (`print.css` n'anime
+  rien). Éprouvée dans les deux sens : retirer la règle de `main.css` la fait échouer,
+  gonfler l'entrée à 900 ms aussi.
+- Vérifié : 607 unitaires, 76 e2e, 43 JS, ruff propre.
