@@ -188,6 +188,26 @@ a { color: var(--accent); text-decoration: none; }
     overflow-y: auto;
 }
 .auth-col { width: 100%; max-width: var(--col); }
+
+/* ---------- Entrée de la page de connexion ----------
+   `auth-arrivee` durait 0,16 s : sous le seuil de perception, elle existait sans se voir.
+   Allongée, et surtout DÉCALÉE — c'est le décalage, pas la durée, qui fait qu'on lit
+   « titre, puis explication, puis champ » au lieu de recevoir un bloc.
+
+   Par POSITION (`> :nth-child`) et non par classe : login, setup et recover n'ont pas la
+   même liste d'enfants — l'un porte un code de secours, l'autre un avertissement, le
+   troisième un message d'erreur conditionnel. Une règle positionnelle les couvre tous
+   sans énumérer ce que chaque gabarit contient, et ne ment pas le jour où l'un change.
+
+   Le champ garde son `autofocus` : opacité et translation n'empêchent ni le focus ni la
+   saisie. On peut taper son mot de passe pendant que la page finit d'entrer. */
+.auth-col > * { animation: auth-arrivee 240ms ease-out backwards; }
+.auth-col > :nth-child(1) { animation-delay: 40ms; }
+.auth-col > :nth-child(2) { animation-delay: 90ms; }
+.auth-col > :nth-child(3) { animation-delay: 130ms; }
+/* Au-delà du troisième, plus de décalage : le formulaire de secours en compte six, et
+   l'attente deviendrait plus longue que le geste qu'on vient faire. */
+.auth-col > :nth-child(n + 4) { animation-delay: 160ms; }
 /* Les états qui affichent un code ont besoin de plus de large : le code ne doit
    JAMAIS se couper (voir .auth-code). */
 .auth-col.wide { max-width: 560px; }

@@ -318,6 +318,33 @@ button.chip:hover:not(:disabled) { color: var(--fg); background: var(--voile-1);
 }
 
 /* ---------- Corps : latérale | espace de travail ---------- */
+/* ---------- Entrée de l'administration ----------
+   L'écran entier surgissait d'un bloc après la connexion. Une cascade courte donne à
+   l'œil le temps de situer les trois régions — bandeau, plateau, pied — au lieu de les
+   découvrir simultanément.
+
+   Ancrée sur ces trois conteneurs parce qu'ils sont STABLES. Les poser sur les panneaux
+   serait une faute : ils sont pilotés par `hidden`, donc par `display`, et l'animation
+   rejouerait à chaque changement d'onglet — une interface qui refait son entrée à chaque
+   clic devient fatigante en une demi-journée de régie.
+
+   `backwards` et non `forwards` : la transformation ne SURVIT pas à l'animation. Un
+   `transform` persistant créerait un bloc englobant et casserait le `position: fixed` de
+   tout descendant (barre de sélection, fantôme de glisser-déposer, toasts). Ils sont
+   aujourd'hui hors de `.admin-body`, mais la règle protège le jour où ça changera.
+
+   Budget total : 110 ms de retard + 200 ms = 310 ms, dernier élément compris. Rien
+   n'attend derrière — les contrôles restent cliquables pendant la cascade, seules
+   l'opacité et six pixels de translation bougent. */
+@keyframes admin-entree { from { opacity: 0; transform: translateY(6px); } }
+
+.admin-top,
+.admin-body,
+.admin-status { animation: admin-entree 200ms ease-out backwards; }
+.admin-top    { animation-delay: 0ms; }
+.admin-body   { animation-delay: 60ms; }
+.admin-status { animation-delay: 110ms; }
+
 .admin-body { flex: 1; min-height: 0; display: flex; }
 
 /* ---------- Barre latérale : rangées plates bord à bord (maquette .side) ---------- */

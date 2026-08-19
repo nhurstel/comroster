@@ -336,3 +336,11 @@ body.display-page footer {
   animation: text-in var(--anim-in) ease-out backwards;
 }
 @keyframes text-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Pas de bloc `prefers-reduced-motion` ici, et ce n'est PAS un oubli : contrairement à
+   admin.css, auth.css et print.css, cette feuille n'est pas autonome. display.html charge
+   main.css avant elle (l. 9), et la règle qui s'y trouve porte sur `*` en `!important` :
+   elle couvre déjà la cascade d'arrivée des blocs et le fondu des textes. La dupliquer ici
+   ferait croire à deux réglages là où il n'y en a qu'un.
+   C'est tests/test_mouvement.py qui vérifie la couverture, et il raisonne par GROUPE de
+   feuilles chargées ensemble — pas fichier par fichier, ce qui donnerait un faux manque. */
