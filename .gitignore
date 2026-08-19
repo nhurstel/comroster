@@ -53,3 +53,9 @@ RIEDEL SOFTS/
 # Brouillons de travail des agents (briefs, rapports, paquets de revue) : du scratch,
 # reconstructible depuis le plan et git log.
 .superpowers/
+# Réglages LOCAUX de l'outillage : `settings.local.json` fait 70 ko d'autorisations propres
+# à cette machine, `STATE.md` est un bloc-notes de session. Rien à partager, et surtout rien
+# à imposer — committés, ils s'appliqueraient à quiconque clone le dépôt. Ils salissaient
+# chaque `git status`, ce qui fait lire les status en diagonale : c'est exactement comme ça
+# qu'un fichier non suivi qui COMPTE finit par passer inaperçu.
+.claude/

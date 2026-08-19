@@ -107,7 +107,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020   # v7.0.0
         with:
-          node-version: "22"
+          # 24 : la seule LTS ACTIVE au 2026-08-19, maintenue jusqu'au 2028-04-30. La 22
+          # qui était ici avait quitté le support actif le 2025-10-21 — dix mois en
+          # maintenance sans que rien ne le signale, parce que Dependabot ne surveille pas
+          # cette entrée (il suit les ACTIONS, pas leurs paramètres).
+          #
+          # Pas `lts/*` : ça résoudrait vers la dernière LTS à chaque exécution et
+          # réintroduirait précisément la dérive qu'on a retirée partout ailleurs.
+          # À REVOIR fin octobre 2026, quand la 26 deviendra LTS (support jusqu'en 2029).
+          node-version: "24"
           cache: npm
       # `npm ci` installe EXACTEMENT le lockfile : vitest y est épinglé à la version
       # exacte, comme ruff côté Python.
