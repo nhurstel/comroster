@@ -38,11 +38,21 @@ source = ["comroster"]
 branch = true
 
 [tool.coverage.report]
-# Seuil PLANCHER, pas cible : la couverture mesurée à l'audit du 2026-07-28 était de 90 %.
-# Le poser à ce niveau interdit la dérive silencieuse sans transformer chaque correctif en
-# négociation de pourcentage. À relever quand il devient confortable, jamais à abaisser
-# pour faire passer un lot.
-fail_under = 88
+# Seuil PLANCHER, pas cible : il interdit la dérive silencieuse sans transformer chaque
+# correctif en négociation de pourcentage. À relever quand il devient confortable, jamais
+# à abaisser pour faire passer un lot.
+#
+# `precision` n'est pas cosmétique, c'est ce qui donne son sens au seuil. Coverage compare
+# la valeur ARRONDIE à la précision d'affichage : avec la précision 0 d'origine, un seuil
+# à 89 aurait laissé descendre jusqu'à 88,5 avant de rougir — un demi-point de mou, alors
+# qu'on croyait n'en laisser aucun. C'est aussi ce qui m'a fait annoncer « 89 % » le
+# 2026-08-19 quand la mesure réelle était 88,97 %.
+#
+# Deux décimales, plancher à 88,9 : la marge est de 0,07 point, réelle et vérifiable, et
+# non plus un artefact d'arrondi. Le vrai 89 demandera d'écrire des tests, pas de bouger
+# ce nombre — c'est exactement ce qu'on veut d'un cliquet.
+fail_under = 88.9
+precision = 2
 show_missing = true
 exclude_also = [
     # Point d'entrée d'un script : exécuté par systemd, jamais par la suite de tests.
