@@ -2440,9 +2440,13 @@ CI verte sur la branche AVANT fusion, six jobs : **py3.11 · py3.12 · py3.13**,
   de sécurité automatiques.
 
 ### Reste ouvert
-- `pyproject.toml` n'a pas de section `[project]`, donc aucun `requires-python` ne déclare
-  les versions supportées : la matrice CI est aujourd'hui la seule trace de cette décision.
-- Python 3.14 : à réexaminer quand Pi OS passera à Trixie (Python 3.13 côté système).
+- ~~`pyproject.toml` n'a pas de section `[project]`~~ → **fait le 2026-08-18** : la section
+  existe, `requires-python = ">=3.11"`, et `tests/test_versions_supportees.py` l'ancre à la
+  cible de déploiement. (Entrée restée non rayée un jour : un « reste ouvert » périmé est
+  pire qu'une liste absente — il fait chercher un travail déjà fait.)
+- ~~Python 3.14 : à réexaminer~~ → **mesuré compatible le 2026-08-18**, entré dans la
+  matrice comme vigie. Le réexamen porte désormais sur le PLANCHER, pas sur 3.14, et c'est
+  la garde qui le déclenchera quand `deploy/` changera de cible.
 
 ## LIVRÉ (2026-08-18) — branche `versions-supportees-ancrees`
 
