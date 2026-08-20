@@ -121,6 +121,33 @@ def test_le_cadre_ne_saute_plus_en_changeant_de_volet(page, live_server):
     )
 
 
+def test_un_preset_montre_sa_date_d_enregistrement(page, live_server):
+    """`updated_at` était renvoyé par l'API et JETÉ par l'interface.
+
+    Défaut d'information, pas de mise en page : `Configs.list()` compose
+    `{name, updated_at}` depuis toujours, et `refreshConfigs` n'affichait que le nom. Une
+    rangée réduite à un mot ne fait pas objet — c'est ce que Nathan a vu (« on ne
+    distingue pas bien »), et c'est pourquoi ajouter une bordure n'aurait pas suffi.
+
+    La garde porte sur la PRÉSENCE d'une date propre à la rangée, jamais sur son
+    formatage : `toLocaleString` dépend de la locale du navigateur, et figer « 20 août »
+    ici ferait tomber le test sur une machine en anglais sans qu'aucune information soit
+    perdue.
+    """
+    _ouvrir(page, live_server)
+    page.click('#versions-dialog [data-vers="presets"]')
+    page.fill("#config-name", "Jour 2")
+    page.click("#config-save-btn")
+    page.wait_for_selector("#configs-list [data-load='Jour 2']")
+
+    assert page.inner_text("#configs-list .cfg-name").strip() == "Jour 2"
+    quand = page.inner_text("#configs-list .cfg-when").strip()
+    assert quand, "la rangée n'affiche aucune date : `updated_at` est de nouveau ignoré"
+    assert any(c.isdigit() for c in quand), (
+        f"« {quand} » ne contient aucun chiffre : ce n'est pas une date"
+    )
+
+
 def test_les_actions_d_une_rangee_restent_atteignables(page, live_server):
     """Masquées au repos, révélées au survol ET au focus.
 

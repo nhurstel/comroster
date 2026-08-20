@@ -2825,3 +2825,33 @@ Le test du segmenté compare les trois fonds ENTRE EUX et non à une couleur nom
 valeur appartient au thème, la DIFFÉRENCE appartient au produit. Il a d'abord échantillonné
 pendant la transition (`rgba(…, 0.004)`, un fond en train d'apparaître) — corrigé en
 attendant que les valeurs cessent de bouger, pas en allongeant un `sleep`.
+
+## Retour de Nathan sur les presets (même jour)
+
+« La partie presets, mieux compartimenter les presets sauvegardés, là on ne distingue pas
+bien dans l'interface. » Juste : en aplatissant les rangées, j'avais appliqué aux presets
+le traitement de l'historique, alors que les deux listes n'ont pas la même nature.
+
+**Un repère d'historique se lit dans une SUITE** — le filet suffit à le séparer du
+précédent, et six surfaces empilées feraient un damier. **Un preset se choisit
+ISOLÉMENT** : à plat, sa rangée n'était qu'une ligne de texte, et quatre presets se
+lisaient comme un paragraphe.
+
+Deux corrections, dont une seule est cosmétique :
+
+1. **`updated_at` était renvoyé par l'API et JETÉ par l'interface.** `Configs.list()` le
+   compose depuis toujours (`comroster/services/configs.py` l. 33), `refreshConfigs`
+   n'affichait que le nom. C'est un défaut d'INFORMATION, et c'est lui qui explique le
+   symptôme : une rangée réduite à un mot ne fait pas objet. Ajouter une bordure n'y
+   aurait rien changé. Formatage côté client — changer la réponse de `/api/configs`
+   toucherait un contrat testé pour un gain nul.
+2. **Surface rendue aux rangées de presets** : `--inset`, rayon, intervalle réel, sans
+   bordure — celle des rangées de beltpack dans un groupe. Compartimenté dans la langue du
+   plateau, pas en cartes bordées. L'historique garde ses filets.
+
+Garde : `test_un_preset_montre_sa_date_d_enregistrement`, confrontée à sa mutation (date
+vidée → « la rangée n'affiche aucune date »). Elle vérifie la PRÉSENCE d'une date, jamais
+son formatage : `toLocaleString` dépend de la locale du navigateur, et figer « 20 août »
+ferait tomber le test sur une machine en anglais sans qu'aucune information soit perdue.
+
+Vérifié : 609 unitaires, 84 e2e, 51 JS, ruff propre.

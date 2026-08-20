@@ -1812,7 +1812,26 @@ body[data-session="lost"] .admin-app {
    hériter d'`opacity: 0`, qu'aucune règle enfant ne peut annuler — un repère épinglé
    cesserait de le montrer au repos, c'est-à-dire précisément quand on le cherche. */
 .versions-dialog .history-list li { grid-template-columns: auto 1fr auto auto; }
-.versions-dialog .configs-list li { grid-template-columns: 1fr auto; }
+/* Les presets sont des OBJETS, l'historique une chronologie — d'où deux traitements.
+   Un repère se lit dans une suite : le filet suffit à le séparer du précédent, et six
+   surfaces empilées feraient un damier. Un preset, lui, se choisit ISOLÉMENT ; à plat, sa
+   rangée n'était qu'une ligne de texte et quatre presets se lisaient comme un paragraphe.
+   Nathan : « on ne distingue pas bien ». Ils reprennent donc une surface — celle des
+   rangées de beltpack dans un groupe, `--inset`, sans bordure, séparées par un vrai
+   intervalle. Compartimenté, mais dans la langue du plateau et non en cartes bordées. */
+.versions-dialog .configs-list { gap: 5px; }
+.versions-dialog .configs-list li {
+    grid-template-columns: 1fr auto;
+    padding: 9px 11px; border-bottom: 0;
+    background: var(--inset); border-radius: var(--rad);
+}
+.versions-dialog .configs-list li:hover { background: var(--surface-3); }
+.cfg-ident { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+/* La date en second rang donne son assise à la rangée : sans elle, il n'y a qu'un mot. */
+.cfg-when {
+    font-family: var(--f-mono); font-variant-numeric: tabular-nums;
+    font-size: 11px; color: var(--muted);
+}
 .versions-dialog .history-list li:last-child,
 .versions-dialog .configs-list li:last-child { border-bottom: 0; }
 .versions-dialog .history-list li:hover,
@@ -1826,7 +1845,7 @@ body[data-session="lost"] .admin-app {
 }
 .versions-dialog .hi-label { font-size: var(--ui); font-weight: 600; color: var(--fg); }
 .versions-dialog .hi-label.empty { font-weight: 400; color: var(--muted); font-style: italic; }
-.versions-dialog .configs-list li > span:first-child {
+.versions-dialog .configs-list .cfg-name {
     font-size: var(--ui); font-weight: 600; color: var(--fg);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }

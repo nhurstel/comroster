@@ -2521,6 +2521,19 @@
   /* ---------- Presets (ex-« Configurations ») ----------
      La fonction ne fait plus qu'EMPLIR : l'ouverture appartient au dialogue qui les
      héberge désormais avec l'historique et les fichiers. */
+  /* `updated_at` arrive en ISO 8601 UTC (« 2026-08-20T19:45:32Z »). Le formatage est fait
+     ICI et non au serveur, contrairement à l'historique qui reçoit un `datetime` déjà
+     composé : changer la réponse de `/api/configs` toucherait un contrat que des tests
+     vérifient, pour un gain nul. Une date illisible vaut mieux qu'une rangée vide, donc on
+     rend la chaîne brute plutôt que rien si l'analyse échoue. */
+  function dateEnregistrement(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString("fr-FR", { day: "2-digit", month: "short",
+                                       hour: "2-digit", minute: "2-digit" });
+  }
+
   async function refreshConfigs() {
     const items = await apiSend("GET", "/api/configs");
     const ul = document.getElementById("configs-list");
@@ -2530,7 +2543,14 @@
          une liste d'objets ordinaires, et le nom, seule chose qu'on lit, devenu l'élément
          le plus discret. Les actions se révèlent au survol et au focus, comme sur la
          carte beltpack. */
-      ? items.map((c) => `<li><span>${esc(c.name)}</span><span class="vers-actions cfg-actions">`
+      /* Chaque preset porte enfin sa DATE. `updated_at` était déjà renvoyé par
+         `Configs.list()` et jeté ici : les rangées n'avaient qu'un nom, donc rien pour
+         faire objet, et quatre presets se lisaient comme quatre lignes de texte. C'est ce
+         que Nathan a vu — « on ne distingue pas bien ». Un second rang de contenu
+         compartimente mieux qu'une bordure de plus. */
+      ? items.map((c) => `<li><span class="cfg-ident"><span class="cfg-name">${esc(c.name)}</span>`
+          + `<span class="cfg-when">${esc(dateEnregistrement(c.updated_at))}</span></span>`
+          + `<span class="vers-actions cfg-actions">`
           + `<button type="button" data-load="${esc(c.name)}">Charger</button>`
           + `<button type="button" data-export="${esc(c.name)}">Exporter</button>`
           + `<button type="button" data-del="${esc(c.name)}" class="danger">Supprimer</button></span></li>`).join("")
