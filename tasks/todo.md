@@ -1722,11 +1722,20 @@ Le lot a répondu aux arbitrages donnés, mais le diagnostic initial listait aus
   627 lignes »). Le fichier n'existe plus ; le plus gros e2e fait 303 lignes.
 - ~~Le helper de connexion e2e, dupliqué huit fois~~ → **zéro occurrence de `_enter_admin`**
   aujourd'hui : `tests/e2e/helpers.py` porte `enter_admin` et sept autres helpers.
-- La course sur le champ rôle est CONTOURNÉE côté test (l'application vide le champ en
-  réaction au numéro). Le correctif de fond serait côté `admin.js` : ne pas écraser une
-  saisie de l'utilisateur. Non fait — cela touche une interaction que Nathan utilise.
-  **Toujours ouvert au 2026-08-20** (le lot du 2026-08-09 a réglé le focus différé, qui
-  était un autre défaut du même dialogue, pas celui-ci).
+- ~~La course sur le champ rôle est CONTOURNÉE côté test. Le correctif de fond serait côté
+  `admin.js` : ne pas écraser une saisie de l'utilisateur.~~ → **réglé, relevé dans le code
+  le 2026-08-20.** Les trois pièces sont en place :
+  - `admin.js` l. 1291 — `if (el.personRole.value && !roleAutofilled) return;` : une saisie
+    manuelle n'est jamais écrasée. C'est exactement le correctif de fond réclamé ici.
+  - `admin.js` l. 1269 — `roleAutofilled` remis à `false` à CHAQUE ouverture du dialogue.
+    Sans cette ligne, un `true` hérité d'une ouverture précédente ferait écraser le rôle
+    d'un beltpack qu'on vient rouvrir pour l'éditer.
+  - `helpers.py` l. 88-93 — le contournement (reposer la valeur effacée) a été RETIRÉ le
+    2026-08-09 ; l'assertion qui vérifie le rôle avant soumission reste et tomberait si le
+    défaut revenait.
+  Ce qui subsiste n'est pas un défaut mais le parti pris documenté l. 1284-1288 : la
+  proposition reste VIVANTE tant que le champ rôle n'a pas été touché à la main — taper
+  « 2 » propose le rôle du 2, continuer en « 22 » doit re-proposer ou vider.
 
 ### 4. Jamais demandé, jamais fait
 - Captures dans la documentation (étape 7 du lot des apparences). **Toujours ouvert.**
@@ -2647,9 +2656,25 @@ tenues.
 
 ## Reste ouvert — vérifié encore ouvert au 2026-08-20
 
-- **La course sur le champ rôle** dans `admin.js` : l'application vide le champ en réaction
-  au numéro, le contournement vit côté test. Touche une interaction que Nathan utilise.
+- ~~**La course sur le champ rôle** dans `admin.js`~~ → **RECTIFIÉ le 2026-08-20, voir
+  ci-dessous.** Elle était réglée depuis le 2026-08-09 ; je l'ai reconduite sans lire le
+  code.
 - **Le pied de la feuille imprimée** qui redit l'en-tête : garder demandé, alléger non
   tranché.
 - **Captures dans la documentation** (étape 7 du lot des apparences) : jamais demandé.
 - **Le blanc en bas de rangée** à l'impression : prix assumé de l'alignement.
+
+## RECTIFICATIF (même jour) — le lot a fabriqué le défaut qu'il corrigeait
+
+Nathan a demandé ce qu'était cette « course sur le champ rôle ». En ouvrant `admin.js`
+pour lui répondre : **elle n'existe plus**, et le relevé ci-dessus était faux.
+
+Les trois autres entrées de ce lot ont été vérifiées commit par commit (`707a93b`,
+`fbae2cb`, `79f6a64`). Celle-ci, non : je l'ai recopiée depuis le document qui la portait,
+en me contentant de la redater. **Une entrée datée « vérifié au 2026-08-20 » est plus
+crédible qu'une entrée sans date** — l'erreur est donc plus coûteuse que celle qu'on
+venait de corriger, pas moins.
+
+Ce qui restait ouvert se réduit à trois arbitrages qui appartiennent à Nathan, et **zéro
+défaut produit connu** : le pied de la feuille imprimée, les captures dans la doc, le blanc
+en bas de rangée.
