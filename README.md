@@ -12,7 +12,7 @@ mémorise la correspondance n° → rôle et la propose à la saisie.
 
 ## Pile technique
 
-Python 3.12 · Flask · Flask-WTF (CSRF) · Flask-Limiter (anti-bruteforce) · Werkzeug
+Python 3.11+ · Flask · Flask-WTF (CSRF) · Flask-Limiter (anti-bruteforce) · Werkzeug
 (hashing) · SSE (`EventSource`) · drag-and-drop HTML5 natif (zéro dépendance JS) ·
 trois apparences d'écran commutables × deux modes de luminosité · pytest. Persistance
 par fichiers JSON plats avec écriture atomique. Aucun SGBD.
@@ -20,9 +20,12 @@ par fichiers JSON plats avec écriture atomique. Aucun SGBD.
 ## Installation
 
 ```bash
-python3.12 -m venv .venv
+python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
+> Plancher **3.11**, la version du boîtier (Raspberry Pi OS Bookworm) — `deploy/setup-pi.sh`
+> crée son venv avec le `python3` du système, cette commande fait donc la même chose.
+> La CI vérifie 3.11, 3.12, 3.13 et 3.14.
 
 ## Variables d'environnement
 
