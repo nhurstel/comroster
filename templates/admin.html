@@ -228,7 +228,22 @@
 
             <section class="admin-panel panel-pool" id="panel-pool" aria-labelledby="available-heading">
               <div class="pool-head">
-                <h3 id="available-heading" class="nav-label">Disponibles <span class="badge" id="available-count"></span></h3>
+                {# Le repli était CALCULÉ (zéro disponible) et jamais commandé : une fois
+                   la réserve dépliée, plus rien ne pouvait la refermer. Ce bouton est le
+                   geste manquant ; il se cache sur un roster vide, où replier laisserait
+                   un contrôle sans objet. #}
+                <div class="pool-title">
+                  <h3 id="available-heading" class="nav-label">Disponibles <span class="badge" id="available-count"></span></h3>
+                  <button type="button" class="pool-fold" id="pool-fold"
+                          aria-controls="panel-pool" aria-expanded="true"
+                          title="Replier la réserve" aria-label="Replier la réserve">
+                    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"
+                         fill="none" stroke="currentColor" stroke-width="1.6"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M10 3.5 5.5 8l4.5 4.5"/>
+                    </svg>
+                  </button>
+                </div>
                 <div class="pool-find">
                   <input type="search" id="available-filter" placeholder="N° ou nom…" autocomplete="off">
                   <kbd>⌘K</kbd>

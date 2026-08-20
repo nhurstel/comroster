@@ -709,7 +709,18 @@ body:has(#configs-dialog[open]) #configs-btn {
     display: flex; flex-direction: column; min-height: 0;
 }
 .pool-head { flex: 0 0 auto; padding: var(--pad) var(--pad) 9px; display: flex; flex-direction: column; gap: 9px; }
+.pool-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .pool-head h3 { display: flex; align-items: center; gap: 6px; }
+/* Le pendant exact de `.pr-open` du rail : même famille de contrôle, l'un replie,
+   l'autre déplie. Teinte `--muted` au repos comme les autres commandes de chrome —
+   il se découvre au survol, il n'a pas à réclamer l'attention en permanence. */
+.pool-fold {
+    flex: 0 0 auto; display: grid; place-items: center; width: 24px; height: 24px;
+    background: none; border: 0; border-radius: var(--rad);
+    color: var(--muted); cursor: pointer;
+}
+.pool-fold:hover { color: var(--fg); background: var(--inset); }
+.pool-fold:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .pool-head .badge { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); letter-spacing: 0; }
 .pool-find {
     display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px;

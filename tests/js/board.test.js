@@ -188,3 +188,59 @@ describe("ordonnerMembres — tri automatique, sauf si on a rangé à la main", 
       .toEqual(["3", "A1", "HF-2"]);
   });
 });
+
+describe("correspond — le début d'un mot, pas n'importe où dedans", () => {
+  // Le défaut signalé par Nathan le 2026-08-20 : taper « i » mettait en avant tout ce
+  // qui contient un i, où qu'il soit. C'est LE cas à ne jamais laisser revenir.
+  it("ne retient pas une lettre trouvée en plein milieu d'un mot", () => {
+    for (const role of ["Régie", "Lumière", "Micro", "Plateau"]) {
+      expect(Board.correspond(role, "i"), `« i » ne doit pas retenir « ${role} »`)
+        .toBe(false);
+    }
+  });
+
+  it("retient ce que la requête AMORCE", () => {
+    expect(Board.correspond("Régie", "r")).toBe(true);
+    expect(Board.correspond("Régie", "rég")).toBe(true);
+    expect(Board.correspond("Régie", "régie")).toBe(true);
+  });
+
+  // Sans repli des accents, la règle du début casserait la recherche sur le vocabulaire
+  // même du produit : « re » ne trouverait plus « Régie ». C'est la raison d'être de
+  // `sansAccents`, pas un raffinement.
+  it("replie les accents dans les DEUX sens", () => {
+    expect(Board.correspond("Régie", "re")).toBe(true);
+    expect(Board.correspond("Éclairage", "ec")).toBe(true);
+    expect(Board.correspond("Regie", "ré")).toBe(true);
+  });
+
+  it("amorce n'importe quel mot, pas seulement le premier", () => {
+    expect(Board.correspond("Régie son", "son")).toBe(true);
+    expect(Board.correspond("Régie son", "on")).toBe(false);   // « on » n'amorce rien
+  });
+
+  it("exige que chaque mot de la requête amorce un mot, dans n'importe quel ordre", () => {
+    expect(Board.correspond("Régie son", "regie son")).toBe(true);
+    expect(Board.correspond("Régie son", "son regie")).toBe(true);
+    expect(Board.correspond("Régie son", "regie image")).toBe(false);
+  });
+
+  it("traite les numéros par la même règle", () => {
+    expect(Board.correspond("10", "1")).toBe(true);
+    expect(Board.correspond("10", "0")).toBe(false);   // 0 est au milieu, pas au début
+    expect(Board.correspond("21", "2")).toBe(true);
+  });
+
+  // Une requête vide est l'ABSENCE de filtre. La confondre avec « rien ne correspond »
+  // viderait le plateau au premier effacement du champ.
+  it("laisse tout passer quand la requête est vide ou sans lettre", () => {
+    for (const vide of ["", "   ", "  -- ", null, undefined]) {
+      expect(Board.correspond("Régie", vide)).toBe(true);
+    }
+  });
+
+  it("ne casse pas sur un texte absent", () => {
+    expect(Board.correspond(null, "r")).toBe(false);
+    expect(Board.correspond(undefined, "")).toBe(true);
+  });
+});

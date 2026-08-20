@@ -503,7 +503,7 @@
     el.availableCount.textContent = all.length;
     const q = (state.filter || "").trim().toLowerCase();
     const avail = q
-      ? all.filter((p) => String(p.beltpack).toLowerCase().includes(q) || (p.role || "").toLowerCase().includes(q))
+      ? all.filter((p) => Board.correspond(p.beltpack, q) || Board.correspond(p.role, q))
       : all;
     if (!all.length) {
       const h = document.createElement("div");
@@ -541,11 +541,25 @@
        sur un roster vide cachait l'unique porte d'entrée du produit, au moment précis où
        l'on en a besoin. Défaut trouvé par trois e2e, pas à l'œil. */
     const rosterVide = !state.data.people.length;
-    const replie = nbDisponibles === 0 && !rosterVide && !state.poolOuvert;
+    /* `state.poolOuvert` a TROIS états, pas deux — c'est ce qui manquait. Tant qu'il vaut
+       `null`, le pli se calcule (cas nominal : tout est affecté, la réserve ne sert à rien
+       pour l'instant). Dès que l'opérateur commande, sa décision l'emporte sur le calcul :
+       sans cela, replier une réserve non vide était impossible, et déplier était
+       irréversible. Reste une préférence de SESSION : un rechargement repart du calcul. */
+    const choisi = state.poolOuvert === true || state.poolOuvert === false;
+    const replie = rosterVide ? false
+      : (choisi ? !state.poolOuvert : nbDisponibles === 0);
     rail.hidden = !replie;
     panneau.hidden = replie;
     document.getElementById("pool-rail-open").setAttribute("aria-expanded", String(!replie));
     document.getElementById("pool-rail-count").textContent = nbDisponibles;
+    // Replier un roster vide cacherait le panneau au moment précis où l'on découvre le
+    // produit : le bouton disparaît plutôt que de rester là sans effet.
+    const fold = document.getElementById("pool-fold");
+    if (fold) {
+      fold.hidden = rosterVide;
+      fold.setAttribute("aria-expanded", String(!replie));
+    }
   }
   document.getElementById("available-filter").addEventListener("input", (e) => {
     state.filter = e.target.value;
@@ -992,7 +1006,10 @@
     const bp = (card.dataset.bp || "").toLowerCase();
     const role = (card.querySelector(".role")?.textContent || "").toLowerCase();
     const gname = groupNameOf(card.dataset.blockId || "").toLowerCase();
-    return bp.includes(q) || role.includes(q) || gname.includes(q);
+    // Règle du DÉBUT DE MOT, accents repliés — la même que la réserve (`Board.correspond`).
+    // Avant, `.includes` retenait une lettre trouvée en plein milieu : taper « i »
+    // mettait en avant Régie, Lumière et Micro à la fois, donc ne filtrait rien.
+    return Board.correspond(bp, q) || Board.correspond(role, q) || Board.correspond(gname, q);
   }
   function personMatchesView(bp) {
     switch (state.view) {
@@ -1685,6 +1702,14 @@
     state.poolOuvert = true;
     renderAvailable();
     document.getElementById("available-filter")?.focus();
+  });
+  // Le geste inverse, qui n'existait pas : replier à la demande. Le focus part sur le
+  // rail — laisser le focus sur un bouton qu'on vient de masquer le renverrait au <body>,
+  // et la tabulation suivante repartirait du haut de la page.
+  document.getElementById("pool-fold")?.addEventListener("click", () => {
+    state.poolOuvert = false;
+    renderAvailable();
+    document.getElementById("pool-rail-open")?.focus();
   });
   // Le « + » du rail ouvre DIRECTEMENT le dialogue d'ajout, sans passer par la réserve :
   // c'est la même fonction que « + Ajouter un beltpack », pas un raccourci vers lui.
