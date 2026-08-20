@@ -1801,41 +1801,38 @@ body[data-session="lost"] .admin-app {
    le généraliser toucherait le chemin beltpack pour rien. Avec deux ou trois actions par
    rangée, les révéler coûte moins qu'un menu à ouvrir. */
 .versions-dialog .history-list, .versions-dialog .configs-list {
-    max-height: 46vh; overflow-y: auto; gap: 0;
+    max-height: 46vh; overflow-y: auto; gap: 5px;
 }
+/* Les DEUX listes sont compartimentées (demande de Nathan, 2026-08-20).
+   J'avais d'abord réservé la surface aux presets, en distinguant l'objet qu'on choisit de
+   la chronologie qu'on parcourt. Nathan a tranché pour le même traitement des deux : à
+   l'usage, un repère se picore aussi — on cherche « la générale », pas la ligne suivante.
+   Une rangée reste donc lisible seule, dans les deux listes.
+   La surface est celle des rangées de beltpack dans un groupe : `--inset`, un rayon, un
+   intervalle réel, AUCUNE bordure. Compartimenté dans la langue du plateau, pas en cartes
+   bordées — c'est ce qui séparait ce dialogue du reste du produit. */
 .versions-dialog .history-list li, .versions-dialog .configs-list li {
     display: grid; align-items: center; gap: 10px;
-    padding: 9px 4px; background: none; border: 0;
-    border-bottom: 1px solid var(--border-soft); border-radius: 0;
+    padding: 9px 11px; border: 0;
+    background: var(--inset); border-radius: var(--rad);
+}
+.versions-dialog .history-list li:hover, .versions-dialog .configs-list li:hover {
+    background: var(--surface-3);
 }
 /* Quatre colonnes, et l'épingle a la SIENNE : la mettre dans `.vers-actions` la ferait
    hériter d'`opacity: 0`, qu'aucune règle enfant ne peut annuler — un repère épinglé
    cesserait de le montrer au repos, c'est-à-dire précisément quand on le cherche. */
 .versions-dialog .history-list li { grid-template-columns: auto 1fr auto auto; }
-/* Les presets sont des OBJETS, l'historique une chronologie — d'où deux traitements.
-   Un repère se lit dans une suite : le filet suffit à le séparer du précédent, et six
-   surfaces empilées feraient un damier. Un preset, lui, se choisit ISOLÉMENT ; à plat, sa
-   rangée n'était qu'une ligne de texte et quatre presets se lisaient comme un paragraphe.
-   Nathan : « on ne distingue pas bien ». Ils reprennent donc une surface — celle des
-   rangées de beltpack dans un groupe, `--inset`, sans bordure, séparées par un vrai
-   intervalle. Compartimenté, mais dans la langue du plateau et non en cartes bordées. */
-.versions-dialog .configs-list { gap: 5px; }
-.versions-dialog .configs-list li {
-    grid-template-columns: 1fr auto;
-    padding: 9px 11px; border-bottom: 0;
-    background: var(--inset); border-radius: var(--rad);
-}
-.versions-dialog .configs-list li:hover { background: var(--surface-3); }
+.versions-dialog .configs-list li { grid-template-columns: 1fr auto; }
 .cfg-ident { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-/* La date en second rang donne son assise à la rangée : sans elle, il n'y a qu'un mot. */
+/* La date en second rang donne son assise à la rangée : sans elle, il n'y a qu'un mot.
+   Elle n'a pas d'équivalent dans l'historique — `History.list()` compose déjà
+   `{timestamp, datetime, label, pinned}` et les quatre sont affichés. Vérifié plutôt que
+   supposé : la donnée jetée des presets n'avait pas de jumelle ici. */
 .cfg-when {
     font-family: var(--f-mono); font-variant-numeric: tabular-nums;
     font-size: 11px; color: var(--muted);
 }
-.versions-dialog .history-list li:last-child,
-.versions-dialog .configs-list li:last-child { border-bottom: 0; }
-.versions-dialog .history-list li:hover,
-.versions-dialog .configs-list li:hover { background: var(--inset); }
 
 /* L'horodatage mène, comme le numéro mène sa carte : chiffres tabulaires pour que six
    lignes s'alignent au pixel, teinte retenue pour ne pas hurler. */

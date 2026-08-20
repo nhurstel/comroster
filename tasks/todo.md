@@ -2855,3 +2855,29 @@ son formatage : `toLocaleString` dépend de la locale du navigateur, et figer «
 ferait tomber le test sur une machine en anglais sans qu'aucune information soit perdue.
 
 Vérifié : 609 unitaires, 84 e2e, 51 JS, ruff propre.
+
+## « Pareil pour l'historique » (2026-08-20, suite immédiate)
+
+Nathan étend aux repères le traitement des presets. J'avais distingué les deux listes —
+l'objet qu'on CHOISIT contre la chronologie qu'on PARCOURT — et réservé la surface aux
+presets. Arbitrage tranché en faveur du même traitement : à l'usage un repère se picore
+aussi, on cherche « la générale », pas la ligne suivante. Une rangée doit être lisible
+seule dans les deux listes.
+
+Le traitement est désormais MUTUALISÉ au lieu d'être dupliqué : une seule règle porte la
+surface pour les deux listes, seules les `grid-template-columns` restent propres à chacune.
+
+**Vérification faite avant de toucher au style, en appliquant la leçon des presets** :
+`History.list()` compose `{timestamp, datetime, label, pinned}` et **les quatre sont
+affichés**. Contrairement aux presets, aucune donnée n'est jetée ici — il n'y avait donc
+que la compartimentation à faire. La leçon a été appliquée et est revenue vide, ce qui est
+un résultat.
+
+**Un défaut introduit puis rattrapé dans le même lot** : deux règles de l'étape précédente
+étaient devenues sans objet (`:last-child { border-bottom: 0 }`) et l'une d'elles,
+`li:hover { background: var(--inset) }`, était postérieure à mon nouveau survol en
+`--surface-3` — à spécificité égale elle l'écrasait, et le survol n'aurait rien fait.
+Trouvé en relisant les règles autour de l'édition, pas par un test : aucune garde ne
+mesure un survol.
+
+Vérifié : 609 unitaires, 84 e2e, 51 JS, ruff propre.
