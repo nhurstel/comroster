@@ -169,8 +169,47 @@
     return liste.sort(parNumero);
   }
 
+  /* ---------- Recherche : le début d'un mot, pas n'importe où dedans ----------
+
+     Les deux filtres (réserve et plateau) cherchaient en SOUS-CHAÎNE : taper « i »
+     retenait Régie, Lumière, Micro — tout ce qui contient un i, y compris en plein
+     milieu. Un filtre qui retient presque tout ne filtre pas.
+
+     Le repli des accents n'est pas un supplément : c'est la RÈGLE DU DÉBUT qui l'exige.
+     Sans lui, « re » cesserait de trouver « Régie » et « ec » « Éclairage » — parce que
+     `"régie".startsWith("re")` est faux. Passer au début sans replier les accents
+     rendrait la recherche pire qu'avant, sur exactement le vocabulaire de ce produit.
+
+     Le début de MOT plutôt que le début de la chaîne entière : « son » doit trouver
+     « Régie son ». Un rôle en deux mots serait autrement inatteignable par son second.
+
+     NFD puis retrait de la plage U+0300-U+036F (marques diacritiques combinantes)
+     plutôt que `\p{Diacritic}` : même résultat, sans échappement de propriété Unicode,
+     donc sans plancher de version sur le Chromium du boîtier. */
+  const DIACRITIQUES = /[̀-ͯ]/g;
+  const SEPARATEURS = /[^a-z0-9]+/;
+
+  function sansAccents(valeur) {
+    return String(valeur ?? "").normalize("NFD").replace(DIACRITIQUES, "").toLowerCase();
+  }
+
+  /** `texte` contient-il un mot que `requete` amorce ?
+   *
+   *  Une requête en plusieurs mots exige que CHACUN amorce un mot du texte, dans
+   *  n'importe quel ordre : « son regie » trouve « Régie son ». Sans cela, la barre
+   *  d'espace transformerait une recherche qui marche en une recherche vide.
+   *  Requête vide = tout correspond : c'est l'absence de filtre, pas un filtre qui
+   *  ne retient rien. */
+  function correspond(texte, requete) {
+    const demande = sansAccents(requete).split(SEPARATEURS).filter(Boolean);
+    if (!demande.length) return true;
+    const mots = sansAccents(texte).split(SEPARATEURS).filter(Boolean);
+    return demande.every((d) => mots.some((m) => m.startsWith(d)));
+  }
+
   return {
     SKINS, TEXT_SCALES, MAX_COLUMNS, DEFAULT_INDICATORS, DRAFT_FIELDS,
+    sansAccents, correspond,
     sanitizeTheme, sanitizeSkin, sanitizeTextScale, sanitizeColumns, sanitizeIndicators,
     draftFromImport, emptyDraft,
     plural, pendingLabel, isDraftAhead, rangeIds,
