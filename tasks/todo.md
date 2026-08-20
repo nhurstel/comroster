@@ -2881,3 +2881,28 @@ Trouvé en relisant les règles autour de l'édition, pas par un test : aucune g
 mesure un survol.
 
 Vérifié : 609 unitaires, 84 e2e, 51 JS, ruff propre.
+
+## « Intercom » → « Riedel » (2026-08-20)
+
+Demande de Nathan. **Réserve posée avant de livrer, et écartée par lui** : l'usage
+référentiel d'une marque tierce suppose que la citer soit NÉCESSAIRE pour désigner la
+destination du produit (art. L.713-6 CPI, art. 14(1)(c) du règlement UE 2017/1001). Or
+« Intercom » remplissait déjà ce rôle : un onglet nommé « Riedel » seul se défend donc
+moins bien qu'une mention en contexte. « Bolero » ou « Intercom Bolero » étaient plus sûrs.
+C'est son produit et son risque ; la mention de désaveu ajoutée le même jour (README et
+panneau Diagnostic) reste la pièce qui documente la bonne foi.
+
+Quatre points, pas un : le libellé du témoin, son infobulle, l'entrée du rail Système et
+l'`aria-label` du panneau. **Un bouton qui mène à un panneau portant un autre nom que lui
+est un défaut**, pas un détail — renommer le seul bouton aurait laissé « Riedel » ouvrir
+« Intercom ».
+
+**`data-tab="intercom"` n'a PAS été renommé** : c'est une clé, pas un texte. La toucher
+casserait `?panneau=`, la mémorisation d'onglet et `test_ui.py:361` sans rien gagner. Le
+registre distingue ce qu'on LIT de ce qui IDENTIFIE.
+
+`aria-label` du témoin inchangé (« Réseau intercom : <état> ») : il ne nomme pas la
+destination, il porte l'ÉTAT — c'est lui qui satisfait WCAG 1.4.1 en empêchant la couleur
+de dire seule. Le renommer aurait été un contresens.
+
+Vérifié : 609 unitaires, 84 e2e, 51 JS, ruff propre.

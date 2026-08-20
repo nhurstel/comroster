@@ -1872,7 +1872,7 @@
     const etat = st.connected ? "online" : st.ip ? "offline" : "off";
     dot.dataset.etat = etat;
     const btn = document.getElementById("antenna-btn");
-    btn.title = `Réseau intercom : ${ETATS_ANTENNE[etat]} — ouvre Système › Intercom`;
+    btn.title = `Réseau intercom : ${ETATS_ANTENNE[etat]} — ouvre Système › Riedel`;
     btn.setAttribute("aria-label", `Réseau intercom : ${ETATS_ANTENNE[etat]}`);
     return st;
   }

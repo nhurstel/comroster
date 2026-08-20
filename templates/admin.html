@@ -93,9 +93,17 @@
       <div class="top-right">
         {# Le voyant intercom quitte la barre d'onglets pour le groupe des témoins : il
            DIT quelque chose en permanence, il ne désigne pas un lieu. Cliqué, il mène à
-           Système › Intercom — un témoin peut être une porte sans être un onglet. #}
+           Système › Riedel — un témoin peut être une porte sans être un onglet.
+
+           « Riedel » et non « Intercom » depuis le 2026-08-20 (demande de Nathan). Le
+           libellé nomme désormais la MARQUE des appareils pilotés, là où « Intercom »
+           nommait la fonction. La destination a suivi dans le même geste : un bouton qui
+           mène à un panneau portant un autre nom que lui est un défaut, pas un détail.
+           L'attribut `data-tab="intercom"` NE CHANGE PAS — c'est une clé, pas un texte ;
+           la renommer casserait `?panneau=`, la mémorisation d'onglet et test_ui.py:361
+           pour un gain nul. Le registre distingue ce qu'on lit de ce qui identifie. #}
         <button type="button" class="chip chip-porte" id="antenna-btn"
-                title="Réseau intercom — ouvre Système › Intercom">
+                title="Réseau intercom — ouvre Système › Riedel">
           {# Le glyphe EST le témoin : le casque prend la couleur de l'état plutôt que
              de traîner une pastille à côté. Un objet de moins pour la même information,
              et le registre s'aligne sur les onglets voisins (glyphe + légende).
@@ -112,7 +120,7 @@
             <rect x="14.6" y="11.4" width="3.2" height="4.6" rx="1.5"/>
             <path d="M16.2 16v.5a2 2 0 0 1-2 2h-2.4"/>
           </svg>
-          <span class="tab-nom">Intercom</span></button>
+          <span class="tab-nom">Riedel</span></button>
         <span class="chip clock" id="admin-clock" aria-hidden="true">--:--:--</span>
         <div class="status-badge" id="sync-status" role="status" aria-live="polite">
           <span class="pulse" aria-hidden="true"></span>
@@ -386,7 +394,7 @@
             <button type="button" class="nav-item" data-tab="journal">Journal</button>
             <div class="nav-label">Configurer</div>
             <button type="button" class="nav-item" data-tab="network">Réseau</button>
-            <button type="button" class="nav-item" data-tab="intercom">Intercom</button>
+            <button type="button" class="nav-item" data-tab="intercom">Riedel</button>
             <button type="button" class="nav-item" data-tab="backup">Sauvegarde complète</button>
             <button type="button" class="nav-item" data-tab="password">Mot de passe</button>
             {# « Redémarrer » seul : rare, et il coupe l'affichage une minute. Deux clics
@@ -538,7 +546,7 @@
              L'assistant en deux étapes reste le chemin de la première connexion — mais il
              se déroule ICI, dans le fil du panneau, et non plus par-dessus le plateau. #}
           <section class="tab-panel" data-panel="intercom" id="panneau-intercom" role="tabpanel"
-                   data-famille="systeme" aria-label="Intercom" hidden>
+                   data-famille="systeme" aria-label="Riedel" hidden>
             <div class="journal-toolbar"><span class="tb-title">Réseau intercom</span></div>
             <div class="sys-body">
               <div id="antenna-wizard" hidden>
