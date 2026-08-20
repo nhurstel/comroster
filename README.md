@@ -10,6 +10,12 @@ n'apparaît à l'écran tant qu'il n'a pas cliqué « Publier ».
 Le **rôle** (« Régie », « Lumière »…) caractérise le **numéro de beltpack** : le système
 mémorise la correspondance n° → rôle et la propose à la saisie.
 
+> **Marques.** ComRoster est un produit indépendant, sans affiliation avec Riedel
+> Communications GmbH & Co. KG ni approbation de sa part. Riedel® et Bolero® sont des
+> marques de leurs titulaires respectifs, citées ici pour désigner les appareils pris en
+> charge — usage référentiel prévu par l'art. L.713-6 du code de la propriété
+> intellectuelle et l'art. 14(1)(c) du règlement (UE) 2017/1001.
+
 ## Pile technique
 
 Python 3.11+ · Flask · Flask-WTF (CSRF) · Flask-Limiter (anti-bruteforce) · Werkzeug

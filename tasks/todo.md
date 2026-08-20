@@ -2678,3 +2678,78 @@ venait de corriger, pas moins.
 Ce qui restait ouvert se réduit à trois arbitrages qui appartiennent à Nathan, et **zéro
 défaut produit connu** : le pied de la feuille imprimée, les captures dans la doc, le blanc
 en bas de rangée.
+
+---
+
+# LOT 2026-08-20 (2) — Quatre points signalés à l'usage
+
+Nathan, après un état des lieux : réserve non repliable, dialogue « Historique et presets »
+jugé mauvais, recherche qui ne filtre pas, et une question de droit des marques.
+
+## 1. La réserve se replie — LIVRÉ (`f7d235c`)
+
+Le mot « bug » laissait attendre un défaut de comportement ; le relevé a montré **une
+fonction absente**. `refletRail` faisait dépendre le pli d'une seule condition calculée
+(zéro disponible), et aucun contrôle ne permettait de replier.
+
+Second défaut, plus insidieux, trouvé en lisant le premier : `pool-rail-open` posait
+`state.poolOuvert = true` et **aucun chemin ne le remettait à `false`**. Déplier était
+irréversible pour la session.
+
+`poolOuvert` a trois états : `null` calcule, `true`/`false` commandent, et la commande bat
+le calcul — sans quoi un repli serait défait par l'action suivante, donc inutilisable. Le
+bouton se cache sur un roster vide plutôt que d'y rester sans effet.
+
+Garde : `tests/e2e/test_reserve_repli.py`, 4 tests, confrontée à sa mutation — l'ancienne
+formule rétablie en fait tomber trois. Le quatrième porte sur la visibilité du bouton, qui
+ne dépend pas du calcul : il est juste qu'il tienne.
+
+## 2. La recherche filtre — LIVRÉ (`f7d235c`)
+
+`.includes()` retenait une lettre trouvée n'importe où : taper « i » mettait en avant
+Régie, Lumière ET Micro. Règle retenue avec Nathan : le **début d'un mot** — « son »
+trouve « Régie son », « i » ne trouve rien.
+
+**Le repli des accents n'est pas un supplément, c'est ce que la règle du début EXIGE** :
+`"régie".startsWith("re")` est faux, donc passer au début sans replier aurait rendu la
+recherche pire qu'avant, sur exactement le vocabulaire de ce produit (Régie, Éclairage).
+
+La règle vit dans `board.js` (logique pure, 8 tests vitest) et sert les DEUX filtres —
+réserve et plateau. NFD + plage U+0300-U+036F plutôt que `\p{Diacritic}` : pas de plancher
+de version sur le Chromium du boîtier.
+
+## 3. Marques Riedel — LIVRÉ
+
+Question de Nathan : peut-il nommer Riedel dans son logiciel ? Réponse documentée dans le
+produit plutôt que dans un fil de discussion.
+
+L'usage **référentiel** d'une marque tierce est prévu par les textes (art. L.713-6 CPI,
+art. 14(1)(c) du règlement UE 2017/1001) : nommer la marque pour indiquer la destination
+de son propre produit, à condition de ne pas suggérer de lien commercial. Nommer
+« antenne Bolero » est donc le cas prévu ; le logo, la typographie ou un nom de produit
+qui intègre la marque ne le seraient pas.
+
+Désaveu ajouté au README et au panneau **Diagnostic** — pas dans un « À propos », il n'en
+existe pas et en créer un pour une phrase serait un panneau de plus à traverser.
+
+**Le vrai sujet n'était pas la marque.** `RIEDEL SOFTS/` (150 Mo) contient leur webapp,
+leurs bundles et un `BOLERO_API_BIBLE.md` : c'est du DROIT D'AUTEUR, que nul désaveu ne
+règle. Contrôlé : `.gitignore` l. 51, **zéro fichier suivi**, rien n'est jamais parti sur
+GitHub. À garder strictement local — jamais dans une image de boîtier ni dans une archive
+de sauvegarde.
+
+## 4. « Historique et presets » — NON FAIT, à prendre en session fraîche
+
+Nathan a coché les TROIS axes : les listes elles-mêmes, l'incohérence des trois volets, et
+le cadre du dialogue qui saute d'un volet à l'autre. C'est une refonte, pas un correctif.
+
+Relevé déjà fait, à ne pas refaire :
+- `admin.html` l. 839-887 — trois volets sous un segmenté, sans composition commune :
+  Historique a notice + liste + pied rouge ; Presets a saisie + liste, sans notice ;
+  Fichier a notice + deux boutons, sans liste.
+- « Supprimer l'historique » est seul dans un pied que les deux autres volets n'ont pas.
+- `.history-list` et `.configs-list` n'ont quasiment aucune règle propre dans `admin.css`.
+- Le dialogue se dimensionne sur son contenu : changer de volet fait sauter la boîte.
+
+Méthode convenue : peupler historique et presets en local, capturer dans les deux thèmes,
+**proposer un parti pris écrit AVANT de toucher une ligne**.
