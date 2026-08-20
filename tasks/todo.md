@@ -2753,3 +2753,75 @@ Relevé déjà fait, à ne pas refaire :
 
 Méthode convenue : peupler historique et presets en local, capturer dans les deux thèmes,
 **proposer un parti pris écrit AVANT de toucher une ligne**.
+
+---
+
+# LOT 2026-08-20 (3) — Le dialogue « Historique et presets » rejoint le produit
+
+Retour de Nathan sur le parti pris proposé : **point 1 REFUSÉ** (ne pas inverser
+horodatage et nom — c'est l'horodatage qui mène la rangée), points 2 à 6 retenus, plus
+trois demandes : le bouton favori, le sélecteur de volets, et surtout — « de façon
+générale ce menu est très loin du design de l'interface principale ».
+
+## Ce que les captures ont montré
+
+Dialogue peuplé, capturé et MESURÉ (script jetable, `DATA_DIR` temporaire) :
+
+- **Le cadre perdait 55 % de sa hauteur** : 502 / 400 / 224 px selon le volet, à largeur
+  constante. La boîte s'effondrait sous le curseur.
+- **Douze boutons** dans le volet Presets (4 rangées × 3), dont quatre « Supprimer » en
+  rouge — quatre alertes pour une liste d'objets ordinaires, et le nom, seule chose qu'on
+  lit, devenu l'élément le plus discret.
+- **Le `space-between` creusait un trou** : tout l'espace s'accumulait entre le nom et les
+  boutons, d'autant plus large que le nom était court.
+- **Trois charpentes différentes** dans un même dialogue.
+
+Et la langue elle-même : le plateau est fait de RANGÉES PLATES — numéro tabulaire discret,
+nom en gras, un filet pour séparer, presque aucun bouton visible. Le dialogue empilait des
+cartes blanches bordées et des boutons pleins. Deux vocabulaires dans un produit.
+
+## Le défaut que la refonte a RÉVÉLÉ, et qui n'était pas cosmétique
+
+`.tb-seg .seg-btn` (l. 459) ne pose pas de fond. Sur cette seule propriété,
+`.admin-dialog button` (l. 974) l'emportait et peignait les trois onglets en
+`--surface-3` — **la teinte réservée à l'onglet ACTIF**. Trois onglets actifs, donc aucun :
+**le segmenté n'a jamais dit quel volet était ouvert.**
+
+Invisible tant qu'on ne compare pas le dialogue à la barre d'outils du plateau, où le même
+composant fonctionne. C'est une perte d'information, pas une question de goût — et c'est
+en cherchant à rapprocher les deux qu'elle est apparue.
+
+## Ce qui est fait
+
+- **Rangées plates** : plus de carte par ligne, un filet pour séparer, survol en `--inset`.
+  L'horodatage en tête, tabulaire, `--muted` — le rôle du numéro de beltpack (arbitrage
+  de Nathan : l'inversion est écartée).
+- **Actions à la demande**, idiome de la carte beltpack : rien au repos, tout au survol ET
+  au focus. `#context-menu` n'est PAS réutilisé — il porte `state.context {userId,
+  blockId}`, le généraliser toucherait le chemin beltpack pour rien.
+- **L'épingle est un ÉTAT** : elle reste visible une fois posée, s'efface sinon, et prend
+  `--accent`. Elle a sa PROPRE colonne de grille — la mettre dans `.vers-actions` la ferait
+  hériter d'`opacity: 0`, qu'aucune règle enfant ne peut annuler.
+- **Charpente unique** aux trois volets : notice → corps → pied, avec `min-height` sur le
+  corps. Écart de hauteur ramené de 278 px à 40 px.
+- **Le destructeur part à gauche** : « Supprimer l'historique » n'est plus empilé au-dessus
+  de « Fermer ». Même arbitrage que `.reboot-btn` dans Système.
+- **Grille au lieu de `space-between`** : le trou se referme.
+
+## Gardes — et une garde creuse réparée
+
+`tests/e2e/test_versions_dialogue.py`, 3 tests qui MESURENT au lieu de regarder.
+
+Le test de hauteur, écrit d'abord sur un boîtier neuf, était **CREUX** : listes vides,
+trois volets naturellement courts, retirer `min-height` ne le faisait pas tomber. Il
+passait sans rien démontrer. Réparé en peuplant le décor — trois publications, trois
+presets. Il tombe désormais avec « le dialogue change de hauteur de 101 px ».
+
+Les trois confrontées à leur mutation, chacune ne tombant que sur la sienne :
+retirer le fond de l'onglet actif → test 1 ; retirer `min-height` → test 2 ;
+retirer `:focus-within` → test 3.
+
+Le test du segmenté compare les trois fonds ENTRE EUX et non à une couleur nommée : la
+valeur appartient au thème, la DIFFÉRENCE appartient au produit. Il a d'abord échantillonné
+pendant la transition (`rgba(…, 0.004)`, un fond en train d'apparaître) — corrigé en
+attendant que les valeurs cessent de bouger, pas en allongeant un `sleep`.
