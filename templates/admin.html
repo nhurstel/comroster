@@ -879,7 +879,14 @@
       <div class="vers-panel" data-verspanel="historique">
         <p class="dialog-hint">Conservation : 30 jours — sauf les repères <b>épinglés</b>,
           conservés indéfiniment.</p>
-        <ul id="history-list" class="history-list"></ul>
+        <div class="vers-corps">
+          <ul id="history-list" class="history-list"></ul>
+        </div>
+        {# Les trois volets partagent désormais UNE charpente : notice → corps → pied.
+           Ils n'en avaient aucune en commun — l'un notice + liste + pied, l'autre saisie +
+           liste, le troisième notice + deux boutons. D'où un cadre qui perdait 55 % de sa
+           hauteur d'un volet à l'autre (mesuré : 502 / 400 / 224 px). Le pied existe dans
+           les trois, même quand il ne porte qu'une note. #}
         <div class="vers-foot">
           <button type="button" id="history-clear" class="danger">Supprimer l'historique</button>
         </div>
@@ -891,9 +898,14 @@
       <div class="vers-panel" data-verspanel="presets" hidden>
         <div class="save-row">
           <input type="text" id="config-name" placeholder="Nom (ex. Jour 2)" maxlength="60">
-          <button type="button" id="config-save-btn" class="primary">Enregistrer un preset</button>
+          <button type="button" id="config-save-btn" class="primary">Enregistrer</button>
         </div>
-        <ul id="configs-list" class="configs-list"></ul>
+        <div class="vers-corps">
+          <ul id="configs-list" class="configs-list"></ul>
+        </div>
+        <div class="vers-foot">
+          <span class="vers-note">Un preset garde le plateau entier — groupes, beltpacks, rôles.</span>
+        </div>
       </div>
 
       {# Le même plateau, mais rangé DEHORS : un fichier .rost sur une clé se transporte
@@ -901,10 +913,16 @@
          sélecteur de fichiers — mais c'est le bouton qui porte l'apparence. #}
       <div class="vers-panel" data-verspanel="fichier" hidden>
         <p class="dialog-hint">Un fichier <b>.rost</b> se transporte d'un boîtier à l'autre.</p>
-        <div class="cfg-file">
-          <button type="button" id="import-btn">Importer…</button>
-          <button type="button" id="export-btn">Exporter le plateau</button>
-          <input type="file" id="import-input" accept=".rost,application/json" hidden>
+        <div class="vers-corps">
+          <div class="cfg-file">
+            <button type="button" id="import-btn">Importer…</button>
+            <button type="button" id="export-btn">Exporter le plateau</button>
+            <input type="file" id="import-input" accept=".rost,application/json" hidden>
+          </div>
+        </div>
+        <div class="vers-foot">
+          <span class="vers-note">L'import remplace le plateau courant ; un récapitulatif
+            est proposé avant d'appliquer.</span>
         </div>
       </div>
 

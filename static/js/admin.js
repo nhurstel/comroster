@@ -1604,15 +1604,22 @@
     try { items = await apiSend("GET", "/api/history"); } catch { toast("Historique indisponible.", true); return; }
     const list = document.getElementById("history-list");
     list.innerHTML = items.length
+      /* L'ordre des cellules suit la grille : horodatage, nom, épingle, actions.
+         L'horodatage reste EN TÊTE — arbitrage de Nathan du 2026-08-20, qui a écarté
+         l'inversion proposée : c'est lui qui mène la rangée, comme le numéro mène la
+         carte beltpack. L'épingle sort de `.vers-actions` (elle dit un ÉTAT, pas un
+         geste) et se pose après le nom, du côté des commandes. */
       ? items.map((i) => `<li class="hi-row${i.pinned ? " pinned" : ""}">`
-          + `<button type="button" class="hi-pin" data-pin="${i.timestamp}" aria-pressed="${i.pinned}"`
-          + ` title="${i.pinned ? "Ne plus conserver indéfiniment" : "Conserver indéfiniment (à l'abri de la purge)"}">`
-          + `<span aria-hidden="true">${i.pinned ? "★" : "☆"}</span></button>`
           + `<span class="hi-when">${esc(i.datetime)}</span>`
           + `<span class="hi-label${i.label ? "" : " empty"}" data-label="${i.timestamp}"`
           + ` role="button" tabindex="0" title="Cliquer pour nommer ce repère">`
           + `${esc(i.label || "nommer…")}</span>`
-          + `<button type="button" class="hi-restore" data-restore="${i.timestamp}">Restaurer</button></li>`).join("")
+          + `<button type="button" class="hi-pin" data-pin="${i.timestamp}" aria-pressed="${i.pinned}"`
+          + ` title="${i.pinned ? "Ne plus conserver indéfiniment" : "Conserver indéfiniment (à l'abri de la purge)"}">`
+          + `<span aria-hidden="true">${i.pinned ? "★" : "☆"}</span></button>`
+          + `<span class="vers-actions">`
+          + `<button type="button" class="hi-restore" data-restore="${i.timestamp}">Restaurer</button>`
+          + `</span></li>`).join("")
       : "<li class='empty-hint'>Aucune publication enregistrée.</li>";
 
     list.querySelectorAll("[data-pin]").forEach((b) => b.addEventListener("click", async () => {
@@ -2518,7 +2525,12 @@
     const items = await apiSend("GET", "/api/configs");
     const ul = document.getElementById("configs-list");
     ul.innerHTML = items.length
-      ? items.map((c) => `<li><span>${esc(c.name)}</span><span class="cfg-actions">`
+      /* `.vers-actions` remplace `.cfg-actions` : quatre presets faisaient DOUZE boutons
+         visibles en permanence, dont quatre « Supprimer » en rouge — quatre alertes pour
+         une liste d'objets ordinaires, et le nom, seule chose qu'on lit, devenu l'élément
+         le plus discret. Les actions se révèlent au survol et au focus, comme sur la
+         carte beltpack. */
+      ? items.map((c) => `<li><span>${esc(c.name)}</span><span class="vers-actions cfg-actions">`
           + `<button type="button" data-load="${esc(c.name)}">Charger</button>`
           + `<button type="button" data-export="${esc(c.name)}">Exporter</button>`
           + `<button type="button" data-del="${esc(c.name)}" class="danger">Supprimer</button></span></li>`).join("")

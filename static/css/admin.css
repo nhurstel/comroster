@@ -1767,10 +1767,117 @@ body[data-session="lost"] .admin-app {
    elle déborde de son propre dialogue. */
 .admin-dialog.versions-dialog { max-width: min(94vw, 620px); }
 .versions-dialog .tb-seg { align-self: flex-start; }
-.versions-dialog .history-list, .versions-dialog .configs-list { max-height: 46vh; overflow-y: auto; }
-.vers-foot { display: flex; justify-content: flex-end; margin-top: 10px; }
-.vers-foot .danger { color: var(--danger); font-size: var(--ui); font-weight: 600; }
+
+/* Le segmenté ne DISAIT PAS lequel des trois volets était ouvert. `.tb-seg .seg-btn`
+   (l. 459) ne pose pas de fond ; c'est donc `.admin-dialog button` (l. 974) qui gagnait
+   sur cette seule propriété et peignait les trois en `--surface-3` — précisément la
+   teinte réservée à l'onglet ACTIF. Trois onglets actifs, donc aucun.
+   Ce n'était pas un défaut de goût mais une perte d'information, invisible tant qu'on ne
+   compare pas le dialogue à la barre d'outils du plateau, où le même composant marche. */
+.versions-dialog .tb-seg .seg-btn { background: none; border: 0; }
+.versions-dialog .tb-seg .seg-btn[aria-pressed="true"] { background: var(--surface-3); color: var(--fg); }
+.versions-dialog .tb-seg .seg-btn:hover:not([aria-pressed="true"]) { color: var(--fg); }
+
+/* Les actes de la rangée et du pied sont des MOTS, pas des boîtes : le plateau ne montre
+   presque aucun bouton plein, et c'est ce qui donne son calme à l'interface principale.
+   Seul « Enregistrer » garde son relief — c'est le seul acte primaire du dialogue. */
+.vers-foot .danger, .versions-dialog .vers-actions button {
+    height: auto; background: none; border: 0; letter-spacing: normal;
+}
+/* ---------- Le dialogue parle enfin la langue du plateau ----------
+
+   Constat de Nathan (2026-08-20) : « ce menu est très loin du design de l'interface
+   principale ». Vu et mesuré : le plateau est fait de RANGÉES PLATES — un numéro
+   tabulaire discret, un nom en gras, un filet pour séparer, aucune bordure par ligne et
+   presque aucun bouton visible. Le dialogue empilait des cartes blanches bordées et des
+   boutons pleins : deux vocabulaires dans un même produit.
+
+   Les rangées d'ici adoptent celles de là-bas. L'horodatage tient le rôle du numéro de
+   beltpack — en tête, tabulaire, `--muted` — et le nom celui du rôle. Nathan a REFUSÉ
+   d'inverser les deux : c'est l'horodatage qui mène, comme le numéro mène la carte.
+
+   Les actions suivent l'idiome de la carte beltpack : rien au repos, tout au survol ET au
+   focus. `#context-menu` n'est PAS réutilisé — il porte `state.context {userId, blockId}`,
+   le généraliser toucherait le chemin beltpack pour rien. Avec deux ou trois actions par
+   rangée, les révéler coûte moins qu'un menu à ouvrir. */
+.versions-dialog .history-list, .versions-dialog .configs-list {
+    max-height: 46vh; overflow-y: auto; gap: 0;
+}
+.versions-dialog .history-list li, .versions-dialog .configs-list li {
+    display: grid; align-items: center; gap: 10px;
+    padding: 9px 4px; background: none; border: 0;
+    border-bottom: 1px solid var(--border-soft); border-radius: 0;
+}
+/* Quatre colonnes, et l'épingle a la SIENNE : la mettre dans `.vers-actions` la ferait
+   hériter d'`opacity: 0`, qu'aucune règle enfant ne peut annuler — un repère épinglé
+   cesserait de le montrer au repos, c'est-à-dire précisément quand on le cherche. */
+.versions-dialog .history-list li { grid-template-columns: auto 1fr auto auto; }
+.versions-dialog .configs-list li { grid-template-columns: 1fr auto; }
+.versions-dialog .history-list li:last-child,
+.versions-dialog .configs-list li:last-child { border-bottom: 0; }
+.versions-dialog .history-list li:hover,
+.versions-dialog .configs-list li:hover { background: var(--inset); }
+
+/* L'horodatage mène, comme le numéro mène sa carte : chiffres tabulaires pour que six
+   lignes s'alignent au pixel, teinte retenue pour ne pas hurler. */
+.versions-dialog .hi-when {
+    font-family: var(--f-mono); font-variant-numeric: tabular-nums;
+    font-size: 12.5px; color: var(--muted); white-space: nowrap;
+}
+.versions-dialog .hi-label { font-size: var(--ui); font-weight: 600; color: var(--fg); }
+.versions-dialog .hi-label.empty { font-weight: 400; color: var(--muted); font-style: italic; }
+.versions-dialog .configs-list li > span:first-child {
+    font-size: var(--ui); font-weight: 600; color: var(--fg);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Rien au repos, tout au survol ET au focus — sans le focus la rangée serait inutilisable
+   au clavier, défaut déjà payé une fois sur la carte beltpack. */
+.vers-actions { display: flex; align-items: center; gap: 2px; opacity: 0; transition: opacity .12s; }
+.versions-dialog li:hover > .vers-actions,
+.versions-dialog li:focus-within > .vers-actions { opacity: 1; }
+.vers-actions button {
+    background: none; border: 0; border-radius: var(--rad);
+    padding: 3px 7px; font-size: 12px; color: var(--fg-muted); cursor: pointer;
+}
+.vers-actions button:hover { background: var(--surface-2); color: var(--fg); }
+.vers-actions button.danger { color: var(--danger); }
+.vers-actions button.danger:hover { color: var(--error); background: var(--surface-2); }
+
+/* L'épingle est un ÉTAT, pas une action : elle reste visible une fois posée, sinon un
+   repère mis à l'abri de la purge ne le dirait qu'au survol. Non épinglée et au repos,
+   elle s'efface comme le reste. Le carré bordé d'avant la faisait lire comme une case à
+   cocher — c'est un fanion, il n'en a pas la forme. */
+.versions-dialog .hi-pin {
+    background: none; border: 0; padding: 0 2px; cursor: pointer;
+    font-size: 13px; line-height: 1; color: var(--muted);
+    opacity: 0; transition: opacity .12s, color .12s;
+}
+.versions-dialog li:hover .hi-pin, .versions-dialog li:focus-within .hi-pin,
+.versions-dialog .hi-pin[aria-pressed="true"] { opacity: 1; }
+.versions-dialog .hi-pin[aria-pressed="true"] { color: var(--accent); }
+.versions-dialog .hi-pin:hover { color: var(--fg); }
+
+@media (prefers-reduced-motion: reduce) {
+    .vers-actions, .versions-dialog .hi-pin { transition: none; }
+}
+
+/* Le cadre cesse de sauter. Mesuré avant correction : 502 / 400 / 224 px selon le volet —
+   la boîte perdait 55 % de sa hauteur sous le curseur. La réserve est prise sur le CORPS
+   et non sur le dialogue : c'est le contenu qui varie, et le pied doit rester au même
+   endroit d'un volet à l'autre. */
+.vers-panel { display: flex; flex-direction: column; }
+.vers-corps { min-height: 268px; }
+.vers-foot {
+    display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+    margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--border-soft);
+}
+/* Le destructeur part À GAUCHE : « Supprimer l'historique » était empilé juste au-dessus
+   de « Fermer », deux boutons calés à droite dont l'un efface trente jours de repères.
+   Même arbitrage que `.reboot-btn` dans Système — un acte grave ne voisine pas une sortie. */
+.vers-foot .danger { margin-right: auto; color: var(--danger); font-size: var(--ui); font-weight: 600; }
 .vers-foot .danger:hover { color: var(--error); }
+.vers-foot .vers-note { margin-right: auto; font-size: 11.5px; color: var(--muted); }
 
 /* ---------- La carte beltpack montre ce qu'on peut lui faire ----------
    Elle portait cinq gestes souris, tous invisibles, et n'était pas focalisable. Le
