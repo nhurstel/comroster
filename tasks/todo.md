@@ -1717,14 +1717,22 @@ Le lot a répondu aux arbitrages donnés, mais le diagnostic initial listait aus
   composition) — Nathan a demandé de GARDER le pied, sans dire s'il fallait l'alléger.
 
 ### 3. Dette technique connue, non traitée
-- `tests/e2e/test_e2e.py` fait 600+ lignes et mélange des sujets sans rapport.
+- ~~`tests/e2e/test_e2e.py` fait 600+ lignes et mélange des sujets sans rapport.~~ →
+  **découpé par `fbae2cb`** (« un fichier par sujet, au lieu d'un fourre-tout de
+  627 lignes »). Le fichier n'existe plus ; le plus gros e2e fait 303 lignes.
+- ~~Le helper de connexion e2e, dupliqué huit fois~~ → **zéro occurrence de `_enter_admin`**
+  aujourd'hui : `tests/e2e/helpers.py` porte `enter_admin` et sept autres helpers.
 - La course sur le champ rôle est CONTOURNÉE côté test (l'application vide le champ en
   réaction au numéro). Le correctif de fond serait côté `admin.js` : ne pas écraser une
   saisie de l'utilisateur. Non fait — cela touche une interaction que Nathan utilise.
+  **Toujours ouvert au 2026-08-20** (le lot du 2026-08-09 a réglé le focus différé, qui
+  était un autre défaut du même dialogue, pas celui-ci).
 
 ### 4. Jamais demandé, jamais fait
-- Captures dans la documentation (étape 7 du lot des apparences).
-- Cahier des charges (D1) non retouché depuis l'origine.
+- Captures dans la documentation (étape 7 du lot des apparences). **Toujours ouvert.**
+- ~~Cahier des charges (D1) non retouché depuis l'origine.~~ → **réécrit par `79f6a64`**
+  (« le cahier des charges décrit enfin le logiciel qui existe »), et gardé depuis par
+  `tests/test_cahier_des_charges.py`.
 
 ---
 
@@ -2301,7 +2309,9 @@ Vérifié dans le navigateur : la déconnexion est visible sur les **dix** panne
 programmatique, pas à l'œil), elle n'est ni dans le rail ni dans l'en-tête.
 
 ### Reste à faire
-- **Faire relire par Nathan**, puis committer : rien n'est commité, la branche est à lui.
+- ~~**Faire relire par Nathan**, puis committer : rien n'est commité, la branche est à lui.~~
+  → **relu et commité** : la refonte est dans `main` depuis `707a93b` (« la carte des
+  fonctions — quatre onglets, un panneau Système, un mot pour l'affichage »).
 - ~~Les deux libellés DÉDUITS sans arbitrage tiennent toujours à confirmation~~ →
   **Affichage** confirmé par Nathan le 2026-08-16. Le champ est devenu **Thème**.
 - ~~La dette d'accessibilité du 2026-08-13~~ → **réglée le 2026-08-16** (lot ci-dessous) :
@@ -2573,3 +2583,73 @@ garde qui crie à tort finit désactivée.
   rien). Éprouvée dans les deux sens : retirer la règle de `main.css` la fait échouer,
   gonfler l'entrée à 900 ms aussi.
 - Vérifié : 607 unitaires, 76 e2e, 43 JS, ruff propre.
+
+---
+
+# LOT 2026-08-20 — État des lieux : trois « restes » périmés, et une version qui mentait
+
+État des lieux demandé par Nathan. Les suites ont été relancées avant tout jugement :
+**607 unitaires · 76 e2e · 43 JS · ruff propre · couverture 88,97 %**, arbre et distant
+propres, CI verte. Rien à redresser côté produit — la dette qui restait était
+**documentaire**, et dans un dépôt qui se pilote par `todo.md`, c'est la plus coûteuse.
+
+## Ce que le relevé a trouvé de faux
+
+Trois entrées décrivaient un travail **déjà fait**. Exactement le piège que la leçon du
+2026-08-19 nomme : « un reste ouvert périmé est pire qu'une liste absente — il fait
+chercher un travail déjà fait. » Écrite, puis reproduite trois fois ailleurs dans le même
+fichier, parce que rayer une entrée demande de RELIRE les vieilles sections, ce que
+personne ne fait en clôturant un lot.
+
+1. `### Reste à faire` du lot refonte navigation : « rien n'est commité, la branche est à
+   lui » — la refonte est dans `main` depuis `707a93b`.
+2. « `tests/e2e/test_e2e.py` fait 600+ lignes » — découpé par `fbae2cb`, le fichier
+   n'existe plus, le plus gros e2e fait 303 lignes.
+3. « Cahier des charges (D1) non retouché depuis l'origine » — réécrit par `79f6a64`.
+   (Et la dette n°2 du helper e2e dupliqué huit fois : zéro occurrence aujourd'hui.)
+
+## La version qui mentait, et pourquoi rien ne l'a dit
+
+`README.md` et le cahier des charges annonçaient **Python 3.12** alors que le plancher est
+passé à **3.11** le 2026-08-16, puis a été ancré dans `pyproject.toml` le 2026-08-18.
+Quatre jours de faux, en silence.
+
+La cause n'est pas l'oubli, c'est la **portée de la garde existante** :
+`test_versions_supportees.py` confronte `pyproject.toml` à `deploy/`. Elle surveille la
+chaîne technique, pas la prose. Or c'est la prose que lit quelqu'un qui installe.
+
+## Ce qui est fait
+
+- **README** : `Python 3.11+`, et la commande d'installation passe de `python3.12 -m venv`
+  à `python3 -m venv` — c'est ce que fait `deploy/setup-pi.sh` l. 65 sur le boîtier. Une
+  note dit le plancher et la matrice (3.11 → 3.14).
+- **Cahier des charges** : `Python 3.11+` en §6 (portabilité) et §10.1 (pile).
+- **§10.7 — les compteurs de tests retirés**, pas mis à jour. Ils étaient figés à
+  553 · 67 au 2026-08-11 quand les suites en comptaient 607 et 76. Un nombre qui change à
+  chaque lot ne se maintient pas à la main : il ne serait redevenu faux qu'au lot suivant.
+  Ce qu'un cahier des charges doit garantir, c'est que les suites existent et passent —
+  leur compte du jour se lit en les lançant.
+- **Garde** : `test_la_version_python_annoncee_est_le_plancher_declare`, paramétrée sur
+  les DEUX documents, lit `requires-python` via `tomllib` et exige que chaque « Python
+  X.Y » du document soit ce plancher.
+
+## Éprouvée dans les deux sens — pas seulement verte
+
+- README remis à `Python 3.12` → le cas `[readme]` tombe, le cas `[cahier]` reste vert
+  (la mutation ne fausse qu'une propriété).
+- Plancher `pyproject` porté à `>=3.13` → les deux cas tombent, avec le message qui dit
+  quoi corriger.
+- Fichiers restaurés et contrôlés après chaque mutation.
+
+Le jour où `deploy/` visera Trixie, `test_versions_supportees.py` réclamera le plancher
+3.13 et CETTE garde-ci réclamera les deux documents. Les deux moitiés du problème sont
+tenues.
+
+## Reste ouvert — vérifié encore ouvert au 2026-08-20
+
+- **La course sur le champ rôle** dans `admin.js` : l'application vide le champ en réaction
+  au numéro, le contournement vit côté test. Touche une interaction que Nathan utilise.
+- **Le pied de la feuille imprimée** qui redit l'en-tête : garder demandé, alléger non
+  tranché.
+- **Captures dans la documentation** (étape 7 du lot des apparences) : jamais demandé.
+- **Le blanc en bas de rangée** à l'impression : prix assumé de l'alignement.

@@ -15,6 +15,7 @@ qui ment déjà.
 """
 import pathlib
 import re
+import tomllib
 
 import pytest
 
@@ -22,6 +23,7 @@ from comroster import create_app
 
 RACINE = pathlib.Path(__file__).resolve().parent.parent
 CAHIER = RACINE / "comroster-cahier-des-charges.md"
+LISEZMOI = RACINE / "README.md"
 
 
 @pytest.fixture(scope="module")
@@ -79,6 +81,30 @@ def test_la_palette_annoncee_est_celle_de_l_admin(texte):
     annonce = _entier_avant(texte, "teintes")
     assert annonce == reelles, (
         f"le cahier des charges annonce {annonce} teintes, la palette en compte {reelles}"
+    )
+
+
+@pytest.mark.parametrize("document", [CAHIER, LISEZMOI], ids=["cahier", "readme"])
+def test_la_version_python_annoncee_est_le_plancher_declare(document):
+    """Les deux documents ont annoncé Python 3.12 quatre jours après le passage à 3.11.
+
+    Le plancher a été abaissé le 2026-08-16 pour rejoindre la version du boîtier (Bookworm
+    embarque 3.11), et ancré dans `pyproject.toml` le 2026-08-18. Ni le README ni le cahier
+    des charges n'ont suivi : ils ont continué d'annoncer 3.12 pendant quatre jours, sans
+    que rien ne le signale — `test_versions_supportees.py` surveille pyproject contre
+    `deploy/`, pas la prose.
+
+    Cette garde ferme le trou dans les DEUX sens : abaisser encore le plancher (Trixie
+    voudra 3.13) fera tomber ce test tant que les documents n'auront pas suivi.
+    """
+    declare = tomllib.loads((RACINE / "pyproject.toml").read_text(encoding="utf-8"))
+    plancher = declare["project"]["requires-python"].lstrip(">=")
+
+    annonces = set(re.findall(r"Python (\d+\.\d+)", document.read_text(encoding="utf-8")))
+    assert annonces, f"{document.name} n'annonce plus aucune version de Python"
+    assert annonces == {plancher}, (
+        f"{document.name} annonce Python {' et '.join(sorted(annonces))}, "
+        f"le plancher déclaré dans pyproject.toml est {plancher}"
     )
 
 

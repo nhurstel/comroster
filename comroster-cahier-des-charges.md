@@ -251,7 +251,7 @@ CSS.
   tolérable. Un octet corrompu ne doit pas empêcher le boîtier de démarrer.
 - **Performance** : mode performance qui coupe animations et transitions.
 - **Accessibilité** : contraste AA vérifié par mesure, palette bornée pour le garantir.
-- **Portabilité** : Python 3.12, Flask, dépendances minimales, aucun SGBD.
+- **Portabilité** : Python 3.11+, Flask, dépendances minimales, aucun SGBD.
 - **Déploiement** : systemd + gunicorn (1 worker, gthread) ; `proxy_buffering off` si
   reverse proxy.
 
@@ -321,7 +321,7 @@ Pour obtenir la liste exacte :
 
 | Couche | Choix |
 |--------|-------|
-| Backend | **Flask**, Python 3.12 |
+| Backend | **Flask**, Python 3.11+ |
 | Temps réel | **Server-Sent Events** — flux unidirectionnel, reconnexion native, passe les proxies |
 | Persistance | **Fichiers JSON + écriture atomique**, aucun SGBD |
 | Frontend admin | HTML rendu serveur + **JS vanilla**, glisser-déposer **HTML5 natif** |
@@ -402,8 +402,14 @@ antenne Bolero, réseau, marque blanche, kiosk et version visible.
 
 ### 10.7 Acceptation
 
-Toutes les fonctions listées en §4 sont livrées et couvertes. État au 2026-08-11 :
-**553 tests unitaires · 67 bout-en-bout · 43 JavaScript · lint propre**, CI verte.
+Toutes les fonctions listées en §4 sont livrées et couvertes : unitaires, bout-en-bout
+Playwright, JavaScript, lint, sur une matrice Python 3.11 → 3.14.
+
+> Les compteurs de tests ont été retirés de ce paragraphe le 2026-08-20. Ils y étaient
+> figés au 2026-08-11 (553 · 67) alors que les suites en comptaient 607 et 76 : un nombre
+> qui change à chaque lot ne se maintient pas à la main, et un cahier des charges se juge
+> sur ce qu'il affirme du PRODUIT. Le compte du jour se lit en lançant les suites ; ce que
+> ce document doit garantir, c'est qu'elles existent et qu'elles passent.
 
 Deux points restent du ressort de l'œil et non des tests : la composition de la feuille
 imprimée et celle des écrans de connexion. Ils ont été jugés et validés le 2026-08-09.
